@@ -27,7 +27,7 @@ button:disabled{opacity:.45;cursor:default} button:focus-visible{outline:2px sol
 input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 7px}
 input:focus,select:focus{outline:2px solid var(--sel)}
 label.ck{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut);white-space:nowrap;cursor:pointer}
-.app{display:grid;grid-template-rows:auto 1fr;height:100%}
+.app{display:grid;grid-template-rows:auto auto 1fr;height:100%}
 .top{display:flex;align-items:center;gap:7px;padding:8px max(10px,env(safe-area-inset-left,0));background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
 .brand{font-weight:700;font-size:16px;white-space:nowrap}.brand b{color:var(--accent2)}
 .sep{width:1px;align-self:stretch;background:var(--line);margin:0 2px}
@@ -218,3 +218,30 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 @media (max-width:760px){.pr{flex-direction:column}.pr-side{width:auto;border-right:0;border-bottom:1px solid var(--line);max-height:45%}}
 .pr-pages{position:absolute;inset:0;overflow:auto;padding:16px;display:flex;flex-direction:column;align-items:center;gap:14px}
 .pr-pages canvas{background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.4);max-width:100%}
+/* sauvegarde (v21) */
+.chip.err{color:var(--accent2);font-weight:600}
+.bkp{font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--mut);cursor:pointer;white-space:nowrap}
+.bkp.warn{color:var(--warn);border-color:var(--warn)}
+.ch-bkp{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.ch-bkp .ok{color:var(--ok)}
+.save-alert{border-color:var(--accent2)!important;top:12px;left:50%;right:auto;transform:translateX(-50%)}
+/* barre d'outils (v21) : icônes + libellés, appareils dessinés avec leur symbole, menu Affichage */
+.tb{display:inline-flex;align-items:center;gap:4px;padding:5px 8px}
+.ti{width:16px;height:16px;flex:none;background:none}
+.palette .pb{padding:3px 4px;line-height:0}
+.ticon{width:22px;height:22px;background:none}
+.ticon .gy{fill:var(--panel);stroke:var(--accent);stroke-width:.14}.ticon .gf{fill:var(--accent);stroke:var(--accent);stroke-width:.14}
+.ticon .gs{stroke:var(--accent);stroke-width:.16;fill:none}.ticon .gl{fill:var(--accent);font:700 .78px var(--fm);text-anchor:middle}
+.ticon .glw{fill:#fff;font:700 .72px var(--fm);text-anchor:middle}
+.palette .pb.on .gy{fill:var(--accent2)}
+.pop{position:relative}
+.pop-body{position:absolute;right:0;top:calc(100% + 6px);z-index:30;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:9px;min-width:240px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.pop-body[hidden]{display:none}
+.pop-body .slider{justify-content:space-between}
+.pop-body button{text-align:left}
+@media (max-width:1240px){.tb .tl{display:none}.tb{padding:5px 7px}}
+/* panneau Propriétés : les champs ne débordent plus */
+.prop{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.field input,.field select{min-width:0;width:100%;box-sizing:border-box}
+.top2{display:flex;align-items:center;gap:7px;padding:5px max(10px,env(safe-area-inset-left,0));background:var(--panel);border-bottom:1px solid var(--line)}
+.top2 .tool{flex-wrap:wrap;align-items:center}

@@ -51,10 +51,15 @@ function snapshot(){undo.push(packState());if(undo.length>80)undo.shift();redo.l
 function applyPack(s){const o=JSON.parse(s);["nodes","segs","rooms","app","lia","openings","dims"].forEach(k=>state[k]=o[k]||[]);if(o.wallEp)state.wallEp=o.wallEp;sel=null}
 const KEY=CH.key;
 let saveT=null;
-function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{
-  localStorage.setItem(KEY,JSON.stringify({s:packState(),view,bg:bgLevel,sym:symCm,ortho,dims:showDims,reps:showReps,layers}));dirty=false;paintStatus();
+// enregistrement dans le navigateur ; un échec (stockage plein, navigation privée…) est SIGNALÉ, jamais silencieux
+let saveFail=null;
+const packData=()=>({s:packState(),view,bg:bgLevel,sym:symCm,ortho,dims:showDims,reps:showReps,layers});
+function writeNow(){try{
+  localStorage.setItem(KEY,JSON.stringify(packData()));dirty=false;
   CHS.update(CH.id,{updated:Date.now(),stats:{pieces:state.rooms.length,murs:state.segs.length,appareils:state.app.length}});
-}catch(e){}},400)}
+  const was=saveFail;saveFail=null;paintStatus();document.dispatchEvent(new CustomEvent("okteo:saved",{detail:{recovered:!!was}}));return true;
+}catch(e){saveFail=String(e&&e.message||e);paintStatus();document.dispatchEvent(new CustomEvent("okteo:save-error",{detail:{message:saveFail}}));return false;}}
+function save(){clearTimeout(saveT);saveT=setTimeout(writeNow,400)}
 function load(){try{const r=localStorage.getItem(KEY);if(!r)return;const o=JSON.parse(r);
   if(o.s)applyPack(o.s); if(o.view)view=o.view;
   if(typeof o.bg==="number")bgLevel=o.bg; if(typeof o.sym==="number")symCm=o.sym;
@@ -68,8 +73,10 @@ function load(){try{const r=localStorage.getItem(KEY);if(!r)return;const o=JSON.
   state.dims.forEach(d=>{const k=+String(d.id).slice(1);if(k>DID)DID=k});
 }catch(e){}}
 function markDirty(){dirty=true;save();paintStatus()}
-function paintStatus(){const d=document.getElementById("savedot"),t=document.getElementById("savetxt");
-  if(dirty){d.classList.add("dirty");t.textContent="Non synchronisé";}else{d.classList.remove("dirty");t.textContent="Enregistré";}}
+function paintStatus(){const d=document.getElementById("savedot"),t=document.getElementById("savetxt"),c=d.parentElement;
+  c.classList.toggle("err",!!saveFail);c.title=saveFail?"L'enregistrement dans le navigateur a échoué : "+saveFail+". Enregistrez le chantier en fichier (page Chantiers → Fichier).":"Le dessin s'enregistre tout seul dans ce navigateur.";
+  if(saveFail){d.classList.add("dirty");t.textContent="⚠ Non enregistré";}
+  else if(dirty){d.classList.add("dirty");t.textContent="Non synchronisé";}else{d.classList.remove("dirty");t.textContent="Enregistré";}}
 
 // ---------- vue ----------
 // la zone de dessin prend exactement les proportions de l'écran : pas de bandes, pas de décalage entre clic et affichage
@@ -93,8 +100,17 @@ function snapWorld(wx,wy,excl){const tol=tolM();let best=null,bd=tol;
 function applyOrtho(fx,fy,wx,wy){if(!ortho)return [wx,wy];return (Math.abs(wx-fx)>=Math.abs(wy-fy))?[wx,fy]:[fx,wy];}
 
 // ---------- repères auto ----------
-function repMap(){const m={},c={};
-  state.app.forEach(a=>{const fam=TYPES[a.t].r;c[fam]=(c[fam]||0)+1;m[a.id]=fam+c[fam];});return m;}
+// chaque appareil garde son numéro (a.n) dans sa famille (a.rf) : supprimer P3 ne renumérote pas P4, P5…
+// numéro manquant (nouvel appareil, ancien dessin), en double (copie) ou famille changée → le premier numéro libre au-dessus du max
+function ensureReps(){const max={},seen={};
+  state.app.forEach(a=>{const f=TYPES[a.t]?TYPES[a.t].r:"?";if(a.rf===f&&a.n>0)max[f]=Math.max(max[f]||0,a.n);});
+  state.app.forEach(a=>{const f=TYPES[a.t]?TYPES[a.t].r:"?";const k=f+"|"+a.n;
+    if(a.rf!==f||!(a.n>0)||seen[k]){a.rf=f;a.n=(max[f]||0)+1;max[f]=a.n;}seen[f+"|"+a.n]=true;});}
+function repMap(){ensureReps();const m={};state.app.forEach(a=>{m[a.id]=a.rf+a.n;});return m;}
+// renumérotation volontaire (commande) : par pièce puis de gauche à droite, de haut en bas ; un seul Ctrl+Z
+function renumberReps(){snapshot();const key=a=>{const r=roomAt(a.x,a.y);return [(r&&r.name)||"~",Math.round(a.y*2),a.x];};
+  const sorted=state.app.slice().sort((p,q)=>{const A=key(p),B=key(q);return A[0].localeCompare(B[0],"fr",{numeric:true})||A[1]-B[1]||A[2]-B[2];});
+  const c={};sorted.forEach(a=>{const f=TYPES[a.t].r;c[f]=(c[f]||0)+1;a.rf=f;a.n=c[f];});markDirty();draw();showSide();return sorted.length;}
 
 // ---------- rendu ----------
 const sv=document.getElementById("sv");
@@ -119,7 +135,7 @@ function wallIntervals(seg){const L=segLen(seg);const ops=state.openings.filter(
   if(cur<L)out.push([cur,L]);return out;}
 
 function draw(){
- syncVB();followWalls();
+ syncVB();followWalls();ensureReps();
  const s=view.scale,[bx,by]=W2V(BG.x,BG.y),ep=state.wallEp;
  let h=`<style>
   .gy{fill:var(--panel);stroke:var(--accent);stroke-width:.14}.gf{fill:var(--accent);stroke:var(--accent);stroke-width:.14}
@@ -827,11 +843,18 @@ function delSel(){
   sel=null;markDirty();draw();showSide();}
 
 // ---------- barres ----------
+// icônes des outils (traits simples, couleur du texte)
+const TI={sel:'<path d="M4 2l10 7-5 1-2 5z"/>',piece:'<rect x="3" y="4" width="12" height="10"/>',mur:'<path d="M2 12h14M2 6h14" stroke-width="2.4"/>',
+ porte:'<path d="M3 15V4h2M5 4a10 10 0 0 1 10 10"/>',fenetre:'<rect x="2" y="7" width="14" height="4"/><path d="M9 7v4"/>',offset:'<path d="M3 4v11M8 4v11M12 7h4M14 5v4"/>',
+ cote:'<path d="M2 9h14M2 6v6M16 6v6M5 9l-2 0M13 9h2"/>',pan:'<path d="M6 15c-2-2-3-5-3-7M6 15h6l2-5V5M9 9V3M12 9V4M6 9V5"/>',lien:'<path d="M3 13C6 3 12 3 15 13" stroke-dasharray="2 1.6"/>',
+ __test:'<path d="M5 3l10 6-10 6z"/>'};
+const icon=k=>`<svg class="ti" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">${TI[k]||""}</svg>`;
 function buildTools(){const t=document.getElementById("tools");
-  const base=[["sel","Sélection"],["piece","Pièce"],["mur","Mur"],["porte","Porte"],["fenetre","Fenêtre"],["offset","∥ Cloison"],["cote","Cote"],["pan","Main"],["lien","Liaison"]];
-  let h=base.map(([k,n])=>`<button data-tool="${k}" class="${tool===k?'on':''}">${n}</button>`).join("");
-  h+=`<button data-tool="__test" class="${testMode?'on':''}">Test</button><span class="sep"></span>`;
-  h+=`<span class="palette">`+PAL.map(k=>`<button data-tool="${k}" class="${tool===k?'on':''}" title="${TYPES[k].n}">${k==="PC16"?"16A":k==="PC20"?"20A":TYPES[k].n.split(" ")[0]}</button>`).join("")+`</span>`;
+  const base=[["sel","Sélection"],["piece","Pièce"],["mur","Mur"],["porte","Porte"],["fenetre","Fenêtre"],["offset","Cloison"],["cote","Cote"],["pan","Main"],["lien","Liaison"]];
+  let h=base.map(([k,n])=>`<button data-tool="${k}" class="tb ${tool===k?'on':''}">${icon(k)}<span class="tl">${n}</span></button>`).join("");
+  h+=`<button data-tool="__test" class="tb ${testMode?'on':''}">${icon("__test")}<span class="tl">Test</span></button><span class="sep"></span>`;
+  // appareils : le symbole tel qu'il est dessiné sur le plan (nom complet dans l'infobulle)
+  h+=`<span class="palette" role="group" aria-label="Appareils">`+PAL.map(k=>`<button data-tool="${k}" class="pb ${tool===k?'on':''}" title="${TYPES[k].n}" aria-label="${TYPES[k].n}"><svg class="ticon" viewBox="-1.25 -1.35 2.5 2.7" aria-hidden="true">${glyph(k)}</svg></button>`).join("")+`</span>`;
   t.innerHTML=h;
   t.querySelectorAll("button").forEach(btn=>btn.onclick=()=>{const v=btn.dataset.tool;resetTransient();
     if(v==="__test"){testMode=!testMode;clearSel();buildTools();setHint(testMode?"Mode test : cliquez une commande pour voir ses lumières.":"");draw();showSide();return;}
@@ -994,11 +1017,11 @@ window.okteo={
     state.app.forEach(a=>{if(!a.seg||!segById(a.seg))reattach(a);});
     clampOpenings();preview=null;resetTransient();clearSel();tool="sel";testMode=false;if(tab!=="plan")setTab("plan");buildTools();markDirty();draw();showSide();
     return {murs:sids.length,ouvertures:r.openings.length};},
-  saveNow(){clearTimeout(saveT);try{localStorage.setItem(KEY,JSON.stringify({s:packState(),view,bg:bgLevel,sym:symCm,ortho,dims:showDims,reps:showReps,layers}));dirty=false;paintStatus();
-    CHS.update(CH.id,{updated:Date.now(),stats:{pieces:state.rooms.length,murs:state.segs.length,appareils:state.app.length}});}catch(e){}},
+  saveNow(){clearTimeout(saveT);return writeNow();},
+  packData,get saveFail(){return saveFail},
   get tool(){return tool},get tab(){return tab},get testMode(){return testMode},get view(){return view},set view(v){view=v},VB,
   get selection(){return sel?[sel.kind+":"+sel.id]:[...multi]},
-  draw,showSide,fit,syncVB,snapshot,markDirty,repMap,roomAt,hintFor,setHint,buildTools,
+  draw,showSide,fit,syncVB,snapshot,markDirty,repMap,renumberReps,roomAt,hintFor,setHint,buildTools,
   setTool(v){resetTransient();tool=v;testMode=false;if(v!=="sel")clearSel();if(tab!=="plan")setTab("plan");buildTools();setHint(hintFor(v));draw();showSide();},
   toggleTest(){resetTransient();testMode=!testMode;clearSel();buildTools();setHint(testMode?"Mode test : cliquez une commande pour voir ses lumières.":"");draw();showSide();},
   setTab,

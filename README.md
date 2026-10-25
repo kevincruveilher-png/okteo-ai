@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v20** (25/10/2026) : lecture des cotes et des hauteurs du plan, contrôle de l'échelle.
+Version du prototype : **v21** (25/10/2026) : fiabilité (repères fixes, sauvegarde automatique, alerte d'enregistrement), barre d'outils revue.
 (v17 : pièces ; v16 : appareils attachés aux murs ; v15 : relevé des murs ; v14 : chantiers.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
@@ -37,7 +37,7 @@ Pour arrêter : Ctrl+C dans le terminal.
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 83 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 88 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -52,6 +52,20 @@ Ouvre le logiciel dans un navigateur invisible et fait 83 vérifications (dessin
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Sauvegarde et repères (v21)
+
+- **Sauvegarde automatique** (Chrome / Edge) : page **Chantiers** → *Sauvegarde automatique* → **Choisir le dossier de
+  sauvegarde…** (un dossier du PC ou du réseau). Une copie `.okteo` du chantier ouvert y est écrite 20 s après chaque
+  modification et quand on quitte la page. En haut à côté de « Enregistré » : « copie 19:32 ». À chaque réouverture du
+  logiciel, le navigateur redemande l'autorisation : cliquer « ⚠ copie à réactiver ».
+- Si l'enregistrement dans le navigateur échoue (stockage plein…), le voyant passe à **⚠ Non enregistré** et une alerte
+  propose **Enregistrer en fichier** tout de suite.
+- **Repères fixes** : supprimer P3 ne renumérote plus P4, P5… Une copie reçoit le numéro suivant libre.
+  Pour renuméroter proprement (pièce par pièce) : **Ctrl+K** → « Renuméroter les repères ».
+- Barre d'outils : 1re ligne = chantier, annuler, enregistrement, **Affichage ▾** (cotes, repères, fond, taille des symboles,
+  thème, export JSON), imprimer, fonctions, assistant ; 2e ligne = outils de dessin et appareils (dessinés avec leur
+  symbole, nom dans l'infobulle).
 
 ## Relever les appareils du PDF (v19)
 

@@ -451,6 +451,63 @@ try {
     return m && m.near >= 0 && moved;
   }));
 
+  console.log("Fiabilité (v21)");
+  await check("repères fixes : supprimer P2 ne renumérote pas les autres ; une copie reçoit un nouveau numéro", async () => {
+    const before = await ev(() => okteo.repMap());
+    const ids = await ev(() => { const m = okteo.repMap(), byRep = Object.fromEntries(Object.entries(m).map(([k, v]) => [v, k])); return { p2: byRep.P2, p5: byRep.P5, max: Math.max(...Object.values(m).filter((r) => /^P\d/.test(r)).map((r) => +r.slice(1))) }; });
+    await ev((id) => { okteo.select([id]); okteo.deleteSelection(); }, ids.p2);
+    const after = await ev(() => okteo.repMap());
+    const stable = after[ids.p5] === "P5" && Object.keys(after).every((k) => after[k] === before[k]);
+    await ev((id) => { okteo.select([id]); okteo.duplicate(); }, ids.p5);
+    const dup = await ev(() => { const m = okteo.repMap(), v = Object.values(m); return { uniq: new Set(v).size === v.length, n: v.filter((r) => /^P\d/.test(r)).length }; });
+    const newMax = await ev(() => Math.max(...Object.values(okteo.repMap()).filter((r) => /^P\d/.test(r)).map((r) => +r.slice(1))));
+    await ev(() => { okteo.clearSel(); okteo.undo(); okteo.undo(); });
+    const back = await ev(() => okteo.repMap()[Object.keys(okteo.repMap())[0]] !== undefined && okteo.state.app.length);
+    return stable && dup.uniq && newMax === ids.max + 1 && back === Object.keys(before).length;
+  });
+  await check("« Renuméroter les repères » (Ctrl+K) : numéros continus, pièce par pièce, un seul Ctrl+Z", async () => {
+    await ev((id) => { okteo.select([id]); okteo.deleteSelection(); }, await ev(() => Object.entries(okteo.repMap()).find(([, v]) => v === "P3")[0]));
+    await page.keyboard.press("Control+k"); await page.keyboard.type("renuméroter"); await page.keyboard.press("Enter");
+    const ok1 = await ev(() => { const P = Object.values(okteo.repMap()).filter((r) => /^P\d/.test(r)).map((r) => +r.slice(1)).sort((a, b) => a - b); return P.every((n, i) => n === i + 1); });
+    await ev(() => okteo.undo());
+    const gap = await ev(() => !Object.values(okteo.repMap()).includes("P3"));
+    await ev(() => okteo.undo());
+    return ok1 && gap;
+  });
+  await check("enregistrement impossible : alerte visible + « Enregistrer en fichier » ; disparaît quand ça remarche", async () => {
+    await ev(() => { window.__set = Storage.prototype.setItem; Storage.prototype.setItem = function (k, v) { if (k === okteo.ch.key) throw new Error("QuotaExceededError"); return window.__set.call(this, k, v); }; });
+    await ev(() => { okteo.snapshot(); okteo.state.app[0].h = 31; okteo.markDirty(); okteo.draw(); });
+    await page.waitForSelector("#save-alert:not([hidden])", { timeout: 5000 });
+    const chip = await page.textContent("#savetxt");
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#sa-file")]);
+    const j = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
+    const live = j.dessin && JSON.parse(j.dessin.s).app[0].h === 31;
+    await ev(() => { Storage.prototype.setItem = window.__set; okteo.undo(); });
+    await page.waitForFunction(() => document.querySelector("#savetxt").textContent === "Enregistré", null, { timeout: 5000 });
+    return chip.includes("Non enregistré") && live && dl.suggestedFilename().endsWith(".okteo") && (await page.isHidden("#save-alert"));
+  });
+  await check("sauvegarde automatique dans un dossier : copie .okteo écrite, état affiché en haut", async () => {
+    await ev(async () => { const d = await navigator.storage.getDirectory(); await okteoExt.backup.setDir(d, { remember: false }); });
+    const r = await ev(async () => {
+      const d = await navigator.storage.getDirectory(); let f = null;
+      for await (const [name, h] of d.entries()) if (name.endsWith(".okteo")) f = await (await h.getFile()).text();
+      const j = f && JSON.parse(f); return { ok: !!j && j.format === "okteo-chantier" && JSON.parse(j.dessin.s).app.length === okteo.state.app.length, st: okteoExt.backup.status() };
+    });
+    const chip = await page.textContent("#bkp");
+    await ev(() => okteoExt.backup.stop());
+    return r.ok && r.st.active && /copie \d\d:\d\d/.test(chip);
+  });
+  await check("panneau Propriétés : aucun champ ne dépasse ; menu Affichage ; appareils dessinés avec leur symbole", async () => {
+    const id = await ev(() => okteo.state.app.find((a) => a.seg).id);
+    await ev((id) => okteo.select([id]), id);
+    const over = await ev(() => { const R = document.querySelector("#side").getBoundingClientRect(); return [...document.querySelectorAll("#sidebody input, #sidebody select")].filter((e) => e.getBoundingClientRect().right > R.right + 0.5).length; });
+    await ev(() => okteo.clearSel());
+    await page.click("#btn-view"); const vis = await page.isVisible("#dims"); await page.keyboard.press("Escape");
+    const hid = await page.isHidden("#dims");
+    const glyphs = await ev(() => [...document.querySelectorAll(".palette .pb")].every((b) => b.querySelector("svg.ticon") && b.getAttribute("aria-label")));
+    return over === 0 && vis && hid && glyphs;
+  });
+
   console.log("Impression PDF");
   let pdfBytes = null, lay = null, geoW = 0;
   await check("Ctrl+P : aperçu du PDF, format et échelle choisis automatiquement", async () => {

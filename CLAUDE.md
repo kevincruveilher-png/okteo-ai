@@ -75,11 +75,18 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   la fin. `readDigits` / `parseDeviceLabel` (intensité 10/16/20/32, hauteur). `pageTexts` calcule le milieu et l'angle dans
   le repère du PDF puis les convertit (page tournée !). « 16A » et « H:1.20m » séparés sont réunis. Contrôle d'échelle :
   `chantierScaleCheck(api)` (pdf-page.js) dans la carte du relevé des murs, bouton « Corriger » = `applyCalib`.
+- Fiabilité (v21) : repères fixes `a.n` + famille `a.rf` (`ensureReps()` dans `draw` : numéro manquant, en double ou
+  famille changée → max+1) ; `okteo.renumberReps()` (commande Ctrl+K). Enregistrement : `writeNow()` signale l'échec
+  (`okteo:save-error`, voyant « ⚠ Non enregistré ») et le succès (`okteo:saved`) ; `okteo.packData()` = données vivantes.
+  `src/ext/okteo-file.js` (buildOkteo/download/fileName, partagé) ; `src/ext/backup.js` : stockage persistant, dossier
+  de sauvegarde (File System Access, handle dans IndexedDB `backup:dir`, permission redemandée à chaque session),
+  copie 20 s après `okteo:saved`, alerte d'échec. Barre d'outils sur 2 lignes (`.top` / `.top2 #tools`), icônes `TI`,
+  appareils = `glyph(t)` dans `.ticon`, menu `#pop-view` (Affichage) qui contient dims/reps/bg/sym/theme/export.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/walls.test.mjs` (23 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (60 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (65 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

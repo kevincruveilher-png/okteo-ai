@@ -37,6 +37,7 @@ export function buildCatalog(api, hooks) {
     const ty = api.TYPES[t];
     add("Appareils", "app." + t, "Poser : " + ty.n, keysOf[t] || "", "L'outil reste actif : chaque clic pose un appareil. Près d'un mur, il s'y colle tout seul." + (ty.h ? ` Hauteur par défaut ${ty.h} cm.` : ""), T(t));
   }
+  add("Appareils", "app.renumber", "Renuméroter les repères", "", "Les repères (P1, I3, L2…) sont fixes : supprimer P3 ne renumérote pas les suivants. Cette commande les renumérote proprement, pièce par pièce, de gauche à droite et de haut en bas (Ctrl+Z pour annuler).", () => { const n = api.renumberReps(); api.setHint(`${n} repères renumérotés pièce par pièce. Ctrl+Z pour annuler.`); });
   add("Appareils", "help.distance", "Poser à une distance exacte de l'angle", "chiffres + Entrée", "Avec un outil d'appareil mural, approcher le mur puis taper la distance en cm (ex. 30) et Entrée : l'appareil est posé à 30 cm de la face intérieure du mur d'angle le plus proche.", T("PC16"));
   add("Appareils", "help.attache", "Appareils attachés à leur mur", "", "Une prise ou un interrupteur posé contre un mur le suit : mur déplacé, tourné, allongé ou épaissi, l'appareil garde sa distance à l'angle (mesurée depuis la face du mur d'angle). Supprimer un mur qui porte des appareils : Oktéo demande s'il faut les supprimer ou les garder détachés.");
   add("Appareils", "help.serie", "Poser une série équirépartie", "", "Sélectionner un appareil, dans son menu taper le nombre (×3…) puis « Série », et cliquer le point d'arrivée.");

@@ -123,10 +123,25 @@ l'assistant peut agir seul quand on le lui demande.
   avec « Corriger l'échelle ». Bug corrigé au passage : l'angle des textes ignorait la rotation de la page.
 - Tests : 23 + 60 = 83.
 
-## PROCHAINE MISE À JOUR (v21) — à choisir
-Pistes : appliques (demi-cercles dans les murs extérieurs) ; murs non grisés (cloisons en traits fins : WC/Dgt) ; étages ;
-symboles par pavillonneur (après réception d'autres PDF) ; accrochages fins, scinder/fusionner un mur ; parcours
-« Premiers pas ». Puis le câblage (boîtes, bandes, SPV) — règles à Kévin.
+## Analyse complète (25/10/2026)
+Défauts relevés par Claude, classés : graves (stockage navigateur seul et échec silencieux ; repères renumérotés ;
+relevés testés sur un seul pavillonneur ; WC/Dgt fondus dans le séjour), relevé incomplet (appliques, tableau, BP,
+hauteurs des interrupteurs, liaisons groupées, étages), interface (panneau qui déborde, barre trop chargée, plan illisible
+en vue d'ensemble, menu flottant qui masque, pas de « Premiers pas »), technique (app.js trop dense, relais IA seulement
+en mode dev, clés en clair, tests centrés EVRARD). Ordre : v21 fiabilité, v22 cloisons fines + appliques/tableau/BP,
+v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF d'autres pavillonneurs.
+
+## Version 21 (25/10/2026) — livrée : fiabilité
+- Repères fixes (numéro stocké sur l'appareil) ; commande « Renuméroter les repères » (pièce par pièce).
+- Enregistrement : échec signalé (voyant « ⚠ Non enregistré » + alerte « Enregistrer en fichier »), stockage persistant
+  demandé au navigateur, sauvegarde automatique .okteo dans un dossier choisi (Chrome/Edge), état « copie HH:MM » en haut.
+- Panneau Propriétés : plus de champs coupés. Barre d'outils sur 2 lignes avec icônes, appareils dessinés avec leur
+  symbole, menu « Affichage » (cotes, repères, fond, symboles, thème, export JSON).
+- Tests : 23 + 65 = 88.
+
+## PROCHAINE MISE À JOUR (v22)
+Cloisons en traits fins (WC/Dgt), appliques (demi-cercles), tableau électrique, boutons poussoirs. Puis v23 lisibilité
+(anti-chevauchement noms/repères/liaisons à l'écran et à l'impression), étages, découpage d'app.js, câblage.
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.

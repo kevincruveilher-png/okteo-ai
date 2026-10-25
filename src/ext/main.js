@@ -11,6 +11,7 @@ import { createWallsTool } from "./walls-ui.js";
 import { createRoomsTool } from "./rooms-ui.js";
 import { createPrintTool } from "./print-ui.js";
 import { createDevicesTool } from "./devices-ui.js";
+import { initBackup } from "./backup.js";
 
 function start() {
   const api = window.okteo;
@@ -65,6 +66,12 @@ function start() {
 
   // ---------- barre du haut ----------
   document.getElementById("btn-palette").onclick = () => palette.open();
+  // menu « Affichage » : s'ouvre au clic, se ferme au clic ailleurs ou avec Échap
+  const pop = document.getElementById("pop-view"), popBtn = document.getElementById("btn-view"), popBody = pop.querySelector(".pop-body");
+  const setPop = (open) => { popBody.hidden = !open; popBtn.setAttribute("aria-expanded", String(open)); popBtn.classList.toggle("on", open); };
+  popBtn.onclick = (e) => { e.stopPropagation(); setPop(popBody.hidden); };
+  document.addEventListener("pointerdown", (e) => { if (!popBody.hidden && !pop.contains(e.target)) setPop(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !popBody.hidden) setPop(false); });
   document.getElementById("btn-print").onclick = () => printer.open();
   document.getElementById("btn-assistant").onclick = () => { panel.toggle("assistant"); if (panel.state.pane === "assistant" && !panel.state.collapsed) assistant.focus(); };
 
@@ -81,7 +88,8 @@ function start() {
   serverStatus().then((st) => settings.setEnv({ online: !!st.online, anthropic: !!st.anthropic, nvidia: !!st.nvidia }));
 
   // accès pour les tests et le débogage
-  window.okteoExt = { panel, palette, assistant, catalog, settings, walls, rooms, devices, printer };
+  window.okteoExt = { panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, backup: null };
+  initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 
 if (window.okteo) start(); else document.addEventListener("okteo:ready", start, { once: true });

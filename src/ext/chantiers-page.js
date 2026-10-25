@@ -4,10 +4,10 @@
 import * as CHS from "../chantiers.js";
 import { isPdf, isImage, openPdf, pdfThumbs, renderPdfPage, loadImage } from "./fond-import.js";
 import { esc, norm } from "./util.js";
+import { buildOkteo, dataURLToBlob, download, fileName } from "./okteo-file.js";
+import { backupBox, wireBackupBox, onChange as onBackupChange } from "./backup.js";
 
 const fmtDate = (t) => (t ? new Date(t).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
-const blobToDataURL = (b) => new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(b); });
-const dataURLToBlob = async (u) => (await fetch(u)).blob();
 
 export function openChantier(id, reload = () => location.reload()) { CHS.setCurrent(id); reload(); }
 
@@ -93,13 +93,19 @@ export function mountChantiers(el, { api }) {
         <table class="ch-list"><thead><tr><th>Chantier</th><th>N°</th><th>Pavillonneur</th><th>Modifié</th><th>Contenu</th><th></th></tr></thead>
         <tbody>${shown.map(row).join("") || `<tr><td colspan="6" class="mut">Aucun chantier ne correspond.</td></tr>`}</tbody></table>
         <p class="mut">Les chantiers sont enregistrés dans ce navigateur, sur ce PC. Le bouton <b>Fichier</b> en fait une copie (.okteo) à ranger sur le réseau ou à transmettre.</p>
-      </section></div>`;
+      </section>
+      <div id="ch-bkp-slot">${backupBox()}</div></div>`;
     wire();
   }
+
+  // encart « Sauvegarde automatique » : redessiné seul (sans toucher aux champs en cours de saisie)
+  function paintBkp() { const sl = el.querySelector("#ch-bkp-slot"); if (!sl) return; sl.innerHTML = backupBox(); wireBackupBox(sl, paintBkp); }
+  onBackupChange(paintBkp);
 
   function err(msg) { const e = el.querySelector("#nf-err"); if (e) { e.hidden = !msg; e.textContent = msg || ""; } }
 
   function wire() {
+    paintBkp();
     el.querySelectorAll(".ch-cur input[data-f]").forEach((inp) => (inp.onchange = () => {
       const v = inp.value.trim(); if (inp.dataset.f === "nom" && !v) { inp.value = cur.nom; return; }
       cur[inp.dataset.f] = v; CHS.update(cur.id, { [inp.dataset.f]: v });
@@ -189,20 +195,7 @@ export function mountChantiers(el, { api }) {
   }
 
   async function exportFile(c) {
-    const out = { format: "okteo-chantier", version: 1, exporte: new Date().toISOString(), chantier: { ...c, key: undefined }, dessin: CHS.readData(c), fond: null };
-    if (c.fond) {
-      out.fond = { ...c.fond };
-      if (c.fond.src === "idb") {
-        const f = await CHS.getFile("fond:" + c.id); if (f) out.fond.image = await blobToDataURL(f);
-        const p = await CHS.getFile("pdf:" + c.id); if (p) out.fond.pdf = await blobToDataURL(p);
-      }
-    }
-    const blob = new Blob([JSON.stringify(out)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${c.nom}${c.numero ? "_" + c.numero : ""}.okteo`.replace(/[\\/:*?"<>|]+/g, "_");
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    download(await buildOkteo(c, c.id === cur.id ? api.packData() : null), fileName(c));
   }
 
   async function importFile(file) {
