@@ -1,0 +1,7 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Lancer Oktéo AI", "type": "npm", "script": "dev", "isBackground": true, "problemMatcher": [], "group": { "kind": "build", "isDefault": true } },
+    { "label": "Vérifier le code", "type": "npm", "script": "check", "problemMatcher": [] }
+  ]
+}

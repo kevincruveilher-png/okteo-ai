@@ -1,0 +1,5 @@
+# fins de ligne identiques sous Windows et Linux
+* text=auto eol=lf
+*.pdf binary
+*.jpg binary
+*.png binary
