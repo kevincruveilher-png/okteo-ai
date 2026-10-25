@@ -16,17 +16,38 @@ avec une valeur de base modifiable.
    - les boîtes sont **placées automatiquement pour économiser au maximum le cuivre**, puis **déplaçables** à la main.
 4. **SPV pour Counter** : plus tard.
 
-## Questions en attente (posées le 25/10/2026)
+## Réponses de Kévin (25/10/2026, suite)
 
-Voir la conversation du 25/10 ; les réponses seront reportées ici.
+1. **Emplacement** : boîtes dans les combles / faux plafond au-dessus des pièces, gaines qui descendent dans les murs
+   jusqu'aux appareils ; en R+1, boîtes du RDC dans le plancher de l'étage.
+2. **Départs** : **6 par face** au maximum, **18 au total** par boîte (réglables).
+3. **Faces** : A = haut du plan, B = droite, C = bas, D = gauche (sens horaire).
+4. **Tableau** : chaque boîte a son **alimentation** depuis le tableau ; les circuits spécialisés (four, plaque,
+   lave-linge…) sont des **lignes directes** tableau → appareil, sans boîte.
+5. **Circuits** : répartition automatique selon la NF C 15-100, modifiable (≤ 8 prises 16 A en 2,5 mm² ; ≤ 8 points
+   lumineux en 1,5 mm² ; un circuit par prise spécialisée).
+6. **Couleurs** : phase rouge, neutre bleu, terre vert/jaune, retour lampe orange, navettes violet et noir.
+7. **Diamètre de gaine** : c'est une question de **place occupée** (addition des sections des fils) :
+   5 fils de 1,5 mm² → Ø16 ; au-delà → Ø20 ; 4 fils de 1,5 + 1 fil de 2,5 → Ø20.
+   → règle retenue : surface occupée par les fils (diamètre extérieur des conducteurs H07V-U) comparée à la surface
+   intérieure de la gaine, avec un taux de remplissage maximum réglable, calé sur ces exemples (Ø16 accepte 5 × 1,5 mais
+   pas 4 × 1,5 + 1 × 2,5).
+8. **Tracé** : ligne droite dans les combles, légèrement arrondie → **+10 %** sur la partie horizontale.
+9. **Hauteurs et marges** : réglables (hauteur sous plafond, traversée plancher/isolation, marges boîte / appareil,
+   arrondi).
+10. **Document de câblage** : la **boîte carrée dessinée avec ses quatre faces et ses gaines** ; pour chaque gaine :
+    n°, longueur, appareil, fils (couleur, section, n° de circuit), diamètre ; les **retours lampe et les navettes sont
+    tracés** dans la boîte (d'une gaine à l'autre).
+11. **RJ45 / TV** : lignes directes (pas dans les boîtes).
+12. **Pas de modèle à reproduire** : le document est conçu pour **un câbleur débutant** qui doit pouvoir câbler la
+    boîte seul en le lisant.
 
-## Réglages proposés (valeurs de base, à confirmer)
+## Découpage prévu (une mise à jour à la fois)
 
-| Réglage | Valeur de base |
-|---|---|
-| Départs max par boîte | 18 |
-| Hauteur sous plafond | 2,50 m |
-| Marge côté boîte | 0,30 m |
-| Marge côté appareil | 0,20 m |
-| Arrondi des longueurs | au 0,10 m supérieur |
-| Faces | A = haut du plan, puis B, C, D dans le sens des aiguilles d'une montre |
+1. Réglages du câblage + circuits (répartition NF C 15-100, modifiable).
+2. Placement automatique des boîtes (économie de cuivre), boîtes déplaçables, faces A–D, 6 / 18 départs.
+3. Gaines : affectation boîte → appareil, longueurs (+10 %, descente, marges), fils (couleur, section, n° de circuit),
+   diamètre par remplissage ; alimentations de boîte et lignes directes.
+4. Schéma de boîte pour le câbleur : boîte carrée, gaines par face, fils numérotés, retours lampe et navettes tracés,
+   bornes par n° de circuit, impression.
+5. SPV pour Counter (plus tard).
