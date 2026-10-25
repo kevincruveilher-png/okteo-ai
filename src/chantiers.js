@@ -2,7 +2,7 @@
 // - la liste des chantiers (nom, numéro, pavillonneur, fond, statistiques) : localStorage "okteo.chantiers.v1"
 // - le dessin de chaque chantier : localStorage, clé propre au chantier (champ `key`)
 // - les gros fichiers (image du fond, PDF d'origine) : IndexedDB "okteo", magasin "files"
-//   clés "fond:<id>" (JPEG rendu) et "pdf:<id>" (PDF d'origine, gardé pour le futur relevé automatique des murs)
+//   clés "fond:<id>" (JPEG rendu) et "pdf:<id>" (PDF d'origine) pour le RDC, "fond:<id>@<niveau>" pour les autres niveaux
 
 export const IDX = "okteo.chantiers.v1", CUR = "okteo.current";
 const K0 = 13.0 / 841; // échelle connue du fond EVRARD (m par pixel)
@@ -29,8 +29,21 @@ export function current() { const l = list(); return l.find((c) => c.id === loca
 export function setCurrent(id) { try { localStorage.setItem(CUR, id); } catch { /* */ } }
 export function update(id, patch) {
   const l = list(); const i = l.findIndex((c) => c.id === id); if (i < 0) return null;
-  l[i] = { ...l[i], ...patch }; saveList(l); return l[i];
+  const c = { ...l[i], ...patch };
+  // le fond appartient au niveau ouvert : on le recopie dans la liste des niveaux
+  if ("fond" in patch) c.levels = levelsOf(c).map((v) => (v.id === (c.level || "rdc") ? { ...v, fond: patch.fond } : v));
+  l[i] = c; saveList(l); return l[i];
 }
+
+// ---------- niveaux (RDC, R+1, combles…) ----------
+// meta.levels = [{id, name, fond}] ; meta.level = niveau ouvert ; meta.fond = fond du niveau ouvert (copie)
+export function levelsOf(meta) {
+  if (Array.isArray(meta.levels) && meta.levels.length) return meta.levels;
+  return [{ id: "rdc", name: "RDC", fond: meta.fond || null }];
+}
+// clés IndexedDB du fond et du PDF d'un niveau (le RDC garde les anciennes clés)
+export const fondKey = (meta, lvl = meta.level || "rdc") => (lvl === "rdc" ? "fond:" + meta.id : `fond:${meta.id}@${lvl}`);
+export const pdfKey = (meta, lvl = meta.level || "rdc") => (lvl === "rdc" ? "pdf:" + meta.id : `pdf:${meta.id}@${lvl}`);
 export function add(meta) { const l = list(); l.push(meta); saveList(l); return meta; }
 export function remove(id) { saveList(list().filter((c) => c.id !== id)); }
 

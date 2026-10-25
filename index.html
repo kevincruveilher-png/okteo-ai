@@ -12,6 +12,7 @@
   <div class="top">
     <div class="brand">Oktéo <b>AI</b></div>
     <button class="badge" title="Chantier ouvert : cliquez pour changer de chantier">…</button>
+    <div class="levels" id="levels" role="tablist" aria-label="Niveaux"></div>
     <div class="grow"></div>
     <label class="ck" title="Force les murs et les cotes à l'horizontale ou à la verticale"><input type="checkbox" id="ortho" checked> Angles droits</label>
     <div class="pop" id="pop-view">
@@ -19,6 +20,7 @@
       <div class="pop-body" hidden>
         <label class="ck"><input type="checkbox" id="dims" checked> Cotes</label>
         <label class="ck"><input type="checkbox" id="reps" checked> Repères (P1, I2…)</label>
+        <label class="ck" title="Les murs du niveau du dessous en gris clair, pour caler ceux de l'étage"><input type="checkbox" id="below" checked> Niveau du dessous en transparence</label>
         <div class="slider" title="Visibilité du fond">Fond<input id="bg" type="range" min="0" max="100" value="60"><span id="bgv" class="num">60%</span></div>
         <div class="slider" title="Diamètre des symboles (cm)">Symboles<input id="sym" type="range" min="6" max="60" value="20"><span id="symv" class="num">20</span></div>
         <button id="theme" title="Thème clair / sombre">◐ Thème clair / sombre</button>

@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v23** (25/10/2026) : plan lisible à l'écran et à l'impression (textes sans chevauchement).
+Version du prototype : **v24** (25/10/2026) : niveaux (RDC, R+1, combles, sous-sol).
 (v17 : pièces ; v16 : appareils attachés aux murs ; v15 : relevé des murs ; v14 : chantiers.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
@@ -37,7 +37,7 @@ Pour arrêter : Ctrl+C dans le terminal.
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 96 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 100 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -52,6 +52,18 @@ Ouvre le logiciel dans un navigateur invisible et fait 96 vérifications (dessin
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Niveaux : RDC, R+1, combles (v24)
+
+- Barre des niveaux à côté du nom du chantier : clic = ouvrir le niveau, **Page ↑ / Page ↓** = niveau du dessus / dessous,
+  double-clic = renommer, **＋ Niveau** = ajouter (case « murs extérieurs » : recopie les murs épais du niveau ouvert),
+  **✕** = supprimer le niveau ouvert (confirmation dans la barre ; Ctrl+Z le rend, avec son plan).
+- Chaque niveau a **son dessin et son plan de fond** : page Chantiers → « Ajouter un fond… » sur le niveau ouvert. Si c'est
+  une autre page du même PDF, la position et l'échelle du RDC sont reprises (pas besoin de refaire l'échelle).
+- Relevé des murs, pièces et appareils : sur le niveau ouvert, avec son plan.
+- Le niveau du dessous s'affiche en gris clair (menu Affichage → « Niveau du dessous en transparence »).
+- Impression : le niveau ouvert, avec son nom dans le cartouche. Le fichier .okteo contient tous les niveaux.
+- Pas encore : liaison entre deux niveaux (va-et-vient d'escalier).
 
 ## Lisibilité du plan (v23)
 

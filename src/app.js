@@ -5,6 +5,12 @@ import { Placer, textBox, roomCandidates } from "./place.js";
 // ---------- chantier ouvert ----------
 // Un seul chantier est chargé à la fois ; changer de chantier recharge la page (état propre, annuler/rétablir compris).
 const CH=CHS.current();
+// niveaux (RDC, R+1…) : le dessin du niveau ouvert est dans `state`, les autres dans LV.data ; chacun a son fond
+if(!CH.level)CH.level="rdc";CH.levels=CHS.levelsOf(CH);
+{const L=CH.levels.find(l=>l.id===CH.level);if(!L)CH.level=CH.levels[0].id;else if(L.fond!==undefined&&JSON.stringify(L.fond)!==JSON.stringify(CH.fond))CH.fond=L.fond;}
+const LV={cur:CH.level,data:{}};
+let fondSeq=0;
+const LKEYS=["nodes","segs","rooms","app","lia","openings","dims"];
 let FOND=CH.fond&&CH.fond.src==="asset"?CH.fond.url:"";   // image du fond (URL) ; chargée depuis IndexedDB sinon
 let BG=CH.fond?{x:CH.fond.x,y:CH.fond.y,w:CH.fond.w,h:CH.fond.h}:{x:0,y:0,w:0,h:0};
 let calib=null;                                               // mise à l'échelle en cours : {a,b,cur}
@@ -26,7 +32,7 @@ const PAL=["PC16","PC20","RJ45","LUM","APP","SPOT","INT","VV","BP","VMC","SC","T
 
 let tool="piece", sel=null, testMode=false, tab="plan";
 let draftFrom=null, draftPt=null, typed="", roomDraft=null, dimDraft=null;
-let showDims=true, showReps=true;
+let showDims=true, showReps=true, showBelow=true;
 let bgLevel=0.60, symCm=20, ortho=true, gridM=0.05;
 let view={cx:PLAN.w/2,cy:PLAN.h/2,scale:1};
 const VB={w:100,h:70};
@@ -51,32 +57,38 @@ function segLen(s){const a=nodeById(s.a),b=nodeById(s.b);return a&&b?dist(a.x,a.
 function segDir(s){const a=nodeById(s.a),b=nodeById(s.b),L=segLen(s)||1;return {ux:(b.x-a.x)/L,uy:(b.y-a.y)/L,a,b,L}}
 
 // ---------- historique / persistance ----------
-function packState(){return JSON.stringify({nodes:state.nodes,segs:state.segs,rooms:state.rooms,app:state.app,lia:state.lia,openings:state.openings,dims:state.dims,wallEp:state.wallEp})}
+function packState(){const other={};for(const [id,d] of Object.entries(LV.data))if(id!==LV.cur)other[id]=d;
+  return JSON.stringify({nodes:state.nodes,segs:state.segs,rooms:state.rooms,app:state.app,lia:state.lia,openings:state.openings,dims:state.dims,wallEp:state.wallEp,level:LV.cur,other,levels:levelsNow().map(l=>({id:l.id,name:l.name}))})}
 let batching=false;
 function snapshot(){if(batching)return;undo.push(packState());if(undo.length>80)undo.shift();redo.length=0}
-function applyPack(s){const o=JSON.parse(s);["nodes","segs","rooms","app","lia","openings","dims"].forEach(k=>state[k]=o[k]||[]);if(o.wallEp)state.wallEp=o.wallEp;sel=null}
+function applyPack(s){const o=JSON.parse(s);LKEYS.forEach(k=>state[k]=o[k]||[]);if(o.wallEp)state.wallEp=o.wallEp;sel=null;
+  LV.data=o.other||{};
+  // liste des niveaux (noms, ordre) reprise de l'historique ; le fond de chaque niveau reste celui enregistré
+  if(Array.isArray(o.levels)&&o.levels.length){const now=levelsNow(),byId={...((CHS.get(CH.id)||CH).levelsTrash||{}),...Object.fromEntries(now.map(l=>[l.id,l]))};
+    const next=o.levels.map(l=>({...(byId[l.id]||{fond:null}),id:l.id,name:l.name}));
+    if(JSON.stringify(next.map(l=>[l.id,l.name]))!==JSON.stringify(now.map(l=>[l.id,l.name]))){Object.assign(CH,CHS.update(CH.id,{levels:next})||{});CH.levels=CHS.levelsOf(CH);document.dispatchEvent(new CustomEvent("okteo:level",{detail:{id:LV.cur}}));}}
+  const lv=o.level||LV.cur;if(lv!==LV.cur){LV.cur=lv;if(CH.levels.some(l=>l.id===lv))applyLevelFond();}}
 const KEY=CH.key;
 let saveT=null;
 // enregistrement dans le navigateur ; un échec (stockage plein, navigation privée…) est SIGNALÉ, jamais silencieux
 let saveFail=null;
-const packData=()=>({s:packState(),view,bg:bgLevel,sym:symCm,ortho,dims:showDims,reps:showReps,layers});
+const packData=()=>({s:packState(),view,bg:bgLevel,sym:symCm,ortho,dims:showDims,reps:showReps,below:showBelow,layers});
 function writeNow(){try{
   localStorage.setItem(KEY,JSON.stringify(packData()));dirty=false;
-  CHS.update(CH.id,{updated:Date.now(),stats:{pieces:state.rooms.length,murs:state.segs.length,appareils:state.app.length}});
+  const all=[state,...Object.entries(LV.data).filter(([id])=>id!==LV.cur).map(([,d])=>d)],sum=k=>all.reduce((n,d)=>n+((d[k]||[]).length),0);
+  CHS.update(CH.id,{updated:Date.now(),stats:{pieces:sum("rooms"),murs:sum("segs"),appareils:sum("app"),niveaux:CH.levels.length}});
   const was=saveFail;saveFail=null;paintStatus();document.dispatchEvent(new CustomEvent("okteo:saved",{detail:{recovered:!!was}}));return true;
 }catch(e){saveFail=String(e&&e.message||e);paintStatus();document.dispatchEvent(new CustomEvent("okteo:save-error",{detail:{message:saveFail}}));return false;}}
 function save(){clearTimeout(saveT);saveT=setTimeout(writeNow,400)}
+// identifiants uniques sur TOUS les niveaux (un appareil garde son identifiant d'un niveau à l'autre)
+function bumpIds(){const all=[state,...Object.values(LV.data)];const mx=(arr,cur)=>{(arr||[]).forEach(o=>{const k=+String(o.id).slice(1);if(k>cur)cur=k;});return cur;};
+  all.forEach(d=>{NID=mx(d.nodes,NID);SID=mx(d.segs,SID);AID=mx(d.app,AID);RID=mx(d.rooms,RID);OID=mx(d.openings,OID);DID=mx(d.dims,DID);});}
 function load(){try{const r=localStorage.getItem(KEY);if(!r)return;const o=JSON.parse(r);
   if(o.s)applyPack(o.s); if(o.view)view=o.view;
   if(typeof o.bg==="number")bgLevel=o.bg; if(typeof o.sym==="number")symCm=o.sym;
   if(typeof o.ortho==="boolean")ortho=o.ortho; if(typeof o.dims==="boolean")showDims=o.dims;
-  if(typeof o.reps==="boolean")showReps=o.reps; if(o.layers)Object.assign(layers,o.layers);
-  state.nodes.forEach(n=>{const k=+String(n.id).slice(1);if(k>NID)NID=k});
-  state.segs.forEach(s=>{const k=+String(s.id).slice(1);if(k>SID)SID=k});
-  state.app.forEach(a=>{const k=+String(a.id).slice(1);if(k>AID)AID=k});
-  state.rooms.forEach(r=>{const k=+String(r.id).slice(1);if(k>RID)RID=k});
-  state.openings.forEach(o2=>{const k=+String(o2.id).slice(1);if(k>OID)OID=k});
-  state.dims.forEach(d=>{const k=+String(d.id).slice(1);if(k>DID)DID=k});
+  if(typeof o.reps==="boolean")showReps=o.reps; if(typeof o.below==="boolean")showBelow=o.below; if(o.layers)Object.assign(layers,o.layers);
+  bumpIds();
 }catch(e){}}
 function markDirty(){dirty=true;save();paintStatus()}
 function paintStatus(){const d=document.getElementById("savedot"),t=document.getElementById("savetxt"),c=d.parentElement;
@@ -156,6 +168,11 @@ function draw(){
  h+=`<g transform="translate(${VB.w/2} ${VB.h/2}) scale(${s}) translate(${-view.cx} ${-view.cy})">`;
  // groupe sélectionné (sélection multiple ou pièce) : ce qui bougera
  const GH=(multi.size>1||(sel&&sel.kind==="room"))?currentGroup():null;
+ // niveau du dessous en transparence (pour caler les murs de l'étage)
+ if(showBelow){const B=belowData();if(B&&B.segs&&B.segs.length){const N=Object.fromEntries((B.nodes||[]).map(n=>[n.id,n]));let gb="";
+   B.segs.forEach(sg=>{if(sg.virt)return;const a=N[sg.a],b=N[sg.b];if(!a||!b)return;const L=dist(a.x,a.y,b.x,b.y)||1,e=(sg.ep>0?sg.ep:state.wallEp)/2,nx=-(b.y-a.y)/L*e,ny=(b.x-a.x)/L*e;
+     gb+=`<polygon points="${a.x+nx},${a.y+ny} ${b.x+nx},${b.y+ny} ${b.x-nx},${b.y-ny} ${a.x-nx},${a.y-ny}"/>`;});
+   h+=`<g class="below" fill="var(--mut)" opacity="0.22">${gb}</g>`;}}
  // pièces
  if(layers.pieces.on){let rf="";state.rooms.forEach(r=>{const on=isSel("room",r.id)||(GH&&GH.rooms.has(r.id));
    rf+=`<polygon points="${roomPoly(r).map(p=>p.x+","+p.y).join(" ")}" fill="var(--accent)" opacity="${on?0.14:0.07}"/>`;});h+=`<g>${rf}</g>`;}
@@ -901,7 +918,7 @@ function buildTools(){const t=document.getElementById("tools");
     tool=v;testMode=false;clearSel();buildTools();setHint(hintFor(v));draw();showSide();});}
 function applyCalib(L){if(!calib||!calib.b)return false;const a=calib.a,d=dist(a.x,a.y,calib.b.x,calib.b.y);if(!(d>0)||!(L>0))return false;
   const f=L/d;BG={x:a.x+(BG.x-a.x)*f,y:a.y+(BG.y-a.y)*f,w:BG.w*f,h:BG.h*f};
-  CH.fond={...CH.fond,x:BG.x,y:BG.y,w:BG.w,h:BG.h,calibre:true};CHS.update(CH.id,{fond:CH.fond});
+  CH.fond={...CH.fond,x:BG.x,y:BG.y,w:BG.w,h:BG.h,calibre:true};CHS.update(CH.id,{fond:CH.fond});CH.levels=levelsNow();
   calib=null;sel=null;tool="sel";buildTools();fit();showSide();
   setHint("Échelle réglée : "+L.toFixed(2)+" m entre les deux points ("+(f>=1?"×":"÷")+(f>=1?f:1/f).toFixed(3)+"). Vérifiez avec l'outil Cote sur une autre dimension.");
   document.dispatchEvent(new CustomEvent("okteo:fond"));document.dispatchEvent(new CustomEvent("okteo:calibrated"));return true;}
@@ -930,6 +947,7 @@ document.getElementById("sym").addEventListener("input",e=>{symCm=+e.target.valu
 document.getElementById("ortho").addEventListener("change",e=>{ortho=e.target.checked;save();});
 document.getElementById("dims").addEventListener("change",e=>{showDims=e.target.checked;draw();save();});
 document.getElementById("reps").addEventListener("change",e=>{showReps=e.target.checked;draw();save();});
+document.getElementById("below").addEventListener("change",e=>{showBelow=e.target.checked;draw();save();});
 document.getElementById("zin").onclick=()=>{view.scale=Math.min(90,view.scale*1.15);draw();};
 document.getElementById("zout").onclick=()=>{view.scale=Math.max(2,view.scale/1.15);draw();};
 document.getElementById("zfit").onclick=fit;
@@ -977,16 +995,52 @@ document.addEventListener("keydown",e=>{if(/input|select|textarea/i.test(e.targe
 load();buildTools();buildTabs();
 document.getElementById("bg").value=Math.round(bgLevel*100);document.getElementById("bgv").textContent=Math.round(bgLevel*100)+"%";
 document.getElementById("sym").value=Math.round(symCm);document.getElementById("symv").textContent=Math.round(symCm);
-document.getElementById("ortho").checked=ortho;document.getElementById("dims").checked=showDims;document.getElementById("reps").checked=showReps;
+document.getElementById("ortho").checked=ortho;document.getElementById("dims").checked=showDims;document.getElementById("reps").checked=showReps;document.getElementById("below").checked=showBelow;
 {const bd=document.querySelector(".badge");if(bd){bd.textContent=CH.nom+(CH.numero?" · "+CH.numero:"");bd.title="Chantier ouvert ("+(CH.client||"pavillonneur ?")+") : cliquez pour changer de chantier";bd.onclick=()=>setTab("chantiers");}}
 document.title="Oktéo AI · "+CH.nom;
 fit();setHint(hintFor(tool));paintStatus();showSide();
-if(CH.fond&&CH.fond.src==="idb")CHS.getFile("fond:"+CH.id).then(bl=>{if(!bl)return;FOND=URL.createObjectURL(bl);fit();document.dispatchEvent(new CustomEvent("okteo:fond"));}).catch(()=>{});
+loadFondImage(true);
 // nouveau fond pas encore à l'échelle : on enchaîne directement sur la mise à l'échelle
 if(CH.fond&&!CH.fond.calibre){tool="calib";buildTools();setHint("Nouveau fond : "+hintFor("calib"));}
 addEventListener("resize",draw);
 // la zone de dessin change de taille quand le panneau de droite s'ouvre, se ferme ou s'élargit
 if(window.ResizeObserver)new ResizeObserver(()=>draw()).observe(document.querySelector(".stage"));
+
+// ---------- niveaux ----------
+function loadFondImage(refit){const my=++fondSeq;
+  if(FOND&&FOND.startsWith("blob:"))URL.revokeObjectURL(FOND);
+  FOND=CH.fond&&CH.fond.src==="asset"?CH.fond.url:"";BG=CH.fond?{x:CH.fond.x,y:CH.fond.y,w:CH.fond.w,h:CH.fond.h}:{x:0,y:0,w:0,h:0};
+  if(CH.fond&&CH.fond.src==="idb")CHS.getFile(CHS.fondKey(CH)).then(bl=>{if(!bl||my!==fondSeq)return;FOND=URL.createObjectURL(bl);if(refit)fit();else draw();document.dispatchEvent(new CustomEvent("okteo:fond"));}).catch(()=>{});
+  else document.dispatchEvent(new CustomEvent("okteo:fond"));}
+// le fond du niveau ouvert devient CH.fond (copie gardée dans la liste des chantiers)
+function applyLevelFond(){Object.assign(CH,CHS.update(CH.id,{level:LV.cur})||{});CH.levels=CHS.levelsOf(CH);
+  const L=CH.levels.find(l=>l.id===LV.cur);CH.level=LV.cur;CH.fond=L?L.fond||null:null;loadFondImage(false);
+  document.dispatchEvent(new CustomEvent("okteo:level",{detail:{id:LV.cur}}));}
+function stashLevel(){LV.data[LV.cur]=Object.fromEntries(LKEYS.map(k=>[k,state[k]]));}
+function switchLevel(id){if(id===LV.cur||!CH.levels.some(l=>l.id===id))return false;snapshot();resetTransient();clearSel();
+  stashLevel();const d=LV.data[id]||{};LKEYS.forEach(k=>state[k]=d[k]||[]);delete LV.data[id];LV.cur=id;
+  applyLevelFond();markDirty();fit();showSide();setHint(`Niveau « ${levelName()} ». Page ↑ / Page ↓ pour changer de niveau.`);return true;}
+const levelName=(id=LV.cur)=>(CH.levels.find(l=>l.id===id)||{}).name||id;
+// liste des niveaux telle qu'enregistrée (le fond du niveau ouvert a pu changer : mise à l'échelle…)
+function levelsNow(){return CHS.levelsOf(CHS.get(CH.id)||CH);}
+function saveLevels(levels){Object.assign(CH,CHS.update(CH.id,{levels})||{});CH.levels=CHS.levelsOf(CH);document.dispatchEvent(new CustomEvent("okteo:level",{detail:{id:LV.cur}}));}
+// niveau juste en dessous (dans l'ordre de la liste) : affiché en transparence pour caler les murs
+function belowData(){const i=CH.levels.findIndex(l=>l.id===LV.cur);if(i<=0)return null;return LV.data[CH.levels[i-1].id]||null;}
+// nouveau niveau ; withWalls : reprend les murs épais (extérieurs) du niveau ouvert
+function addLevel(name,{withWalls=false}={}){const id="l"+Date.now().toString(36);const lv=[...levelsNow(),{id,name:String(name||"Niveau").slice(0,24),fond:null}];
+  const copy=withWalls?(()=>{const max=Math.max(0,...state.segs.filter(s=>!s.virt).map(epOf));const keep=state.segs.filter(s=>!s.virt&&epOf(s)>=max*0.8);
+    const nm={},nodes=[],segs=[];keep.forEach(s=>[s.a,s.b].forEach(n=>{if(!nm[n]){const o=nodeById(n);nm[n]="n"+(++NID);nodes.push({id:nm[n],x:o.x,y:o.y});}}));
+    keep.forEach(s=>segs.push({id:"s"+(++SID),a:nm[s.a],b:nm[s.b],ep:s.ep}));return {nodes,segs};})():null;
+  snapshot();saveLevels(lv);if(copy)LV.data[id]={...copy};
+  // le nouveau niveau reprend la position et l'échelle du fond du niveau ouvert si on lui donne une autre page du même PDF
+  batching=true;try{switchLevel(id);}finally{batching=false;}return id;}
+function renameLevel(id,name){const n=String(name||"").trim().slice(0,24);if(!n)return false;saveLevels(levelsNow().map(l=>l.id===id?{...l,name:n}:l));markDirty();return true;}
+function removeLevel(id){if(CH.levels.length<2)return false;const i=CH.levels.findIndex(l=>l.id===id);if(i<0)return false;
+  snapshot();if(id===LV.cur){batching=true;try{switchLevel(CH.levels[i?i-1:1].id);}finally{batching=false;}}
+  // les fichiers et la fiche du fond restent de côté : Ctrl+Z peut rendre le niveau avec son plan
+  const gone=levelsNow().find(l=>l.id===id);CHS.update(CH.id,{levelsTrash:{...((CHS.get(CH.id)||{}).levelsTrash||{}),[id]:gone}});
+  delete LV.data[id];saveLevels(levelsNow().filter(l=>l.id!==id));
+  markDirty();draw();showSide();return true;}
 
 // ---------- interface publique (extensions : assistant, palette, paramètres ; tests) ----------
 function zoomToBox(x0,y0,x1,y1){syncVB();const pad=0.8,w=Math.max(1.5,x1-x0),h=Math.max(1.5,y1-y0);
@@ -1002,6 +1056,8 @@ function objBox(id){const k=String(id)[0];
 window.okteo={
   state,TYPES,PAL,layers,sv,
   get BG(){return BG},get FOND(){return FOND},ch:CH,
+  get levels(){return CH.levels.map(l=>({id:l.id,name:l.name,fond:!!l.fond,current:l.id===LV.cur}))},get level(){return {id:LV.cur,name:levelName()}},
+  switchLevel,addLevel,renameLevel,removeLevel,reloadFond(){loadFondImage(true);},
   chantier:(CH.nom+(CH.numero?" · "+CH.numero:"")),chantierKey:CH.id==="evrard-04949"?"evrard.04949":CH.id,
   startCalib(){resetTransient();clearSel();tool="calib";testMode=false;if(tab!=="plan")setTab("plan");buildTools();setHint(hintFor("calib"));draw();showSide();},
   applyCalib(a,b,L){calib={a,b,cur:null};return applyCalib(L);},

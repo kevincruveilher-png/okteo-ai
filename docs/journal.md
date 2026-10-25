@@ -161,9 +161,19 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
   recalcule maintenant quand le dessin change.
 - Tests : 28 + 68 = 96 (non-chevauchement à deux zooms, taille constante, mise en avant des liaisons).
 
-## PROCHAINE MISE À JOUR (v24) — à choisir
-Étages (R+1, combles) ; découpage d'app.js en modules ; parcours « Premiers pas ». Puis le câblage (boîtes, bandes, SPV)
-— règles à demander à Kévin. En attente : PDF d'autres pavillonneurs.
+## Version 24 (25/10/2026) — livrée : niveaux
+- Barre des niveaux (RDC, R+1, combles, sous-sol) : ajouter (avec les murs extérieurs du niveau ouvert), renommer,
+  supprimer (Ctrl+Z le rend avec son plan), Page ↑/↓. Chaque niveau a son dessin et son fond ; une autre page du même PDF
+  reprend position et échelle du RDC. Niveau du dessous en transparence. Impression du niveau ouvert (nom au cartouche).
+  .okteo avec tous les niveaux. Relevés automatiques par niveau.
+- Défaut corrigé pendant le développement : la liste des niveaux gardée en mémoire écrasait la mise à l'échelle du
+  fond ; on relit désormais toujours la liste enregistrée.
+- Limite : pas de liaison entre deux niveaux (va-et-vient d'escalier) ; pas d'impression de tous les niveaux d'un coup.
+- Tests : 28 + 72 = 100.
+
+## PROCHAINE MISE À JOUR (v25) — à choisir
+Liaisons entre niveaux + impression de tous les niveaux ; découpage d'app.js en modules ; parcours « Premiers pas ».
+Puis le câblage (boîtes, bandes, SPV) — règles à demander à Kévin. En attente : PDF d'autres pavillonneurs (dont un R+1).
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.

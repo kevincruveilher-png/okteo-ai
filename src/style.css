@@ -245,3 +245,11 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .field input,.field select{min-width:0;width:100%;box-sizing:border-box}
 .top2{display:flex;align-items:center;gap:7px;padding:5px max(10px,env(safe-area-inset-left,0));background:var(--panel);border-bottom:1px solid var(--line)}
 .top2 .tool{flex-wrap:wrap;align-items:center}
+/* niveaux (v24) */
+.levels{display:flex;align-items:center;gap:3px;margin-left:4px}
+.levels .lv{padding:4px 10px;font-size:12px;font-weight:600}
+.levels .lv.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.levels .lv-add,.levels .lv-x{padding:4px 8px;font-size:12px;color:var(--mut)}
+.levels .lv-form{display:flex;align-items:center;gap:5px}
+.levels .lv-form input#lv-name{width:110px;padding:4px 6px}
+.levels .lv-ask{font-size:12px;color:var(--accent2);margin-right:4px}

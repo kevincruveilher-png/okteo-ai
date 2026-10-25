@@ -12,6 +12,7 @@ import { createRoomsTool } from "./rooms-ui.js";
 import { createPrintTool } from "./print-ui.js";
 import { createDevicesTool } from "./devices-ui.js";
 import { initBackup } from "./backup.js";
+import { createLevelsBar } from "./levels.js";
 
 function start() {
   const api = window.okteo;
@@ -26,11 +27,13 @@ function start() {
     detectRooms: () => rooms.open(),
     detectDevices: () => devices.open(),
     print: () => printer.open(),
+    levels: () => levels,
   };
   const walls = createWallsTool({ api });
   const rooms = createRoomsTool({ api });
   const devices = createDevicesTool({ api });
   const printer = createPrintTool({ api });
+  const levels = createLevelsBar({ api });
   document.addEventListener("okteo:walls", () => walls.open());
   document.addEventListener("okteo:devices", () => devices.open());
   const catalog = buildCatalog(api, hooks);
@@ -88,7 +91,7 @@ function start() {
   serverStatus().then((st) => settings.setEnv({ online: !!st.online, anthropic: !!st.anthropic, nvidia: !!st.nvidia }));
 
   // accès pour les tests et le débogage
-  window.okteoExt = { panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, backup: null };
+  window.okteoExt = { panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 

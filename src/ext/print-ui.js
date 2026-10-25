@@ -85,6 +85,7 @@ export function createPrintTool({ api }) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") { e.preventDefault(); open(); return; }
     if (e.key === "Escape" && !back.hidden) close();
   });
-  function open() { if (api.tab !== "plan") api.setTab("plan"); fill(); back.hidden = false; refresh(); }
+  // le niveau imprimé est celui qui est ouvert
+  function open() { if (api.tab !== "plan") api.setTab("plan"); opts.niveau = api.level.name; fill(); back.hidden = false; refresh(); }
   return { open, close, get last() { return last; } };
 }

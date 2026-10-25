@@ -69,7 +69,7 @@ export function createWallsTool({ api }) {
     const ch = api.ch;
     if (api.tab !== "plan") api.setTab("plan");
     if (!ch.fond) return message("Ce chantier n'a pas encore de plan. Ajoutez le PDF du plan dans l'onglet Chantiers.", [{ label: "Ouvrir Chantiers", run: () => api.setTab("chantiers") }]);
-    const pdf = await CHS.getFile("pdf:" + ch.id).catch(() => null);
+    const pdf = await CHS.getFile(CHS.pdfKey(ch)).catch(() => null);
     if (!pdf) return message("Le fond de ce chantier n'est pas un PDF (c'est une image) : le relevé automatique lit les traits du PDF d'origine. Remplacez le fond par le PDF du plan (Chantiers → Changer le fond).", [{ label: "Ouvrir Chantiers", run: () => api.setTab("chantiers") }]);
     if (!ch.fond.calibre) return message("Réglez d'abord l'échelle du fond : les murs seront relevés à la bonne dimension.", [{ label: "Régler l'échelle", run: () => api.startCalib() }]);
     busy = true; show(`<p>Lecture des traits du PDF…</p>`);
@@ -87,7 +87,7 @@ export function createWallsTool({ api }) {
   // juste après la mise à l'échelle d'un plan PDF encore vide : proposer le relevé
   document.addEventListener("okteo:calibrated", async () => {
     if (api.state.segs.length) return;
-    const pdf = await CHS.getFile("pdf:" + api.ch.id).catch(() => null);
+    const pdf = await CHS.getFile(CHS.pdfKey(api.ch)).catch(() => null);
     if (pdf) message("Échelle réglée. Voulez-vous relever automatiquement les murs du plan ?", [{ label: "Relever les murs", run: open }, { label: "Plus tard", run: () => {} }]);
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !card.hidden) close(); });

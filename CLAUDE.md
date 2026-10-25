@@ -94,11 +94,18 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   longueurs de murs (masquées sans place)) et par `print.js` (mêmes règles en mm, `doc.getTextWidth`). `symView()` =
   symbole ≥ 12 px. Liaisons en largeur écran, mises en avant pour l'appareil sélectionné. La carte des pièces se recalcule
   sur `okteo:saved` (annuler/rétablir pendant qu'elle est ouverte).
+- Niveaux (v24) : meta `levels:[{id,name,fond}]`, `level` (ouvert), `fond` = copie du fond du niveau ouvert
+  (`CHS.update` recopie un `fond` dans `levels`) ; `CHS.levelsOf`, `fondKey`/`pdfKey` (RDC : anciennes clés, sinon
+  `fond:<id>@<niveau>`). Cœur : `state` = niveau ouvert, `LV.data` = autres niveaux ; `packState` inclut `level`, `other`,
+  `levels` (noms seulement : le fond n'est jamais rejoué par Ctrl+Z ; `levelsTrash` garde la fiche d'un niveau supprimé) ;
+  `switchLevel` (snapshot, fond rechargé `loadFondImage`, événement `okteo:level`), `addLevel(name,{withWalls})`,
+  `renameLevel`, `removeLevel`, `levelsNow()` (toujours relire la liste enregistrée), ids uniques sur tous les niveaux
+  (`bumpIds`), niveau du dessous en `g.below`. Interface : `src/ext/levels.js` (barre `#levels`, Page ↑/↓).
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/walls.test.mjs` (28 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (68 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (72 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

@@ -12,14 +12,15 @@ let cache = null;   // { id, page, width, segs, labels: Map(clé d'échelle → 
 // null si le chantier n'a pas de PDF ; sinon { page, width, segs, shapes }
 export async function chantierPage(api) {
   const ch = api.ch;
-  if (cache && cache.id === ch.id && cache.pageNo === (ch.fond && ch.fond.page)) return cache;
-  const pdf = await CHS.getFile("pdf:" + ch.id).catch(() => null);
+  const key = CHS.pdfKey(ch);
+  if (cache && cache.id === ch.id && cache.key === key && cache.pageNo === (ch.fond && ch.fond.page)) return cache;
+  const pdf = await CHS.getFile(key).catch(() => null);
   if (!pdf || !ch.fond) return null;
   const L = await pdfjs();
   const doc = await L.getDocument({ data: new Uint8Array(await pdf.arrayBuffer()) }).promise;
   const page = await doc.getPage(ch.fond.page || 1);
   const ex = await extractSegments(page, L.OPS);
-  cache = { id: ch.id, pageNo: ch.fond.page, page, width: ex.width, segs: ex.segs, shapes: ex.shapes, labels: new Map(), texts: null };
+  cache = { id: ch.id, key, pageNo: ch.fond.page, page, width: ex.width, segs: ex.segs, shapes: ex.shapes, labels: new Map(), texts: null };
   return cache;
 }
 

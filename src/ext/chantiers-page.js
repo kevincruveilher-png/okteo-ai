@@ -11,18 +11,18 @@ const fmtDate = (t) => (t ? new Date(t).toLocaleString("fr-FR", { day: "2-digit"
 
 export function openChantier(id, reload = () => location.reload()) { CHS.setCurrent(id); reload(); }
 
-// Prépare un fond (image + PDF d'origine) et l'enregistre pour le chantier `id`
-async function storeFond(id, file, pdfDoc, pageNo) {
+// Prépare un fond (image + PDF d'origine) et l'enregistre pour le niveau ouvert du chantier `meta`
+async function storeFond(meta, file, pdfDoc, pageNo) {
   let r;
-  if (pdfDoc) { r = await renderPdfPage(pdfDoc, pageNo); await CHS.putFile("pdf:" + id, file); }
-  else { r = await loadImage(file); await CHS.delFile("pdf:" + id).catch(() => {}); }
-  await CHS.putFile("fond:" + id, r.blob);
+  if (pdfDoc) { r = await renderPdfPage(pdfDoc, pageNo); await CHS.putFile(CHS.pdfKey(meta), file); }
+  else { r = await loadImage(file); await CHS.delFile(CHS.pdfKey(meta)).catch(() => {}); }
+  await CHS.putFile(CHS.fondKey(meta), r.blob);
   const w = r.provisionalW, h = w * r.pxH / r.pxW;
   return { src: "idb", name: file.name + (pdfDoc ? ` (page ${pageNo})` : ""), page: pdfDoc ? pageNo : null, pxW: r.pxW, pxH: r.pxH, x: 0, y: 0, w, h, calibre: false };
 }
 
 export function mountChantiers(el, { api }) {
-  const cur = CHS.current();
+  let cur = CHS.current();
   let q = "", mode = null; // mode : null | "new" | "fond"
   let pick = { file: null, doc: null, thumbs: [], page: 1, busy: "" };
   let confirmDel = null;
@@ -66,6 +66,7 @@ export function mountChantiers(el, { api }) {
   }
 
   function render() {
+    cur = CHS.current();                        // le niveau ouvert (et donc le fond) a pu changer
     const all = CHS.list().slice().sort((a, b) => (b.updated || b.created || 0) - (a.updated || a.created || 0));
     const words = norm(q).split(/\s+/).filter(Boolean);
     const shown = all.filter((c) => words.every((w) => norm(`${c.nom} ${c.numero} ${c.client}`).includes(w)));
@@ -78,7 +79,7 @@ export function mountChantiers(el, { api }) {
           <label class="f">N° de dossier<input data-f="numero" value="${esc(cur.numero || "")}"></label>
           <label class="f">Pavillonneur<input data-f="client" value="${esc(cur.client || "")}"></label>
         </div>
-        <div class="ch-fond"><span>Fond : <b>${esc(cur.fond ? cur.fond.name : "aucun")}</b> ${cur.fond ? (cur.fond.calibre ? `<span class="okk">✓ à l'échelle (${(cur.fond.w).toFixed(2)} m de large)</span>` : `<span class="warn">échelle à régler</span>`) : ""}</span>
+        <div class="ch-fond"><span>Fond du niveau « ${esc((CHS.levelsOf(cur).find((l) => l.id === (cur.level || "rdc")) || {}).name || "RDC")} » : <b>${esc(cur.fond ? cur.fond.name : "aucun")}</b>${cur.fond && cur.fond.reprise ? ` <span class="mut sm">(échelle reprise du niveau « ${esc(cur.fond.reprise)} »)</span>` : ""} ${cur.fond ? (cur.fond.calibre ? `<span class="okk">✓ à l'échelle (${(cur.fond.w).toFixed(2)} m de large)</span>` : `<span class="warn">échelle à régler</span>`) : ""}</span>
           <span class="grow"></span>
           ${cur.fond ? `<button id="ch-calib" title="Cliquer deux points d'une cote connue, puis taper sa longueur">Régler l'échelle</button>` : ""}
           ${cur.fond && cur.fond.src === "idb" && cur.fond.page ? `<button id="ch-walls" class="on" title="Relever automatiquement les murs du PDF (sans IA)">Relever les murs</button> <button id="ch-devices" title="Relever automatiquement les appareils du PDF (prises, lumières, interrupteurs…), sans IA">Relever les appareils</button>` : ""}
@@ -163,7 +164,14 @@ export function mountChantiers(el, { api }) {
     }
     ok.disabled = true; ok.textContent = "Préparation du fond…";
     try {
-      const fond = pick.file ? await storeFond(id, pick.file, pick.doc, pick.page) : null;
+      const target = meta || CHS.current();
+      let fond = pick.file ? await storeFond(target, pick.file, pick.doc, pick.page) : null;
+      // autre page du même PDF qu'un niveau déjà à l'échelle (même format) : on reprend sa position et son échelle
+      if (fond && !meta) {
+        const base = (n) => String(n || "").replace(/ \(page \d+\)$/, "");
+        const twin = CHS.levelsOf(target).find((l) => l.id !== (target.level || "rdc") && l.fond && l.fond.calibre && l.fond.pxW === fond.pxW && l.fond.pxH === fond.pxH && base(l.fond.name) === base(fond.name));
+        if (twin) fond = { ...fond, x: twin.fond.x, y: twin.fond.y, w: twin.fond.w, h: twin.fond.h, calibre: true, reprise: twin.name };
+      }
       if (meta) { meta.fond = fond; CHS.add(meta); }
       else { api.saveNow(); CHS.update(id, { fond }); }
       openChantier(id);
@@ -177,7 +185,7 @@ export function mountChantiers(el, { api }) {
     if (a === "del-no") { confirmDel = null; render(); return; }
     if (a === "del-yes") {
       try { localStorage.removeItem(c.key); localStorage.removeItem("okteo.chat." + c.id); } catch { /* */ }
-      await CHS.delFile("fond:" + id).catch(() => {}); await CHS.delFile("pdf:" + id).catch(() => {});
+      for (const l of CHS.levelsOf(c)) { await CHS.delFile(CHS.fondKey(c, l.id)).catch(() => {}); await CHS.delFile(CHS.pdfKey(c, l.id)).catch(() => {}); }
       CHS.remove(id); confirmDel = null; render(); return;
     }
     if (a === "dup") {
@@ -185,9 +193,9 @@ export function mountChantiers(el, { api }) {
       const nid = CHS.newId(c.nom + " copie", c.numero);
       const copy = { ...c, id: nid, nom: c.nom + " (copie)", key: CHS.dataKey(nid), created: Date.now(), updated: Date.now() };
       const d = CHS.readData(c); if (d) CHS.writeData(copy, d);
-      if (c.fond && c.fond.src === "idb") {
-        const f = await CHS.getFile("fond:" + id); if (f) await CHS.putFile("fond:" + nid, f);
-        const p = await CHS.getFile("pdf:" + id); if (p) await CHS.putFile("pdf:" + nid, p);
+      for (const l of CHS.levelsOf(c)) {
+        const f = await CHS.getFile(CHS.fondKey(c, l.id)).catch(() => null); if (f) await CHS.putFile(CHS.fondKey(copy, l.id), f);
+        const p = await CHS.getFile(CHS.pdfKey(c, l.id)).catch(() => null); if (p) await CHS.putFile(CHS.pdfKey(copy, l.id), p);
       }
       CHS.add(copy); render(); return;
     }
@@ -208,9 +216,14 @@ export function mountChantiers(el, { api }) {
     const meta = { ...src, id, key: CHS.dataKey(id), updated: Date.now(), fond: null };
     if (j.fond) {
       const { image, pdf, ...f } = j.fond;
-      if (image) { await CHS.putFile("fond:" + id, await dataURLToBlob(image)); f.src = "idb"; }
-      if (pdf) await CHS.putFile("pdf:" + id, await dataURLToBlob(pdf));
+      if (image) { await CHS.putFile(CHS.fondKey(meta), await dataURLToBlob(image)); f.src = "idb"; }
+      if (pdf) await CHS.putFile(CHS.pdfKey(meta), await dataURLToBlob(pdf));
       meta.fond = f;
+    }
+    // fonds des autres niveaux (fichiers .okteo v24)
+    for (const [lid, F] of Object.entries(j.fonds || {})) {
+      if (F.image) await CHS.putFile(CHS.fondKey(meta, lid), await dataURLToBlob(F.image));
+      if (F.pdf) await CHS.putFile(CHS.pdfKey(meta, lid), await dataURLToBlob(F.pdf));
     }
     if (j.dessin) CHS.writeData(meta, j.dessin);
     CHS.add(meta);

@@ -12,9 +12,17 @@ export async function buildOkteo(c, live = null) {
   if (c.fond) {
     out.fond = { ...c.fond };
     if (c.fond.src === "idb") {
-      const f = await CHS.getFile("fond:" + c.id); if (f) out.fond.image = await blobToDataURL(f);
-      const p = await CHS.getFile("pdf:" + c.id); if (p) out.fond.pdf = await blobToDataURL(p);
+      const f = await CHS.getFile(CHS.fondKey(c)); if (f) out.fond.image = await blobToDataURL(f);
+      const p = await CHS.getFile(CHS.pdfKey(c)); if (p) out.fond.pdf = await blobToDataURL(p);
     }
+  }
+  // fonds des autres niveaux
+  out.fonds = {};
+  for (const l of CHS.levelsOf(c)) {
+    if (l.id === (c.level || "rdc") || !l.fond || l.fond.src !== "idb") continue;
+    const F = {}, f = await CHS.getFile(CHS.fondKey(c, l.id)).catch(() => null), p = await CHS.getFile(CHS.pdfKey(c, l.id)).catch(() => null);
+    if (f) F.image = await blobToDataURL(f); if (p) F.pdf = await blobToDataURL(p);
+    out.fonds[l.id] = F;
   }
   return new Blob([JSON.stringify(out)], { type: "application/json" });
 }

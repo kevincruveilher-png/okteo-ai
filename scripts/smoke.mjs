@@ -543,6 +543,50 @@ try {
     return over === 0 && vis && hid && glyphs;
   });
 
+  console.log("Niveaux (v24)");
+  const rdc = await ev(() => ({ segs: okteo.state.segs.length, apps: okteo.state.app.length, rooms: okteo.state.rooms.length, w: okteo.BG.w }));
+  await check("« ＋ Niveau » : R+1 créé avec les murs extérieurs, RDC visible en transparence, sans fond", async () => {
+    await page.click("#levels .lv-add"); await page.fill("#lv-name", "R+1"); await page.click("#lv-add button.on");
+    await page.waitForFunction(() => okteo.level.name === "R+1");
+    const s1 = await ev(() => ({ segs: okteo.state.segs.length, apps: okteo.state.app.length, rooms: okteo.state.rooms.length, ghost: document.querySelectorAll("#sv g.below polygon").length, fond: okteo.BG.w, bar: [...document.querySelectorAll("#levels .lv")].map((b) => b.textContent + (b.classList.contains("on") ? "*" : "")).join(" ") }));
+    if (!(s1.segs > 4 && s1.segs < rdc.segs && s1.apps === 0 && s1.rooms === 0 && s1.ghost >= rdc.segs * 0.8 && s1.fond === 0 && s1.bar === "RDC R+1*")) throw new Error(JSON.stringify(s1));
+    return true;
+  });
+  await check("chaque niveau garde son dessin : Page ↓ / Page ↑, puis rechargement de la page", async () => {
+    await ev(() => okteo.importDevices([{ t: "LUM", x: 5, y: 3 }, { t: "PC16", x: 2, y: 2 }]));
+    await page.keyboard.press("PageDown"); await page.waitForFunction(() => okteo.level.name === "RDC");
+    const r = await ev(() => ({ apps: okteo.state.app.length, rooms: okteo.state.rooms.length, fond: okteo.BG.w }));
+    await page.waitForFunction(() => okteo.FOND && okteo.FOND.startsWith("blob:"), null, { timeout: 10000 });
+    await page.keyboard.press("PageUp"); await page.waitForFunction(() => okteo.level.name === "R+1");
+    const u = await ev(() => okteo.state.app.length);
+    await ev(() => okteo.saveNow());
+    await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);
+    const after = await ev(() => ({ lv: okteo.level.name, apps: okteo.state.app.length, ids: new Set([...okteo.state.app.map((a) => a.id)]).size }));
+    return r.apps === rdc.apps && r.rooms === rdc.rooms && Math.abs(r.fond - rdc.w) < 1e-6 && u === 2 && after.lv === "R+1" && after.apps === 2;
+  });
+  await check("fond du R+1 : autre page du même PDF → position et échelle reprises du RDC", async () => {
+    await page.click('#tabs button[data-tab="chantiers"]');
+    await page.click("#ch-fond"); await page.setInputFiles("#nf-file", "docs/plans/EVRARD_04949_plan.pdf");
+    await page.waitForSelector(".thumb", { timeout: 30000 }); await page.click('.thumb[data-page="3"]');
+    await Promise.all([page.waitForNavigation({ timeout: 60000 }), page.click("#nf-ok")]);
+    await page.waitForFunction(() => window.okteo && okteo.FOND && okteo.FOND.startsWith("blob:"), null, { timeout: 30000 });
+    const f = await ev(() => ({ lv: okteo.level.name, cal: okteo.ch.fond.calibre, rep: okteo.ch.fond.reprise, w: okteo.BG.w, tool: okteo.tool }));
+    await page.click('#tabs button[data-tab="plan"]');
+    if (!(f.lv === "R+1" && f.cal && f.rep === "RDC" && Math.abs(f.w - rdc.w) < 1e-6 && f.tool !== "calib")) throw new Error(JSON.stringify(f));
+    return true;
+  });
+  await check("renommer (double-clic), supprimer avec confirmation dans la barre, Ctrl+Z rend le niveau", async () => {
+    await page.dblclick('#levels .lv[aria-selected="true"]'); await page.fill("#lv-name", "Étage"); await page.click("#lv-ren button.on");
+    const named = await ev(() => okteo.level.name);
+    await page.click("#levels .lv-x"); await page.click("#lv-yes");
+    const one = await ev(() => ({ n: okteo.levels.length, lv: okteo.level.name, apps: okteo.state.app.length }));
+    await page.keyboard.press("Control+z");
+    await page.waitForFunction(() => okteo.levels.length === 2);
+    const back = await ev(() => okteo.levels.map((l) => l.name + (l.fond ? "+fond" : "")).join("|"));
+    await page.click('#levels .lv[data-id="rdc"]');
+    return named === "Étage" && one.n === 1 && one.lv === "RDC" && one.apps === rdc.apps && back === "RDC+fond|Étage+fond" && (await ev(() => okteo.level.name)) === "RDC";
+  });
+
   console.log("Impression PDF");
   let pdfBytes = null, lay = null, geoW = 0;
   await check("Ctrl+P : aperçu du PDF, format et échelle choisis automatiquement", async () => {
@@ -625,6 +669,7 @@ try {
     await page.click('#tabs button[data-tab="chantiers"]');
     const n0 = await nbCh();
     await page.click('.ch-list tr:has-text("EVRARD") button[data-act="dup"]');
+    await page.waitForFunction((n) => JSON.parse(localStorage.getItem("okteo.chantiers.v1")).length === n, n0 + 1, { timeout: 5000 }).catch(() => {});
     if ((await nbCh()) !== n0 + 1) throw new Error("copie absente");
     await page.click('.ch-list tr:has-text("EVRARD (copie)") button[data-act="del"]');
     await page.click('button[data-act="del-yes"]');

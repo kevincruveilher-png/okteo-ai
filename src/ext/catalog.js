@@ -9,7 +9,7 @@
 //   desc  comment s'en servir, en une ou deux phrases
 //   run   action (absente = geste ou mode d'emploi, rien à lancer)
 
-export const CATS = ["Dessiner", "Appareils", "Relier", "Sélection et édition", "Vue", "Fichier", "Aide et IA", "Gestes"];
+export const CATS = ["Dessiner", "Niveaux", "Appareils", "Relier", "Sélection et édition", "Vue", "Fichier", "Aide et IA", "Gestes"];
 
 export function buildCatalog(api, hooks) {
   const T = (id) => () => api.setTool(id);
@@ -26,6 +26,11 @@ export function buildCatalog(api, hooks) {
   add("Dessiner", "rooms.detect", "Détecter les pièces (automatique)", "", "Trouve les pièces fermées par les murs (y compris en L), leur surface habitable et leur nom lu sur le plan PDF. Aperçu, puis « Ajouter les pièces ». Proposé automatiquement après un relevé des murs.", () => hooks.detectRooms());
   add("Appareils", "devices.detect", "Relever les appareils du PDF (automatique)", "", "Lit les symboles du plan PDF (sans IA) : prises 16/20 A, RJ45, interrupteurs, va-et-vient, points lumineux, spots, sorties de câble, bouches VMC, et les liaisons commande → lumière. Aperçu, puis « Ajouter les appareils » ; les appareils muraux se collent à leur mur. Proposé après la détection des pièces.", () => hooks.detectDevices());
   add("Dessiner", "help.echelle", "Contrôle de l'échelle par les cotes du plan", "", "À l'ouverture du relevé des murs, Oktéo relit les cotes du PDF (même en police codée) et les compare aux longueurs mesurées : « ✓ Échelle confirmée » ou « ⚠ décalée de x % » avec un bouton « Corriger l'échelle » (tant qu'aucun mur n'est dessiné).", () => hooks.detectWalls());
+  add("Niveaux", "level.add", "Ajouter un niveau (R+1, combles, sous-sol)", "", "Bouton « ＋ Niveau » à côté du nom du chantier. Les murs extérieurs du niveau ouvert peuvent être recopiés. Chaque niveau a son propre plan de fond (page Chantiers → « Ajouter un fond… » ; une autre page du même PDF reprend l'échelle du RDC).", () => hooks.levels().add());
+  add("Niveaux", "level.up", "Niveau du dessus", "Page ↑", "Ouvre le niveau suivant dans la barre des niveaux.", () => hooks.levels().up());
+  add("Niveaux", "level.down", "Niveau du dessous", "Page ↓", "Ouvre le niveau précédent dans la barre des niveaux.", () => hooks.levels().down());
+  add("Niveaux", "level.rename", "Renommer le niveau", "double-clic", "Double-clic sur le nom du niveau dans la barre, ou cette commande.", () => hooks.levels().rename());
+  add("Niveaux", "help.below", "Voir le niveau du dessous en transparence", "", "Menu Affichage → « Niveau du dessous en transparence » : les murs du niveau inférieur en gris clair, pour caler ceux de l'étage (murs porteurs, trémie d'escalier).", () => api.toggle("below"));
   add("Dessiner", "help.limite", "Limite de pièce (séparer deux pièces sans mur)", "", "Pour séparer un dégagement, une cuisine ouverte… du séjour sans mur : dessiner un mur à l'endroit voulu, le sélectionner, cocher « Limite de pièce » dans son menu (pointillés, pas imprimé comme un mur). La détection des pièces en propose automatiquement aux étranglements quand deux noms du plan tombent dans la même pièce.");
   add("Dessiner", "help.epmur", "Épaisseur d'un mur", "", "Sélectionner le mur : champ « ép. » (cm) dans son menu flottant. Les murs relevés du PDF gardent leur épaisseur réelle.");
   add("Dessiner", "tool.offset", "Cloison parallèle", "", "Cliquer un mur du côté voulu, puis indiquer la distance : crée un mur parallèle.", T("offset"));
