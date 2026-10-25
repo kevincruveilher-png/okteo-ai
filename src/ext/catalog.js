@@ -35,6 +35,7 @@ export function buildCatalog(api, hooks) {
     add("Appareils", "app." + t, "Poser : " + ty.n, keysOf[t] || "", "L'outil reste actif : chaque clic pose un appareil. Près d'un mur, il s'y colle tout seul." + (ty.h ? ` Hauteur par défaut ${ty.h} cm.` : ""), T(t));
   }
   add("Appareils", "help.distance", "Poser à une distance exacte de l'angle", "chiffres + Entrée", "Avec un outil d'appareil mural, approcher le mur puis taper la distance en cm (ex. 30) et Entrée : l'appareil est posé à 30 cm de la face intérieure du mur d'angle le plus proche.", T("PC16"));
+  add("Appareils", "help.attache", "Appareils attachés à leur mur", "", "Une prise ou un interrupteur posé contre un mur le suit : mur déplacé, tourné, allongé ou épaissi, l'appareil garde sa distance à l'angle (mesurée depuis la face du mur d'angle). Supprimer un mur qui porte des appareils : Oktéo demande s'il faut les supprimer ou les garder détachés.");
   add("Appareils", "help.serie", "Poser une série équirépartie", "", "Sélectionner un appareil, dans son menu taper le nombre (×3…) puis « Série », et cliquer le point d'arrivée.");
   add("Appareils", "help.hauteur", "Changer la hauteur d'un appareil", "", "Sélectionner l'appareil : champ « h » (cm) dans son menu flottant.");
   add("Appareils", "help.taille", "Taille des symboles", "", "Curseur « App. » en haut : diamètre des symboles en cm.");

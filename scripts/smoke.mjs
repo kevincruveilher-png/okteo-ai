@@ -83,6 +83,99 @@ try {
     return (await ev(() => okteo.state.segs.length)) - before === 4;
   });
 
+  console.log("Appareils attachés aux murs");
+  // murs de la pièce tracée ci-dessus (EVRARD)
+  const wallsOf = () => ev(() => {
+    const rm = okteo.state.rooms[0], X0 = Math.min(rm.x0, rm.x1), X1 = Math.max(rm.x0, rm.x1), Y0 = Math.min(rm.y0, rm.y1), Y1 = Math.max(rm.y0, rm.y1);
+    const N = (id) => okteo.state.nodes.find((n) => n.id === id);
+    const find = (f) => okteo.state.segs.find((s) => f(N(s.a), N(s.b)))?.id;
+    const near = (a, b) => Math.abs(a - b) < 0.02;
+    return { X0, X1, Y0, Y1,
+      top: find((a, b) => near(a.y, Y0) && near(b.y, Y0)), left: find((a, b) => near(a.x, X0) && near(b.x, X0)), right: find((a, b) => near(a.x, X1) && near(b.x, X1)) };
+  });
+  const A = (id) => ev((i) => { const a = okteo.state.app.find((x) => x.id === i); return a && { x: a.x, y: a.y, seg: a.seg || null, wa: a.wa || null }; }, id);
+  const M = (id) => ev((i) => okteo.measure(i), id);
+  const dragWall = async (segId, dx, dy) => {
+    await page.keyboard.press("v");
+    const p = await ev((i) => { const s = okteo.state.segs.find((g) => g.id === i), a = okteo.state.nodes.find((n) => n.id === s.a), b = okteo.state.nodes.find((n) => n.id === s.b); return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }, segId);
+    const c0 = await ev((q) => okteo.toClient(q.x, q.y), p), c1 = await ev((q) => okteo.toClient(q.x, q.y), { x: p.x + dx, y: p.y + dy });
+    await page.mouse.move(c0.x, c0.y); await page.mouse.down(); await page.mouse.move(c1.x, c1.y, { steps: 8 }); await page.mouse.up();
+    await page.keyboard.press("Escape");
+  };
+  let W, pr, p0;
+  await check("prise posée à 30 cm de l'angle : position le long du mur mémorisée", async () => {
+    W = await wallsOf();
+    await page.keyboard.press("p");
+    const c = await ev((q) => okteo.toClient(q.x, q.y), { x: W.X0 + 0.7, y: W.Y0 + 0.2 });
+    await page.mouse.move(c.x, c.y); await page.mouse.move(c.x + 2, c.y + 1);
+    await page.keyboard.type("30"); await page.keyboard.press("Enter");
+    pr = await ev(() => okteo.state.app.at(-1).id); p0 = await A(pr);
+    const m = await M(pr);
+    return p0.seg === W.top && Math.abs(m.near - 0.30) < 0.005 && p0.wa && Math.abs(p0.wa.d - 0.30) < 0.005;
+  });
+  await check("déplacer le mur : la prise suit (50 cm) et reste à 30 cm de l'angle", async () => {
+    await dragWall(W.top, 0, -0.5);
+    const p1 = await A(pr), m = await M(pr);
+    return Math.abs((p0.y - p1.y) - 0.5) < 0.01 && Math.abs(p1.x - p0.x) < 0.01 && Math.abs(m.near - 0.30) < 0.005;
+  });
+  await check("allonger le mur par l'autre bout : la prise ne bouge pas", async () => {
+    const before = await A(pr);
+    await dragWall(W.right, 1.0, 0);
+    const p1 = await A(pr), m = await M(pr);
+    return Math.abs(p1.x - before.x) < 0.005 && Math.abs(p1.y - before.y) < 0.005 && Math.abs(m.near - 0.30) < 0.005;
+  });
+  await check("déplacer le mur d'angle : la prise garde ses 30 cm", async () => {
+    const before = await A(pr);
+    await dragWall(W.left, -0.4, 0);
+    const p1 = await A(pr), m = await M(pr);
+    return Math.abs((before.x - p1.x) - 0.4) < 0.01 && Math.abs(m.near - 0.30) < 0.005;
+  });
+  await check("épaissir le mur d'angle (20 → 30 cm) : toujours 30 cm de sa face", async () => {
+    const before = await A(pr);
+    await ev((i) => okteo.select([i]), W.left);
+    await page.waitForSelector('#hud [data-h="ep"]');
+    await page.fill('#hud [data-h="ep"]', "30"); await page.dispatchEvent('#hud [data-h="ep"]', "change");
+    await ev(() => document.activeElement && document.activeElement.blur()); await page.keyboard.press("Escape");
+    const p1 = await A(pr), m = await M(pr);
+    return Math.abs((p1.x - before.x) - 0.05) < 0.005 && Math.abs(m.near - 0.30) < 0.005;
+  });
+  await check("supprimer le mur : Oktéo demande ; « garder » laisse la prise détachée", async () => {
+    await ev((i) => okteo.select([i]), W.top);
+    await page.keyboard.press("Delete");
+    await page.waitForSelector("#sd-keep");
+    const txt = await page.textContent("#sidebody");
+    await page.click("#sd-keep");
+    const p1 = await A(pr);
+    return txt.includes("1 appareil") && p1 && p1.seg === null && !(await ev((i) => okteo.state.segs.some((s) => s.id === i), W.top));
+  });
+  await check("Ctrl+Z puis « supprimer avec ses appareils » : la prise part avec le mur", async () => {
+    await page.keyboard.press("Control+z");
+    const back = await A(pr);
+    if (!back || back.seg !== W.top) throw new Error("annulation : " + JSON.stringify(back));
+    await ev((i) => okteo.select([i]), W.top);
+    await page.keyboard.press("Delete");
+    await page.waitForSelector("#sd-all"); await page.click("#sd-all");
+    const gone = !(await A(pr));
+    await page.keyboard.press("Control+z");
+    return gone && (await A(pr)) && (await A(pr)).seg === W.top;
+  });
+  await check("tourner puis symétriser la pièce : la prise reste sur son mur, côté intérieur, à 30 cm", async () => {
+    // « à l'intérieur » = dans le cadre formé par les murs de la pièce (le rectangle de la pièce n'a pas suivi les murs déplacés)
+    const inside = async () => ev((i) => { const a = okteo.state.app.find((x) => x.id === i), rm = okteo.state.rooms[0];
+      const ns = rm.segs.flatMap((sid) => { const s = okteo.state.segs.find((g) => g.id === sid); return s ? [s.a, s.b] : []; }).map((id) => okteo.state.nodes.find((n) => n.id === id));
+      const xs = ns.map((n) => n.x), ys = ns.map((n) => n.y);
+      return a.x > Math.min(...xs) && a.x < Math.max(...xs) && a.y > Math.min(...ys) && a.y < Math.max(...ys); }, pr);
+    const rid = await ev(() => okteo.state.rooms[0].id);
+    await ev((i) => okteo.select([i]), rid);
+    await page.keyboard.press("r");
+    const r1 = (await A(pr)).seg === W.top && Math.abs((await M(pr)).near - 0.30) < 0.005 && (await inside());
+    await ev((i) => okteo.select([i]), rid);
+    await page.keyboard.press("x");
+    const r2 = (await A(pr)).seg === W.top && Math.abs((await M(pr)).near - 0.30) < 0.005 && (await inside());
+    return r1 && r2;
+  });
+  await page.keyboard.press("Escape");
+
   console.log("Fonctions (Ctrl+K) et infobulles");
   await check("infobulle de l'outil Pièce avec raccourci", async () => (await page.getAttribute('button[data-tool="piece"]', "title")).includes("(E)"));
   await check("Ctrl+K ouvre la palette", async () => { await page.keyboard.press("Control+k"); return await page.isVisible(".pal"); });

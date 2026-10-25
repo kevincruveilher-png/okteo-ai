@@ -116,7 +116,7 @@ function wallIntervals(seg){const L=segLen(seg);const ops=state.openings.filter(
   if(cur<L)out.push([cur,L]);return out;}
 
 function draw(){
- syncVB();
+ syncVB();followWalls();
  const s=view.scale,[bx,by]=W2V(BG.x,BG.y),ep=state.wallEp;
  let h=`<style>
   .gy{fill:var(--panel);stroke:var(--accent);stroke-width:.14}.gf{fill:var(--accent);stroke:var(--accent);stroke-width:.14}
@@ -136,7 +136,7 @@ function draw(){
    rf+=`<rect x="${x}" y="${y}" width="${w}" height="${hh}" fill="var(--accent)" opacity="${on?0.14:0.07}"/>`;});h+=`<g>${rf}</g>`;}
  // murs (intervalles pleins) + jonctions
  if(layers.murs.on){let mp="",jn="";
-  state.segs.forEach(seg=>{const d=segDir(seg);if(!d.a)return;const on=(sel&&sel.kind==="seg"&&sel.id===seg.id)||(GH&&GH.nodes.has(seg.a)&&GH.nodes.has(seg.b));const col=on?'var(--sel)':'var(--wall)';
+  state.segs.forEach(seg=>{const d=segDir(seg);if(!d.a)return;const on=(sel&&(sel.kind==="seg"||sel.kind==="segDelAsk")&&sel.id===seg.id)||(GH&&GH.nodes.has(seg.a)&&GH.nodes.has(seg.b));const col=on?'var(--sel)':'var(--wall)';
     const e2=epOf(seg)/2,nx=-d.uy*e2,ny=d.ux*e2;
     wallIntervals(seg).forEach(([s0,s1])=>{const ax=d.a.x+d.ux*s0,ay=d.a.y+d.uy*s0,bxp=d.a.x+d.ux*s1,byp=d.a.y+d.uy*s1;
       mp+=`<polygon points="${ax+nx},${ay+ny} ${bxp+nx},${byp+ny} ${bxp-nx},${byp-ny} ${ax-nx},${ay-ny}" fill="${col}"/>`;});});
@@ -264,6 +264,37 @@ function snapAlign(x,y,exclId){guides=[];const tol=tolM()*0.9;let rx=x,ry=y;
   return {x:rx,y:ry};}
 const wallMounted=t=>["PC16","PC20","RJ45","INT","VV","BP"].includes(t);
 
+// ---------- appareils attachés à leur mur ----------
+// a.wa = {e:"a"|"b", d, s} : distance d (m) depuis la FACE du mur d'angle côté e (le plus proche), côté s (±1) du mur.
+// Avant chaque dessin, followWalls() replace les appareils d'après a.wa : ils suivent leur mur (déplacé, tourné,
+// allongé, épaissi) et gardent leur distance à l'angle (« prise à 30 cm de l'angle » reste vrai).
+function attachOf(a){const seg=segById(a.seg);if(!seg)return null;const p=projOnSeg(a.x,a.y,seg),d=p.dir;if(!d.a||!d.L)return null;
+  const s=((a.x-p.x)*-d.uy+(a.y-p.y)*d.ux)>=0?1:-1;
+  const dA=p.t-cornerHalf(seg.a,seg.id),dB=d.L-p.t-cornerHalf(seg.b,seg.id);
+  return dA<=dB?{e:"a",d:+dA.toFixed(3),s}:{e:"b",d:+dB.toFixed(3),s};}
+function attach(a){if(!a.seg){delete a.wa;return;}const w=attachOf(a);if(w)a.wa=w;else{delete a.seg;delete a.wa;}}
+function posFromAttach(a){const seg=segById(a.seg);if(!seg||!a.wa)return null;const d=segDir(seg);if(!d.a||!d.L)return null;
+  let t=a.wa.e==="a"?a.wa.d+cornerHalf(seg.a,seg.id):d.L-a.wa.d-cornerHalf(seg.b,seg.id);t=Math.max(0,Math.min(d.L,t));
+  const off=epOf(seg)/2+0.06;
+  return {x:+(d.a.x+d.ux*t-d.uy*off*a.wa.s).toFixed(3),y:+(d.a.y+d.uy*t+d.ux*off*a.wa.s).toFixed(3)};}
+// le rectangle d'une pièce suit ses murs (déplacés, tournés, allongés)
+function followRooms(){for(const r of state.rooms){const ss=(r.segs||[]).map(segById);if(!ss.length||ss.some(s=>!s))continue;
+  const ns=ss.flatMap(s=>[nodeById(s.a),nodeById(s.b)]).filter(Boolean);if(ns.length<4)continue;
+  r.x0=Math.min(...ns.map(n=>n.x));r.x1=Math.max(...ns.map(n=>n.x));r.y0=Math.min(...ns.map(n=>n.y));r.y1=Math.max(...ns.map(n=>n.y));}}
+function followWalls(){followRooms();for(const a of state.app){if(!a.seg)continue;
+  if(!segById(a.seg)){delete a.seg;delete a.wa;continue;}                 // mur supprimé : l'appareil reste, détaché
+  if(!a.wa){a.wa=attachOf(a);if(!a.wa)continue;}                          // ancien dessin : attache calculée une fois
+  const p=posFromAttach(a);if(p){a.x=p.x;a.y=p.y;}}}
+// raccroche un appareil mural au mur le plus proche (≤ 60 cm), sinon le détache
+function reattach(a){if(!wallMounted(a.t)){delete a.seg;delete a.wa;return;}const ws=snapToWall(a.x,a.y);
+  if(ws){a.seg=ws.seg;a.x=ws.x;a.y=ws.y;attach(a);}else{delete a.seg;delete a.wa;}}
+// supprimer un mur : avec ses appareils, ou en les gardant (détachés)
+function removeSeg(id,withApps){snapshot();
+  if(withApps){const kill=new Set(state.app.filter(a=>a.seg===id).map(a=>a.id));state.app=state.app.filter(a=>!kill.has(a.id));state.lia=state.lia.filter(l=>!kill.has(l.c)&&!kill.has(l.l));}
+  else state.app.forEach(a=>{if(a.seg===id){delete a.seg;delete a.wa;}});
+  state.openings=state.openings.filter(o=>o.seg!==id);state.segs=state.segs.filter(x=>x.id!==id);cleanNodes();
+  sel=null;markDirty();draw();showSide();}
+
 // ---------- sélection multiple / groupes ----------
 const multi=new Set();                 // clés "kind:id"
 let marquee=null;                      // cadre de sélection en cours
@@ -320,7 +351,8 @@ function moveGroup(wx,wy,shift){let dx=wx-drag.sx,dy=wy-drag.sy;
   else{if(shift){if(Math.abs(dx)>=Math.abs(dy))dy=0;else dx=0;}dx=Math.round(dx/gridM)*gridM;dy=Math.round(dy/gridM)*gridM;showText("Δ "+fmtM(dx)+" ; "+fmtM(dy));}
   const o=drag.orig;
   for(const id in o.nodes){const n=nodeById(id);if(n){n.x=+(o.nodes[id].x+dx).toFixed(3);n.y=+(o.nodes[id].y+dy).toFixed(3);}}
-  for(const id in o.apps){const a=state.app.find(x=>x.id===id);if(a){a.x=+(o.apps[id].x+dx).toFixed(2);a.y=+(o.apps[id].y+dy).toFixed(2);}}
+  for(const id in o.apps){const a=state.app.find(x=>x.id===id);if(a){a.x=+(o.apps[id].x+dx).toFixed(2);a.y=+(o.apps[id].y+dy).toFixed(2);
+    if(a.seg){const s=segById(a.seg);if(!(s&&o.nodes[s.a]&&o.nodes[s.b]))reattach(a);}}}
   for(const id in o.rooms){const r=state.rooms.find(x=>x.id===id),q=o.rooms[id];if(r){r.x0=+(q.x0+dx).toFixed(3);r.x1=+(q.x1+dx).toFixed(3);r.y0=+(q.y0+dy).toFixed(3);r.y1=+(q.y1+dy).toFixed(3);}}
   for(const id in o.dims){const d=state.dims.find(x=>x.id===id),q=o.dims[id];if(d){d.a={x:q.a.x+dx,y:q.a.y+dy};d.b={x:q.b.x+dx,y:q.b.y+dy};}}
   clampOpenings();}
@@ -330,7 +362,10 @@ function transformGroup(kind){const G=currentGroup();if(groupEmpty(G))return;con
   const T=p=>{const [nx,ny]=f(p.x-c.x,p.y-c.y);return {x:+(c.x+nx).toFixed(3),y:+(c.y+ny).toFixed(3)};};
   snapshot();
   G.nodes.forEach(id=>{const n=nodeById(id);if(n){const p=T(n);n.x=p.x;n.y=p.y;}});
-  G.apps.forEach(id=>{const a=state.app.find(x=>x.id===id);if(a){const p=T(a);a.x=+p.x.toFixed(2);a.y=+p.y.toFixed(2);}});
+  // les appareils posés sur un mur transformé le suivent, même s'ils n'étaient pas sélectionnés (sinon une symétrie les mettrait du mauvais côté)
+  const onMoved=a=>{const s=a.seg&&segById(a.seg);return !!(s&&G.nodes.has(s.a)&&G.nodes.has(s.b));};
+  state.app.forEach(a=>{if(!G.apps.has(a.id)&&!onMoved(a))return;const p=T(a);a.x=+p.x.toFixed(2);a.y=+p.y.toFixed(2);
+    if(a.seg){if(onMoved(a))attach(a);else reattach(a);}});
   G.rooms.forEach(id=>{const r=state.rooms.find(x=>x.id===id);if(r){const p0=T({x:r.x0,y:r.y0}),p1=T({x:r.x1,y:r.y1});r.x0=Math.min(p0.x,p1.x);r.x1=Math.max(p0.x,p1.x);r.y0=Math.min(p0.y,p1.y);r.y1=Math.max(p0.y,p1.y);}});
   G.dims.forEach(id=>{const d=state.dims.find(x=>x.id===id);if(d){d.a=T(d.a);d.b=T(d.b);}});
   if(kind==="mx"||kind==="my")G.opens.forEach(id=>{const o=state.openings.find(x=>x.id===id);if(o)o.swing=o.swing==="int"?"ext":"int";});
@@ -350,7 +385,7 @@ function instantiateGroup(data,dx,dy){const nm={},sm={},am={};multi.clear();sel=
   data.openings.forEach(o=>{if(sm[o.seg]){const id=uidO();state.openings.push({...o,id,seg:sm[o.seg]});multi.add(mk("open",id));}});
   data.rooms.forEach(r=>{const id=uidR();const segs=(r.segs||[]).map(s=>sm[s]).filter(Boolean);
     state.rooms.push({id,name:r.name+" (copie)",x0:+(r.x0+dx).toFixed(3),y0:+(r.y0+dy).toFixed(3),x1:+(r.x1+dx).toFixed(3),y1:+(r.y1+dy).toFixed(3),segs});multi.add(mk("room",id));});
-  data.apps.forEach(a=>{const id=uidA();am[a.id]=id;const na={...a,id,x:+(a.x+dx).toFixed(2),y:+(a.y+dy).toFixed(2)};if(na.seg)na.seg=sm[na.seg];if(!na.seg)delete na.seg;state.app.push(na);multi.add(mk("app",id));});
+  data.apps.forEach(a=>{const id=uidA();am[a.id]=id;const na={...a,id,x:+(a.x+dx).toFixed(2),y:+(a.y+dy).toFixed(2)};if(na.seg)na.seg=sm[na.seg];if(!na.seg){delete na.seg;delete na.wa;}state.app.push(na);multi.add(mk("app",id));});
   data.lia.forEach(l=>{if(am[l.c]&&am[l.l])state.lia.push({c:am[l.c],l:am[l.l]});});
   data.dims.forEach(d=>{const id=uidD();state.dims.push({id,a:{x:d.a.x+dx,y:d.a.y+dy},b:{x:d.b.x+dx,y:d.b.y+dy}});multi.add(mk("dim",id));});
   normalizeSel();}
@@ -421,7 +456,7 @@ function hitAny(wx,wy){
   return null;}
 function inGroup(G,h){if(h.kind==="node")return G.nodes.has(h.id);if(h.kind==="app")return G.apps.has(h.id);if(h.kind==="open")return G.opens.has(h.id);
   if(h.kind==="dim")return G.dims.has(h.id);if(h.kind==="seg"){const s=segById(h.id);return s&&G.nodes.has(s.a)&&G.nodes.has(s.b);}return false;}
-function placeApp(t,p){const na={id:uidA(),t,x:p.x,y:p.y,h:TYPES[t].h};if(p.seg)na.seg=p.seg;state.app.push(na);return na;}
+function placeApp(t,p){const na={id:uidA(),t,x:p.x,y:p.y,h:TYPES[t].h};if(p.seg){na.seg=p.seg;attach(na);}state.app.push(na);return na;}
 
 sv.addEventListener("pointerdown",e=>{sv.setPointerCapture(e.pointerId);const [wx,wy]=evWorld(e);
   if(document.activeElement&&document.activeElement!==document.body&&document.activeElement.blur)document.activeElement.blur();
@@ -489,7 +524,7 @@ sv.addEventListener("pointermove",e=>{const [wx,wy]=evWorld(e);lastW={x:wx,y:wy}
     else if(drag.kind==="openW"){const seg=segById(drag.o.seg);const pr=projOnSeg(wx,wy,seg);
       drag.o.w=+Math.max(0.2,Math.abs(pr.t-drag.o.t)*2).toFixed(3);clampOpenings();draw();showSide();}
     else{const p=placementFor(drag.a.t,wx+drag.dx,wy+drag.dy,drag.a.id);drag.a.x=p.x;drag.a.y=p.y;
-      if(p.seg){drag.a.seg=p.seg;const m=wallMeasure(p.seg,p.x,p.y);if(m)showText(wallText(m));}else{delete drag.a.seg;hideReadout();}draw();showSide();}
+      if(p.seg){drag.a.seg=p.seg;attach(drag.a);const m=wallMeasure(p.seg,p.x,p.y);if(m)showText(wallText(m));}else{delete drag.a.seg;delete drag.a.wa;hideReadout();}draw();showSide();}
     return;}
   if(tool==="calib"&&calib&&calib.a&&!calib.b){const[bx,by]=ortho?applyOrtho(calib.a.x,calib.a.y,wx,wy):[wx,wy];calib.cur={x:bx,y:by};
     showText("Échelle actuelle : "+dist(calib.a.x,calib.a.y,bx,by).toFixed(2)+" m entre les deux points");draw();return;}
@@ -578,7 +613,7 @@ function wireHud(){hudEl.querySelectorAll("[data-h]").forEach(el=>{
     if(!sel)return;
     if(act==="h"){const a=state.app.find(x=>x.id===sel.id);run(()=>a.h=e.target.value===""?null:+e.target.value);}
     if(act==="dc"){const a=state.app.find(x=>x.id===sel.id);const m=a&&a.seg&&wallMeasure(a.seg,a.x,a.y);
-      if(m)run(()=>{const p=posOnWall(m,el.dataset.from==="A",(+e.target.value)/100);a.x=p.x;a.y=p.y;});}
+      if(m)run(()=>{const p=posOnWall(m,el.dataset.from==="A",(+e.target.value)/100);a.x=p.x;a.y=p.y;attach(a);});}
     if(act==="ep"){const s=segById(sel.id),v=+e.target.value;if(s&&v>=2&&v<=80)run(()=>{s.ep=+(v/100).toFixed(3);});}
     if(act==="L"){const s=segById(sel.id),a=nodeById(s.a),c=nodeById(s.b),d=dist(a.x,a.y,c.x,c.y)||1,nl=+e.target.value;run(()=>{c.x=+(a.x+(c.x-a.x)/d*nl).toFixed(3);c.y=+(a.y+(c.y-a.y)/d*nl).toFixed(3);clampOpenings();});}
     if(act==="name"){const r=state.rooms.find(x=>x.id===sel.id);run(()=>r.name=e.target.value||r.name);}
@@ -618,6 +653,13 @@ function wireLayers(b){b.querySelectorAll("[data-lay]").forEach(btn=>btn.onclick
   if(btn.dataset.act==="on")layers[k].on=!layers[k].on;else layers[k].lock=!layers[k].lock;save();draw();showSide();});}
 
 function showSide(){const b=document.getElementById("sidebody");
+  if(sel&&sel.kind==="segDelAsk"){const id=sel.id,n=sel.n;
+    b.innerHTML=`<h3>Supprimer le mur</h3><p class="note" style="margin-top:0">Ce mur porte <b>${n} appareil${n>1?"s":""}</b> (prises, interrupteurs…).</p>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px"><button id="sd-all" class="danger">Supprimer le mur et ses ${n} appareil${n>1?"s":""}</button>
+      <button id="sd-keep">Supprimer le mur, garder les appareils</button><button id="sd-no">Annuler</button></div>
+      <p class="note">Les appareils gardés restent à leur place, détachés : glissez-les contre un autre mur pour les raccrocher. Ctrl+Z annule.</p>`;
+    b.querySelector("#sd-all").onclick=()=>removeSeg(id,true);b.querySelector("#sd-keep").onclick=()=>removeSeg(id,false);
+    b.querySelector("#sd-no").onclick=()=>{sel={kind:"seg",id};draw();showSide();};return;}
   if(sel&&sel.kind==="calibAsk"&&calib&&calib.b){const d=dist(calib.a.x,calib.a.y,calib.b.x,calib.b.y);
     b.innerHTML=`<h3>Mise à l'échelle du fond</h3>
       <div class="prop"><div class="field full"><label>Longueur réelle entre les deux points <span class="u">m</span></label><input id="cl-L" type="number" step="0.01" min="0.1" placeholder="ex. 13.00"></div></div>
@@ -752,7 +794,9 @@ function delSel(){
   if(multi.size>1||(sel&&sel.kind==="room")){deleteGroup(currentGroup());return;}
   if(!sel)return;
   if(sel.kind==="app"){snapshot();state.app=state.app.filter(x=>x.id!==sel.id);state.lia=state.lia.filter(x=>x.c!==sel.id&&x.l!==sel.id);}
-  else if(sel.kind==="seg"){snapshot();state.openings=state.openings.filter(o=>o.seg!==sel.id);state.segs=state.segs.filter(x=>x.id!==sel.id);cleanNodes();}
+  else if(sel.kind==="seg"){const n=state.app.filter(a=>a.seg===sel.id).length;
+    if(n){sel={kind:"segDelAsk",id:sel.id,n};draw();showSide();document.dispatchEvent(new CustomEvent("okteo:ask"));setHint("Ce mur porte "+n+" appareil"+(n>1?"s":"")+" : choisissez dans le panneau de droite.");return;}
+    snapshot();state.openings=state.openings.filter(o=>o.seg!==sel.id);state.segs=state.segs.filter(x=>x.id!==sel.id);cleanNodes();}
   else if(sel.kind==="node"){snapshot();const id=sel.id;state.segs=state.segs.filter(s=>s.a!==id&&s.b!==id);state.nodes=state.nodes.filter(n=>n.id!==id);}
   else if(sel.kind==="open"){snapshot();state.openings=state.openings.filter(x=>x.id!==sel.id);}
   else if(sel.kind==="room"){snapshot();state.rooms=state.rooms.filter(x=>x.id!==sel.id);}
@@ -877,12 +921,15 @@ window.okteo={
   startCalib(){resetTransient();clearSel();tool="calib";testMode=false;if(tab!=="plan")setTab("plan");buildTools();setHint(hintFor("calib"));draw();showSide();},
   applyCalib(a,b,L){calib={a,b,cur:null};return applyCalib(L);},
   setPreview(p){preview=p||null;draw();},
+  measure(appId){const a=state.app.find(x=>x.id===appId);if(!a||!a.seg)return null;const m=wallMeasure(a.seg,a.x,a.y);return m&&{seg:a.seg,dA:+m.dA.toFixed(3),dB:+m.dB.toFixed(3),near:+Math.min(m.dA,m.dB).toFixed(3),side:m.side};},
+  toClient(x,y){const p=worldToScreen(x,y);const r=document.querySelector(".stage").getBoundingClientRect();return p&&{x:p.x+r.left,y:p.y+r.top};},
   // ajoute au dessin le résultat d'un relevé automatique (un seul pas d'annulation)
   importWalls(r,{replace=false}={}){snapshot();
     if(replace){state.openings=[];state.segs=[];state.nodes=[];state.rooms.forEach(rm=>rm.segs=[]);state.app.forEach(a=>{delete a.seg;});}
     const ids=r.nodes.map(n=>node(n.x,n.y).id);
     const sids=r.walls.map(w=>{const id=uidS();state.segs.push({id,a:ids[w.a],b:ids[w.b],ep:w.ep});return id;});
     r.openings.forEach(o=>state.openings.push({id:uidO(),seg:sids[o.seg],t:o.t,w:o.w,kind:o.kind,hinge:"g",swing:"int"}));
+    state.app.forEach(a=>{if(!a.seg||!segById(a.seg))reattach(a);});
     clampOpenings();preview=null;resetTransient();clearSel();tool="sel";testMode=false;if(tab!=="plan")setTab("plan");buildTools();markDirty();draw();showSide();
     return {murs:sids.length,ouvertures:r.openings.length};},
   saveNow(){clearTimeout(saveT);try{localStorage.setItem(KEY,JSON.stringify({s:packState(),view,bg:bgLevel,sym:symCm,ortho,dims:showDims,reps:showReps,layers}));dirty=false;paintStatus();

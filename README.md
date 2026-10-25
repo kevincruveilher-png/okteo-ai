@@ -1,8 +1,8 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v15** (25/10/2026) : relevé automatique des murs depuis le PDF (sans IA).
-(v14 : gestion des chantiers, import du plan et mise à l'échelle.)
+Version du prototype : **v16** (25/10/2026) : appareils attachés à leur mur.
+(v15 : relevé automatique des murs du PDF ; v14 : chantiers, import du plan, échelle.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
 ## Installer (une seule fois)
@@ -37,7 +37,7 @@ Pour arrêter : Ctrl+C dans le terminal.
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 47 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 55 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -52,6 +52,15 @@ Ouvre le logiciel dans un navigateur invisible et fait 47 vérifications (dessin
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Appareils attachés à leur mur (v16)
+
+Une prise, un interrupteur ou une RJ45 posé contre un mur **suit ce mur** : déplacé, tourné, symétrisé, allongé ou épaissi,
+l'appareil garde sa distance à l'angle le plus proche, mesurée depuis la face du mur d'angle (« 30 cm de l'angle » reste vrai).
+- Glisser l'appareil le long du mur, ou taper la distance dans son menu (↤ … cm), met à jour son attache.
+- Supprimer un mur qui porte des appareils : Oktéo demande « supprimer avec les appareils » ou « les garder détachés ».
+- Après un relevé automatique qui remplace les murs, les appareils se raccrochent au nouveau mur le plus proche (≤ 60 cm).
+- La surface d'une pièce suit ses murs.
 
 ## Relever les murs automatiquement (v15)
 

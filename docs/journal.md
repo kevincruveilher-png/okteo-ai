@@ -64,14 +64,22 @@ l'assistant peut agir seul quand on le lui demande.
 - Code partagé sur GitHub (`kevincruveilher-png/okteo-ai`) : mises à jour par Synchroniser dans VS Code.
 - Tests : 8 (moteur, vrai PDF) + 39 (navigateur) = 47.
 
-## PROCHAINE MISE À JOUR (v16) — à choisir
-Pistes, par ordre d'intérêt : appareils attachés à leur mur (suivent ses déplacements) ; sortie PDF imprimable du plan
-(échelle, cartouche) ; détection des pièces fermées par les murs (nom, surface) ; relevé des appareils du PDF (symboles) ;
-accrochages fins, scinder/fusionner un mur ; étages ; symboles par pavillonneur ; parcours « Premiers pas » ;
-assistant qui dessine à partir des cotes. Puis le câblage (étape 2).
+## Version 16 (25/10/2026) — livrée : appareils attachés à leur mur
+- Chaque appareil mural garde `a.wa` = distance à la FACE du mur d'angle le plus proche + côté du mur ; il est replacé
+  avant chaque dessin : il suit son mur déplacé, tourné, symétrisé (même non sélectionné), allongé ou épaissi, et le mur
+  d'angle épaissi ne change pas sa distance (règle « 30 cm de l'angle »).
+- Suppression d'un mur portant des appareils : choix « supprimer avec » / « garder détachés » (Ctrl+Z possible).
+- Appareil déplacé seul (en groupe) : se raccroche au mur le plus proche ; relevé PDF « remplacer » : raccrochage automatique.
+- Corrigé au passage : le rectangle (et la surface) d'une pièce suit désormais ses murs déplacés.
+- Tests : 8 (relevé PDF) + 47 (navigateur, dont 8 nouveaux sur l'attache) = 55.
+
+## PROCHAINE MISE À JOUR (v17) — proposée : détection des pièces fermées par les murs
+Après un relevé automatique, retrouver les pièces (contours fermés des murs, y compris en L), leur surface, et leur nom
+lu dans le texte du PDF (« Cellier », « Chambre 1 »…). Puis : sortie PDF imprimable du plan (échelle, cartouche) ;
+relevé des appareils du PDF (symboles) ; accrochages fins, scinder/fusionner un mur ; étages ; symboles par pavillonneur ;
+parcours « Premiers pas » ; assistant qui dessine à partir des cotes. Puis le câblage (étape 2).
 
 ## Limites connues
-- Appareils muraux ne suivent pas encore le mur quand on le déplace.
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.
 - Chantiers stockés dans le navigateur du PC (pas encore de serveur partagé) : faire « Fichier » pour sauvegarder.
 - Prototype navigateur : le serveur C#, les comptes et le multi-sites viendront ensuite.
