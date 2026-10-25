@@ -203,7 +203,7 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 
 ## Versions 29 et 30 (25/10/2026) — livrées ensemble : boîtes, gaines et fils
 - Boîtes placées automatiquement pour économiser le cuivre (EVRARD : 7 boîtes, 108 gaines, 614 m de gaine, 1 700 m de
-  fil, contre environ 2 000 m de fil avec une seule boîte), 18 départs / 6 par face respectés, commande + lumières dans
+  fil ; dans le test moteur : 1 356 m de fil contre 1 644 m avec une seule boîte), 18 départs / 6 par face respectés, commande + lumières dans
   la même boîte, alimentation par circuit depuis le tableau ; boîtes déplaçables à la souris (un Ctrl+Z).
 - Gaines : n° B1-01…, face A–D, longueur (+10 %, descentes, surlongueurs, arrondi), diamètre par remplissage, fils avec
   couleur, section et n° de raccordement ; raccordements de chaque boîte (n° 1 = terres) ; lignes directes.

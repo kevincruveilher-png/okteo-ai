@@ -57,7 +57,7 @@ Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre
 
 - **Poser le tableau** (appareil « Tableau » de la barre) : il sert de départ aux alimentations et aux lignes directes.
 - Onglet **Câblage** → **Placer les boîtes automatiquement** : les boîtes sont placées pour utiliser le moins de fil
-  possible (EVRARD : 7 boîtes, 1 700 m de fil au lieu de 2 000 m environ avec une seule boîte), en respectant 18 départs par
+  possible (sur les appareils EVRARD du test : 1 356 m de fil avec les boîtes placées, contre 1 644 m avec une seule boîte), en respectant 18 départs par
   boîte et 6 par face ; une commande et ses lumières sont toujours dans la même boîte. Chaque boîte reçoit une
   alimentation du tableau par circuit.
 - Sur le plan : la boîte (carré « B1 » avec ses faces A B C D), ses liens vers les appareils (couleur du circuit) et son
