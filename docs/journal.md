@@ -97,10 +97,26 @@ l'assistant peut agir seul quand on le lui demande.
   dans le PDF = largeur réelle × 1000 / échelle, à 0,5 pt près).
 - Tests : 14 + 55 = 69.
 
-## PROCHAINE MISE À JOUR (v19) — à choisir
-Pistes : relevé des appareils du PDF (symboles du plan pavillonneur) ; murs non grisés (cloisons en traits fins : WC/Dgt) ;
-étages ; symboles et règles par pavillonneur ; accrochages fins, scinder/fusionner un mur ; parcours « Premiers pas » ;
-assistant qui dessine à partir des cotes. Puis le câblage (étape 2 : boîtes, bandes, SPV) — demander les règles à Kévin.
+## Version 19 (25/10/2026) — livrée : relevé automatique des appareils du PDF
+- Demande de Kévin : continuer le dessin, ne pas attaquer les boîtes. Sans IA.
+- Lecture des symboles du plan pavillonneur : cercles (tracés en polylignes dans le PDF EVRARD) + ce qui les accompagne dans la
+  même couleur : point lumineux (gros cercle, traits intérieurs), spot (rayons), prise (trait intérieur), interrupteur (queue),
+  va-et-vient (deux queues opposées), RJ45 (cercle dans le cercle), sortie de câble (croix diagonale qui dépasse), bouche VMC
+  (croix droite). Tailles relatives au petit cercle le plus fréquent : indépendant de l'échelle.
+- Prises 20/32 A : texte voisin (police codée : même longueur et même dernière lettre que « 16A » mais différent).
+- Liaisons reprises des traits bleus : commande → lumières touchées, puis de lumière en lumière (sans traverser une autre commande).
+- Nouveau type d'appareil « Sortie de câble » (SC), dans la palette, l'impression et la nomenclature.
+- Enchaînement : murs → pièces → appareils (case cochée par défaut), bouton « Relever les appareils » sur la page Chantiers, Ctrl+K.
+- Résultat EVRARD : 82 appareils (29 prises 16 A, 3 prises 20/32 A, 4 RJ45, 21 interrupteurs, 10 points lumineux, 8 spots,
+  7 sorties de câble), 26 liaisons, 64 appareils collés à leur mur. 37 petits cercles non reconnus (plaques, robinets…) montrés.
+- Limites : hauteurs « H:1.20m » non lues sur police codée (valeurs par défaut) ; appliques demi-cercle dans les murs
+  extérieurs non reconnues ; symboles propres à chaque pavillonneur → tester sur d'autres plans.
+- Tests : 19 (moteur, vrai PDF) + 58 (navigateur) = 77.
+
+## PROCHAINE MISE À JOUR (v20) — à choisir
+Pistes : lecture des hauteurs et des cotes en police codée (décodage des chiffres par les cotes du plan) ; appliques ;
+murs non grisés (cloisons en traits fins : WC/Dgt) ; étages ; symboles par pavillonneur (après réception d'autres PDF) ;
+accrochages fins, scinder/fusionner un mur ; parcours « Premiers pas ». Puis le câblage (boîtes, bandes, SPV) — règles à Kévin.
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.

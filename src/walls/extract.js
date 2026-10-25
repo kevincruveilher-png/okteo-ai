@@ -1,7 +1,8 @@
 // Extraction des tracés vectoriels d'une page PDF (pdf.js), sans IA.
 // Résultat : liste de segments droits en coordonnées de page (points PDF, y vers le bas, origine en haut à gauche),
 // avec le style du tracé (épaisseur de trait, couleur de trait / de remplissage, peint en trait ou en aplat).
-// Les courbes (arcs de portes, symboles ronds) sont ignorées : un mur est toujours fait de segments droits.
+// Les courbes (arcs de portes, symboles ronds) ne donnent pas de segments (un mur est toujours fait de segments droits) ;
+// en plus, chaque sous-chemin peint est rendu dans `shapes` (courbes échantillonnées) pour reconnaître les symboles d'appareils.
 // Ce module ne dépend que de l'objet `OPS` de pdf.js : il marche dans le navigateur et dans Node (tests).
 
 const mul = (m, n) => [m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1], m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3], m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5]];
@@ -26,26 +27,37 @@ export async function extractSegments(page, OPS) {
   let ctm = base.slice(), stack = [];
   let gs = { lw: 1, stroke: "#000000", fill: "#000000" }, gstack = [];
   let pending = [];                                // sous-chemins du chemin en construction : [[x,y], …] (closed)
+  let shapesPending = [];                          // mêmes sous-chemins, courbes comprises : {pts, curves, closed}
+  const shapes = [];
   let pid = 0;                                     // numéro du chemin peint : les bords d'un même polygone partagent le même pid
   const names = Object.fromEntries(Object.entries(OPS).map(([k, v]) => [v, k]));
 
   function buildPath(ops, coords) {
-    let k = 0, cur = null, start = null, sub = [];
+    let k = 0, cur = null, start = null, sub = [], full = [], curves = 0;
     const flush = (closed) => { if (sub.length > 1) pending.push({ pts: sub, closed }); sub = []; };
+    const flushFull = (closed) => { if (full.length > 1) shapesPending.push({ pts: full, curves, closed }); full = []; curves = 0; };
+    const bez = (p0, p1, p2, p3) => { for (let t = 1; t <= 8; t++) { const u = t / 8, v = 1 - u; full.push([v * v * v * p0[0] + 3 * v * v * u * p1[0] + 3 * v * u * u * p2[0] + u * u * u * p3[0], v * v * v * p0[1] + 3 * v * v * u * p1[1] + 3 * v * u * u * p2[1] + u * u * u * p3[1]]); } curves++; };
     for (const op of ops) {
-      if (op === OPS.moveTo) { flush(false); cur = apply(ctm, coords[k], coords[k + 1]); start = cur; sub = [cur]; k += 2; }
-      else if (op === OPS.lineTo) { cur = apply(ctm, coords[k], coords[k + 1]); sub.push(cur); k += 2; }
-      else if (op === OPS.curveTo) { cur = apply(ctm, coords[k + 4], coords[k + 5]); flush(false); sub = [cur]; k += 6; }   // courbe : on coupe
-      else if (op === OPS.curveTo2 || op === OPS.curveTo3) { cur = apply(ctm, coords[k + 2], coords[k + 3]); flush(false); sub = [cur]; k += 4; }
-      else if (op === OPS.closePath) { if (start && sub.length) sub.push(start); flush(true); sub = start ? [start] : []; }
+      if (op === OPS.moveTo) { flush(false); flushFull(false); cur = apply(ctm, coords[k], coords[k + 1]); start = cur; sub = [cur]; full = [cur]; k += 2; }
+      else if (op === OPS.lineTo) { cur = apply(ctm, coords[k], coords[k + 1]); sub.push(cur); full.push(cur); k += 2; }
+      else if (op === OPS.curveTo) {                                                          // courbe : on coupe les segments
+        const p1 = apply(ctm, coords[k], coords[k + 1]), p2 = apply(ctm, coords[k + 2], coords[k + 3]), p3 = apply(ctm, coords[k + 4], coords[k + 5]);
+        if (cur) bez(cur, p1, p2, p3); cur = p3; flush(false); sub = [cur]; k += 6;
+      }
+      else if (op === OPS.curveTo2 || op === OPS.curveTo3) {
+        const pa = apply(ctm, coords[k], coords[k + 1]), p3 = apply(ctm, coords[k + 2], coords[k + 3]);
+        if (cur) bez(cur, op === OPS.curveTo2 ? cur : pa, op === OPS.curveTo2 ? pa : p3, p3); cur = p3; flush(false); sub = [cur]; k += 4;
+      }
+      else if (op === OPS.closePath) { if (start && sub.length) sub.push(start); if (start && full.length) full.push(start); flush(true); flushFull(true); sub = start ? [start] : []; full = start ? [start] : []; }
       else if (op === OPS.rectangle) {
-        flush(false);
+        flush(false); flushFull(false);
         const [x, y, w, h] = [coords[k], coords[k + 1], coords[k + 2], coords[k + 3]]; k += 4;
         const p = [apply(ctm, x, y), apply(ctm, x + w, y), apply(ctm, x + w, y + h), apply(ctm, x, y + h)];
         pending.push({ pts: [...p, p[0]], closed: true, rect: true });
+        shapesPending.push({ pts: [...p, p[0]], curves: 0, closed: true, rect: true });
       }
     }
-    flush(false);
+    flush(false); flushFull(false);
   }
 
   function paint(mode) {   // mode : "stroke" | "fill" | "both"
@@ -65,6 +77,13 @@ export async function extractSegments(page, OPS) {
       }
     }
     pending = [];
+    for (const p of shapesPending) {
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+      for (const [x, y] of p.pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+      shapes.push({ pid, pts: p.pts, curves: p.curves, closed: p.closed || mode !== "stroke", rect: !!p.rect, x0, y0, x1, y1,
+        lw: gs.lw * scale, stroke: mode !== "fill" ? gs.stroke : null, fill: mode !== "stroke" ? gs.fill : null });
+    }
+    shapesPending = [];
   }
 
   for (let i = 0; i < ol.fnArray.length; i++) {
@@ -82,9 +101,9 @@ export async function extractSegments(page, OPS) {
       case OPS.stroke: case OPS.closeStroke: paint("stroke"); break;
       case OPS.fill: case OPS.eoFill: paint("fill"); break;
       case OPS.fillStroke: case OPS.eoFillStroke: case OPS.closeFillStroke: case OPS.closeEOFillStroke: paint("both"); break;
-      case OPS.endPath: pending = []; break;
+      case OPS.endPath: pending = []; shapesPending = []; break;
       default: void names; break;
     }
   }
-  return { segs, width: vp.width, height: vp.height };
+  return { segs, shapes, width: vp.width, height: vp.height };
 }

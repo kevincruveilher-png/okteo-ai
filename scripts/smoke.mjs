@@ -399,6 +399,38 @@ try {
     return okteo.roomAt(c.x, c.y)?.name === "Chambre 1";
   }));
 
+  console.log("Relevé des appareils");
+  await check("après les pièces, les appareils du PDF sont proposés (aperçu, rien d'ajouté)", async () => {
+    await page.waitForSelector("#d-ok", { timeout: 30000 });
+    const r = await ev(() => okteoExt.devices.result);
+    const t = await page.textContent(".wcard:not([hidden])");
+    return r.stats.byType.LUM === 10 && r.links.length >= 20 && t.includes("Point lumineux") && t.includes("liaisons") && (await ev(() => okteo.state.app.length)) === 0;
+  });
+  await check("ajout : prises et interrupteurs collés à leur mur, liaisons reprises, un seul Ctrl+Z", async () => {
+    const n = await ev(() => okteoExt.devices.result.devices.length);
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/appareils-apercu.png" });
+    await page.click("#d-ok");
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/appareils-ajoutes.png" });
+    const s = await ev(() => {
+      const A = okteo.state.app, wall = A.filter((a) => ["PC16", "PC20", "RJ45", "INT", "VV", "SC"].includes(a.t));
+      return { n: A.length, wall: wall.length, att: wall.filter((a) => a.seg && a.wa).length, lia: okteo.state.lia.length, lum: A.filter((a) => a.t === "LUM" && !a.seg).length };
+    });
+    if (s.n !== n || s.att < s.wall * 0.9 || s.lia < 20 || s.lum !== 10) throw new Error(JSON.stringify(s));
+    await page.keyboard.press("Control+z");
+    const undone = await ev(() => okteo.state.app.length + okteo.state.lia.length);
+    await page.keyboard.press("Control+y");
+    return undone === 0 && (await ev(() => okteo.state.app.length)) === n && !(await page.isVisible(".wcard"));
+  });
+  await check("une prise relevée mesure sa distance à l'angle et suit son mur", async () => ev(() => {
+    const a = okteo.state.app.find((x) => x.t === "PC16" && x.seg), m = okteo.measure(a.id);
+    const s = okteo.state.segs.find((g) => g.id === a.seg), A = okteo.state.nodes.find((n) => n.id === s.a), B = okteo.state.nodes.find((n) => n.id === s.b);
+    const vert = Math.abs(A.x - B.x) < 1e-6, x0 = a.x, y0 = a.y;
+    okteo.snapshot(); if (vert) { A.x += 0.3; B.x += 0.3; } else { A.y += 0.3; B.y += 0.3; } okteo.draw();
+    const moved = vert ? Math.abs(a.x - x0 - 0.3) < 0.01 : Math.abs(a.y - y0 - 0.3) < 0.01;
+    okteo.undo();
+    return m && m.near >= 0 && moved;
+  }));
+
   console.log("Impression PDF");
   let pdfBytes = null, lay = null, geoW = 0;
   await check("Ctrl+P : aperçu du PDF, format et échelle choisis automatiquement", async () => {

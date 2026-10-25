@@ -7,6 +7,7 @@ import { extractSegments } from "../src/walls/extract.js";
 import { detectWalls } from "../src/walls/detect.js";
 import { findRooms, nameRooms } from "../src/walls/rooms.js";
 import { pageLabels } from "../src/walls/labels.js";
+import { detectDevices, pageTexts } from "../src/walls/devices.js";
 
 const data = new Uint8Array(fs.readFileSync(new URL("../docs/plans/EVRARD_04949_plan.pdf", import.meta.url)));
 const doc = await pdfjs.getDocument({ data, verbosity: 0 }).promise;
@@ -79,6 +80,22 @@ const ch1 = named.find((r) => r.name === "Chambre 1"), ch2 = named.find((r) => r
 const axis = Math.abs(ch1.cycle.reduce((s, c, i, A) => { const p = nodes.find((n) => n.id === c.from), q = nodes.find((n) => n.id === A[(i + 1) % A.length].from); return s + p.x * q.y - q.x * p.y; }, 0) / 2);
 check("surface habitable mesurée entre les faces des murs", ch1.area < axis && ch1.area > axis * 0.85, `${ch1.area.toFixed(2)} < ${axis.toFixed(2)} m²`);
 check("Chambre 1 plus grande que Chambre 2 (comme sur le plan)", ch1.area > ch2.area);
+
+console.log("Relevé des appareils (symboles du PDF)");
+const dv = detectDevices(ex, await pageTexts(page), { k, ox: 0, oy: 0 });
+const by = dv.stats.byType, prises = (by.PC16 || 0) + (by.PC20 || 0);
+check("10 points lumineux et 8 spots", by.LUM === 10 && by.SPOT === 8, JSON.stringify(by));
+check("prises : 30 à 36, dont des 20/32 A repérées par leur texte", prises >= 30 && prises <= 36 && by.PC20 >= 2, `${by.PC16} + ${by.PC20}`);
+check("4 RJ45, 7 sorties de câble, 18 à 24 interrupteurs", by.RJ45 === 4 && by.SC === 7 && (by.INT || 0) + (by.VV || 0) >= 18 && (by.INT || 0) + (by.VV || 0) <= 24, JSON.stringify(by));
+const lit = new Set(dv.links.map((l) => l.l)), lights = dv.devices.map((d, i) => [d, i]).filter(([d]) => d.t === "LUM" || d.t === "SPOT");
+check("liaisons : toujours commande → lumière, ≥ 80 % des lumières commandées", dv.links.length >= 20 && dv.links.every((l) => ["INT", "VV"].includes(dv.devices[l.c].t) && ["LUM", "SPOT"].includes(dv.devices[l.l].t)) && lit.size >= lights.length * 0.8, `${dv.links.length} liaisons, ${lit.size}/${lights.length} lumières`);
+// la lumière de Chambre 1 est commandée par un interrupteur situé dans la même pièce (près de sa porte)
+const inCh1 = (d) => ch1 && d && (() => { const P = ch1.poly; let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) if ((P[i].y > d.y) !== (P[j].y > d.y) && d.x < (P[j].x - P[i].x) * (d.y - P[i].y) / (P[j].y - P[i].y) + P[i].x) c = !c; return c; })();
+const l1 = dv.devices.findIndex((d) => d.t === "LUM" && inCh1(d));
+const cmd1 = dv.links.filter((l) => l.l === l1).map((l) => dv.devices[l.c]);
+check("Chambre 1 : son point lumineux a son interrupteur, à moins de 50 cm de la pièce", l1 >= 0 && cmd1.length >= 1 && cmd1.every((c) => {
+  const P = ch1.poly, x0 = Math.min(...P.map((p) => p.x)) - 0.5, x1 = Math.max(...P.map((p) => p.x)) + 0.5, y0 = Math.min(...P.map((p) => p.y)) - 0.5, y1 = Math.max(...P.map((p) => p.y)) + 0.5;
+  return c.x > x0 && c.x < x1 && c.y > y0 && c.y < y1; }), JSON.stringify(cmd1));
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);
 if (fails.length) process.exit(1);

@@ -10,7 +10,7 @@ export function createRoomsTool({ api }) {
   const card = document.createElement("div");
   card.className = "wcard"; card.hidden = true; card.setAttribute("role", "dialog"); card.setAttribute("aria-label", "Détection des pièces");
   document.querySelector(".stage").appendChild(card);
-  let res = null, replace = true;
+  let res = null, replace = true, devicesAfter = true;
 
   const close = () => { card.hidden = true; api.setPreview(null); res = null; };
   const show = (html) => { card.innerHTML = `<div class="wcard-h"><b>Pièces</b><button class="wx" title="Fermer">✕</button></div>${html}`; card.hidden = false; card.querySelector(".wx").onclick = close; };
@@ -39,10 +39,12 @@ export function createRoomsTool({ api }) {
       <p class="mut">${res.nLabels ? `Noms lus sur le plan : ${res.nLabels}.` : "Aucun nom lu sur le plan : les pièces sans nom s'appellent « Pièce 1, 2… » (renommez-les dans leur menu)."}</p>
       <div class="wlist">${res.rooms.map((r) => `<div><span>${esc(r.name)}${r.also.length ? ` <em title="Le plan indique aussi : ${esc(r.also.join(", "))}">⚠</em>` : ""}</span><b class="num">${m2(r.area)}</b></div>`).join("")}</div>
       ${warn.length ? `<p class="warn sm">⚠ ${warn.map((r) => `« ${esc(r.name)} » contient aussi ${esc(r.also.join(", "))}`).join(" ; ")} : un mur manque sans doute pour les séparer.</p>` : ""}
+      ${api.ch.fond && api.ch.fond.src === "idb" && api.ch.fond.page ? `<label class="wck"><input type="checkbox" id="r-dev" ${devicesAfter ? "checked" : ""}> Relever ensuite les appareils du plan</label>` : ""}
       ${existing ? `<label class="wck"><input type="checkbox" id="r-rep" ${replace ? "checked" : ""}> Remplacer les ${existing} pièces existantes</label>` : ""}
       <div class="wrow"><button class="on" id="r-ok">Ajouter les pièces</button><button id="r-no">Annuler</button></div>
       <p class="mut sm">Surface habitable = entre les faces intérieures des murs. La forme et la surface suivront les murs si vous les déplacez.</p>`);
     const rp = card.querySelector("#r-rep"); if (rp) rp.onchange = () => { replace = rp.checked; };
+    const rd = card.querySelector("#r-dev"); if (rd) rd.onchange = () => { devicesAfter = rd.checked; };
     card.querySelector("#r-no").onclick = close;
     card.querySelector("#r-ok").onclick = () => {
       let list = res.rooms;
@@ -50,6 +52,7 @@ export function createRoomsTool({ api }) {
       const n = api.addRooms(list, { replace: replace || !existing });
       card.hidden = true; res = null;
       api.setHint(`${n} pièce${n > 1 ? "s" : ""} ajoutée${n > 1 ? "s" : ""}. Cliquez une pièce pour la renommer ; Ctrl+Z pour annuler.`);
+      document.dispatchEvent(new CustomEvent("okteo:rooms-imported", { detail: { n, devices: !!rd && devicesAfter } }));
     };
   }
 

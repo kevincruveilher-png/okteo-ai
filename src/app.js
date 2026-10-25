@@ -7,7 +7,7 @@ const CH=CHS.current();
 let FOND=CH.fond&&CH.fond.src==="asset"?CH.fond.url:"";   // image du fond (URL) ; chargée depuis IndexedDB sinon
 let BG=CH.fond?{x:CH.fond.x,y:CH.fond.y,w:CH.fond.w,h:CH.fond.h}:{x:0,y:0,w:0,h:0};
 let calib=null;                                               // mise à l'échelle en cours : {a,b,cur}
-let preview=null;                                             // aperçu du relevé automatique des murs : {nodes, walls, openings}
+let preview=null;                                             // aperçu d'un relevé automatique : {nodes, walls, openings} | {rooms} | {devices, links, unknown}
 const PLAN={w:16,h:11};
 
 // ---------- modèle ----------
@@ -19,8 +19,9 @@ const TYPES={
  PC16:{n:"Prise 16 A",h:30,r:"P"}, PC20:{n:"Prise 20 A",h:30,r:"P"}, RJ45:{n:"RJ45",h:30,r:"R"},
  LUM:{n:"Point lumineux",h:null,r:"L"}, SPOT:{n:"Spot",h:null,r:"L"}, INT:{n:"Interrupteur",h:110,r:"I"},
  VV:{n:"Va-et-vient",h:110,r:"I"}, BP:{n:"Bouton poussoir",h:110,r:"BP"}, VMC:{n:"VMC",h:null,r:"V"}, TAB:{n:"Tableau",h:null,r:"TD"},
+ SC:{n:"Sortie de câble",h:null,r:"SC"},
 };
-const PAL=["PC16","PC20","RJ45","LUM","SPOT","INT","VV","BP","VMC","TAB"];
+const PAL=["PC16","PC20","RJ45","LUM","SPOT","INT","VV","BP","VMC","SC","TAB"];
 
 let tool="piece", sel=null, testMode=false, tab="plan";
 let draftFrom=null, draftPt=null, typed="", roomDraft=null, dimDraft=null;
@@ -107,6 +108,7 @@ function glyph(t){switch(t){
   case"VV":return `<circle r="0.55" class="gy"/><line x1="0.35" y1="-0.35" x2="0.95" y2="-0.95" class="gs"/><line x1="-0.1" y1="0.3" x2="0.5" y2="-0.3" class="gs"/>`;
   case"BP":return `<circle r="0.55" class="gy"/><circle r="0.2" class="gf"/>`;
   case"VMC":return `<rect x="-0.8" y="-0.8" width="1.6" height="1.6" rx="0.3" class="gy"/><text y="0.3" class="gl">V</text>`;
+  case"SC":return `<circle r="0.6" class="gy"/><path d="M-0.85 -0.85L0.85 0.85M0.85 -0.85L-0.85 0.85" class="gs"/>`;
   case"TAB":return `<rect x="-1" y="-1.2" width="2" height="2.4" rx="0.2" class="gf"/><text y="0.3" class="glw">TD</text>`;
  } return `<circle r="0.8" class="gy"/>`;}
 function lightsOn(cid){const s=new Set();state.lia.filter(x=>x.c===cid).forEach(x=>s.add(x.l));return s}
@@ -227,6 +229,10 @@ function draw(){
    (P.openings||[]).forEach(o=>{const w=P.walls[o.seg],a=P.nodes[w.a],b=P.nodes[w.b];const L=dist(a.x,a.y,b.x,b.y)||1,ux=(b.x-a.x)/L,uy=(b.y-a.y)/L;
      pv+=`<line x1="${a.x+ux*(o.t-o.w/2)}" y1="${a.y+uy*(o.t-o.w/2)}" x2="${a.x+ux*(o.t+o.w/2)}" y2="${a.y+uy*(o.t+o.w/2)}" stroke="${o.kind==="porte"?"#e07b00":"var(--ok)"}" stroke-width="${Math.max(0.06,w.ep*0.8)}"/>`;});
    (P.walls?P.nodes:[]).forEach(n=>{pv+=`<circle cx="${n.x}" cy="${n.y}" r="0.05" fill="var(--accent2)"/>`;});
+   if(P.devices){const D=P.devices,ss=symScaleOf();
+     (P.links||[]).forEach(l=>{const c=D[l.c],m=D[l.l];if(c&&m)pv+=`<line x1="${c.x}" y1="${c.y}" x2="${m.x}" y2="${m.y}" stroke="var(--accent2)" stroke-width="0.025" stroke-dasharray="0.12 0.08" opacity="0.8"/>`;});
+     D.forEach(d=>{pv+=`<circle cx="${d.x}" cy="${d.y}" r="${ss*1.25}" fill="var(--accent2)" fill-opacity="0.25" stroke="var(--accent2)" stroke-width="0.02"/><g transform="translate(${d.x} ${d.y}) scale(${ss})">${glyph(d.t)}</g>`;});
+     (P.unknown||[]).forEach(u=>{pv+=`<circle cx="${u.x}" cy="${u.y}" r="${ss*0.9}" fill="none" stroke="#d33" stroke-width="0.025" stroke-dasharray="0.05 0.04"/>`;});}
    h+=`<g>${pv}</g>`;}
  // mise à l'échelle du fond : segment entre les deux points cliqués
  if(calib&&calib.a){const b=calib.b||calib.cur;const cs=0.22/Math.max(0.6,view.scale/20);
@@ -264,7 +270,7 @@ function snapAlign(x,y,exclId){guides=[];const tol=tolM()*0.9;let rx=x,ry=y;
     if(Math.abs(a.x-x)<tol){rx=a.x;guides.push({v:true,at:a.x});}
     if(Math.abs(a.y-y)<tol){ry=a.y;guides.push({v:false,at:a.y});}}
   return {x:rx,y:ry};}
-const wallMounted=t=>["PC16","PC20","RJ45","INT","VV","BP"].includes(t);
+const wallMounted=t=>["PC16","PC20","RJ45","INT","VV","BP","SC"].includes(t);
 
 // ---------- appareils attachés à leur mur ----------
 // a.wa = {e:"a"|"b", d, s} : distance d (m) depuis la FACE du mur d'angle côté e (le plus proche), côté s (±1) du mur.
@@ -968,6 +974,15 @@ window.okteo={
     for(const r of list){const P=r.poly;state.rooms.push({id:uidR(),name:r.name,cycle:r.cycle,poly:P,also:r.also||[],auto:true,segs:[...new Set(r.cycle.map(c=>c.seg))],
       x0:Math.min(...P.map(p=>p.x)),x1:Math.max(...P.map(p=>p.x)),y0:Math.min(...P.map(p=>p.y)),y1:Math.max(...P.map(p=>p.y))});}
     preview=null;resetTransient();clearSel();if(tab!=="plan")setTab("plan");markDirty();draw();showSide();return list.length;},
+  // ajoute des appareils relevés ({t,x,y,h?}) et leurs liaisons ({c,l} = indices dans list) : un seul pas d'annulation.
+  // Les appareils muraux se collent au mur le plus proche (≤ 60 cm) et restent attachés à leur distance de l'angle.
+  importDevices(list,links=[],{replace=false}={}){snapshot();
+    if(replace){state.app=[];state.lia=[];}
+    const ids=list.map(d=>{if(!TYPES[d.t])return null;const p=wallMounted(d.t)?(snapToWall(d.x,d.y)||{x:d.x,y:d.y}):{x:d.x,y:d.y};
+      const na={id:uidA(),t:d.t,x:+(+p.x).toFixed(3),y:+(+p.y).toFixed(3),h:d.h||TYPES[d.t].h,auto:true};if(p.seg){na.seg=p.seg;attach(na);}state.app.push(na);return na.id;});
+    let nl=0;links.forEach(l=>{const c=ids[l.c],lm=ids[l.l];if(c&&lm&&!state.lia.some(x=>x.c===c&&x.l===lm)){state.lia.push({c,l:lm});nl++;}});
+    preview=null;resetTransient();clearSel();tool="sel";testMode=false;if(tab!=="plan")setTab("plan");buildTools();markDirty();draw();showSide();
+    return {appareils:ids.filter(Boolean).length,muraux:state.app.filter(a=>ids.includes(a.id)&&a.seg).length,liaisons:nl};},
   measure(appId){const a=state.app.find(x=>x.id===appId);if(!a||!a.seg)return null;const m=wallMeasure(a.seg,a.x,a.y);return m&&{seg:a.seg,dA:+m.dA.toFixed(3),dB:+m.dB.toFixed(3),near:+Math.min(m.dA,m.dB).toFixed(3),side:m.side};},
   toClient(x,y){const p=worldToScreen(x,y);const r=document.querySelector(".stage").getBoundingClientRect();return p&&{x:p.x+r.left,y:p.y+r.top};},
   // ajoute au dessin le résultat d'un relevé automatique (un seul pas d'annulation)

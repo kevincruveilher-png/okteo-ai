@@ -10,6 +10,7 @@ import { mountChantiers } from "./chantiers-page.js";
 import { createWallsTool } from "./walls-ui.js";
 import { createRoomsTool } from "./rooms-ui.js";
 import { createPrintTool } from "./print-ui.js";
+import { createDevicesTool } from "./devices-ui.js";
 
 function start() {
   const api = window.okteo;
@@ -22,12 +23,15 @@ function start() {
     openPalette: () => palette?.open(),
     detectWalls: () => walls.open(),
     detectRooms: () => rooms.open(),
+    detectDevices: () => devices.open(),
     print: () => printer.open(),
   };
   const walls = createWallsTool({ api });
   const rooms = createRoomsTool({ api });
+  const devices = createDevicesTool({ api });
   const printer = createPrintTool({ api });
   document.addEventListener("okteo:walls", () => walls.open());
+  document.addEventListener("okteo:devices", () => devices.open());
   const catalog = buildCatalog(api, hooks);
   const getCatalog = () => catalog;
 
@@ -77,7 +81,7 @@ function start() {
   serverStatus().then((st) => settings.setEnv({ online: !!st.online, anthropic: !!st.anthropic, nvidia: !!st.nvidia }));
 
   // accès pour les tests et le débogage
-  window.okteoExt = { panel, palette, assistant, catalog, settings, walls, rooms, printer };
+  window.okteoExt = { panel, palette, assistant, catalog, settings, walls, rooms, devices, printer };
 }
 
 if (window.okteo) start(); else document.addEventListener("okteo:ready", start, { once: true });

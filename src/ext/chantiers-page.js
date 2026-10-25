@@ -81,7 +81,7 @@ export function mountChantiers(el, { api }) {
         <div class="ch-fond"><span>Fond : <b>${esc(cur.fond ? cur.fond.name : "aucun")}</b> ${cur.fond ? (cur.fond.calibre ? `<span class="okk">✓ à l'échelle (${(cur.fond.w).toFixed(2)} m de large)</span>` : `<span class="warn">échelle à régler</span>`) : ""}</span>
           <span class="grow"></span>
           ${cur.fond ? `<button id="ch-calib" title="Cliquer deux points d'une cote connue, puis taper sa longueur">Régler l'échelle</button>` : ""}
-          ${cur.fond && cur.fond.src === "idb" && cur.fond.page ? `<button id="ch-walls" class="on" title="Relever automatiquement les murs du PDF (sans IA)">Relever les murs</button>` : ""}
+          ${cur.fond && cur.fond.src === "idb" && cur.fond.page ? `<button id="ch-walls" class="on" title="Relever automatiquement les murs du PDF (sans IA)">Relever les murs</button> <button id="ch-devices" title="Relever automatiquement les appareils du PDF (prises, lumières, interrupteurs…), sans IA">Relever les appareils</button>` : ""}
           <button id="ch-fond">${cur.fond ? "Changer le fond…" : "Ajouter un fond…"}</button>
           <button data-act="file" data-id="${cur.id}">Enregistrer en fichier</button></div>
       </section>
@@ -107,6 +107,7 @@ export function mountChantiers(el, { api }) {
     }));
     el.querySelector("#ch-calib")?.addEventListener("click", () => api.startCalib());
     el.querySelector("#ch-walls")?.addEventListener("click", () => document.dispatchEvent(new CustomEvent("okteo:walls")));
+    el.querySelector("#ch-devices")?.addEventListener("click", () => document.dispatchEvent(new CustomEvent("okteo:devices")));
     el.querySelector("#ch-fond").onclick = () => { mode = "fond"; pick = { file: null, doc: null, thumbs: [], page: 1, busy: "" }; render(); };
     el.querySelector("#ch-new").onclick = () => { mode = "new"; pick = { file: null, doc: null, thumbs: [], page: 1, busy: "" }; render(); el.querySelector("#nf-nom")?.focus(); };
     const qi = el.querySelector("#ch-q"); qi.oninput = () => { q = qi.value; const pos = qi.selectionStart; render(); const n = el.querySelector("#ch-q"); n.focus(); n.setSelectionRange(pos, pos); };

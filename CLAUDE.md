@@ -61,11 +61,19 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   pièce, liaisons, cotes, fond) → `src/ext/print.js` (jsPDF 2.5.2, unités mm, échelle 1:N exacte, mise en page auto
   A4→A3 et 1:50→1:200, légende, échelle graphique, cartouche, page 2 nomenclature) ; fenêtre `src/ext/print-ui.js` (Ctrl+P,
   aperçu dessiné par pdf.js). Le test relit le PDF produit et mesure la largeur des murs pour vérifier l'échelle.
+- Relevé des appareils (v19) : `extract.js` rend aussi `shapes` (chaque sous-chemin peint, courbes échantillonnées, boîte,
+  couleur) sans changer `segs`. `src/walls/devices.js` `detectDevices(ex, pageTexts(page), {k,ox,oy})` : cercles → compagnons
+  de même couleur (traits intérieurs, rayons, queues, croix, cercle concentrique), tailles relatives au petit cercle le plus
+  fréquent ; prises 20 A = début du texte voisin de même longueur que le texte le plus fréquent (« 16A ») et même dernière
+  lettre (police codée) ou lecture directe si lisible ; liaisons = traits non symboles reliant commande et lumière, propagées
+  de lumière en lumière sans traverser une autre commande. Type `SC` (sortie de câble) ajouté. Interface `src/ext/devices-ui.js`
+  (aperçu `setPreview({devices,links,unknown})`, ajout `okteo.importDevices(list, links, {replace})` = un seul Ctrl+Z, muraux
+  collés via `snapToWall` + `attach`). Événements `okteo:rooms-imported` (enchaînement) et `okteo:devices`.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
-Après chaque modification : `npm run check` = `scripts/walls.test.mjs` (14 vérifications : relevé des murs et des pièces
-sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (55 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+Après chaque modification : `npm run check` = `scripts/walls.test.mjs` (19 vérifications : relevé des murs, des pièces et des
+appareils sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (58 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

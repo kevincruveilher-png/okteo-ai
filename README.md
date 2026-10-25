@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v18** (25/10/2026) : impression PDF du plan à l'échelle.
+Version du prototype : **v19** (25/10/2026) : relevé automatique des appareils du plan PDF.
 (v17 : pièces ; v16 : appareils attachés aux murs ; v15 : relevé des murs ; v14 : chantiers.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
@@ -37,7 +37,7 @@ Pour arrêter : Ctrl+C dans le terminal.
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 69 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 77 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -52,6 +52,22 @@ Ouvre le logiciel dans un navigateur invisible et fait 69 vérifications (dessin
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Relever les appareils du PDF (v19)
+
+Après **Ajouter les pièces** (case « Relever ensuite les appareils du plan », cochée par défaut), ou bouton **Relever les appareils**
+de la page Chantiers, ou **Ctrl+K** → « Relever les appareils » :
+- le logiciel lit les **symboles** du plan PDF, sans IA : prises 16 A et 20/32 A (d'après le texte « 16A », « 20A » à côté),
+  RJ45, interrupteurs, va-et-vient, points lumineux, spots, sorties de câble, bouches VMC ;
+- il reprend les **liaisons** dessinées (traits bleus) : chaque interrupteur → les lumières qu'il commande ;
+- **aperçu** en orange avec la liste par type ; les petits cercles non reconnus (plaques de cuisson, robinets…) sont entourés
+  de pointillés rouges ;
+- **Ajouter les appareils** : les prises, interrupteurs, RJ45 et sorties de câble se **collent à leur mur** (ils suivent ensuite
+  le mur et gardent leur distance à l'angle). Un seul **Ctrl+Z** annule tout.
+
+À vérifier avant le câblage : les **hauteurs** sont celles par défaut (le texte « H:1.20m » n'est pas encore lu sur les PDF
+à police codée), les appliques à moitié dessinées dans les murs extérieurs ne sont pas encore reconnues. Sur EVRARD :
+82 appareils et 26 liaisons.
 
 ## Imprimer le plan en PDF (v18)
 
