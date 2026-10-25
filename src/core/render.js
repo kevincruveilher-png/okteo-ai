@@ -258,6 +258,7 @@ export function draw() {
     const onSet = K.testMode && K.sel ? lightsOn(K.sel.id) : null,
       ss = symView(),
       rm = K.showReps ? repMap() : null;
+    const circ = K.showCirc ? circuitMap() : null;
     let ap = "";
     state.app.forEach(a => {
       const aSel = isSel("app", a.id) || GH && GH.apps.has(a.id),
@@ -265,6 +266,11 @@ export function draw() {
       ap += `<g transform="translate(${a.x} ${a.y})"><g transform="scale(${ss})">`;
       if (lit) ap += `<circle r="1.5" fill="var(--warn)" opacity=".5"/>`;
       if (aSel) ap += `<circle r="1.5" fill="none" stroke="var(--sel)" stroke-width=".12" stroke-dasharray=".3 .25"/>`;
+      // couleur du circuit (onglet Câblage) : anneau autour du symbole ; appareil sans circuit = anneau rouge pointillé
+      if (circ) {
+        const c = circ[a.id];
+        if (c) ap += `<circle class="circ" data-c="${c.n}" r="1.28" fill="none" stroke="${c.color}" stroke-width=".34"/>`;else if (circ.__need(a)) ap += `<circle class="circ nocirc" r="1.28" fill="none" stroke="#d33" stroke-width=".22" stroke-dasharray=".25 .2"/>`;
+      }
       ap += glyph(a.t) + `</g>`;
       ap += `</g>`;
     });
@@ -544,3 +550,19 @@ export function draw() {
 
 // ---------- hit-tests ----------
 
+
+// couleurs des circuits (même ordre que leur numéro) et correspondance appareil → circuit
+export const CIRC_COLORS = ["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#9a6324", "#469990", "#800000", "#808000", "#000075"];
+export function circuitMap() {
+  const m = {};
+  (K.CAB.circuits || []).forEach((c, i) => {
+    const col = CIRC_COLORS[i % CIRC_COLORS.length];
+    (c.apps || []).forEach(id => m[id] = {
+      n: c.n,
+      color: col
+    });
+  });
+  // appareils qui devraient être dans un circuit (pas le tableau, pas les bouches VMC non câblées)
+  m.__need = a => !["TAB", "VMC"].includes(a.t);
+  return m;
+}

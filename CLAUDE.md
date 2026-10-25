@@ -122,11 +122,18 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   le panneau, étapes calculées depuis `api.state`/`api.ch`, rafraîchi sur okteo:saved/level/fond/calibrated/tab/printed).
   Toute nouvelle zone importante de l'écran : ajouter une étape à `TOUR`. Ne pas donner la classe `wcard` à ces éléments
   (les tests cherchent `.wcard`).
+- Câblage (v28, règles : `docs/regles-cablage.md`) : `src/cablage/` = moteur pur (sans DOM sauf localStorage) :
+  `settings.js` (CAB_DEFAULTS, getCab/setCab, `okteo.cablage.v1`, fiche CAB_FIELDS pour Paramètres), `gaine.js`
+  (`gaineFor(sections, remplissage)` : surfaces des fils H07V-U vs surface intérieure ICTA), `circuits.js`
+  (`computeCircuits(items, links, S)`, `checkCircuits`). Circuits stockés dans le chantier : `K.CAB.circuits`
+  (dans `packState`, tous niveaux, annulable) ; `okteo.cab`, `setCircuits(list)`, `showCircuits`, `allApps()` (tous
+  niveaux, avec pièce et repère), `allLinks()`, `circuitColors` ; anneaux `circle.circ` dans `draw` (`circuitMap`).
+  Interface : `src/ext/cablage-ui.js` (onglet « Câblage ») ; réglages dans `settings.js` (page Paramètres).
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
-Après chaque modification : `npm run check` = `scripts/walls.test.mjs` (28 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (77 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (28 vérifications : relevé des murs, des pièces et des
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (14 : gaines, circuits) + `scripts/smoke.mjs` (81 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

@@ -2,6 +2,7 @@
 // Les clés sont rangées dans le navigateur de CE PC (localStorage), jamais dans le chantier ni dans l'export.
 // Une clé placée dans le fichier .env du projet est aussi acceptée (le serveur local l'ajoute lui-même).
 
+import { CAB_DEFAULTS, CAB_FIELDS, PROTS, SECTIONS, getCab, resetCab, setCab } from "../cablage/settings.js";
 import { esc, store, storeSet } from "./util.js";
 
 const KEY = "okteo.settings.v1";
@@ -65,15 +66,45 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
         <div class="prov">${provHTML()}</div>
         <p class="mut">Conseil : Claude pour l'analyse du plan (meilleure lecture des images). NVIDIA : Nemotron 3.5 Super VL par défaut (gratuit dans la limite des crédits, voit le plan). Si NVIDIA retire un modèle, Oktéo en choisit un autre tout seul. Un modèle sans « VL » ou « vision » ne lit que la liste des objets, pas l'image.</p>
       </section>
+      <section class="cab-set" id="cab-set">${cabHTML()}</section>
       <section class="later">
         <h3>À venir</h3>
-        <p class="mut">Affichage · Chantier (nom, échelle, fond de plan) · Règles du pavillonneur · Calcul des boîtes.</p>
+        <p class="mut">Règles par pavillonneur · Calcul des boîtes et des gaines (utilise les réglages ci-dessus).</p>
       </section>
     </div>`;
     wire();
   }
 
+  // ---------- réglages du câblage ----------
+  function cabHTML() {
+    const v = getCab();
+    const input = ([k, label, unit, type]) => {
+      const val = v[k], d = CAB_DEFAULTS[k], changed = val !== d ? " chg" : "";
+      let ctl;
+      if (type === "bool") ctl = `<input type="checkbox" data-cab="${k}" ${val ? "checked" : ""}>`;
+      else if (type === "sec") ctl = `<select data-cab="${k}">${SECTIONS.map((x) => `<option value="${x}" ${x === val ? "selected" : ""}>${String(x).replace(".", ",")}</option>`).join("")}</select>`;
+      else if (type === "prot") ctl = `<select data-cab="${k}">${PROTS.map((x) => `<option value="${x}" ${x === val ? "selected" : ""}>${x}</option>`).join("")}</select>`;
+      else ctl = `<input data-cab="${k}" ${type === "txt" ? "" : `type="number" step="${type === "int" ? 1 : "any"}" min="0"`} value="${esc(String(val))}">`;
+      return `<label class="cab-row${changed}" title="Valeur de base : ${esc(String(d).replace(".", ","))} ${esc(unit)}"><span>${esc(label)}</span><span class="cab-ctl">${ctl}<span class="mut">${esc(unit)}</span></span></label>`;
+    };
+    return `<h3>Câblage (pieuvre)</h3>
+      <p class="mut">Valeurs de base décidées avec le bureau d'études ; elles servent à la répartition des circuits (onglet Câblage du panneau de droite) et, bientôt, au calcul des boîtes et des gaines. Une valeur modifiée est surlignée ; l'infobulle donne la valeur de base.</p>
+      <div class="cab-grid">${CAB_FIELDS.map(([g, rows]) => `<fieldset><legend>${esc(g)}</legend>${rows.map(input).join("")}</fieldset>`).join("")}</div>
+      <button id="cab-reset" title="Remettre toutes les valeurs de base">Valeurs de base</button>`;
+  }
+  function wireCab() {
+    const box = el.querySelector("#cab-set"); if (!box) return;
+    box.querySelectorAll("[data-cab]").forEach((c) => (c.onchange = () => {
+      const k = c.dataset.cab, t = typeof CAB_DEFAULTS[k];
+      const v = c.type === "checkbox" ? c.checked : t === "number" ? parseFloat(String(c.value).replace(",", ".")) : c.value.trim();
+      if (t === "number" && !(v >= 0)) { c.value = getCab()[k]; return; }
+      setCab({ [k]: v }); c.closest(".cab-row").classList.toggle("chg", v !== CAB_DEFAULTS[k]);
+    }));
+    box.querySelector("#cab-reset").onclick = () => { resetCab(); box.innerHTML = cabHTML(); wireCab(); };
+  }
+
   function wire() {
+    wireCab();
     el.querySelectorAll(".pcard").forEach((c) => {
       const p = c.dataset.p, k = c.querySelector(".k"), m = c.querySelector(".m"), res = c.querySelector(".tres");
       k.onchange = () => { const s = settings.get(); settings.set({ keys: { ...s.keys, [p]: k.value.trim() }, provider: s.provider || p }); refreshProv(); };

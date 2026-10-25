@@ -12,7 +12,8 @@ import { wallMeasure } from "./interact.js";
 import { worldToScreen } from "./hud.js";
 import { delSel, showSide } from "./panel.js";
 import { applyCalib, buildTools, hintFor, resetTransient, setHint, setTab } from "./controls.js";
-import { addLevel, levelFondInfo, levelName, loadFondImage, okteoGeo, removeLevel, renameLevel, switchLevel, withLevel } from "./levels.js";
+import { addLevel, allLinks, levelFondInfo, levelName, loadFondImage, okteoGeo, removeLevel, renameLevel, switchLevel, withLevel } from "./levels.js";
+import { CIRC_COLORS } from "./render.js";
 
 // ---------- interface publique (extensions : assistant, palette, paramètres ; tests) ----------
 export function zoomToBox(x0, y0, x1, y1) {
@@ -124,6 +125,53 @@ window.okteo = {
     };
   },
   switchLevel,
+  // ---------- câblage (v28) ----------
+  get cab() {
+    return K.CAB;
+  },
+  circuitColors: CIRC_COLORS,
+  // remplace la liste des circuits (un seul Ctrl+Z)
+  setCircuits(list) {
+    snapshot();
+    K.CAB = {
+      ...K.CAB,
+      circuits: list
+    };
+    markDirty();
+    draw();
+    showSide();
+    document.dispatchEvent(new CustomEvent("okteo:cab"));
+  },
+  get showCircuits() {
+    return K.showCirc;
+  },
+  set showCircuits(v) {
+    K.showCirc = !!v;
+    draw();
+  },
+  // tous les appareils de tous les niveaux, avec leur pièce et leur repère
+  allApps() {
+    const one = (lv) => state.app.map(a => ({
+      id: a.id,
+      t: a.t,
+      x: a.x,
+      y: a.y,
+      h: a.h,
+      lv,
+      lvName: levelName(lv),
+      room: (roomAt(a.x, a.y) || {}).name || null,
+      rep: repMap()[a.id]
+    }));
+    const out = [];
+    for (const l of CH.levels) out.push(...(l.id === K.LV.cur ? one(l.id) : withLevel(l.id, () => one(l.id))));
+    return out;
+  },
+  allLinks() {
+    return allLinks().map(l => ({
+      c: l.c,
+      l: l.l
+    }));
+  },
   addLevel,
   renameLevel,
   removeLevel,

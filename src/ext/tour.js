@@ -19,6 +19,7 @@ const TOUR = [
   { t: ".palette", title: "5. Poser un appareil", text: "Chaque appareil est dessiné avec son symbole. Cliquez-le puis cliquez sur le plan : près d'un mur, il s'y colle. Tapez 30 puis Entrée pour le poser à 30 cm de l'angle." },
   { t: "#side", title: "6. Propriétés", text: "L'objet sélectionné se règle ici : hauteur d'une prise, distance à l'angle, épaisseur d'un mur, nom d'une pièce… L'onglet « Étapes » montre où en est le chantier." },
   { t: '#tools button[data-tool="lien"]', title: "7. Liaisons", text: "Outil Liaison : cliquez un interrupteur puis la ou les lumières qu'il commande. « Test » allume les lumières d'une commande pour vérifier." },
+  { t: '#side-head button[data-pane="cablage"]', title: "Câblage", text: "Onglet Câblage : les appareils sont répartis en circuits (NF C 15-100) d'un clic ; chaque circuit a sa couleur sur le plan. Les réglages (départs par boîte, longueurs, sections, couleurs des fils) sont dans Paramètres → Câblage." },
   { t: "#levels", title: "8. Niveaux", text: "RDC, R+1, combles : « ＋ Niveau » ajoute un étage (avec ses murs extérieurs). Page ↑ / Page ↓ pour passer d'un niveau à l'autre." },
   { t: "#btn-view", title: "9. Affichage", text: "Cotes, repères, visibilité du plan de fond, taille des symboles, niveau du dessous en transparence." },
   { t: "#savedot", title: "10. Enregistrement", text: "Tout s'enregistre seul. Pour ne jamais rien perdre : page Chantiers → « Sauvegarde automatique » dans un dossier du PC. Ctrl+Z / Ctrl+Y : annuler / rétablir." },
@@ -105,6 +106,7 @@ export function createTour({ api, panel, hooks }) {
       { done: S.rooms.length > 0, title: "Pièces (noms et surfaces)", how: "Détectées entre les murs, noms lus sur le plan.", act: "Détecter les pièces", run: () => hooks.detectRooms(), off: S.segs.length < 3 },
       { done: S.app.length > 0, title: "Appareils", how: pdf ? "Relevés sur les symboles du PDF ; à compléter avec la barre des appareils." : "Barre des appareils (2e ligne d'outils).", act: pdf ? "Relever les appareils" : "Poser une prise", run: () => (pdf ? hooks.detectDevices() : api.setTool("PC16")), off: pdf && !(f && f.calibre) },
       { done: S.lia.length > 0 || (S.app.length > 0 && !(hasCmd && lights)), title: "Liaisons commande → lumière", how: "Outil Liaison : l'interrupteur, puis ses lumières. « Test » pour vérifier.", act: "Outil Liaison", run: () => api.setTool("lien"), off: !S.app.length },
+      { done: (api.cab.circuits || []).length > 0, title: "Circuits (câblage)", how: "Répartition automatique NF C 15-100, puis ajustements : onglet Câblage.", act: "Répartir en circuits", run: () => hooks.circuitsAuto(), off: !S.app.length },
       { done: printed, title: "Plan imprimé (PDF)", how: "À l'échelle, avec cartouche et nomenclature.", act: "Imprimer", run: () => hooks.print(), off: !S.segs.length },
       { done: !!(bk && bk.active), title: "Sauvegarde automatique", how: "Une copie .okteo dans un dossier du PC, à chaque modification (Chrome / Edge).", act: "Choisir le dossier", run: () => api.setTab("chantiers"), opt: true },
     ];

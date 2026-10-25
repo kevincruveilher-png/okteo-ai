@@ -20,6 +20,7 @@ export function packState() {
     wallEp: state.wallEp,
     level: K.LV.cur,
     other,
+    cab: K.CAB,
     levels: levelsNow().map(l => ({
       id: l.id,
       name: l.name
@@ -40,6 +41,9 @@ export function applyPack(s) {
   if (o.wallEp) state.wallEp = o.wallEp;
   K.sel = null;
   K.LV.data = o.other || {};
+  K.CAB = o.cab && Array.isArray(o.cab.circuits) ? o.cab : {
+    circuits: []
+  };
   // liste des niveaux (noms, ordre) reprise de l'historique ; le fond de chaque niveau reste celui enregistré
   if (Array.isArray(o.levels) && o.levels.length) {
     const now = levelsNow(),

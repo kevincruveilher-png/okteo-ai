@@ -75,7 +75,7 @@ try {
 
   console.log("Premiers pas (v27)");
   await check("première ouverture : invitation à la visite guidée (non bloquante)", async () => page.isVisible(".tour-invite"));
-  await check("visite guidée : 15 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
+  await check("visite guidée : 16 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
     await page.click("#ti-go");
     const s1 = await page.textContent(".tour-bub .tour-n");
     await page.keyboard.press("ArrowRight");
@@ -83,12 +83,12 @@ try {
       return !document.querySelector(".tour-ring").hidden && r.left <= t.left && r.right >= t.right && r.top <= t.top && r.bottom >= t.bottom; });
     await page.keyboard.press("ArrowLeft");
     const back = await page.textContent(".tour-bub .tour-n");
-    for (let k = 0; k < 15; k++) await page.click("#tour-next");
+    for (let k = 0; k < 16; k++) await page.click("#tour-next");
     const done = await ev(() => document.querySelector(".tour-bub").hidden && okteoExt.panel.state.pane === "steps" && !!document.querySelector(".steps ol li"));
     await ev(() => okteoExt.panel.show("props"));
     await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);
     const again = await page.isVisible(".tour-invite");
-    if (!(s1 === "1 / 15" && lit && back === "1 / 15" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
+    if (!(s1 === "1 / 16" && lit && back === "1 / 16" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
     return true;
   });
 
@@ -639,6 +639,56 @@ try {
     return true;
   });
 
+  console.log("Câblage : circuits (v28)");
+  await check("onglet Câblage : « Répartir automatiquement » couvre tous les appareils de tous les niveaux, couleurs sur le plan", async () => {
+    await ev(() => okteoExt.panel.show("cablage"));
+    await page.click("#cb-auto");
+    await page.waitForFunction(() => okteo.cab.circuits.length > 3 && document.querySelectorAll(".cb-row").length === okteo.cab.circuits.length);
+    const r = await ev(() => {
+      const all = okteo.allApps(), C = okteo.cab.circuits, inC = new Set(C.flatMap((c) => c.apps));
+      const need = all.filter((a) => !["TAB", "VMC"].includes(a.t));
+      return { miss: need.filter((a) => !inC.has(a.id)).length, n: C.length, lv: new Set(all.map((a) => a.lv)).size,
+        rings: document.querySelectorAll("#sv circle.circ:not(.nocirc)").length, cur: okteo.state.app.filter((a) => !["TAB", "VMC"].includes(a.t)).length,
+        rows: document.querySelectorAll(".cb-row").length, nums: C.map((c) => c.n).join(" ") };
+    });
+    if (!(r.miss === 0 && r.lv === 2 && r.rings === r.cur && r.rows === r.n && /^C1 C2 /.test(r.nums))) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("changer un appareil de circuit (sélection → « ← Sélection »), section modifiable, un Ctrl+Z chacun", async () => {
+    const pc = await ev(() => okteo.state.app.find((a) => a.t === "PC16").id);
+    await ev((id) => okteo.select([id]), pc);
+    await page.click('.cb-row:first-child [data-a="take"]');
+    const moved = await ev((id) => okteo.cab.circuits[0].apps.includes(id) && okteo.cab.circuits.filter((c) => c.apps.includes(id)).length === 1, pc);
+    await page.selectOption('.cb-row:first-child select[data-f="section"]', "2.5");
+    const sec = await ev(() => okteo.cab.circuits[0].section);
+    await ev(() => { okteo.undo(); okteo.undo(); });
+    const back = await ev((id) => !okteo.cab.circuits[0].apps.includes(id) && okteo.cab.circuits[0].section === 1.5, pc);
+    await ev(() => okteo.clearSel());
+    return moved && sec === 2.5 && back;
+  });
+  await check("réglages du câblage (Paramètres) : 4 points par circuit → la répartition suit ; valeurs de base rétablies", async () => {
+    await page.click('#tabs button[data-tab="params"]');
+    await page.fill('[data-cab="maxPoints"]', "4"); await page.dispatchEvent('[data-cab="maxPoints"]', "change");
+    const chg = await page.isVisible(".cab-row.chg");
+    await page.click('#tabs button[data-tab="plan"]');
+    await ev(() => okteoExt.panel.show("cablage"));
+    await page.click("#cb-auto"); await page.click("#cb-yes");
+    const r = await ev(() => { const L = new Set(["LUM", "SPOT", "APP"]), A = new Map(okteo.allApps().map((a) => [a.id, a.t]));
+      return okteo.cab.circuits.filter((c) => c.kind === "eclairage").map((c) => c.apps.filter((id) => L.has(A.get(id))).length); });
+    await page.click('#tabs button[data-tab="params"]'); await page.click("#cab-reset");
+    const reset = await ev(() => JSON.parse(localStorage.getItem("okteo.cablage.v1") || "null") === null);
+    await page.click('#tabs button[data-tab="plan"]');
+    await ev(() => okteo.undo());
+    return chg && r.length >= 5 && r.every((n) => n <= 4) && reset;
+  });
+  await check("les circuits sont enregistrés avec le chantier (rechargement)", async () => {
+    const n = await ev(() => { okteo.saveNow(); return okteo.cab.circuits.length; });
+    await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);
+    const m = await ev(() => okteo.cab.circuits.length);
+    await ev(() => okteoExt.panel.show("props"));
+    return n > 3 && m === n;
+  });
+
   console.log("Impression PDF");
   let pdfBytes = null, lay = null, geoW = 0;
   await check("Ctrl+P : aperçu du PDF, format et échelle choisis automatiquement", async () => {
@@ -661,11 +711,11 @@ try {
     if (!sizeOk) throw new Error(`taille ${vp.width}×${vp.height}`);
     return doc.numPages === 2 && t1.includes("ESSAI") && t1.includes("1:" + lay.scale) && t1.includes("Garage") && t1.includes("Chambre 1") && t1.includes("PLAN") && t2.includes("Nomenclature") && dl.suggestedFilename().endsWith(".pdf");
   });
-  await check("onglet Étapes : plan, échelle, murs, pièces, appareils, liaisons, impression cochés", async () => {
+  await check("onglet Étapes : plan, échelle, murs, pièces, appareils, liaisons, circuits, impression cochés", async () => {
     await ev(() => okteoExt.panel.show("steps")); await page.waitForTimeout(250);
     const r = await ev(() => ({ done: document.querySelectorAll(".steps li.done").length, next: document.querySelector(".steps li.next b")?.textContent || "" }));
     await ev(() => okteoExt.panel.show("props"));
-    if (!(r.done >= 7 && r.next === "")) throw new Error(JSON.stringify(r));
+    if (!(r.done >= 8 && r.next === "")) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("échelle exacte : la largeur des murs dans le PDF = largeur réelle × 1000 / échelle", async () => {

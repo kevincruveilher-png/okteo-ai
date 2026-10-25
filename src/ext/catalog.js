@@ -9,7 +9,7 @@
 //   desc  comment s'en servir, en une ou deux phrases
 //   run   action (absente = geste ou mode d'emploi, rien à lancer)
 
-export const CATS = ["Dessiner", "Niveaux", "Appareils", "Relier", "Sélection et édition", "Vue", "Fichier", "Aide et IA", "Gestes"];
+export const CATS = ["Dessiner", "Niveaux", "Appareils", "Câblage", "Relier", "Sélection et édition", "Vue", "Fichier", "Aide et IA", "Gestes"];
 
 export function buildCatalog(api, hooks) {
   const T = (id) => () => api.setTool(id);
@@ -22,6 +22,10 @@ export function buildCatalog(api, hooks) {
   add("Dessiner", "tool.mur", "Tracer des murs", "B", "Cliquer point après point pour enchaîner les murs ; taper une longueur (en m) puis Entrée pour la fixer ; double-clic ou Échap pour finir.", T("mur"));
   add("Dessiner", "tool.porte", "Poser une porte", "O", "Cliquer sur un mur : la porte le perce. Glisser pour la déplacer, poignées pour la largeur, G et S pour le gond et le sens.", T("porte"));
   add("Dessiner", "tool.fenetre", "Poser une fenêtre", "F", "Cliquer sur un mur : la fenêtre le perce. Même réglages que la porte.", T("fenetre"));
+  add("Câblage", "cab.pane", "Circuits du chantier (onglet Câblage)", "", "Onglet « Câblage » du panneau de droite : liste des circuits, couleur de chacun sur le plan, section, protection, appareils sans circuit.", () => hooks.cablage());
+  add("Câblage", "cab.auto", "Répartir les appareils en circuits (NF C 15-100)", "", "Éclairage par allumage (max 8 points), prises voisines (max 8), un circuit par prise spécialisée et sortie de câble (ligne directe), RJ45 en lignes directes. Tous niveaux. Ctrl+Z pour annuler.", () => hooks.circuitsAuto());
+  add("Câblage", "cab.move", "Changer un appareil de circuit", "", "Sélectionner le ou les appareils sur le plan, puis « ← Sélection » sur le circuit voulu (onglet Câblage).", () => hooks.cablage());
+  add("Câblage", "cab.settings", "Réglages du câblage", "", "Paramètres → Câblage : départs par boîte (18) et par face (6), hauteurs, surlongueurs, +10 % de tracé, remplissage des gaines, limites, sections, protections, couleurs des fils.", () => api.setTab("params"));
   add("Aide et IA", "help.tour", "Visite guidée (premiers pas)", "", "Présentation de l'écran, zone par zone (2 min) : chantier, échelle, relevés automatiques, outils, appareils, propriétés, liaisons, niveaux, affichage, enregistrement, impression, fonctions, assistant.", () => hooks.tour());
   add("Aide et IA", "help.steps", "Étapes du chantier", "", "Onglet « Étapes » du panneau de droite : ce qui est fait, ce qui reste, et le bouton qui lance l'étape suivante.", () => hooks.steps());
   add("Dessiner", "walls.detect", "Relever les murs du PDF (automatique)", "", "Lit les murs dessinés dans le PDF du plan (sans IA) : épaisseurs, angles, portes et fenêtres. Aperçu en orange, puis « Ajouter au dessin ». Il faut un fond PDF à l'échelle.", () => hooks.detectWalls());

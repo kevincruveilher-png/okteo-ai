@@ -191,10 +191,20 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
   liaison, impression, sauvegarde). Événement `okteo:printed` au téléchargement du PDF.
 - Tests : 28 + 77 = 105.
 
-## PROCHAINE ÉTAPE : le câblage
-Partie dessin terminée pour une maison individuelle. Prochaine grande étape : boîtes, bandes de câblage, SPV pour
-Counter — règles métier à recueillir auprès de Kévin (max gaines par boîte, descentes, marges, regroupement des circuits).
-En attente : PDF d'autres pavillonneurs (dont un R+1) pour fiabiliser les relevés.
+## Version 28 (25/10/2026) — livrée : câblage, étape 1 (réglages et circuits)
+- Règles recueillies auprès de Kévin : `docs/regles-cablage.md` (18 départs / 6 par face, faces A–D sens horaire,
+  alimentation de boîte depuis le tableau, lignes directes pour spécialisés et RJ45/TV, NF C 15-100, couleurs, gaine
+  selon la place des fils, +10 %, document de boîte pour câbleur débutant, retours lampe et navettes tracés).
+- Paramètres → Câblage (toutes les valeurs réglables) ; onglet Câblage : répartition automatique en circuits
+  (EVRARD : éclairage 8 / 7 / 8 points, 4 circuits de prises, spécialisés et sorties de câble en lignes directes, COM),
+  couleurs sur le plan, déplacement d'appareils, section / protection / nom, alertes, annulable, enregistré.
+- Moteur `src/cablage/` testé sans navigateur (`scripts/cablage.test.mjs`).
+- Tests : 28 + 14 + 81 = 123.
+
+## PROCHAINE MISE À JOUR (v29) : boîtes
+Placement automatique des boîtes (économie de cuivre), déplaçables, faces A–D (gaine vers le haut du plan = A),
+6 départs par face / 18 par boîte, alimentation de chaque boîte depuis le tableau. Puis v30 gaines (longueurs, fils,
+n° de circuit de câblage, diamètres), v31 schéma de boîte pour le câbleur.
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.

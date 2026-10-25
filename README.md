@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v27** (25/10/2026) : premiers pas (visite guidée, onglet Étapes du chantier).
+Version du prototype : **v28** (25/10/2026) : câblage, étape 1 — réglages et circuits.
 (v17 : pièces ; v16 : appareils attachés aux murs ; v15 : relevé des murs ; v14 : chantiers.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
@@ -37,7 +37,7 @@ Pour arrêter : Ctrl+C dans le terminal.
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 105 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 123 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -52,6 +52,22 @@ Ouvre le logiciel dans un navigateur invisible et fait 105 vérifications (dessi
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Câblage — réglages et circuits (v28)
+
+- **Paramètres → Câblage** : toutes les valeurs de la pieuvre, modifiables (une valeur changée est surlignée,
+  l'infobulle rappelle la valeur de base ; bouton « Valeurs de base ») : 18 départs par boîte et 6 par face, hauteur sous
+  plafond, traversée plancher/isolation, surlongueurs boîte / appareil, +10 % de tracé, arrondi, remplissage des gaines
+  (40 %), limites NF C 15-100 (8 points, 8 prises), sections, protections, couleurs des fils.
+- **Onglet « Câblage »** (panneau de droite) → **Répartir automatiquement** : tous les appareils de tous les niveaux sont
+  répartis en circuits — éclairage par allumage (les lumières d'une même commande ensemble, max 8 points, commandes avec
+  leurs lumières), prises voisines (max 8), un circuit par prise spécialisée et par sortie de câble (ligne directe),
+  RJ45 en lignes directes (COM). Numérotés C1, C2…
+- Chaque circuit a **sa couleur sur le plan** (anneau autour du symbole) ; un appareil sans circuit a un anneau rouge
+  pointillé. Pour changer un appareil de circuit : le sélectionner sur le plan puis **« ← Sélection »** sur le circuit.
+  Section, protection et nom (double-clic) modifiables ; alertes si un circuit dépasse la limite. Un Ctrl+Z par changement.
+- Diamètre des gaines (servira à l'étape des gaines) : calculé d'après la place des fils, calé sur tes exemples
+  (5 × 1,5 → Ø16 ; 6 × 1,5 → Ø20 ; 4 × 1,5 + 1 × 2,5 → Ø20).
 
 ## Premiers pas (v27)
 
