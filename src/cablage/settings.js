@@ -11,6 +11,7 @@ export const CAB_DEFAULTS = {
   margeApp: 0.2,           // surlongueur côté appareil (m)
   majoration: 10,          // tracé dans les combles : ligne droite légèrement arrondie (+ %)
   arrondi: 0.1,            // longueur arrondie au … supérieur (m)
+  hTableau: 1.8,           // hauteur du haut du tableau (m) : les gaines du tableau montent de là vers les combles
   // gaines
   remplissage: 40,         // surface des fils / surface intérieure de la gaine, maximum (%)
   // circuits (NF C 15-100)
@@ -44,7 +45,8 @@ export const CAB_FIELDS = [
   ["Boîtes", [["departsMax", "Départs par boîte (toutes faces)", "gaines", "int"], ["departsFace", "Départs par face (A, B, C, D)", "gaines", "int"]]],
   ["Longueurs des gaines", [["hsp", "Hauteur sous plafond", "m", "num"], ["traversee", "Traversée plancher / isolation", "m", "num"],
     ["margeBoite", "Surlongueur côté boîte", "m", "num"], ["margeApp", "Surlongueur côté appareil", "m", "num"],
-    ["majoration", "Tracé dans les combles (ligne droite arrondie)", "+ %", "num"], ["arrondi", "Arrondir la longueur au … supérieur", "m", "num"]]],
+    ["majoration", "Tracé dans les combles (ligne droite arrondie)", "+ %", "num"], ["arrondi", "Arrondir la longueur au … supérieur", "m", "num"],
+    ["hTableau", "Hauteur du haut du tableau", "m", "num"]]],
   ["Gaines", [["remplissage", "Remplissage maximum de la gaine", "%", "num"]]],
   ["Circuits (NF C 15-100)", [["maxPoints", "Points d'éclairage par circuit", "max", "int"], ["maxPrises", "Prises 16 A par circuit", "max", "int"],
     ["secEclairage", "Section éclairage", "mm²", "sec"], ["protEclairage", "Protection éclairage", "A", "prot"],

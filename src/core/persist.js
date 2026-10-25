@@ -41,8 +41,12 @@ export function applyPack(s) {
   if (o.wallEp) state.wallEp = o.wallEp;
   K.sel = null;
   K.LV.data = o.other || {};
-  K.CAB = o.cab && Array.isArray(o.cab.circuits) ? o.cab : {
-    circuits: []
+  K.CAB = o.cab && Array.isArray(o.cab.circuits) ? {
+    boxes: [],
+    ...o.cab
+  } : {
+    circuits: [],
+    boxes: []
   };
   // liste des niveaux (noms, ordre) reprise de l'historique ; le fond de chaque niveau reste celui enregistré
   if (Array.isArray(o.levels) && o.levels.length) {

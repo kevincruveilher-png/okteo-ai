@@ -681,12 +681,49 @@ try {
     await ev(() => okteo.undo());
     return chg && r.length >= 5 && r.every((n) => n <= 4) && reset;
   });
-  await check("les circuits sont enregistrés avec le chantier (rechargement)", async () => {
-    const n = await ev(() => { okteo.saveNow(); return okteo.cab.circuits.length; });
+  console.log("Câblage : boîtes et gaines (v29–v30)");
+  await check("sans tableau : alerte « Poser le tableau » ; avec : boîtes placées (≤ 18 départs, ≤ 6 par face), dessinées sur le plan", async () => {
+    await ev(() => okteoExt.panel.show("cablage"));
+    await page.waitForSelector("#bx-auto");
+    const warn = await page.isVisible("#bx-tab");
+    // tableau posé dans le garage (coordonnées du plan EVRARD, page 3)
+    await ev(() => { const k = okteo.BG.w / 841.89, x = okteo.BG.x + 293 * k, y = okteo.BG.y + 410 * k; okteo.importDevices([{ t: "TAB", x, y }]); });
+    await ev(() => okteoExt.panel.show("cablage")); await page.waitForTimeout(150);
+    await page.click("#bx-auto");
+    await page.waitForFunction(() => okteo.cab.boxes.length > 0 && document.querySelectorAll(".bx-row").length === okteo.cab.boxes.length);
+    const r = await ev(() => ({ n: okteo.cab.boxes.length, drawn: document.querySelectorAll("#sv g.box").length, here: okteo.cab.boxes.filter((b) => b.lv === okteo.level.id).length,
+      rows: [...document.querySelectorAll(".bx-row")].map((x) => x.textContent.match(/(\d+) \/ 18 départs · A(\d+) B(\d+) C(\d+) D(\d+)/)).map((m) => m && m.slice(1).map(Number)) }));
+    if (!(warn && r.n >= 3 && r.drawn === r.here && r.rows.every((m) => m && m[0] <= 18 && m.slice(1).every((f) => f <= 6)))) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("glisser une boîte la déplace (longueurs recalculées), un Ctrl+Z la remet", async () => {
+    const b0 = await ev(() => { const b = okteo.cab.boxes.find((x) => x.lv === okteo.level.id); return { id: b.id, x: b.x, y: b.y, p: okteo.toClient(b.x, b.y) }; });
+    await ev(() => okteo.setTool("sel"));
+    const before = await ev(() => document.querySelector(".bx-row b") && 1);
+    await page.mouse.move(b0.p.x, b0.p.y); await page.mouse.down(); await page.mouse.move(b0.p.x + 60, b0.p.y + 30, { steps: 6 }); await page.mouse.up();
+    const b1 = await ev((id) => { const b = okteo.cab.boxes.find((x) => x.id === id); return { x: b.x, y: b.y, manual: b.manual }; }, b0.id);
+    await ev(() => okteo.undo());
+    const b2 = await ev((id) => { const b = okteo.cab.boxes.find((x) => x.id === id); return { x: b.x, y: b.y }; }, b0.id);
+    return before && b1.x > b0.x + 0.3 && b1.manual && Math.abs(b2.x - b0.x) < 1e-6 && Math.abs(b2.y - b0.y) < 1e-6;
+  });
+  await check("onglet Boîtes : gaines de chaque boîte (face, longueur, Ø, fils couleur/section/n°) et raccordements", async () => {
+    await page.click('#tabs button[data-tab="boites"]');
+    const r = await ev(() => ({ boxes: document.querySelectorAll(".cabpage section.bx").length, rows: document.querySelectorAll(".cabpage .gt tbody tr").length,
+      chips: document.querySelectorAll(".cabpage .wchip b").length, nets: document.querySelectorAll(".cabpage .nets li").length, first: document.querySelector(".cabpage .nets li")?.textContent || "",
+      faces: [...document.querySelectorAll(".cabpage .gt tbody td.c:nth-child(2)")].map((t) => t.textContent).every((f) => "ABCD".includes(f)) }));
+    const n = await ev(() => okteo.cab.boxes.length);
+    await page.click('#tabs button[data-tab="lignes"]');
+    const d = await ev(() => document.querySelectorAll(".cabpage .gt tbody tr").length);
+    await page.click('#tabs button[data-tab="plan"]');
+    if (!(r.boxes === n && r.rows > 60 && r.chips > 150 && r.nets > 20 && /n° 1 Terres/.test(r.first) && r.faces && d >= 8)) throw new Error(JSON.stringify({ ...r, n, d }));
+    return true;
+  });
+  await check("circuits et boîtes enregistrés avec le chantier (rechargement)", async () => {
+    const n = await ev(() => { okteo.saveNow(); return [okteo.cab.circuits.length, okteo.cab.boxes.length]; });
     await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);
-    const m = await ev(() => okteo.cab.circuits.length);
+    const m = await ev(() => [okteo.cab.circuits.length, okteo.cab.boxes.length]);
     await ev(() => okteoExt.panel.show("props"));
-    return n > 3 && m === n;
+    return n[0] > 3 && n[1] > 0 && m[0] === n[0] && m[1] === n[1];
   });
 
   console.log("Impression PDF");

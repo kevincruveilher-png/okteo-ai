@@ -142,6 +142,37 @@ window.okteo = {
     showSide();
     document.dispatchEvent(new CustomEvent("okteo:cab"));
   },
+  // boîtes de pieuvre [{id, n, lv, x, y, apps}] (un seul Ctrl+Z)
+  setBoxes(list) {
+    snapshot();
+    K.CAB = {
+      ...K.CAB,
+      boxes: list
+    };
+    markDirty();
+    draw();
+    showSide();
+    document.dispatchEvent(new CustomEvent("okteo:cab"));
+  },
+  // circuits et boîtes d'un coup (un seul Ctrl+Z)
+  setCab(patch) {
+    snapshot();
+    K.CAB = {
+      ...K.CAB,
+      ...patch
+    };
+    markDirty();
+    draw();
+    showSide();
+    document.dispatchEvent(new CustomEvent("okteo:cab"));
+  },
+  get boxSel() {
+    return K.boxSel;
+  },
+  set boxSel(id) {
+    K.boxSel = id;
+    draw();
+  },
   get showCircuits() {
     return K.showCirc;
   },

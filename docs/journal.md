@@ -201,10 +201,19 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - Moteur `src/cablage/` testé sans navigateur (`scripts/cablage.test.mjs`).
 - Tests : 28 + 14 + 81 = 123.
 
-## PROCHAINE MISE À JOUR (v29) : boîtes
-Placement automatique des boîtes (économie de cuivre), déplaçables, faces A–D (gaine vers le haut du plan = A),
-6 départs par face / 18 par boîte, alimentation de chaque boîte depuis le tableau. Puis v30 gaines (longueurs, fils,
-n° de circuit de câblage, diamètres), v31 schéma de boîte pour le câbleur.
+## Versions 29 et 30 (25/10/2026) — livrées ensemble : boîtes, gaines et fils
+- Boîtes placées automatiquement pour économiser le cuivre (EVRARD : 7 boîtes, 108 gaines, 614 m de gaine, 1 700 m de
+  fil, contre environ 2 000 m de fil avec une seule boîte), 18 départs / 6 par face respectés, commande + lumières dans
+  la même boîte, alimentation par circuit depuis le tableau ; boîtes déplaçables à la souris (un Ctrl+Z).
+- Gaines : n° B1-01…, face A–D, longueur (+10 %, descentes, surlongueurs, arrondi), diamètre par remplissage, fils avec
+  couleur, section et n° de raccordement ; raccordements de chaque boîte (n° 1 = terres) ; lignes directes.
+- Onglets Boîtes et Lignes directes ouverts ; « Bandes » reste pour le schéma de boîte (v31).
+- À valider par Kévin : contenu des gaines (va-et-vient, télérupteur), hauteur du haut du tableau (1,80 m), surlongueurs.
+- Tests : 28 + 26 + 84 = 138.
+
+## PROCHAINE MISE À JOUR (v31) : schéma de boîte pour le câbleur
+La boîte carrée dessinée avec ses faces et ses gaines, fils numérotés, retours lampe et navettes tracés, liste des
+raccordements à cocher ; impression (une page par boîte). Puis SPV pour Counter.
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.

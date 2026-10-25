@@ -129,11 +129,22 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   (dans `packState`, tous niveaux, annulable) ; `okteo.cab`, `setCircuits(list)`, `showCircuits`, `allApps()` (tous
   niveaux, avec pièce et repère), `allLinks()`, `circuitColors` ; anneaux `circle.circ` dans `draw` (`circuitMap`).
   Interface : `src/ext/cablage-ui.js` (onglet « Câblage ») ; réglages dans `settings.js` (page Paramètres).
+- Boîtes et gaines (v29–v30) : `src/cablage/boites.js` (`buildUnits` = allumages indivisibles + appareils seuls des
+  circuits à boîte ; `placeBoxes(items, links, circuits, tabs, S)` = regroupement avec capacité (18 départs dont une
+  alimentation par circuit, 6 par face) + médiane de Weiszfeld attirée par le tableau, k essayés ; `faceToward`,
+  `assignFaces`) et `src/cablage/gaines.js` (`computeWiring` → boîtes {gaines [{no, face, kind app|alim, label, circuit,
+  length, diam, wires [{fn, color, section, n}]}], nets (raccordements, n° 1 = terres)}, direct (lignes directes), issues,
+  totals ; `gaineLength` ; rôles des fils : prise, lumière, INT, va-et-vient, télérupteur). Boîtes stockées dans
+  `K.CAB.boxes` [{id, n, lv, x, y, apps, manual}] ; tout le reste est recalculé (déplacer une boîte = nouvelles longueurs).
+  Cœur : boîtes dessinées si `K.showCirc` (`g.box`, `hitBox`, glisser = `K.boxDrag`, `okteo:box-select`) ;
+  `okteo.setBoxes`, `setCab`, `boxSel`. Interface : `cablage-ui.js` (section Boîtes), `cablage-data.js` (`wiringNow`,
+  `autoBoxes`), `cablage-pages.js` (onglets Boîtes et Lignes directes). Piège : ne jamais donner la classe `app` à un
+  élément (c'est la grille de la page).
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (28 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (14 : gaines, circuits) + `scripts/smoke.mjs` (81 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (26 : gaines, circuits, boîtes, fils) + `scripts/smoke.mjs` (84 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

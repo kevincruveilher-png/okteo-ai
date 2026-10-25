@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v28** (25/10/2026) : câblage, étape 1 — réglages et circuits.
+Version du prototype : **v30** (25/10/2026) : câblage — circuits, boîtes, gaines et fils, lignes directes.
 (v17 : pièces ; v16 : appareils attachés aux murs ; v15 : relevé des murs ; v14 : chantiers.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
@@ -37,7 +37,7 @@ Pour arrêter : Ctrl+C dans le terminal.
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 123 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 138 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -52,6 +52,26 @@ Ouvre le logiciel dans un navigateur invisible et fait 123 vérifications (dessi
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Câblage — boîtes, gaines et fils (v29–v30)
+
+- **Poser le tableau** (appareil « Tableau » de la barre) : il sert de départ aux alimentations et aux lignes directes.
+- Onglet **Câblage** → **Placer les boîtes automatiquement** : les boîtes sont placées pour utiliser le moins de fil
+  possible (EVRARD : 7 boîtes, 1 700 m de fil au lieu de 2 000 m environ avec une seule boîte), en respectant 18 départs par
+  boîte et 6 par face ; une commande et ses lumières sont toujours dans la même boîte. Chaque boîte reçoit une
+  alimentation du tableau par circuit.
+- Sur le plan : la boîte (carré « B1 » avec ses faces A B C D), ses liens vers les appareils (couleur du circuit) et son
+  alimentation (pointillés vers le tableau). **Glisser une boîte** la déplace : longueurs, faces et diamètres se
+  recalculent. « ← Sélection » sur une boîte y raccorde les appareils sélectionnés.
+- Onglet **Boîtes** (à gauche) : pour chaque boîte, ses gaines **B1-01, B1-02…** (face A d'abord puis B, C, D) avec
+  appareil, circuit, **longueur** (tracé +10 %, descente, surlongueurs, arrondi), **diamètre** (place des fils) et
+  **fils** : couleur, section et **n° de raccordement** (tous les fils du même n° se raccordent ensemble ; n° 1 = toutes
+  les terres). En dessous, la liste des raccordements de la boîte.
+- Contenu des gaines : prise = phase, neutre, terre ; point lumineux = retour lampe, neutre, terre ; interrupteur = phase +
+  retour ; va-et-vient = phase + 2 navettes / retour + 2 navettes ; 3 commandes ou bouton poussoir = télérupteur au tableau
+  (alerte) ; alimentation = phase, neutre, terre du circuit.
+- Onglet **Lignes directes** : prises spécialisées, sorties de câble (tableau → appareil) et RJ45 (coffret), avec longueur,
+  diamètre et fils.
 
 ## Câblage — réglages et circuits (v28)
 

@@ -7,13 +7,14 @@
 import { computeCircuits, checkCircuits } from "../cablage/circuits.js";
 import { getCab, SECTIONS, PROTS } from "../cablage/settings.js";
 import { esc } from "./util.js";
+import { wiringNow, autoBoxes, fr } from "./cablage-data.js";
 
 const KIND = { eclairage: "Éclairage", prises: "Prises", specialise: "Spécialisé", comm: "Communication" };
 const LIGHT = new Set(["LUM", "SPOT", "APP"]);
 
 export function createCablagePane({ api, panel }) {
   const el = panel.register({ id: "cablage", label: "Câblage", icon: "⚡" });
-  let ask = null, renaming = null;
+  let ask = null, renaming = null, askBox = false;
   const fr = (v) => String(v).replace(".", ",");
 
   function data() {
@@ -76,11 +77,59 @@ export function createCablagePane({ api, panel }) {
         ${ask === "auto" ? `<span class="cb-ask">Remplacer les ${C.length} circuits ? <button class="danger" id="cb-yes">Remplacer</button><button id="cb-no">Annuler</button></span>`
           : `<button id="cb-auto" title="Refaire toute la répartition (Ctrl+Z pour revenir)">Répartir automatiquement</button>`}
       </div>
-      <p class="mut sm">Couleur = circuit. Réglages : Paramètres → Câblage. Boîtes et gaines : prochaine étape.</p></div>`;
+      <p class="mut sm">Couleur = circuit. Réglages : Paramètres → Câblage.</p>
+      ${boxesHTML()}</div>`;
     wire();
   }
 
+  // ---------- boîtes ----------
+  function boxesHTML() {
+    const B = api.cab.boxes || [], hasTab = api.allApps().some((a) => a.t === "TAB");
+    const head = `<div class="cab-h" style="margin-top:14px"><b>Boîtes</b> <span class="mut sm">max ${getCab().departsMax} départs, ${getCab().departsFace} par face (A haut, B droite, C bas, D gauche)</span></div>`;
+    const tabWarn = hasTab ? "" : `<p class="warn sm">⚠ Pas de tableau sur le plan : les boîtes sont placées sans tenir compte de leur alimentation et les longueurs vers le tableau manquent. <button id="bx-tab">Poser le tableau</button></p>`;
+    if (!B.length) return `${head}${tabWarn}<p class="mut sm">Oktéo place les boîtes pour utiliser le moins de cuivre possible (une commande et ses lumières dans la même boîte), puis vous pouvez les déplacer à la souris.</p>
+      <button class="on" id="bx-auto">Placer les boîtes automatiquement</button>`;
+    const W = wiringNow(api), lvName = new Map(api.levels.map((l) => [l.id, l.name]));
+    const rows = W.boxes.map((b) => {
+      const f = ["A", "B", "C", "D"].map((x) => `${x}${b.gaines.filter((g) => g.face === x).length}`).join(" ");
+      const over = b.gaines.length > getCab().departsMax || ["A", "B", "C", "D"].some((x) => b.gaines.filter((g) => g.face === x).length > getCab().departsFace);
+      return `<div class="cb-row bx-row${over ? " over" : ""}${api.boxSel === b.id ? " sel" : ""}" data-b="${b.id}"><span class="bx-sq">▢</span><div class="cb-main">
+        <div><b>${esc(b.n)}</b> <span class="mut sm">${esc(lvName.get(b.lv) || b.lv)} · ${b.gaines.length} / ${getCab().departsMax} départs · ${f}</span></div>
+        <div class="mut sm">circuits ${esc(b.circuits.join(", "))} · ${fr(b.cuivre)} m de fil${b.manual ? " · déplacée à la main" : ""}</div>
+        <div class="cb-ctl"><button data-a="see" title="Montrer la boîte sur le plan">Voir</button><button data-a="take" title="Raccorder à cette boîte les appareils sélectionnés sur le plan">← Sélection</button><button data-a="list" title="Ses gaines et ses fils (onglet Boîtes)">Gaines</button></div></div></div>`;
+    }).join("");
+    const issues = W.issues.filter((x) => !/^Pas de tableau/.test(x)).map((x) => `<p class="warn sm">⚠ ${esc(x)}</p>`).join("");
+    return `${head}${tabWarn}<p class="sm"><b>${W.totals.boites}</b> boîtes · <b>${W.totals.gaines}</b> gaines · <b>${fr(W.totals.gaine)}</b> m de gaine · <b>${fr(W.totals.cuivre)}</b> m de fil</p>
+      ${issues}<div class="cb-list">${rows}</div>
+      ${askBox ? `<span class="cb-ask">Replacer les ${B.length} boîtes (les déplacements à la main sont perdus) ? <button class="danger" id="bx-yes">Replacer</button><button id="bx-no">Annuler</button></span>`
+        : `<button id="bx-auto" title="Recalculer l'emplacement de toutes les boîtes (Ctrl+Z pour revenir)">Replacer les boîtes automatiquement</button>`}
+      <p class="mut sm">Glisser une boîte sur le plan pour la déplacer : longueurs et faces se recalculent. Onglets « Boîtes » et « Lignes directes » (à gauche) : le détail des gaines et des fils.</p>`;
+  }
+  function placeAuto() {
+    if (!(api.cab.circuits || []).length) { api.setHint("Répartissez d'abord les appareils en circuits."); return; }
+    const r = autoBoxes(api);
+    api.setBoxes(r.boxes); api.showCircuits = true;
+    api.setHint(`${r.boxes.length} boîtes placées pour économiser le cuivre${r.issues.length ? " — " + r.issues.join(" ; ") : ""}. Glissez une boîte pour la déplacer ; Ctrl+Z pour annuler.`);
+  }
+  function wireBoxes() {
+    const $ = (q) => el.querySelector(q);
+    const a = $("#bx-auto"); if (a) a.onclick = () => { if ((api.cab.boxes || []).length) { askBox = true; render(); } else placeAuto(); };
+    const y = $("#bx-yes"); if (y) y.onclick = () => { askBox = false; placeAuto(); };
+    const n = $("#bx-no"); if (n) n.onclick = () => { askBox = false; render(); };
+    const t = $("#bx-tab"); if (t) t.onclick = () => { api.setTool("TAB"); api.setHint("Cliquez sur le plan à l'emplacement du tableau (TD)."); };
+    el.querySelectorAll(".bx-row").forEach((r) => {
+      const id = r.dataset.b, b = () => api.cab.boxes.find((x) => x.id === id);
+      r.querySelector('[data-a="see"]').onclick = () => { const B = b(); if (B.lv !== api.level.id) api.switchLevel(B.lv); api.showCircuits = true; api.boxSel = id; api.zoomToBox(B.x - 3, B.y - 3, B.x + 3, B.y + 3); render(); };
+      r.querySelector('[data-a="take"]').onclick = () => {
+        const ids = selectedApps(); if (!ids.length) { api.setHint("Sélectionnez d'abord des appareils sur le plan, puis « ← Sélection » sur la boîte."); return; }
+        api.setBoxes(api.cab.boxes.map((x) => ({ ...x, apps: x.id === id ? [...new Set([...x.apps, ...ids])] : x.apps.filter((k) => !ids.includes(k)) })));
+      };
+      r.querySelector('[data-a="list"]').onclick = () => { api.setTab("boites"); setTimeout(() => document.getElementById("bx-" + id)?.scrollIntoView({ block: "start" }), 50); };
+    });
+  }
+
   function wire() {
+    wireBoxes();
     const $ = (s) => el.querySelector(s);
     const sh = $("#cb-show"); if (sh) sh.onchange = () => { api.showCircuits = sh.checked; };
     const au = $("#cb-auto"); if (au) au.onclick = () => { if (api.cab.circuits.length) { ask = "auto"; render(); } else auto(); };
@@ -94,7 +143,7 @@ export function createCablagePane({ api, panel }) {
       C.push({ id: "c" + Date.now().toString(36), kind, label: `${KIND[kind]} (nouveau)`, apps: ids, section: sec[0], prot: sec[1], direct: kind === "specialise" || kind === "comm" });
       api.setCircuits(renumber(C));
     };
-    el.querySelectorAll(".cb-row").forEach((r) => {
+    el.querySelectorAll(".cb-row:not(.bx-row)").forEach((r) => {
       const cid = r.dataset.c;
       r.querySelectorAll("select[data-f]").forEach((s) => (s.onchange = () => patch(cid, { [s.dataset.f]: parseFloat(s.value) })));
       r.querySelector('[data-a="see"]').onclick = () => { const c = api.cab.circuits.find((x) => x.id === cid); const k = api.select(c.apps); if (k) api.zoomTo(c.apps); else api.setHint("Ce circuit n'a pas d'appareil sur le niveau ouvert (Page ↑ / Page ↓)."); };
@@ -107,9 +156,10 @@ export function createCablagePane({ api, panel }) {
 
   let t = null;
   const later = () => { clearTimeout(t); t = setTimeout(render, 80); };
-  ["okteo:cab", "okteo:saved", "okteo:level", "okteo:cab-settings"].forEach((e) => document.addEventListener(e, later));
+  ["okteo:cab", "okteo:saved", "okteo:level", "okteo:cab-settings", "okteo:box-select"].forEach((e) => document.addEventListener(e, later));
+  document.addEventListener("okteo:open-cablage", () => panel.show("cablage"));
   // les couleurs des circuits s'affichent quand l'onglet Câblage est ouvert (et restent tant qu'on ne les décoche pas)
   panel.onChange((s) => { if (s.pane === "cablage" && !s.collapsed) { if (!api.showCircuits && !el.__shown) { el.__shown = true; api.showCircuits = true; } later(); } });
   render();
-  return { render, auto, el };
+  return { render, auto, placeAuto, el };
 }

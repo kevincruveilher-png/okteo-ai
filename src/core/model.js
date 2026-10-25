@@ -250,9 +250,13 @@ K.showReps = true;
 K.showBelow = true;
 // câblage du chantier (tous niveaux) : circuits [{id, n, kind, label, section, prot, apps:[ids], direct}]
 K.CAB = {
-  circuits: []
+  circuits: [],
+  boxes: []
 };
 K.showCirc = false;
+K.boxDrag = null;
+K.boxSel = null;
+K.__boxLayer = "";
 K.bgLevel = 0.60;
 K.symCm = 20;
 K.ortho = true;

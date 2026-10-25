@@ -6,6 +6,8 @@ import { detectDevices, pageTexts } from "../src/walls/devices.js";
 import { gaineFor } from "../src/cablage/gaine.js";
 import { computeCircuits, checkCircuits } from "../src/cablage/circuits.js";
 import { CAB_DEFAULTS as S } from "../src/cablage/settings.js";
+import { placeBoxes, buildUnits, faceToward } from "../src/cablage/boites.js";
+import { computeWiring, gaineLength } from "../src/cablage/gaines.js";
 
 let ok = 0; const fails = [];
 const check = (name, cond, info = "") => { if (cond) { ok++; console.log("  ✓ " + name); } else { fails.push(name); console.log("  ✗ " + name + (info ? " : " + info : "")); } };
@@ -45,6 +47,37 @@ console.log("    éclairage :", ecl.map((c) => c.apps.filter((id) => L.has(byId.
 check("pas de circuit d'éclairage presque vide (répartition équilibrée)", ecl.length === Math.ceil(items.filter((a) => L.has(a.t)).length / 8) && ecl.every((c) => c.apps.filter((id) => L.has(byId.get(id).t)).length > 8 / 3));
 check("numérotation C1, C2… puis COM", C.filter((c) => c.kind !== "comm").every((c, i) => c.n === "C" + (i + 1)) && C.some((c) => c.n === "COM"));
 check("contrôle : aucun dépassement, aucun appareil oublié", (() => { const r = checkCircuits(C, items, S); return !r.issues.length && !r.orphans.length; })());
+
+console.log("Boîtes (v29) et gaines (v30) sur EVRARD");
+check("longueur : 3 m dans les combles, prise à 30 cm → 3×1,10 + 0,30 + 2,20 + 0,30 + 0,20 = 6,30 m", gaineLength({ horiz: 3, downA: 0.3 + 2.2 }, S) === 6.3, String(gaineLength({ horiz: 3, downA: 2.5 }, S)));
+check("faces : vers le haut du plan = A, droite = B, bas = C, gauche = D", faceToward({ x: 0, y: 0 }, { x: 0.2, y: -2 }) === "A" && faceToward({ x: 0, y: 0 }, { x: 2, y: 0.5 }) === "B" && faceToward({ x: 0, y: 0 }, { x: 0, y: 3 }) === "C" && faceToward({ x: 0, y: 0 }, { x: -1, y: 0 }) === "D");
+const k2 = 13 / 550 * 1.056;
+items.push({ id: "tab", t: "TAB", x: 293 * k2, y: 410 * k2, h: null, lv: "rdc", lvName: "RDC", room: "Garage", rep: "TD1" });
+const P = placeBoxes(items, links, C, { rdc: { x: 293 * k2, y: 410 * k2 } }, S);
+const W = computeWiring({ items, links, circuits: C, boxes: P.boxes, levels: ["rdc"], S });
+const boxedIds = new Set(C.filter((c) => !c.direct && c.kind !== "comm").flatMap((c) => c.apps));
+const inBox = new Map(); P.boxes.forEach((b) => b.apps.forEach((id) => inBox.set(id, [...(inBox.get(id) || []), b.n])));
+check("chaque appareil d'un circuit à boîte est dans exactement une boîte", [...boxedIds].every((id) => (inBox.get(id) || []).length === 1) && !P.issues.length, P.issues.join(" ; "));
+console.log("    boîtes :", W.boxes.map((b) => `${b.n} ${b.gaines.length} départs (A${b.gaines.filter((g) => g.face === "A").length} B${b.gaines.filter((g) => g.face === "B").length} C${b.gaines.filter((g) => g.face === "C").length} D${b.gaines.filter((g) => g.face === "D").length})`).join(" · "), `· cuivre ${W.totals.cuivre} m · gaine ${W.totals.gaine} m`);
+check("au plus 18 départs par boîte et 6 par face (alimentations comprises)", W.boxes.every((b) => b.gaines.length <= 18 && ["A", "B", "C", "D"].every((f) => b.gaines.filter((g) => g.face === f).length <= 6)));
+const units = buildUnits(items, links, C);
+check("une commande et ses lumières sont toujours dans la même boîte", units.every((u) => new Set(u.ids.map((id) => inBox.get(id)[0])).size === 1));
+// économie de cuivre : déplacer une boîte de 50 cm ne fait pas mieux (optimum local)
+const cost = (boxes) => computeWiring({ items, links, circuits: C, boxes, levels: ["rdc"], S }).totals.cuivre;
+const base = W.totals.cuivre;
+const better = P.boxes.some((b, i) => [[0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]].some(([dx, dy]) => cost(P.boxes.map((x, j) => (j === i ? { ...x, x: x.x + dx, y: x.y + dy } : x))) < base - 2));
+check("placement économe : déplacer une boîte de 50 cm n'économise pas de cuivre", !better);
+const one = { id: "x", n: "B1", lv: "rdc", x: items.reduce((s, a) => s + a.x, 0) / items.length, y: items.reduce((s, a) => s + a.y, 0) / items.length, apps: [...boxedIds] };
+console.log("    (une seule boîte au centre : " + cost([one]) + " m de cuivre)");
+const g = (t) => W.boxes.flatMap((b) => b.gaines).find((x) => x.appId && byId.get(x.appId).t === t);
+const fns = (x) => x.wires.map((w) => w.fn + "/" + w.color + "/" + w.section).join(" ");
+check("prise 16 A : phase rouge, neutre bleu, terre vert/jaune en 2,5 mm², Ø16", fns(g("PC16")) === "phase/rouge/2.5 neutre/bleu/2.5 terre/vert/jaune/2.5" && g("PC16").diam === 16, fns(g("PC16")));
+check("point lumineux : retour orange, neutre, terre en 1,5 mm² ; interrupteur : phase + retour", fns(g("LUM")) === "retour/orange/1.5 neutre/bleu/1.5 terre/vert/jaune/1.5" && W.boxes.flatMap((b) => b.gaines).filter((x) => x.appId && byId.get(x.appId).t === "INT").some((x) => fns(x) === "phase/rouge/1.5 retour/orange/1.5"));
+const allNets = W.boxes.flatMap((b) => b.nets.map((n) => ({ ...n, box: b })));
+check("n° 1 de chaque boîte = toutes les terres ensemble", W.boxes.every((b) => b.nets[0].fn === "terre" && b.nets[0].wires.length === b.gaines.filter((x) => x.wires.some((w) => w.fn === "terre")).length));
+check("chaque raccordement réunit au moins 2 fils (rien ne reste en l'air)", allNets.every((n) => n.wires.length >= 2), allNets.filter((n) => n.wires.length < 2).map((n) => n.box.n + " " + n.label).join(", "));
+check("chaque circuit présent dans une boîte y a son alimentation (phase, neutre, terre)", W.boxes.every((b) => b.circuits.every((cn) => b.gaines.some((x) => x.kind === "alim" && x.circuit === cn && x.wires.length >= 3))));
+check("lignes directes : prises spécialisées, sorties de câble et RJ45 (tableau → appareil)", W.direct.length === T("PC20").length + T("SC").length + T("RJ45").length && W.direct.every((x) => x.length > 2));
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);
 if (fails.length) process.exit(1);

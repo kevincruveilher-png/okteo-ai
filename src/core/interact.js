@@ -4,7 +4,7 @@ import { K } from "./k.js";
 import { TYPES, cornerHalf, dist, epOf, layers, node, nodeById, segById, segDir, segLen, state, uidA, uidD, uidO, uidR, uidS } from "./model.js";
 import { markDirty, save, snapshot } from "./persist.js";
 import { applyOrtho, evWorld, pxPerVB, repMap, snapWorld, tolM } from "./view.js";
-import { draw, sv } from "./render.js";
+import { draw, hitBox, sv } from "./render.js";
 import { attach, hitApp, hitNode, hitOpen, hitOpenHandle, hitSeg, projOnSeg, segDistPt, snapAlign, snapToWall, wallMounted } from "./attach.js";
 import { clampOpenings, clearSel, currentGroup, isSel, marqueeSelect, mk, moveGroup, multi, normalizeSel, roomAt, setSingle, startGroupDrag, toggleMulti } from "./groups.js";
 import { showSide } from "./panel.js";
@@ -189,6 +189,13 @@ export function placeApp(t, p) {
 }
 
 export function endPtr() {
+  if (K.boxDrag) {
+    K.boxDrag = null;
+    markDirty();
+    draw();
+    document.dispatchEvent(new CustomEvent("okteo:cab"));
+    return;
+  }
   if (K.marquee) {
     const m = K.marquee;
     K.marquee = null;
@@ -294,6 +301,34 @@ sv.addEventListener("pointerdown", e => {
       cy: K.view.cy
     };
     return;
+  }
+  // boîte de pieuvre : on la saisit pour la déplacer (outil Sélection, couleurs des circuits affichées)
+  if (K.tool === "sel" && !K.testMode) {
+    const b = hitBox(wx, wy);
+    if (b) {
+      snapshot();
+      K.boxSel = b.id;
+      K.boxDrag = {
+        id: b.id,
+        dx: wx - b.x,
+        dy: wy - b.y
+      };
+      document.dispatchEvent(new CustomEvent("okteo:box-select", {
+        detail: {
+          id: b.id
+        }
+      }));
+      draw();
+      return;
+    }
+    if (K.boxSel) {
+      K.boxSel = null;
+      document.dispatchEvent(new CustomEvent("okteo:box-select", {
+        detail: {
+          id: null
+        }
+      }));
+    }
   }
   if (K.seriesMode) {
     const src = state.app.find(a => a.id === K.seriesMode.src);
@@ -615,6 +650,16 @@ sv.addEventListener("pointermove", e => {
     K.view.cx = K.pan.cx - (e.clientX - K.pan.x) / k / K.view.scale;
     K.view.cy = K.pan.cy - (e.clientY - K.pan.y) / k / K.view.scale;
     draw();
+    return;
+  }
+  if (K.boxDrag) {
+    const b = K.CAB.boxes.find(x => x.id === K.boxDrag.id);
+    if (b) {
+      b.x = +(Math.round((wx - K.boxDrag.dx) / 0.05) * 0.05).toFixed(2);
+      b.y = +(Math.round((wy - K.boxDrag.dy) / 0.05) * 0.05).toFixed(2);
+      b.manual = true;
+      draw();
+    }
     return;
   }
   if (K.seriesMode) {

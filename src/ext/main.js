@@ -15,6 +15,7 @@ import { initBackup } from "./backup.js";
 import { createLevelsBar } from "./levels.js";
 import { createTour } from "./tour.js";
 import { createCablagePane } from "./cablage-ui.js";
+import { mountBoxesPage, mountDirectPage } from "./cablage-pages.js";
 
 function start() {
   const api = window.okteo;
@@ -50,6 +51,8 @@ function start() {
   const pages = {
     params: { el: document.getElementById("params"), mount: (el) => mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels }), ui: null },
     chantiers: { el: document.getElementById("chantiers"), mount: (el) => mountChantiers(el, { api }), ui: null },
+    boites: { el: document.getElementById("boites"), mount: (el) => mountBoxesPage(el, { api }), ui: null },
+    lignes: { el: document.getElementById("lignes"), mount: (el) => mountDirectPage(el, { api }), ui: null },
   };
   const onTab = (t) => {
     stage.hidden = !!pages[t];
@@ -96,6 +99,7 @@ function start() {
   const cablage = createCablagePane({ api, panel });
   hooks.cablage = () => panel.show("cablage");
   hooks.circuitsAuto = () => { panel.show("cablage"); cablage.auto(); };
+  hooks.boxesAuto = () => { panel.show("cablage"); cablage.placeAuto(); };
   const tour = createTour({ api, panel, hooks });
   hooks.tour = () => tour.start();
   hooks.steps = () => { panel.show("steps"); tour.render(); };

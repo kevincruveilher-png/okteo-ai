@@ -253,6 +253,27 @@ export function draw() {
     });
     h += `<g>${ll}</g>`;
   }
+  // boîtes de pieuvre (onglet Câblage) : liens boîte → appareils, alimentation depuis le tableau, carré + nom
+  if (K.showCirc && (K.CAB.boxes || []).length) {
+    const pm = pmNow(), cm = circuitMap(), byId = Object.fromEntries(state.app.map(a => [a.id, a])), tab = state.app.find(a => a.t === "TAB");
+    let bl = "", bx = "";
+    K.CAB.boxes.filter(b => b.lv === K.LV.cur).forEach(b => {
+      const on = K.boxSel === b.id;
+      b.apps.forEach(id => {
+        const a = byId[id];
+        if (!a) return;
+        const c = cm[id];
+        bl += `<line x1="${b.x}" y1="${b.y}" x2="${a.x}" y2="${a.y}" stroke="${c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" opacity="${on ? 0.9 : 0.55}"/>`;
+      });
+      if (tab) bl += `<line x1="${b.x}" y1="${b.y}" x2="${tab.x}" y2="${tab.y}" stroke="var(--fg)" stroke-width="${1.2 * pm}" stroke-dasharray="${6 * pm} ${4 * pm}" opacity="0.45"/>`;
+      const q = 16 * pm;
+      bx += `<g class="box" data-id="${b.id}"><rect x="${b.x - q / 2}" y="${b.y - q / 2}" width="${q}" height="${q}" fill="var(--panel)" stroke="${on ? "var(--sel)" : "var(--fg)"}" stroke-width="${(on ? 2.4 : 1.6) * pm}"/>` +
+        `<text x="${b.x}" y="${b.y - q / 2 - 4 * pm}" text-anchor="middle" font-size="${11 * pm}" font-weight="700" font-family="var(--fm)" fill="var(--fg)">${b.n}</text>` +
+        ["A", "B", "C", "D"].map((f, i) => { const dx = [0, 1, 0, -1][i] * q * 0.32, dy = [-1, 0, 1, 0][i] * q * 0.32; return `<text x="${b.x + dx}" y="${b.y + dy}" text-anchor="middle" dominant-baseline="central" font-size="${6 * pm}" font-family="var(--fm)" fill="var(--mut)">${f}</text>`; }).join("") + `</g>`;
+    });
+    h += `<g class="boxlinks">${bl}</g>`;
+    K.__boxLayer = bx;
+  } else K.__boxLayer = "";
   // appareils + repères
   if (layers.appareils.on) {
     const onSet = K.testMode && K.sel ? lightsOn(K.sel.id) : null,
@@ -276,6 +297,7 @@ export function draw() {
     });
     h += `<g>${ap}</g>`;
   }
+  if (K.__boxLayer) h += `<g class="boxes">${K.__boxLayer}</g>`;
   // ---------- étiquettes : taille fixe à l'écran, placées sans chevauchement (les moins importantes sont masquées) ----------
   {
     const pm = 1 / (pxPerVB() * s),
@@ -565,4 +587,11 @@ export function circuitMap() {
   // appareils qui devraient être dans un circuit (pas le tableau, pas les bouches VMC non câblées)
   m.__need = a => !["TAB", "VMC"].includes(a.t);
   return m;
+}
+
+// boîte sous le point (monde), niveau ouvert
+export function hitBox(wx, wy) {
+  if (!K.showCirc) return null;
+  const r = 12 * pmNow();
+  return (K.CAB.boxes || []).find(b => b.lv === K.LV.cur && Math.abs(b.x - wx) <= r && Math.abs(b.y - wy) <= r) || null;
 }

@@ -143,6 +143,8 @@ kbd{font-family:var(--fm);font-size:11px;border:1px solid var(--line);border-bot
 /* page Paramètres */
 .params{overflow:auto;background:var(--bg);min-width:0}
 .params-in{max-width:880px;padding:20px 24px 40px}
+.params-in.cabpage{max-width:1180px}
+.cabpage .bx h3{text-transform:none;letter-spacing:0;color:var(--fg);font-size:15px}
 .params h2{margin:0 0 14px;font-size:20px}
 .params h3{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut)}
 .params section{margin-bottom:22px}.params p{font-size:13px;line-height:1.5;margin:4px 0 10px}
@@ -295,3 +297,20 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .cab-ctl{display:flex;align-items:center;gap:5px}
 .cab-ctl input[type=number]{width:72px}
 .cab-ctl input:not([type]){width:110px}
+/* boîtes et gaines (v29–v30) */
+.bx-row.sel{border-color:var(--sel)}
+.bx-sq{flex:none;font-size:15px;line-height:1;margin-top:1px}
+.cabpage h2 .sm{font-weight:400;margin-left:8px}
+.cabpage .bx{margin:16px 0 22px}
+.cabpage .bx h3{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.cabpage .bx h3 button{margin-left:auto}
+.gt{width:100%;border-collapse:collapse;font-size:12.5px}
+.gt th{text-align:left;font-weight:600;color:var(--mut);border-bottom:1px solid var(--line);padding:4px 6px;white-space:nowrap}
+.gt td{border-bottom:1px solid var(--line);padding:4px 6px;vertical-align:top}
+.gt td.c{text-align:center}.gt td.r{text-align:right;white-space:nowrap}
+.gt tr.gk-alim td{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.wchip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:10px;padding:0 6px 0 3px;margin:1px 2px;font-size:11.5px;white-space:nowrap}
+.wchip i{display:inline-block;width:11px;height:11px;border-radius:50%;border:1px solid rgba(0,0,0,.25)}
+.wchip b{background:var(--fg);color:var(--panel);border-radius:8px;padding:0 5px;font-size:10.5px}
+.nets{margin-top:8px;font-size:12.5px}.nets ol{margin:6px 0 0 18px;padding:0}.nets li{list-style:none;margin:2px 0}
+.warnbox{margin:6px 0 10px}
