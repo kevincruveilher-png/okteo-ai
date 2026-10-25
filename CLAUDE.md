@@ -88,11 +88,17 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `exportGeometry().limits`, imprimés en pointillés) ; `findLimits` / `addLimit` (rooms.js : coupes depuis les angles
   rentrants qui séparent deux noms) ; `okteo.addLimits`, `okteo.batch(fn)` (un seul Ctrl+Z). Type `APP` (applique,
   demi-cercle `asHalf`, famille L, murale, 180 cm). Tableau : texte lisible seulement.
+- Lisibilité (v23) : `src/place.js` (Placer = boîtes + grille, `textBox`, `roomCandidates`) utilisé par `draw()` (passe
+  « étiquettes » en fin de dessin, `<g class="labels">` ; tailles en px écran via `pmNow()` ; ordre : symboles = obstacles,
+  noms de pièces (forcés, déplacés dans la pièce), cotes libres, repères (8 positions, sinon masqués sauf sélection),
+  longueurs de murs (masquées sans place)) et par `print.js` (mêmes règles en mm, `doc.getTextWidth`). `symView()` =
+  symbole ≥ 12 px. Liaisons en largeur écran, mises en avant pour l'appareil sélectionné. La carte des pièces se recalcule
+  sur `okteo:saved` (annuler/rétablir pendant qu'elle est ouverte).
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/walls.test.mjs` (28 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (65 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (68 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

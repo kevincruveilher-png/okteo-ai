@@ -85,6 +85,15 @@ export function createRoomsTool({ api }) {
     render();
   }
 
+  // les murs changent pendant que la carte est ouverte (annuler / rétablir, mur déplacé) : la détection se refait
+  let pending = false;
+  document.addEventListener("okteo:saved", async () => {
+    if (card.hidden || pending || !card.querySelector("#r-ok, p")) return;
+    if (!res || !card.querySelector("#r-ok")) { if (card.textContent.includes("Aucune pièce") || card.textContent.includes("Il faut d'abord")) { pending = true; await open(); pending = false; } return; }
+    pending = true; const fresh = await compute(); pending = false;
+    if (card.hidden || !res) return;
+    res = fresh; api.setPreview({ rooms: res.rooms, limits: useLimits ? res.limits : [] }); render();
+  });
   document.addEventListener("okteo:walls-imported", (e) => { if (e.detail && e.detail.rooms) open(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !card.hidden) close(); });
   return { open, close, get result() { return res; } };

@@ -459,6 +459,33 @@ try {
     return m && m.near >= 0 && moved;
   }));
 
+  console.log("Lisibilité (v23)");
+  await check("textes à taille fixe à l'écran : nom de pièce ≈ 13 px en vue d'ensemble comme en zoom", async () => {
+    const hOf = () => ev(() => { const t = [...document.querySelectorAll("#sv .labels text")].find((e) => e.textContent === "Chambre 1"); return t ? t.getBoundingClientRect().height : 0; });
+    await ev(() => okteo.fit()); const h1 = await hOf();
+    await ev(() => okteo.zoom(4)); const h2 = await hOf();
+    await ev(() => okteo.fit());
+    return h1 > 11 && h1 < 22 && Math.abs(h1 - h2) < 1.5;
+  });
+  await check("aucune étiquette ne se chevauche (noms, surfaces, repères, cotes) en vue d'ensemble et en zoom", async () => {
+    const overlaps = () => ev(() => {
+      const R = [...document.querySelectorAll("#sv .labels text")].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0);
+      let n = 0; for (let i = 0; i < R.length; i++) for (let j = i + 1; j < R.length; j++) { const a = R[i], b = R[j];
+        if (a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1) n++; }
+      return { n, total: R.length };
+    });
+    await ev(() => okteo.fit()); const a = await overlaps();
+    await ev(() => okteo.zoom(3)); const b = await overlaps(); await ev(() => okteo.fit());
+    if (a.n || b.n) throw new Error(JSON.stringify({ a, b }));
+    return a.total > 30;
+  });
+  await check("liaisons : celles de l'appareil sélectionné ressortent, les autres s'effacent", async () => ev(() => {
+    const l = okteo.state.lia[0]; okteo.select([l.c]);
+    const paths = [...document.querySelectorAll("#sv path[d^='M']")].filter((p) => p.getAttribute("d").includes(" Q "));
+    const hot = paths.filter((p) => +p.getAttribute("opacity") > 0.9).length, dim = paths.filter((p) => +p.getAttribute("opacity") < 0.2).length;
+    okteo.clearSel(); return hot >= 1 && dim > 5;
+  }));
+
   console.log("Fiabilité (v21)");
   await check("repères fixes : supprimer P2 ne renumérote pas les autres ; une copie reçoit un nouveau numéro", async () => {
     const before = await ev(() => okteo.repMap());

@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v22** (25/10/2026) : WC et dégagement séparés du séjour, appliques reconnues.
+Version du prototype : **v23** (25/10/2026) : plan lisible à l'écran et à l'impression (textes sans chevauchement).
 (v17 : pièces ; v16 : appareils attachés aux murs ; v15 : relevé des murs ; v14 : chantiers.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
@@ -37,7 +37,7 @@ Pour arrêter : Ctrl+C dans le terminal.
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 93 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 96 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -52,6 +52,16 @@ Ouvre le logiciel dans un navigateur invisible et fait 93 vérifications (dessin
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Lisibilité du plan (v23)
+
+- Les textes (noms et surfaces des pièces, repères, cotes) gardent **la même taille à l'écran** quel que soit le zoom.
+- **Aucun texte ne se chevauche** : un nom de pièce qui gêne se déplace dans sa pièce ; un repère se met à la première
+  place libre autour de son symbole ; une longueur de mur qui ne tient pas est masquée (elle réapparaît en zoomant).
+  Le repère de l'appareil sélectionné est toujours affiché.
+- Les symboles ne descendent pas sous 12 px en vue d'ensemble.
+- **Liaisons** : traits fins et discrets ; en sélectionnant un appareil, ses liaisons ressortent et les autres s'effacent.
+- **Impression** : même placement sans chevauchement (repères, hauteurs, noms de pièces, cotes).
 
 ## Pièces ouvertes, portes en travers, appliques (v22)
 

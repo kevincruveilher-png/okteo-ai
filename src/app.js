@@ -1,6 +1,7 @@
 "use strict";
 import * as CHS from "./chantiers.js";
 import { interiorPoly, polyArea, pointInPoly, labelPoint, addLimit } from "./walls/rooms.js";
+import { Placer, textBox, roomCandidates } from "./place.js";
 // ---------- chantier ouvert ----------
 // Un seul chantier est chargé à la fois ; changer de chantier recharge la page (état propre, annuler/rétablir compris).
 const CH=CHS.current();
@@ -33,6 +34,9 @@ let dirty=false; const undo=[],redo=[];
 let clip=null, lastW={x:PLAN.w/2,y:PLAN.h/2};
 
 const symScaleOf=()=>symCm/180;
+// à l'écran, un symbole ne descend jamais sous 12 px de diamètre (vue d'ensemble lisible)
+const pmNow=()=>1/(pxPerVB()*view.scale);
+const symView=()=>Math.max(symScaleOf(),12*pmNow()/1.8);
 const uidN=()=>"n"+(++NID),uidS=()=>"s"+(++SID),uidA=()=>"a"+(++AID),uidR=()=>"r"+(++RID),uidO=()=>"o"+(++OID),uidD=()=>"d"+(++DID);
 function node(x,y){const n={id:uidN(),x:+x.toFixed(3),y:+y.toFixed(3)};state.nodes.push(n);return n}
 function nodeById(id){return state.nodes.find(n=>n.id===id)}
@@ -189,38 +193,67 @@ function draw(){
  if(tool==="piece"&&roomDraft){const x=Math.min(roomDraft.x0,roomDraft.x1),y=Math.min(roomDraft.y0,roomDraft.y1),w=Math.abs(roomDraft.x1-roomDraft.x0),hh=Math.abs(roomDraft.y1-roomDraft.y0);
    h+=`<rect x="${x}" y="${y}" width="${w}" height="${hh}" fill="var(--accent)" opacity=".1" stroke="var(--accent)" stroke-width="${ep}" stroke-dasharray="0.3 0.2"/>`;}
  if((tool==="cote")&&dimDraft&&draftPt){h+=`<line x1="${dimDraft.x}" y1="${dimDraft.y}" x2="${draftPt.x}" y2="${draftPt.y}" stroke="var(--dimc)" stroke-width="0.05" stroke-dasharray="0.2 0.15"/>`;}
- // cotes permanentes sur murs
- if(showDims&&layers.cotes.on&&layers.murs.on){let dm="";state.segs.forEach(seg=>{if(seg.virt)return;const d=segDir(seg);if(!d.a)return;const L=d.L;
-   const mx=(d.a.x+d.b.x)/2,my=(d.a.y+d.b.y)/2,ox=-d.uy*(ep/2+0.22),oy=d.ux*(ep/2+0.22);
-   dm+=`<text x="${mx+ox}" y="${my+oy}" text-anchor="middle" dominant-baseline="middle" fill="var(--mut)" font-size="0.3" font-family="var(--fm)">${L.toFixed(2)}</text>`;});h+=`<g>${dm}</g>`;}
- // cotes libres
+ // cotes libres (le texte est placé avec les autres étiquettes)
+ const dimTexts=[];
  if(layers.cotes.on){let fd="";state.dims.forEach(dd=>{const on=isSel("dim",dd.id)||(GH&&GH.dims.has(dd.id));const c=on?'var(--sel)':'var(--dimc)';
    const L=dist(dd.a.x,dd.a.y,dd.b.x,dd.b.y);const mx=(dd.a.x+dd.b.x)/2,my=(dd.a.y+dd.b.y)/2;
    const ux=(dd.b.x-dd.a.x)/(L||1),uy=(dd.b.y-dd.a.y)/(L||1),nx=-uy,ny=ux;
    fd+=`<line x1="${dd.a.x}" y1="${dd.a.y}" x2="${dd.b.x}" y2="${dd.b.y}" stroke="${c}" stroke-width="0.04"/>`;
    fd+=`<line x1="${dd.a.x-nx*0.1}" y1="${dd.a.y-ny*0.1}" x2="${dd.a.x+nx*0.1}" y2="${dd.a.y+ny*0.1}" stroke="${c}" stroke-width="0.04"/>`;
    fd+=`<line x1="${dd.b.x-nx*0.1}" y1="${dd.b.y-ny*0.1}" x2="${dd.b.x+nx*0.1}" y2="${dd.b.y+ny*0.1}" stroke="${c}" stroke-width="0.04"/>`;
-   fd+=`<text x="${mx+nx*0.25}" y="${my+ny*0.25}" text-anchor="middle" dominant-baseline="middle" fill="${c}" font-size="0.34" font-family="var(--fm)">${L.toFixed(2)}</text>`;});h+=`<g>${fd}</g>`;}
- // noms + aires pièces
- if(layers.pieces.on){let rl="";state.rooms.forEach(r=>{const lp=r.poly?labelPoint(r.poly):{x:(r.x0+r.x1)/2,y:(r.y0+r.y1)/2},cx=lp.x,cy=lp.y,ar=roomArea(r);
-   rl+=`<text x="${cx}" y="${cy-0.15}" text-anchor="middle" fill="var(--fg)" font-size="0.5" font-family="var(--ff)">${r.name}</text>`;
-   rl+=`<text x="${cx}" y="${cy+0.5}" text-anchor="middle" fill="var(--mut)" font-size="0.36" font-family="var(--fm)">${ar.toFixed(1)} m²</text>`;});h+=`<g opacity="0.9">${rl}</g>`;}
+   dimTexts.push({x:mx,y:my,nx,ny,c,str:L.toFixed(2)});});h+=`<g>${fd}</g>`;}
  // liaisons
  if(layers.liaisons.on){const byId=Object.fromEntries(state.app.map(a=>[a.id,a]));let ll="";
-   state.lia.forEach(x=>{const c=byId[x.c],l=byId[x.l];if(!c||!l)return;const mx=(c.x+l.x)/2,my=(c.y+l.y)/2-dist(c.x,c.y,l.x,l.y)*0.18,hot=testMode&&sel&&sel.id===c.id;
-     ll+=`<path d="M${c.x} ${c.y} Q ${mx} ${my} ${l.x} ${l.y}" fill="none" stroke="${hot?'var(--accent2)':'var(--accent)'}" stroke-width="${hot?0.1:0.05}" opacity="${hot?0.95:0.5}"/>`;});h+=`<g>${ll}</g>`;}
+   // trait fin et discret ; ceux de l'appareil sélectionné (ou de la commande testée) ressortent, les autres s'effacent
+   const pmL=pmNow(),focus=sel&&sel.kind==="app"?sel.id:null;
+   state.lia.forEach(x=>{const c=byId[x.c],l=byId[x.l];if(!c||!l)return;const mx=(c.x+l.x)/2,my=(c.y+l.y)/2-dist(c.x,c.y,l.x,l.y)*0.18;
+     const hot=(testMode&&sel&&sel.id===c.id)||(focus&&(focus===c.id||focus===l.id)),dim=focus&&!hot;
+     ll+=`<path d="M${c.x} ${c.y} Q ${mx} ${my} ${l.x} ${l.y}" fill="none" stroke="${hot?'var(--accent2)':'var(--accent)'}" stroke-width="${(hot?2.4:1.1)*pmL}" opacity="${hot?0.95:dim?0.15:0.35}"/>`;});h+=`<g>${ll}</g>`;}
  // appareils + repères
- if(layers.appareils.on){const onSet=testMode&&sel?lightsOn(sel.id):null,ss=symScaleOf(),rm=showReps?repMap():null;let ap="";
+ if(layers.appareils.on){const onSet=testMode&&sel?lightsOn(sel.id):null,ss=symView(),rm=showReps?repMap():null;let ap="";
    state.app.forEach(a=>{const aSel=isSel("app",a.id)||(GH&&GH.apps.has(a.id)),lit=onSet&&onSet.has(a.id);
      ap+=`<g transform="translate(${a.x} ${a.y})"><g transform="scale(${ss})">`;
      if(lit)ap+=`<circle r="1.5" fill="var(--warn)" opacity=".5"/>`;
      if(aSel)ap+=`<circle r="1.5" fill="none" stroke="var(--sel)" stroke-width=".12" stroke-dasharray=".3 .25"/>`;
      ap+=glyph(a.t)+`</g>`;
-     if(rm)ap+=`<text x="${symCm/100*0.75}" y="${-symCm/100*0.6}" fill="var(--accent2)" font-size="0.3" font-family="var(--fm)">${rm[a.id]}</text>`;
      ap+=`</g>`;});h+=`<g>${ap}</g>`;}
+ // ---------- étiquettes : taille fixe à l'écran, placées sans chevauchement (les moins importantes sont masquées) ----------
+ {const pm=1/(pxPerVB()*s),PL=new Placer(pm*48);let lb="";
+  const ssv=symView(),R=0.95*ssv;
+  const txt=(x,y,str,px,fill,fam,extra="")=>`<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" fill="${fill}" font-size="${px*pm}" font-family="${fam}"${extra}>${str}</text>`;
+  // les symboles des appareils sont des obstacles
+  if(layers.appareils.on)state.app.forEach(a=>PL.add({x0:a.x-R,y0:a.y-R,x1:a.x+R,y1:a.y+R}));
+  // 1. noms et surfaces des pièces (toujours affichés ; déplacés dans la pièce s'ils gênent)
+  if(layers.pieces.on){const F1=13,F2=11;
+   state.rooms.slice().sort((p,q)=>roomArea(q)-roomArea(p)).forEach(r=>{const P=roomPoly(r),lp=r.poly?labelPoint(r.poly):{x:(r.x0+r.x1)/2,y:(r.y0+r.y1)/2},ar=roomArea(r).toFixed(1)+" m²";
+    const w=Math.max(r.name.length*0.55*F1,ar.length*0.6*F2)*pm,hh=(F1+F2+3)*pm;
+    const bb={x0:Math.min(...P.map(p=>p.x)),y0:Math.min(...P.map(p=>p.y)),x1:Math.max(...P.map(p=>p.x)),y1:Math.max(...P.map(p=>p.y))};
+    const box=(c)=>({x0:c.x-w/2,y0:c.y-hh/2,x1:c.x+w/2,y1:c.y+hh/2});
+    const inPoly=(b)=>[[b.x0,b.y0],[b.x1,b.y0],[b.x0,b.y1],[b.x1,b.y1]].every(([x,y])=>pointInPoly(x,y,P));
+    const cands=roomCandidates(lp,bb,(x,y)=>pointInPoly(x,y,P),Math.max(0.25,24*pm)).slice(0,80).map(box);
+    const got=PL.first(cands.filter(inPoly))||PL.first(cands)||PL.add(box(lp));
+    const cx=(got.x0+got.x1)/2,cy=(got.y0+got.y1)/2;
+    lb+=txt(cx,cy-(F2+3)*pm/2,r.name,F1,"var(--fg)","var(--ff)",' font-weight="600"')+txt(cx,cy+(F1+3)*pm/2,ar,F2,"var(--mut)","var(--fm)");});}
+  // 2. cotes libres (posées par l'utilisateur : toujours affichées)
+  dimTexts.forEach(d=>{const F=11,off=9*pm;let x=d.x+d.nx*off,y=d.y+d.ny*off;const b=textBox(x,y,d.str,F*pm);
+    if(!PL.free(b)){const x2=d.x-d.nx*off,y2=d.y-d.ny*off,b2=textBox(x2,y2,d.str,F*pm);if(PL.free(b2)){x=x2;y=y2;}}
+    PL.add(textBox(x,y,d.str,F*pm));lb+=txt(x,y,d.str,F,d.c,"var(--fm)");});
+  // 3. repères des appareils : autour du symbole, à la première place libre ; l'appareil sélectionné passe en premier
+  if(layers.appareils.on&&showReps){const rm=repMap(),F=11;
+   const order=state.app.slice().sort((p,q)=>(isSel("app",q.id)?1:0)-(isSel("app",p.id)?1:0));
+   order.forEach(a=>{const str=rm[a.id];if(!str)return;const g=R+3*pm,h2=F*pm*0.5;
+    const pos=[[g,-g,"start"],[g,g,"start"],[-g,-g,"end"],[-g,g,"end"],[g+0*pm,0,"start"],[-g,0,"end"],[0,-g-h2,"middle"],[0,g+h2,"middle"]];
+    const cands=pos.map(([dx,dy,an])=>({b:textBox(a.x+dx,a.y+dy,str,F*pm,{anchor:an}),x:a.x+dx,y:a.y+dy,an}));
+    let c=cands.find(c=>PL.free(c.b));if(!c&&isSel("app",a.id))c=cands[0];if(!c)return;PL.add(c.b);
+    lb+=`<text x="${c.x}" y="${c.y}" text-anchor="${c.an}" dominant-baseline="central" fill="var(--accent2)" font-size="${F*pm}" font-weight="600" font-family="var(--fm)">${str}</text>`;});}
+  // 4. longueur des murs : d'un côté ou de l'autre du mur, seulement s'il y a la place
+  if(showDims&&layers.cotes.on&&layers.murs.on){const F=10;state.segs.forEach(seg=>{if(seg.virt)return;const d=segDir(seg);if(!d.a||d.L<0.3)return;
+    const str=d.L.toFixed(2),mx=(d.a.x+d.b.x)/2,my=(d.a.y+d.b.y)/2,e=epOf(seg)/2+8*pm;
+    for(const sg of [1,-1]){const x=mx-d.uy*e*sg,y=my+d.ux*e*sg,b=textBox(x,y,str,F*pm);if(PL.free(b)){PL.add(b);lb+=txt(x,y,str,F,"var(--mut)","var(--fm)");break;}}});}
+  h+=`<g class="labels">${lb}</g>`;}
  // nœuds
- if((tool==="mur"||tool==="sel")&&layers.murs.on){let nn="";state.nodes.forEach(n=>{const on=isSel("node",n.id)||(GH&&GH.nodes.has(n.id));
-   nn+=`<rect x="${n.x-0.09}" y="${n.y-0.09}" width="0.18" height="0.18" fill="${on?'var(--sel)':'var(--panel)'}" stroke="var(--accent)" stroke-width="0.04"/>`;});h+=`<g>${nn}</g>`;}
+ if((tool==="mur"||tool==="sel")&&layers.murs.on){let nn="";const pmN=pmNow();state.nodes.forEach(n=>{const on=isSel("node",n.id)||(GH&&GH.nodes.has(n.id));
+   const q=(on?9:7)*pmN;nn+=`<rect x="${n.x-q/2}" y="${n.y-q/2}" width="${q}" height="${q}" fill="${on?'var(--sel)':'var(--panel)'}" stroke="var(--accent)" stroke-width="${1.3*pmN}"/>`;});h+=`<g>${nn}</g>`;}
  // guides d'alignement
  if(guides&&guides.length){const [wx0,wy0]=V2W(0,0),[wx1,wy1]=V2W(VB.w,VB.h);let gg="";
    guides.forEach(gd=>{if(gd.v)gg+=`<line x1="${gd.at}" y1="${wy0}" x2="${gd.at}" y2="${wy1}" stroke="var(--accent2)" stroke-width="0.03" stroke-dasharray="0.2 0.15" opacity="0.8"/>`;
@@ -235,9 +268,9 @@ function draw(){
  if(marquee&&marquee.moved){const cr=marquee.x1<marquee.x0,x=Math.min(marquee.x0,marquee.x1),y=Math.min(marquee.y0,marquee.y1),w=Math.abs(marquee.x1-marquee.x0),hh=Math.abs(marquee.y1-marquee.y0);
    h+=`<rect x="${x}" y="${y}" width="${w}" height="${hh}" fill="${cr?'var(--ok)':'var(--accent)'}" fill-opacity="0.08" stroke="${cr?'var(--ok)':'var(--accent)'}" stroke-width="0.05" ${cr?'stroke-dasharray="0.3 0.2"':''}/>`;}
  // aperçu de pose d'appareil sous le curseur
- if(ghost&&TYPES[tool]&&layers.appareils.on){const ss2=symScaleOf();h+=`<g transform="translate(${ghost.x} ${ghost.y}) scale(${ss2})" opacity="0.5">${glyph(ghost.t)}</g>`;}
+ if(ghost&&TYPES[tool]&&layers.appareils.on){const ss2=symView();h+=`<g transform="translate(${ghost.x} ${ghost.y}) scale(${ss2})" opacity="0.5">${glyph(ghost.t)}</g>`;}
  // aperçu de série
- if(seriesMode&&seriesPrev){const src=state.app.find(a=>a.id===seriesMode.src),ss2=symScaleOf();
+ if(seriesMode&&seriesPrev){const src=state.app.find(a=>a.id===seriesMode.src),ss2=symView();
    if(src){seriesPrev.forEach(p=>{h+=`<g transform="translate(${p.x} ${p.y}) scale(${ss2})" opacity="0.55">${glyph(src.t)}</g>`;});
      const last=seriesPrev[seriesPrev.length-1];if(last)h+=`<line x1="${src.x}" y1="${src.y}" x2="${last.x}" y2="${last.y}" stroke="var(--accent2)" stroke-width="0.03" stroke-dasharray="0.2 0.15"/>`;}}
  // aperçu du relevé automatique des murs (avant validation)
@@ -250,7 +283,7 @@ function draw(){
      pv+=`<line x1="${a.x+ux*(o.t-o.w/2)}" y1="${a.y+uy*(o.t-o.w/2)}" x2="${a.x+ux*(o.t+o.w/2)}" y2="${a.y+uy*(o.t+o.w/2)}" stroke="${o.kind==="porte"?"#e07b00":"var(--ok)"}" stroke-width="${Math.max(0.06,w.ep*0.8)}"/>`;});
    (P.walls?P.nodes:[]).forEach(n=>{pv+=`<circle cx="${n.x}" cy="${n.y}" r="0.05" fill="var(--accent2)"/>`;});
    (P.limits||[]).forEach(l=>{pv+=`<line x1="${l.a.x}" y1="${l.a.y}" x2="${l.b.x}" y2="${l.b.y}" stroke="var(--accent2)" stroke-width="0.06" stroke-dasharray="0.15 0.1"/>`;});
-   if(P.devices){const D=P.devices,ss=symScaleOf();
+   if(P.devices){const D=P.devices,ss=symView();
      (P.links||[]).forEach(l=>{const c=D[l.c],m=D[l.l];if(c&&m)pv+=`<line x1="${c.x}" y1="${c.y}" x2="${m.x}" y2="${m.y}" stroke="var(--accent2)" stroke-width="0.025" stroke-dasharray="0.12 0.08" opacity="0.8"/>`;});
      D.forEach(d=>{pv+=`<circle cx="${d.x}" cy="${d.y}" r="${ss*1.25}" fill="var(--accent2)" fill-opacity="0.25" stroke="var(--accent2)" stroke-width="0.02"/><g transform="translate(${d.x} ${d.y}) scale(${ss})">${glyph(d.t)}</g>`;});
      (P.unknown||[]).forEach(u=>{pv+=`<circle cx="${u.x}" cy="${u.y}" r="${ss*0.9}" fill="none" stroke="#d33" stroke-width="0.025" stroke-dasharray="0.05 0.04"/>`;});}

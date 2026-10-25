@@ -1,3 +1,4 @@
+import { Placer, roomCandidates } from "../place.js";
 // Sortie PDF imprimable du plan (vectorielle, à l'échelle exacte) : page 1 = plan + légende + échelle graphique
 // + cartouche ; page 2 = nomenclature (appareils par pièce, surfaces) et liste des appareils.
 // Unités jsPDF : millimètres. Échelle 1:N → 1 m réel = 1000/N mm sur le papier.
@@ -103,37 +104,68 @@ export async function buildPlanPdf(geo, opts = {}) {
       doc.setLineDashPattern([], 0);
     }
   });
-  // cotes des murs
-  if (o.cotes) {
-    doc.setTextColor(110, 110, 110); doc.setFontSize(6);
-    geo.wallDims.forEach((d) => {
-      if (d.L < 0.5) return;
-      let a = -d.ang * 180 / Math.PI; if (a > 90 || a <= -90) a += 180;
-      doc.text(fr(d.L), X(d.x), Y(d.y), { align: "center", baseline: "middle", angle: a });
-    });
-    doc.setDrawColor(60, 90, 160); doc.setTextColor(60, 90, 160); doc.setLineWidth(0.15);
-    geo.dims.forEach((d) => {
-      line(d.a, d.b);
-      const ux = (d.b.x - d.a.x) / (d.L || 1), uy = (d.b.y - d.a.y) / (d.L || 1), t = 0.12;
-      [d.a, d.b].forEach((p) => line({ x: p.x - uy * t, y: p.y + ux * t }, { x: p.x + uy * t, y: p.y - ux * t }));
-      let a = -Math.atan2(uy, ux) * 180 / Math.PI; if (a > 90 || a <= -90) a += 180;
-      doc.text(fr(d.L), X((d.a.x + d.b.x) / 2 - uy * 0.18), Y((d.a.y + d.b.y) / 2 + ux * 0.18), { align: "center", baseline: "middle", angle: a });
-    });
-  }
-  // noms et surfaces des pièces : décalés si un appareil (la lumière centrale, souvent) est dessous
-  doc.setTextColor(30, 30, 30);
+  // ---------- étiquettes placées sans chevauchement (boîtes en mm sur le papier) ----------
+  const PL = new Placer(6), MM = 25.4 / 72;
+  const u = geo.symU * f;                            // unité de symbole en mm
+  const tw = (str, size, bold) => { doc.setFont("helvetica", bold ? "bold" : "normal"); doc.setFontSize(size); return doc.getTextWidth(String(str)); };
+  const boxAt = (cx, cy, w, h) => ({ x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2 });
+  geo.apps.forEach((a) => PL.add(boxAt(X(a.x), Y(a.y), 2 * u, 2 * u)));      // les symboles sont des obstacles
+  // noms et surfaces des pièces : au point d'étiquette, sinon à la place libre la plus proche dans la pièce
   const inPoly = (x, y, P) => { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) c = !c; } return c; };
-  const clear = (x, y) => !geo.apps.some((a) => Math.abs(a.x - x) < 1.1 && Math.abs(a.y - y) < 0.55);
-  geo.rooms.forEach((r) => {
-    if (!clear(r.label.x, r.label.y)) {
-      const tries = [[0, -0.75], [0, 0.75], [0, -1.3], [0, 1.3], [-1.2, 0], [1.2, 0]].map(([dx, dy]) => ({ x: r.label.x + dx, y: r.label.y + dy }));
-      const ok = tries.find((q) => inPoly(q.x, q.y, r.poly) && clear(q.x, q.y)) || tries.find((q) => inPoly(q.x, q.y, r.poly));
-      if (ok) r = { ...r, label: ok };
+  const S1 = Math.max(6, Math.min(11, 0.5 * f * 2.83)), S2 = Math.max(5, Math.min(8, 0.34 * f * 2.83));
+  const roomLabels = geo.rooms.slice().sort((p, q) => q.area - p.area).map((r) => {
+    const surf = `${fr(r.area, 1)} m²`, w = Math.max(tw(r.name, S1, true), tw(surf, S2)) + 1, h = (S1 + S2) * MM + 1.4;
+    const P = r.poly, bb = { x0: Math.min(...P.map((p) => p.x)), y0: Math.min(...P.map((p) => p.y)), x1: Math.max(...P.map((p) => p.x)), y1: Math.max(...P.map((p) => p.y)) };
+    const c = roomCandidates(r.label, bb, (x, y) => inPoly(x, y, P), Math.max(0.2, 4 / f)).slice(0, 80)
+      .map((q) => ({ q, b: boxAt(X(q.x), Y(q.y), w, h) }));
+    const fits = (b) => [[b.x0, b.y0], [b.x1, b.y0], [b.x0, b.y1], [b.x1, b.y1]].every(([x, y]) => inPoly(cx + (x - area.x - area.w / 2) / f, cy + (y - area.y - area.h / 2) / f, P));
+    const got = c.find((k) => fits(k.b) && PL.free(k.b)) || c.find((k) => PL.free(k.b)) || c[0];
+    PL.add(got.b);
+    return { r, surf, x: (got.b.x0 + got.b.x1) / 2, y: (got.b.y0 + got.b.y1) / 2, h };
+  });
+  // cotes libres (toujours imprimées)
+  const dimLabels = (o.cotes ? geo.dims : []).map((d) => {
+    const ux = (d.b.x - d.a.x) / (d.L || 1), uy = (d.b.y - d.a.y) / (d.L || 1);
+    let ang = -Math.atan2(uy, ux) * 180 / Math.PI; if (ang > 90 || ang <= -90) ang += 180;
+    const x = X((d.a.x + d.b.x) / 2 - uy * 0.18), y = Y((d.a.y + d.b.y) / 2 + ux * 0.18), w = tw(fr(d.L), 6), h = 6 * MM;
+    const vert = Math.abs(Math.sin(ang * Math.PI / 180)) > 0.7;
+    PL.add(boxAt(x, y, vert ? h : w, vert ? w : h));
+    return { d, ux, uy, ang, x, y };
+  });
+  // repères (et hauteur hors standard) : autour du symbole, à la première place libre
+  const SR = Math.max(5, pt(u * 0.9));
+  const repLabels = !o.reperes ? [] : geo.apps.map((a) => {
+    const str = a.rep || "", hs = a.h != null && a.h !== a.hDef ? `h ${fr(a.h / 100)}` : "";
+    const w = Math.max(tw(str, SR, true), hs ? tw(hs, SR) : 0), h = SR * MM * (hs ? 2.1 : 1.05), g = u * 1.05;
+    const ax = X(a.x), ay = Y(a.y);
+    const pos = [[g, -g - h / 2, "l"], [g, g + h / 2, "l"], [-g, -g - h / 2, "r"], [-g, g + h / 2, "r"], [g, 0, "l"], [-g, 0, "r"], [0, -g - h / 2, "c"], [0, g + h / 2, "c"]];
+    for (const [dx, dy, al] of pos) {
+      const x0 = al === "l" ? ax + dx : al === "r" ? ax + dx - w : ax - w / 2, b = { x0, y0: ay + dy - h / 2, x1: x0 + w, y1: ay + dy + h / 2 };
+      if (PL.free(b)) { PL.add(b); return { str, hs, x: x0, y: b.y0 }; }
     }
-    doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(6, Math.min(11, 0.5 * f * 2.83)));
-    doc.text(r.name, X(r.label.x), Y(r.label.y), { align: "center", baseline: "bottom" });
-    doc.setFont("helvetica", "normal"); doc.setFontSize(Math.max(5, Math.min(8, 0.34 * f * 2.83)));
-    doc.text(`${fr(r.area, 1)} m²`, X(r.label.x), Y(r.label.y) + 0.8, { align: "center", baseline: "top" });
+    return { str, hs, x: ax + g, y: ay - g - h, hidden: true };
+  });
+  // longueur des murs : seulement là où il reste de la place
+  const wallLabels = !o.cotes ? [] : geo.wallDims.filter((d) => d.L >= 0.5).map((d) => {
+    let a = -d.ang * 180 / Math.PI; if (a > 90 || a <= -90) a += 180;
+    const w = tw(fr(d.L), 6), h = 6 * MM, vert = Math.abs(Math.sin(a * Math.PI / 180)) > 0.7, b = boxAt(X(d.x), Y(d.y), vert ? h : w, vert ? w : h);
+    if (!PL.free(b)) return null; PL.add(b); return { d, a };
+  }).filter(Boolean);
+
+  // ---------- dessin, dans l'ordre : cotes, noms, liaisons, symboles, repères ----------
+  doc.setTextColor(110, 110, 110); doc.setFont("helvetica", "normal"); doc.setFontSize(6);
+  wallLabels.forEach(({ d, a }) => doc.text(fr(d.L), X(d.x), Y(d.y), { align: "center", baseline: "middle", angle: a }));
+  doc.setDrawColor(60, 90, 160); doc.setTextColor(60, 90, 160); doc.setLineWidth(0.15);
+  dimLabels.forEach(({ d, ux, uy, ang, x, y }) => {
+    line(d.a, d.b);
+    const t = 0.12;
+    [d.a, d.b].forEach((p) => line({ x: p.x - uy * t, y: p.y + ux * t }, { x: p.x + uy * t, y: p.y - ux * t }));
+    doc.text(fr(d.L), x, y, { align: "center", baseline: "middle", angle: ang });
+  });
+  doc.setTextColor(30, 30, 30);
+  roomLabels.forEach(({ r, surf, x, y, h }) => {
+    doc.setFont("helvetica", "bold"); doc.setFontSize(S1); doc.text(r.name, x, y - h / 2 + S1 * MM, { align: "center", baseline: "bottom" });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(S2); doc.text(surf, x, y + h / 2, { align: "center", baseline: "bottom" });
   });
   // liaisons commande → lumière
   if (o.liaisons && geo.links.length) {
@@ -141,16 +173,14 @@ export async function buildPlanPdf(geo, opts = {}) {
     geo.links.forEach((l) => line(l.a, l.b));
     doc.setLineDashPattern([], 0);
   }
-  // appareils
-  const u = geo.symU * f;                            // unité de symbole en mm
   geo.apps.forEach((a) => symbol(doc, a.t, X(a.x), Y(a.y), u));
-  if (o.reperes) {
-    doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(5, pt(u * 0.9))); doc.setTextColor(200, 70, 40);
-    geo.apps.forEach((a) => {
-      doc.text(a.rep || "", X(a.x) + u * 1.1, Y(a.y) - u * 0.9, { baseline: "bottom" });
-      if (a.h != null && a.h !== a.hDef) { doc.setFont("helvetica", "normal"); doc.text(`h ${fr(a.h / 100)}`, X(a.x) + u * 1.1, Y(a.y) + u * 1.6, { baseline: "bottom" }); doc.setFont("helvetica", "bold"); }
-    });
-  }
+  doc.setTextColor(200, 70, 40);
+  repLabels.forEach((L) => {
+    if (L.hidden) return;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(SR); doc.text(L.str, L.x, L.y, { baseline: "top" });
+    if (L.hs) { doc.setFont("helvetica", "normal"); doc.text(L.hs, L.x, L.y + SR * MM * 1.05, { baseline: "top" }); }
+  });
+  geo.__hiddenReps = repLabels.filter((L) => L.hidden).length;
   doc.restoreGraphicsState();
   doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(area.x, area.y, area.w, area.h);
 

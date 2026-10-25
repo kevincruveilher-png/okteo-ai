@@ -151,9 +151,19 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - Boutons poussoirs : aucun sur EVRARD → pas de reconnaissance sans exemple réel (à faire avec un plan qui en a).
 - Tests : 28 + 65 = 93.
 
-## PROCHAINE MISE À JOUR (v23)
-Lisibilité du plan (anti-chevauchement des noms, repères, liaisons à l'écran et à l'impression). Puis étages, découpage
-d'app.js, câblage. En attente de Kévin : PDF d'autres pavillonneurs (BP, tableau, autres symboles).
+## Version 23 (25/10/2026) — livrée : lisibilité du plan
+- Textes à taille fixe à l'écran (13 px noms, 11 px surfaces/repères/cotes), placés sans chevauchement (module place.js) ;
+  noms de pièces déplacés dans la pièce si besoin, repères autour du symbole, longueurs de murs masquées faute de place.
+- Symboles ≥ 12 px en vue d'ensemble ; poignées des sommets à taille fixe ; liaisons fines, celles de l'appareil
+  sélectionné mises en avant.
+- Impression : même placement (repères + hauteurs, noms, cotes) ; vérifié visuellement sur EVRARD (A3 1:50).
+- Correction : la carte « Pièces » affichait « Aucune pièce » si on annulait/rétablissait pendant son calcul ; elle se
+  recalcule maintenant quand le dessin change.
+- Tests : 28 + 68 = 96 (non-chevauchement à deux zooms, taille constante, mise en avant des liaisons).
+
+## PROCHAINE MISE À JOUR (v24) — à choisir
+Étages (R+1, combles) ; découpage d'app.js en modules ; parcours « Premiers pas ». Puis le câblage (boîtes, bandes, SPV)
+— règles à demander à Kévin. En attente : PDF d'autres pavillonneurs.
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.
