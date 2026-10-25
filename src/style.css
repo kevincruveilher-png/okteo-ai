@@ -185,3 +185,14 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .thumb.on span{font-weight:700;color:var(--accent)}
 .thumb span{font-size:12px}
 @media (max-width:760px){.ch-list thead{display:none}.ch-list tr{display:grid;grid-template-columns:1fr auto}.ch-list td{border:0}.ch-list .acts{grid-column:1/-1;justify-content:flex-start}}
+
+/* ===== v15 : relevé des murs ===== */
+.wcard{position:absolute;top:10px;right:10px;z-index:8;width:min(380px,calc(100% - 20px));background:var(--panel);border:1px solid var(--accent2);border-radius:10px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:13px;display:flex;flex-direction:column;gap:8px}
+.wcard[hidden]{display:none}
+.wcard p{margin:0;line-height:1.45}
+.wcard-h{display:flex;justify-content:space-between;align-items:center}.wcard-h .wx{padding:2px 7px}
+.wbig{font-size:14px}
+.wgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.wgrid label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--mut)}.wgrid input{width:60px}
+.wck{display:flex;gap:6px;align-items:center;font-size:12.5px}
+.wrow{display:flex;gap:8px;flex-wrap:wrap}

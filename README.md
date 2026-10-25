@@ -1,7 +1,8 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v14** (25/10/2026) : gestion des chantiers, import du plan (PDF ou image) et mise à l'échelle.
+Version du prototype : **v15** (25/10/2026) : relevé automatique des murs depuis le PDF (sans IA).
+(v14 : gestion des chantiers, import du plan et mise à l'échelle.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
 ## Installer (une seule fois)
@@ -36,7 +37,7 @@ Pour arrêter : Ctrl+C dans le terminal.
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 34 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 47 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -51,6 +52,19 @@ Ouvre le logiciel dans un navigateur invisible et fait 34 vérifications (dessin
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Relever les murs automatiquement (v15)
+
+Sur un chantier dont le fond est un **PDF** à l'échelle : juste après le réglage de l'échelle, Oktéo propose
+« Relever les murs » (sinon : Chantiers → **Relever les murs**, ou Ctrl+K → « relever »).
+1. L'aperçu s'affiche en orange sur le plan, avec le nombre de murs, leurs épaisseurs et les ouvertures trouvées.
+2. Si besoin, ajuster **Épaisseur min./max.** (ex. max 12 cm = seulement les cloisons).
+3. **Ajouter au dessin**. Tout reste modifiable ; **Ctrl+Z** annule tout l'ajout d'un coup.
+4. Vérifier les ouvertures : porte ou fenêtre se change dans le menu de l'ouverture (→ Porte / → Fenêtre), l'épaisseur
+   d'un mur dans son menu (champ « ép. »).
+
+Le relevé lit les murs **grisés** du PDF (le cas des plans de pavillonneurs) ; sans aplats, il utilise les traits
+(méthode de secours, à vérifier de près). Une photo ou un scan ne contient pas de traits : relevé impossible, dessin à la main.
 
 ## L'assistant IA dans le logiciel (v13)
 

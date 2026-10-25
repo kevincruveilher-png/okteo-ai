@@ -3,7 +3,7 @@
 // (il servira au relevé automatique des murs, qui lira ses traits vectoriels).
 
 let lib = null;
-async function pdfjs() {
+export async function pdfjs() {
   if (lib) return lib;
   lib = await import("pdfjs-dist");
   const w = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");

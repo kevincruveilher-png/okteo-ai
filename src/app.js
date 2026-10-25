@@ -6,6 +6,7 @@ const CH=CHS.current();
 let FOND=CH.fond&&CH.fond.src==="asset"?CH.fond.url:"";   // image du fond (URL) ; chargée depuis IndexedDB sinon
 let BG=CH.fond?{x:CH.fond.x,y:CH.fond.y,w:CH.fond.w,h:CH.fond.h}:{x:0,y:0,w:0,h:0};
 let calib=null;                                               // mise à l'échelle en cours : {a,b,cur}
+let preview=null;                                             // aperçu du relevé automatique des murs : {nodes, walls, openings}
 const PLAN={w:16,h:11};
 
 // ---------- modèle ----------
@@ -35,6 +36,10 @@ function node(x,y){const n={id:uidN(),x:+x.toFixed(3),y:+y.toFixed(3)};state.nod
 function nodeById(id){return state.nodes.find(n=>n.id===id)}
 function segById(id){return state.segs.find(s=>s.id===id)}
 const dist=(ax,ay,bx,by)=>Math.hypot(ax-bx,ay-by);
+// épaisseur d'un mur : la sienne (murs relevés du PDF) sinon l'épaisseur par défaut du chantier
+const epOf=s=>s&&s.ep>0?s.ep:state.wallEp;
+// demi-épaisseur des AUTRES murs qui arrivent à un sommet (pour mesurer depuis la face intérieure)
+const cornerHalf=(nodeId,exceptId)=>{let m=0;state.segs.forEach(s=>{if(s.id!==exceptId&&(s.a===nodeId||s.b===nodeId))m=Math.max(m,epOf(s));});return m/2;};
 function segLen(s){const a=nodeById(s.a),b=nodeById(s.b);return a&&b?dist(a.x,a.y,b.x,b.y):0}
 function segDir(s){const a=nodeById(s.a),b=nodeById(s.b),L=segLen(s)||1;return {ux:(b.x-a.x)/L,uy:(b.y-a.y)/L,a,b,L}}
 
@@ -132,14 +137,14 @@ function draw(){
  // murs (intervalles pleins) + jonctions
  if(layers.murs.on){let mp="",jn="";
   state.segs.forEach(seg=>{const d=segDir(seg);if(!d.a)return;const on=(sel&&sel.kind==="seg"&&sel.id===seg.id)||(GH&&GH.nodes.has(seg.a)&&GH.nodes.has(seg.b));const col=on?'var(--sel)':'var(--wall)';
-    const nx=-d.uy*ep/2,ny=d.ux*ep/2;
+    const e2=epOf(seg)/2,nx=-d.uy*e2,ny=d.ux*e2;
     wallIntervals(seg).forEach(([s0,s1])=>{const ax=d.a.x+d.ux*s0,ay=d.a.y+d.uy*s0,bxp=d.a.x+d.ux*s1,byp=d.a.y+d.uy*s1;
       mp+=`<polygon points="${ax+nx},${ay+ny} ${bxp+nx},${byp+ny} ${bxp-nx},${byp-ny} ${ax-nx},${ay-ny}" fill="${col}"/>`;});});
-  state.nodes.forEach(n=>{if(state.segs.some(s=>s.a===n.id||s.b===n.id))jn+=`<rect x="${n.x-ep/2}" y="${n.y-ep/2}" width="${ep}" height="${ep}" fill="var(--wall)"/>`;});
+  state.nodes.forEach(n=>{let e=0;state.segs.forEach(s=>{if(s.a===n.id||s.b===n.id)e=Math.max(e,epOf(s));});if(e>0)jn+=`<rect x="${n.x-e/2}" y="${n.y-e/2}" width="${e}" height="${e}" fill="var(--wall)"/>`;});
   h+=`<g>${jn}${mp}</g>`;}
  // ouvertures (portes/fenêtres)
  if(layers.ouvertures.on){let op="";state.openings.forEach(o=>{const seg=segById(o.seg);if(!seg)return;const d=segDir(seg);
-   const cx=d.a.x+d.ux*o.t,cy=d.a.y+d.uy*o.t,nx=-d.uy,ny=d.ux;const hw=o.w/2;
+   const cx=d.a.x+d.ux*o.t,cy=d.a.y+d.uy*o.t,nx=-d.uy,ny=d.ux;const hw=o.w/2,ep=epOf(seg);
    const on=isSel("open",o.id)||(GH&&GH.opens.has(o.id));const c=on?'var(--sel)':'var(--accent2)';
    const j1x=cx-d.ux*hw,j1y=cy-d.uy*hw,j2x=cx+d.ux*hw,j2y=cy+d.uy*hw;
    if(o.kind==="fenetre"){op+=`<line x1="${j1x+nx*ep/2}" y1="${j1y+ny*ep/2}" x2="${j2x+nx*ep/2}" y2="${j2y+ny*ep/2}" stroke="${c}" stroke-width="0.04"/>`;
@@ -213,6 +218,14 @@ function draw(){
  if(seriesMode&&seriesPrev){const src=state.app.find(a=>a.id===seriesMode.src),ss2=symScaleOf();
    if(src){seriesPrev.forEach(p=>{h+=`<g transform="translate(${p.x} ${p.y}) scale(${ss2})" opacity="0.55">${glyph(src.t)}</g>`;});
      const last=seriesPrev[seriesPrev.length-1];if(last)h+=`<line x1="${src.x}" y1="${src.y}" x2="${last.x}" y2="${last.y}" stroke="var(--accent2)" stroke-width="0.03" stroke-dasharray="0.2 0.15"/>`;}}
+ // aperçu du relevé automatique des murs (avant validation)
+ if(preview){const P=preview;let pv="";
+   P.walls.forEach(w=>{const a=P.nodes[w.a],b=P.nodes[w.b];const L=dist(a.x,a.y,b.x,b.y)||1,nx=-(b.y-a.y)/L*w.ep/2,ny=(b.x-a.x)/L*w.ep/2;
+     pv+=`<polygon points="${a.x+nx},${a.y+ny} ${b.x+nx},${b.y+ny} ${b.x-nx},${b.y-ny} ${a.x-nx},${a.y-ny}" fill="var(--accent2)" fill-opacity="0.5" stroke="var(--accent2)" stroke-width="0.02"/>`;});
+   P.openings.forEach(o=>{const w=P.walls[o.seg],a=P.nodes[w.a],b=P.nodes[w.b];const L=dist(a.x,a.y,b.x,b.y)||1,ux=(b.x-a.x)/L,uy=(b.y-a.y)/L;
+     pv+=`<line x1="${a.x+ux*(o.t-o.w/2)}" y1="${a.y+uy*(o.t-o.w/2)}" x2="${a.x+ux*(o.t+o.w/2)}" y2="${a.y+uy*(o.t+o.w/2)}" stroke="${o.kind==="porte"?"#e07b00":"var(--ok)"}" stroke-width="${Math.max(0.06,w.ep*0.8)}"/>`;});
+   P.nodes.forEach(n=>{pv+=`<circle cx="${n.x}" cy="${n.y}" r="0.05" fill="var(--accent2)"/>`;});
+   h+=`<g>${pv}</g>`;}
  // mise à l'échelle du fond : segment entre les deux points cliqués
  if(calib&&calib.a){const b=calib.b||calib.cur;const cs=0.22/Math.max(0.6,view.scale/20);
    const cross=(p)=>`<path d="M${p.x-cs} ${p.y}H${p.x+cs}M${p.x} ${p.y-cs}V${p.y+cs}" stroke="var(--accent2)" stroke-width="0.04"/><circle cx="${p.x}" cy="${p.y}" r="${cs*0.55}" fill="none" stroke="var(--accent2)" stroke-width="0.03"/>`;
@@ -226,7 +239,7 @@ function hitNode(wx,wy){let b=null,bd=tolM();for(const n of state.nodes){const d
 function hitApp(wx,wy){let b=null,bd=Math.max(tolM(),symCm/100);for(const a of state.app){const d=dist(wx,wy,a.x,a.y);if(d<bd){bd=d;b=a;}}return b;}
 function segDistPt(px,py,a,b){const vx=b.x-a.x,vy=b.y-a.y,wx=px-a.x,wy=py-a.y,Lq=vx*vx+vy*vy;let t=Lq?((wx*vx+wy*vy)/Lq):0;t=Math.max(0,Math.min(1,t));return {d:dist(px,py,a.x+t*vx,a.y+t*vy),t:t*Math.sqrt(Lq)};}
 function hitSeg(wx,wy){let b=null,bd=tolM(),bt=0;for(const s of state.segs){const a=nodeById(s.a),c=nodeById(s.b);if(!a||!c)continue;const r=segDistPt(wx,wy,a,c);if(r.d<bd){bd=r.d;b=s;bt=r.t;}}return b?{seg:b,t:bt}:null;}
-function hitOpen(wx,wy){let b=null,bd=1e9;const tol=Math.max(tolM(),state.wallEp)+0.12;
+function hitOpen(wx,wy){let b=null,bd=1e9;const tol=Math.max(tolM(),state.wallEp,...state.segs.map(epOf))+0.12;
   for(const o of state.openings){const seg=segById(o.seg);if(!seg)continue;const d=segDir(seg);
     const j1={x:d.a.x+d.ux*(o.t-o.w/2),y:d.a.y+d.uy*(o.t-o.w/2)},j2={x:d.a.x+d.ux*(o.t+o.w/2),y:d.a.y+d.uy*(o.t+o.w/2)};
     const r=segDistPt(wx,wy,j1,j2);if(r.d<tol&&r.d<bd){bd=r.d;b=o;}}return b;}
@@ -240,7 +253,7 @@ function projOnSeg(wx,wy,seg){const d=segDir(seg);const t=Math.max(0,Math.min(d.
   return {t,x:d.a.x+d.ux*t,y:d.a.y+d.uy*t,d:dist(wx,wy,d.a.x+d.ux*t,d.a.y+d.uy*t),dir:d};}
 // accrocher un appareil mural au mur le plus proche (face côté curseur)
 function snapToWall(wx,wy){let best=null,bd=0.6;for(const seg of state.segs){const p=projOnSeg(wx,wy,seg);if(p.t<=0.001||p.t>=p.dir.L-0.001)continue;if(p.d<bd){bd=p.d;best={seg,p};}}
-  if(!best)return null;const d=best.p.dir;const nx=-d.uy,ny=d.ux;const sideSign=((wx-d.a.x)*nx+(wy-d.a.y)*ny)>=0?1:-1;const off=state.wallEp/2+0.06;
+  if(!best)return null;const d=best.p.dir;const nx=-d.uy,ny=d.ux;const sideSign=((wx-d.a.x)*nx+(wy-d.a.y)*ny)>=0?1:-1;const off=epOf(best.seg)/2+0.06;
   return {x:+(best.p.x+nx*off*sideSign).toFixed(3),y:+(best.p.y+ny*off*sideSign).toFixed(3),seg:best.seg.id,wall:true};}
 // guides d'alignement sur un autre appareil (même x ou même y)
 let guides=[];
@@ -333,7 +346,7 @@ function serializeGroup(G){const segs=state.segs.filter(s=>G.nodes.has(s.a)&&G.n
   data.cx=bb?bb.cx:0;data.cy=bb?bb.cy:0;return data;}
 function instantiateGroup(data,dx,dy){const nm={},sm={},am={};multi.clear();sel=null;
   data.nodes.forEach(n=>{const nn=node(n.x+dx,n.y+dy);nm[n.id]=nn.id;multi.add(mk("node",nn.id));});
-  data.segs.forEach(s=>{if(nm[s.a]&&nm[s.b]){const id=uidS();sm[s.id]=id;state.segs.push({id,a:nm[s.a],b:nm[s.b]});}});
+  data.segs.forEach(s=>{if(nm[s.a]&&nm[s.b]){const id=uidS();sm[s.id]=id;state.segs.push({...s,id,a:nm[s.a],b:nm[s.b]});}});
   data.openings.forEach(o=>{if(sm[o.seg]){const id=uidO();state.openings.push({...o,id,seg:sm[o.seg]});multi.add(mk("open",id));}});
   data.rooms.forEach(r=>{const id=uidR();const segs=(r.segs||[]).map(s=>sm[s]).filter(Boolean);
     state.rooms.push({id,name:r.name+" (copie)",x0:+(r.x0+dx).toFixed(3),y0:+(r.y0+dy).toFixed(3),x1:+(r.x1+dx).toFixed(3),y1:+(r.y1+dy).toFixed(3),segs});multi.add(mk("room",id));});
@@ -382,12 +395,11 @@ function resizeRoom(r,nw,nh){const X0=Math.min(r.x0,r.x1),X1=Math.max(r.x0,r.x1)
 // ---------- mesure sur mur (distance à l'angle) ----------
 const fmtM=v=>(v>=0?"":"−")+Math.abs(v).toFixed(2).replace(".",",")+" m";
 const fmtCm=v=>Math.round(v*100)+" cm";
-function wallMeasure(segId,x,y){const seg=segById(segId);if(!seg)return null;const p=projOnSeg(x,y,seg),d=p.dir,ep=state.wallEp;
-  const deg=id=>state.segs.filter(s=>s.a===id||s.b===id).length;
-  const cA=deg(seg.a)>=2?ep/2:0,cB=deg(seg.b)>=2?ep/2:0,nx=-d.uy,ny=d.ux;
+function wallMeasure(segId,x,y){const seg=segById(segId);if(!seg)return null;const p=projOnSeg(x,y,seg),d=p.dir;
+  const cA=cornerHalf(seg.a,seg.id),cB=cornerHalf(seg.b,seg.id),nx=-d.uy,ny=d.ux;
   const side=((x-p.x)*nx+(y-p.y)*ny)>=0?1:-1;
   return {seg,t:p.t,L:d.L,dA:Math.max(0,p.t-cA),dB:Math.max(0,d.L-p.t-cB),cA,cB,side,dir:d};}
-function posOnWall(m,fromA,dm){const t=Math.max(0,Math.min(m.L,fromA?dm+m.cA:m.L-(dm+m.cB))),d=m.dir,off=state.wallEp/2+0.06;
+function posOnWall(m,fromA,dm){const t=Math.max(0,Math.min(m.L,fromA?dm+m.cA:m.L-(dm+m.cB))),d=m.dir,off=epOf(m.seg)/2+0.06;
   return {x:+(d.a.x+d.ux*t-d.uy*off*m.side).toFixed(2),y:+(d.a.y+d.uy*t+d.ux*off*m.side).toFixed(2)};}
 function wallText(m){const near=Math.min(m.dA,m.dB),far=Math.max(m.dA,m.dB);return fmtCm(near)+" de l'angle · "+fmtCm(far)+" de l'autre";}
 function placementFor(t,wx,wy,exclId){let px=wx,py=wy,segRef=null;
@@ -550,6 +562,7 @@ function hudHTML(){
       <button data-h="dup" title="Dupliquer (Ctrl+D)">Dupliquer</button><span class="vsep"></span><button data-h="del">🗑</button>`;}
   if(sel.kind==="seg"){const s=segById(sel.id);if(!s)return "";const a=nodeById(s.a),b=nodeById(s.b);const L=dist(a.x,a.y,b.x,b.y);
     return `<span class="lab">L</span><input data-h="L" type="number" step="0.01" value="${L.toFixed(2)}"><span class="lab">m</span>
+      <span class="vsep"></span><span class="lab" title="Épaisseur de ce mur">ép.</span><input data-h="ep" type="number" step="1" min="2" max="80" value="${Math.round(epOf(s)*100)}" title="Épaisseur de ce mur (cm)"><span class="lab">cm</span>
       <span class="vsep"></span><button data-h="del">🗑</button>`;}
   if(sel.kind==="room"){const r=state.rooms.find(x=>x.id===sel.id);if(!r)return "";
     return `<input data-h="name" type="text" value="${r.name.replace(/"/g,'&quot;')}" style="width:104px"><span class="vsep"></span>${HUD_TF}
@@ -566,6 +579,7 @@ function wireHud(){hudEl.querySelectorAll("[data-h]").forEach(el=>{
     if(act==="h"){const a=state.app.find(x=>x.id===sel.id);run(()=>a.h=e.target.value===""?null:+e.target.value);}
     if(act==="dc"){const a=state.app.find(x=>x.id===sel.id);const m=a&&a.seg&&wallMeasure(a.seg,a.x,a.y);
       if(m)run(()=>{const p=posOnWall(m,el.dataset.from==="A",(+e.target.value)/100);a.x=p.x;a.y=p.y;});}
+    if(act==="ep"){const s=segById(sel.id),v=+e.target.value;if(s&&v>=2&&v<=80)run(()=>{s.ep=+(v/100).toFixed(3);});}
     if(act==="L"){const s=segById(sel.id),a=nodeById(s.a),c=nodeById(s.b),d=dist(a.x,a.y,c.x,c.y)||1,nl=+e.target.value;run(()=>{c.x=+(a.x+(c.x-a.x)/d*nl).toFixed(3);c.y=+(a.y+(c.y-a.y)/d*nl).toFixed(3);clampOpenings();});}
     if(act==="name"){const r=state.rooms.find(x=>x.id===sel.id);run(()=>r.name=e.target.value||r.name);}
   };return;}
@@ -761,7 +775,7 @@ function applyCalib(L){if(!calib||!calib.b)return false;const a=calib.a,d=dist(a
   CH.fond={...CH.fond,x:BG.x,y:BG.y,w:BG.w,h:BG.h,calibre:true};CHS.update(CH.id,{fond:CH.fond});
   calib=null;sel=null;tool="sel";buildTools();fit();showSide();
   setHint("Échelle réglée : "+L.toFixed(2)+" m entre les deux points ("+(f>=1?"×":"÷")+(f>=1?f:1/f).toFixed(3)+"). Vérifiez avec l'outil Cote sur une autre dimension.");
-  document.dispatchEvent(new CustomEvent("okteo:fond"));return true;}
+  document.dispatchEvent(new CustomEvent("okteo:fond"));document.dispatchEvent(new CustomEvent("okteo:calibrated"));return true;}
 function resetTransient(){calib=null;draftFrom=null;draftPt=null;typed="";roomDraft=null;dimDraft=null;marquee=null;seriesMode=null;seriesPrev=null;ghost=null;hideReadout();}
 function hintFor(v){const m={sel:"Clic : sélectionner · glisser dans le vide : cadre de sélection · Maj+clic : ajouter · glisser un mur : le déplacer · Ctrl+A : tout. Molette : zoom · clic droit : vue.",
   piece:"Glissez un rectangle pour créer une pièce (murs + surface d'un coup).",
@@ -862,6 +876,15 @@ window.okteo={
   chantier:(CH.nom+(CH.numero?" · "+CH.numero:"")),chantierKey:CH.id==="evrard-04949"?"evrard.04949":CH.id,
   startCalib(){resetTransient();clearSel();tool="calib";testMode=false;if(tab!=="plan")setTab("plan");buildTools();setHint(hintFor("calib"));draw();showSide();},
   applyCalib(a,b,L){calib={a,b,cur:null};return applyCalib(L);},
+  setPreview(p){preview=p||null;draw();},
+  // ajoute au dessin le résultat d'un relevé automatique (un seul pas d'annulation)
+  importWalls(r,{replace=false}={}){snapshot();
+    if(replace){state.openings=[];state.segs=[];state.nodes=[];state.rooms.forEach(rm=>rm.segs=[]);state.app.forEach(a=>{delete a.seg;});}
+    const ids=r.nodes.map(n=>node(n.x,n.y).id);
+    const sids=r.walls.map(w=>{const id=uidS();state.segs.push({id,a:ids[w.a],b:ids[w.b],ep:w.ep});return id;});
+    r.openings.forEach(o=>state.openings.push({id:uidO(),seg:sids[o.seg],t:o.t,w:o.w,kind:o.kind,hinge:"g",swing:"int"}));
+    clampOpenings();preview=null;resetTransient();clearSel();tool="sel";testMode=false;if(tab!=="plan")setTab("plan");buildTools();markDirty();draw();showSide();
+    return {murs:sids.length,ouvertures:r.openings.length};},
   saveNow(){clearTimeout(saveT);try{localStorage.setItem(KEY,JSON.stringify({s:packState(),view,bg:bgLevel,sym:symCm,ortho,dims:showDims,reps:showReps,layers}));dirty=false;paintStatus();
     CHS.update(CH.id,{updated:Date.now(),stats:{pieces:state.rooms.length,murs:state.segs.length,appareils:state.app.length}});}catch(e){}},
   get tool(){return tool},get tab(){return tab},get testMode(){return testMode},get view(){return view},set view(v){view=v},VB,

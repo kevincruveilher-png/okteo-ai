@@ -48,11 +48,27 @@ l'assistant peut agir seul quand on le lui demande.
 - Assistant : historique propre à chaque chantier. Catalogue : 4 nouvelles entrées (Chantiers, échelle, nouveau chantier, fichier).
 - Tests : 34 vérifications, dont le parcours complet sur le vrai PDF EVRARD.
 
-## PROCHAINE MISE À JOUR (v15) — relevé automatique des murs depuis le PDF (sans IA)
-Lire les traits vectoriels du PDF d'origine (`pdf:<id>`), repérer les paires de traits parallèles espacés de 7 à 30 cm (= murs, épaisseur mesurée),
-recoller les morceaux, créer murs + sommets à l'échelle réglée ; trous dans les murs = ouvertures à confirmer. Aperçu avant validation, puis corrections à la main.
-Ensuite : appareils attachés à leur mur, sortie PDF imprimable du plan, accrochages fins, scinder/fusionner un mur, pièces en L, étages, symboles par pavillonneur,
-parcours « Premiers pas », assistant qui dessine à partir des cotes.
+## Version 15 (25/10/2026) — livrée : relevé automatique des murs depuis le PDF (sans IA)
+- Le PDF EVRARD (Maisons CPR) dessine chaque morceau de mur comme un polygone grisé (#9c8e8e), interrompu aux ouvertures ;
+  des bandes fines (< 4 cm) le long des façades = enduit/doublage, ignorées.
+- `src/walls/extract.js` lit les traits du PDF d'origine (pdf.js) ; `src/walls/detect.js` : bandes entre bords parallèles
+  d'un même polygone (épaisseur 4–45 cm), recollage des morceaux alignés, trous de 0,40 à 3,20 m = ouvertures
+  (cloison < 15 cm → porte, sinon fenêtre, à confirmer), prolongement jusqu'à l'axe du mur touché (L, T, cloison arrêtée
+  jusqu'à 20 cm avant), coupure des murs aux jonctions en T, sommets fusionnés à 2 cm. Secours sur les traits si pas d'aplats.
+- Résultat EVRARD : 32 murs (cloisons 7 cm, murs 16–19 cm à l'échelle d'essai), 17 ouvertures, angles reliés ;
+  axe et épaisseur identiques aux polygones du PDF (écart ≤ 1 cm), en 20 à 40 ms.
+- Interface : proposé juste après l'échelle ; Chantiers → « Relever les murs » ; Ctrl+K. Aperçu orange, épaisseur min./max.,
+  option « remplacer les murs existants », « Ajouter au dessin » (un seul Ctrl+Z).
+- Chaque mur a maintenant sa propre épaisseur (`seg.ep`), modifiable dans son menu (« ép. ») ; mesures « à X cm de l'angle »
+  calculées depuis la face réelle du mur d'angle.
+- Code partagé sur GitHub (`kevincruveilher-png/okteo-ai`) : mises à jour par Synchroniser dans VS Code.
+- Tests : 8 (moteur, vrai PDF) + 39 (navigateur) = 47.
+
+## PROCHAINE MISE À JOUR (v16) — à choisir
+Pistes, par ordre d'intérêt : appareils attachés à leur mur (suivent ses déplacements) ; sortie PDF imprimable du plan
+(échelle, cartouche) ; détection des pièces fermées par les murs (nom, surface) ; relevé des appareils du PDF (symboles) ;
+accrochages fins, scinder/fusionner un mur ; étages ; symboles par pavillonneur ; parcours « Premiers pas » ;
+assistant qui dessine à partir des cotes. Puis le câblage (étape 2).
 
 ## Limites connues
 - Appareils muraux ne suivent pas encore le mur quand on le déplace.

@@ -22,6 +22,8 @@ export function buildCatalog(api, hooks) {
   add("Dessiner", "tool.mur", "Tracer des murs", "B", "Cliquer point après point pour enchaîner les murs ; taper une longueur (en m) puis Entrée pour la fixer ; double-clic ou Échap pour finir.", T("mur"));
   add("Dessiner", "tool.porte", "Poser une porte", "O", "Cliquer sur un mur : la porte le perce. Glisser pour la déplacer, poignées pour la largeur, G et S pour le gond et le sens.", T("porte"));
   add("Dessiner", "tool.fenetre", "Poser une fenêtre", "F", "Cliquer sur un mur : la fenêtre le perce. Même réglages que la porte.", T("fenetre"));
+  add("Dessiner", "walls.detect", "Relever les murs du PDF (automatique)", "", "Lit les murs dessinés dans le PDF du plan (sans IA) : épaisseurs, angles, portes et fenêtres. Aperçu en orange, puis « Ajouter au dessin ». Il faut un fond PDF à l'échelle.", () => hooks.detectWalls());
+  add("Dessiner", "help.epmur", "Épaisseur d'un mur", "", "Sélectionner le mur : champ « ép. » (cm) dans son menu flottant. Les murs relevés du PDF gardent leur épaisseur réelle.");
   add("Dessiner", "tool.offset", "Cloison parallèle", "", "Cliquer un mur du côté voulu, puis indiquer la distance : crée un mur parallèle.", T("offset"));
   add("Dessiner", "tool.cote", "Coter", "C", "Cliquer deux points pour poser une cote mesurée.", T("cote"));
   add("Dessiner", "help.angles", "Angles droits", "", "Case « Angles droits » en haut : force les murs à l'horizontale ou à la verticale.", () => api.toggle("ortho"));

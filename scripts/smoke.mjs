@@ -242,6 +242,50 @@ try {
     const meta = await ev(() => JSON.parse(localStorage.getItem("okteo.chantiers.v1")).find((c) => c.nom === "ESSAI").fond);
     return Math.abs(ratio - expected) / expected < 0.002 && meta.calibre === true && (await ev(() => okteo.tool)) === "sel";
   });
+  console.log("Relevé automatique des murs");
+  let nbMurs = 0;
+  await check("après l'échelle, Oktéo propose de relever les murs", async () => {
+    await page.waitForSelector(".wcard:not([hidden])", { timeout: 5000 });
+    return (await page.textContent(".wcard")).includes("Relever les murs");
+  });
+  await check("aperçu : murs grisés du PDF, épaisseurs, ouvertures (rien n'est encore ajouté)", async () => {
+    await page.click(".wcard button.on");
+    await page.waitForSelector("#w-ok", { timeout: 30000 });
+    const r = await ev(() => okteoExt.walls.result);
+    nbMurs = r.walls.length;
+    return r.mode === "aplats" && nbMurs >= 20 && r.openings.length >= 12 && (await page.textContent(".wcard")).includes("murs grisés") && (await ev(() => okteo.state.segs.length)) === 0;
+  });
+  await check("épaisseur max. réglable : le relevé se recalcule", async () => {
+    const r0 = await ev(() => okteoExt.walls.result);
+    const eps = r0.walls.map((w) => w.ep * 100), mid = Math.round((Math.min(...eps) + Math.max(...eps)) / 2);
+    await page.fill("#w-max", String(mid)); await page.dispatchEvent("#w-max", "change");
+    const r1 = await ev(() => okteoExt.walls.result);
+    const ok1 = r1.walls.length > 0 && r1.walls.length < nbMurs && r1.walls.every((w) => w.ep * 100 <= mid);
+    await page.fill("#w-max", "45"); await page.dispatchEvent("#w-max", "change");
+    return ok1 && (await ev(() => okteoExt.walls.result.walls.length)) === nbMurs;
+  });
+  await check("ajout au dessin : murs reliés, épaisseurs réelles gardées, un seul Ctrl+Z", async () => {
+    await page.click("#w-ok");
+    const s = await ev(() => {
+      const deg = {}; okteo.state.segs.forEach((g) => { deg[g.a] = (deg[g.a] || 0) + 1; deg[g.b] = (deg[g.b] || 0) + 1; });
+      return { n: okteo.state.segs.length, o: okteo.state.openings.length, eps: new Set(okteo.state.segs.map((g) => Math.round(g.ep * 100))).size, j: Object.values(deg).filter((d) => d >= 2).length };
+    });
+    if (s.n !== nbMurs || s.o < 12 || s.eps < 2 || s.j < 14) throw new Error(JSON.stringify(s));
+    await page.keyboard.press("Control+z");
+    const undone = await ev(() => okteo.state.segs.length + okteo.state.openings.length);
+    await page.keyboard.press("Control+y");
+    return undone === 0 && (await ev(() => okteo.state.segs.length)) === nbMurs && !(await page.isVisible(".wcard"));
+  });
+  await check("l'épaisseur d'un mur relevé se modifie dans son menu", async () => {
+    const id = await ev(() => okteo.state.segs[0].id);
+    await ev((i) => okteo.select([i]), id);
+    await page.waitForSelector('#hud [data-h="ep"]');
+    await page.fill('#hud [data-h="ep"]', "25"); await page.dispatchEvent('#hud [data-h="ep"]', "change");
+    return (await ev((i) => okteo.state.segs.find((g) => g.id === i).ep, id)) === 0.25;
+  });
+  await ev(() => document.activeElement && document.activeElement.blur());   // sortir de la case « épaisseur »
+  await page.keyboard.press("Escape");
+
   await check("chaque chantier garde son propre dessin", async () => {
     await page.keyboard.press("e");
     const box = await page.locator("#sv").boundingBox();
