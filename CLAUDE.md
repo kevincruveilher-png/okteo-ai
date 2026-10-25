@@ -19,8 +19,17 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
 2. Étape câblage : boîtes, liaisons, bandes, SPV — plus tard ; demander les règles métier à Kévin.
 
 ## Code
-- Pas de framework : `index.html` + `src/app.js` (cœur, script module, ~850 lignes denses) + `src/style.css`. Vite sert la page.
-- `src/app.js` expose `window.okteo` (state, setTool, select, zoomTo, renameRoom, setTab, extent…) et émet `okteo:ready` / `okteo:tab`.
+- Pas de framework : `index.html` + `src/app.js` (point d'entrée) + `src/core/*.js` (le cœur, un fichier par thème)
+  + `src/style.css`. Vite sert la page.
+- Cœur découpé (v26) : `core/k.js` = objet partagé `K` qui contient TOUTES les variables modifiables (K.tool, K.sel,
+  K.view, K.BG, K.FOND, K.LV…) ; les fonctions et constantes sont exportées par leur module et importées par les autres
+  (imports croisés autorisés : rien ne s'exécute au chargement d'un module). Les instructions de démarrage sont dans des
+  fonctions `initN()` appelées par `src/app.js` dans l'ordre. Modules : model (chantier, état, types, géométrie),
+  persist (annuler, enregistrement), view (vue, accrochage, repères), render (`draw`), attach (hit-tests, appareils
+  attachés), groups (sélection multiple), interact (souris, clavier), hud (menu flottant), panel (panneau Propriétés),
+  controls (barres, démarrage), levels (niveaux, géométrie d'impression), api (`window.okteo`).
+  Nouvelle variable modifiable = `K.nom` (jamais `let` au niveau d'un module) ; nouvelle fonction = `export function`.
+- Le cœur expose `window.okteo` (state, setTool, select, zoomTo, renameRoom, setTab, extent…) et émet `okteo:ready` / `okteo:tab`.
   Les extensions (`src/ext/`) ne passent QUE par cette interface.
 - `src/ext/catalog.js` = liste de toutes les fonctions (palette Ctrl+K, infobulles, assistant). **Toute nouvelle fonction y est ajoutée.**
 - `src/ext/panel.js` = panneau de droite à onglets (Propriétés + extensions enregistrées via `panel.register`).

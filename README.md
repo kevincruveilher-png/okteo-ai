@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v25** (25/10/2026) : liaisons entre niveaux, impression de tous les niveaux.
+Version du prototype : **v26** (25/10/2026) : code du cœur découpé en fichiers par thème (aucun changement visible).
 (v17 : pièces ; v16 : appareils attachés aux murs ; v15 : relevé des murs ; v14 : chantiers.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
@@ -196,7 +196,8 @@ Claude lit automatiquement `CLAUDE.md` à l'ouverture du dossier : il sait ce qu
 | Chemin | Rôle |
 |---|---|
 | `index.html` | Structure de la page (barre, plan, panneaux) |
-| `src/app.js` | Cœur du logiciel : modèle, dessin, outils, raccourcis ; expose `window.okteo` |
+| `src/app.js` | Point d'entrée du cœur (démarrage) |
+| `src/core/` | Cœur du logiciel, un fichier par thème : modèle, dessin, outils, panneau, niveaux… ; `api.js` expose `window.okteo` |
 | `src/ext/` | Extensions : assistant, palette Ctrl+K, catalogue des fonctions, paramètres, panneau de droite |
 | `vite.config.js` | Serveur local + relais IA (`/ai/anthropic`, `/ai/nvidia`) |
 | `src/style.css` | Apparence (thème clair/sombre) |

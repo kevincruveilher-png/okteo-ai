@@ -178,9 +178,16 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - Corrigé au passage : « plafond » écrit pour une sortie de câble sans hauteur → « hauteur à préciser ».
 - Tests : 28 + 74 = 102.
 
-## PROCHAINE MISE À JOUR (v26) — à choisir
-Découpage d'app.js en modules (maintenance, VS Code) ; parcours « Premiers pas ». Puis le câblage (boîtes, bandes, SPV)
-— règles à demander à Kévin. En attente : PDF d'autres pavillonneurs (dont un R+1).
+## Version 26 (25/10/2026) — livrée : découpage du cœur
+- `src/app.js` (1 200 lignes denses) découpé automatiquement (outil d'analyse du code, sans réécriture à la main) en
+  13 fichiers `src/core/` par thème, remis en forme lisible. Variables partagées dans l'objet `K`, fonctions exportées.
+- Aucun changement de comportement : les 102 vérifications passent (plusieurs passages), construction `vite build` OK.
+- `npm run check` vérifie maintenant la syntaxe de tous les fichiers (scripts/syntax.mjs).
+- Kévin : faire un `git pull` avant de modifier quoi que ce soit dans VS Code (app.js a complètement changé).
+
+## PROCHAINE MISE À JOUR (v27) — à choisir
+Parcours « Premiers pas » ; puis le câblage (boîtes, bandes, SPV) — règles à demander à Kévin. En attente : PDF
+d'autres pavillonneurs (dont un R+1).
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.
