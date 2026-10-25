@@ -59,5 +59,5 @@ function aiRelay(env) {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  return { plugins: [aiRelay(env)], server: { open: false } };
+  return { base: "./", plugins: [aiRelay(env)], server: { open: false } };
 });
