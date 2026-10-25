@@ -113,10 +113,20 @@ l'assistant peut agir seul quand on le lui demande.
   extérieurs non reconnues ; symboles propres à chaque pavillonneur → tester sur d'autres plans.
 - Tests : 19 (moteur, vrai PDF) + 58 (navigateur) = 77.
 
-## PROCHAINE MISE À JOUR (v20) — à choisir
-Pistes : lecture des hauteurs et des cotes en police codée (décodage des chiffres par les cotes du plan) ; appliques ;
-murs non grisés (cloisons en traits fins : WC/Dgt) ; étages ; symboles par pavillonneur (après réception d'autres PDF) ;
-accrochages fins, scinder/fusionner un mur ; parcours « Premiers pas ». Puis le câblage (boîtes, bandes, SPV) — règles à Kévin.
+## Version 20 (25/10/2026) — livrée : lecture des cotes et des hauteurs, contrôle de l'échelle
+- Le PDF EVRARD utilise une police codée : les chiffres des textes ne sont pas des vrais chiffres. Nouveau décodage sans IA
+  par les cotes du plan : chaque cote est posée le long d'un trait qui mesure sa valeur ; en comparant on retrouve les
+  10 chiffres (40 cotes relues exactement sur EVRARD), même si l'échelle du fond est fausse (essai de facteurs 0,3 à 3).
+- Hauteurs et intensités des prises lues : « 16A H:1.20m », « 32A H:0.65m », « 20A H:0.60m », textes séparés réunis.
+  EVRARD : 13 hauteurs lues (Cellier 120, Bains 110, Garage 120, cuisine 30/60/65/120/220…).
+- Contrôle de l'échelle : la carte du relevé des murs affiche « ✓ Échelle confirmée par N cotes » ou « ⚠ décalée de x % »
+  avec « Corriger l'échelle ». Bug corrigé au passage : l'angle des textes ignorait la rotation de la page.
+- Tests : 23 + 60 = 83.
+
+## PROCHAINE MISE À JOUR (v21) — à choisir
+Pistes : appliques (demi-cercles dans les murs extérieurs) ; murs non grisés (cloisons en traits fins : WC/Dgt) ; étages ;
+symboles par pavillonneur (après réception d'autres PDF) ; accrochages fins, scinder/fusionner un mur ; parcours
+« Premiers pas ». Puis le câblage (boîtes, bandes, SPV) — règles à Kévin.
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.

@@ -8,6 +8,7 @@ import { detectWalls } from "../src/walls/detect.js";
 import { findRooms, nameRooms } from "../src/walls/rooms.js";
 import { pageLabels } from "../src/walls/labels.js";
 import { detectDevices, pageTexts } from "../src/walls/devices.js";
+import { solveDigits, readDigits } from "../src/walls/digits.js";
 
 const data = new Uint8Array(fs.readFileSync(new URL("../docs/plans/EVRARD_04949_plan.pdf", import.meta.url)));
 const doc = await pdfjs.getDocument({ data, verbosity: 0 }).promise;
@@ -82,7 +83,8 @@ check("surface habitable mesurée entre les faces des murs", ch1.area < axis && 
 check("Chambre 1 plus grande que Chambre 2 (comme sur le plan)", ch1.area > ch2.area);
 
 console.log("Relevé des appareils (symboles du PDF)");
-const dv = detectDevices(ex, await pageTexts(page), { k, ox: 0, oy: 0 });
+const texts = await pageTexts(page);
+const dv = detectDevices(ex, texts, { k, ox: 0, oy: 0 });
 const by = dv.stats.byType, prises = (by.PC16 || 0) + (by.PC20 || 0);
 check("10 points lumineux et 8 spots", by.LUM === 10 && by.SPOT === 8, JSON.stringify(by));
 check("prises : 30 à 36, dont des 20/32 A repérées par leur texte", prises >= 30 && prises <= 36 && by.PC20 >= 2, `${by.PC16} + ${by.PC20}`);
@@ -96,6 +98,17 @@ const cmd1 = dv.links.filter((l) => l.l === l1).map((l) => dv.devices[l.c]);
 check("Chambre 1 : son point lumineux a son interrupteur, à moins de 50 cm de la pièce", l1 >= 0 && cmd1.length >= 1 && cmd1.every((c) => {
   const P = ch1.poly, x0 = Math.min(...P.map((p) => p.x)) - 0.5, x1 = Math.max(...P.map((p) => p.x)) + 0.5, y0 = Math.min(...P.map((p) => p.y)) - 0.5, y1 = Math.max(...P.map((p) => p.y)) + 0.5;
   return c.x > x0 && c.x < x1 && c.y > y0 && c.y < y1; }), JSON.stringify(cmd1));
+
+console.log("Lecture des chiffres en police codée (par les cotes du plan)");
+const sols = solveDigits(texts, ex.segs, k), f3 = sols.get("g_d0_f3");
+check("les 10 chiffres retrouvés, ≥ 30 cotes relues exactement", f3 && f3.map.size === 10 && f3.checked >= 30, f3 ? `${f3.map.size} chiffres, ${f3.checked}/${f3.total}` : "aucune solution");
+const cotes = new Set(texts.filter((t) => t.font === "g_d0_f3").map((t) => readDigits(t, sols)));
+check("cotes relues : 1.75 et 1.78 (Chambre 1), 2.35 (cuisine), 1.49 (Chambre 2)", ["1.75", "1.78", "2.35", "1.49"].every((v) => cotes.has(v)), [...cotes].filter((c) => /^[\d.]+$/.test(c)).join(" "));
+// l'échelle d'essai k = 13/550 a été prise « à l'œil » : les cotes disent qu'elle est trop petite d'environ 5,6 %
+check("échelle contrôlée par les cotes (facteur stable sur toute la page)", dv.scaleCheck && Math.abs(dv.scaleCheck.facteur - 1.056) < 0.006, JSON.stringify(dv.scaleCheck));
+const hs = dv.devices.filter((d) => d.h);
+const near = (x, y) => dv.devices.filter((d) => d.t.startsWith("PC")).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
+check("hauteurs lues : ≥ 10 prises, Bains 110 cm, Cellier 120 cm, plaque de cuisson 32 A à 65 cm", hs.length >= 10 && near(492 * k, 198 * k).h === 110 && near(185 * k, 159 * k).h === 120 && near(252 * k, 177 * k).h === 65 && near(252 * k, 177 * k).t === "PC20", hs.map((d) => d.h).join(","));
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);
 if (fails.length) process.exit(1);

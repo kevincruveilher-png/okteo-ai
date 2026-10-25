@@ -4,9 +4,11 @@
 // 2. on regarde ce qui les accompagne, dans la même couleur : traits intérieurs (point lumineux ⊗, prise ⊖),
 //    rayons courts (spot ☼), queue (interrupteur ○⁄, deux queues = va-et-vient), croix qui dépasse (sortie de câble ⊗,
 //    bouche VMC ⊕), cercle dans le cercle (RJ45 ◎) ;
-// 3. le texte voisin précise la prise (16 A / 20 A / 32 A, hauteur « H:1.20m » quand le texte est lisible) ;
+// 3. le texte voisin précise la prise (16 A / 20 A / 32 A, hauteur « H:1.20m »), même en police codée (digits.js) ;
 // 4. les traits qui relient une commande à un point lumineux (et les points lumineux entre eux) deviennent des liaisons.
 // Tout est mesuré par rapport au rayon du cercle : le relevé ne dépend pas de l'échelle du plan.
+
+import { solveDigits, readDigits, parseDeviceLabel } from "./digits.js";
 
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
 
@@ -123,26 +125,49 @@ export function detectDevices(ex, texts, { k, ox = 0, oy = 0 }, opts = {}) {
     for (const t of small) { const dd = dist(t.x, t.y, d.px, d.py); if (dd < bd) { bd = dd; best = t; } }
     return best;
   };
-  const readable = (s) => /\d\s*[Aa]\b/.test(s) || /H\s*[:=]/.test(s);
   const prises = devices.filter((d) => d.t === "PC16");
-  prises.forEach((d) => { const t = nearestText(d); d.label = t ? t.str : ""; d.labelSize = t ? t.size : 0; });
-  if (prises.some((d) => readable(d.label))) {
-    for (const d of prises) {
-      const m = /(\d{2})\s*A/i.exec(d.label); if (m && +m[1] >= 20) d.t = "PC20";
-      const h = /H\s*[:=]?\s*(\d+[.,]\d+)\s*m/i.exec(d.label); if (h) d.h = Math.round(parseFloat(h[1].replace(",", ".")) * 100);
-    }
-  } else {
-    // police codée : le texte le plus fréquent à côté des prises est « 16A » ; un texte de même longueur qui finit
-    // par le même caractère (« A ») mais qui diffère est une prise spécialisée (20 A, 32 A)
-    // (on compare le début du texte : « 16A H:1.20m » commence par « 16A », « 20A H:0.30m » par « 20A »)
+  // chiffres : lisibles, ou retrouvés grâce aux cotes du plan (police codée) → « 16A H:1.20m » = 16 A à 120 cm
+  const sols = solveDigits(small, ex.segs || [], k);
+  const AMPS = [10, 16, 20, 32];
+  const devLabels = small.map((t) => {
+    const read = readDigits(t, sols), p = parseDeviceLabel(read);
+    // une étiquette d'appareil contient des lettres (« A », « H: ») : une cote « 1.50 » n'en est pas une
+    if (!read.includes("?") && !/[A-Za-z]/.test(t.str)) return null;
+    const amp = AMPS.includes(p.amp) ? p.amp : null, h = p.h >= 20 && p.h <= 250 ? p.h : null;
+    if (!amp && h && read.replace(/\s/g, "").length > 8) return null;    // « All : 1.10 m » (allège de fenêtre) n'est pas une hauteur d'appareil
+    return amp || h ? { t, amp, h, read } : null;
+  }).filter(Boolean);
+  // « 16A » et « H:1.20m » sont souvent deux textes l'un sous l'autre : on les réunit
+  for (const H of devLabels.filter((L) => L.h && !L.amp)) {
+    let best = null, bd = H.t.size * 2.6;
+    for (const L of devLabels) { if (L.amp && !L.h) { const dd = dist(L.t.x, L.t.y, H.t.x, H.t.y); if (dd < bd) { bd = dd; best = L; } } }
+    if (best) { best.h = H.h; H.merged = true; }
+  }
+  for (let i = devLabels.length - 1; i >= 0; i--) if (devLabels[i].merged) devLabels.splice(i, 1);
+  let byLabel = 0;
+  for (const d of prises) {
+    let best = null, bd = r0 * 14;
+    for (const L of devLabels) { const dd = dist(L.t.x, L.t.y, d.px, d.py); if (dd < bd) { bd = dd; best = L; } }
+    if (!best) continue;
+    byLabel++;
+    if (best.amp >= 20) d.t = "PC20";
+    if (best.h) d.h = best.h;
+    if (opts.debug) console.log(Math.round(d.px), Math.round(d.py), best.read, d.t, d.h || "");
+  }
+  if (!byLabel) {
+    // police codée sans cotes lisibles : le texte le plus fréquent à côté des prises est « 16A » ; un texte qui commence
+    // par un mot de même longueur, finissant par le même caractère (« A ») mais différent, est une prise 20 A ou 32 A
+    prises.forEach((d) => { const t = nearestText(d); d.label = t ? t.str : ""; });
     const cnt = {}; prises.forEach((d) => { if (d.label) cnt[d.label] = (cnt[d.label] || 0) + 1; });
     const ref = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]?.[0];
     if (ref && cnt[ref] >= 3) for (const d of prises) {
       const W = d.label.slice(0, ref.length);
       if (W.length === ref.length && W !== ref && W.slice(-1) === ref.slice(-1)) d.t = "PC20";
     }
-    if (opts.debug) prises.forEach((d) => console.log(Math.round(d.px), Math.round(d.py), JSON.stringify(d.label), d.t));
   }
+  // échelle vue par les cotes du plan (1 = le fond est à la bonne échelle)
+  const solList = [...sols.values()].sort((a, b) => b.checked - a.checked);
+  const scaleCheck = solList.length ? { facteur: +solList[0].scale.toFixed(4), cotes: solList[0].checked } : null;
 
   // ---- 4. liaisons : un trait (hors symbole) qui part d'une commande et arrive à un point lumineux
   const isCmd = (t) => t === "INT" || t === "VV";
@@ -187,7 +212,8 @@ export function detectDevices(ex, texts, { k, ox = 0, oy = 0 }, opts = {}) {
     devices: devices.map(({ t, x, y, h }) => (h ? { t, x, y, h } : { t, x, y })),
     links,
     unknown: unknown.map((c) => ({ x: +(ox + c.cx * k).toFixed(3), y: +(oy + c.cy * k).toFixed(3) })),
-    stats: { byType, cercles: circles.length, inconnus: unknown.length, liaisons: links.length },
+    stats: { byType, cercles: circles.length, inconnus: unknown.length, liaisons: links.length, etiquettes: byLabel, hauteurs: prises.filter((d) => d.h).length },
+    scaleCheck,
     names: KIND,
   };
 }
@@ -197,11 +223,11 @@ export async function pageTexts(page) {
   const vp = page.getViewport({ scale: 1 });
   const tc = await page.getTextContent();
   return tc.items.filter((i) => i.str && i.str.trim()).map((i) => {
-    const [x, y] = vp.convertToViewportPoint(i.transform[4], i.transform[5]);
-    const size = Math.hypot(i.transform[2], i.transform[3]);
-    const ang = Math.atan2(i.transform[1], i.transform[0]);
-    const w = i.width || 0;
-    // milieu du texte (les textes tournés sont fréquents à côté des prises)
-    return { str: i.str, size, x: x + Math.cos(ang) * w / 2 + Math.sin(ang) * size * 0.35, y: y - Math.sin(ang) * w / 2 - Math.cos(ang) * size * 0.35 };
+    const [a, b, c, d, e, f] = i.transform;
+    const size = Math.hypot(c, d), na = Math.hypot(a, b) || 1, nc = size || 1, w = i.width || 0;
+    // milieu du texte, calculé dans le repère du PDF (textes tournés, page éventuellement tournée), puis ramené sur la page
+    const mx = e + (a / na) * w / 2 + (c / nc) * size * 0.35, my = f + (b / na) * w / 2 + (d / nc) * size * 0.35;
+    const [x, y] = vp.convertToViewportPoint(mx, my), [x2, y2] = vp.convertToViewportPoint(mx + a / na, my + b / na);
+    return { str: i.str, font: i.fontName, size, ang: Math.atan2(-(y2 - y), x2 - x), x, y };
   });
 }

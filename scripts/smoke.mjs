@@ -350,6 +350,22 @@ try {
     nbMurs = r.walls.length;
     return r.mode === "aplats" && nbMurs >= 20 && r.openings.length >= 12 && (await page.textContent(".wcard")).includes("murs grisés") && (await ev(() => okteo.state.segs.length)) === 0;
   });
+  await check("échelle contrôlée par les cotes du plan ; « Corriger l'échelle » la remet juste", async () => {
+    await page.waitForSelector("#w-scale");
+    const t0 = await page.textContent("#w-scale");
+    if (process.env.SHOT) { console.log("    " + t0.trim().replace(/\s+/g, " ")); await page.screenshot({ path: process.env.SHOT + "/echelle.png" }); }
+    if (t0.includes("✓")) return true;                       // échelle déjà juste à 1,5 % près
+    const w0 = await ev(() => okteo.BG.w);
+    await page.click("#w-fix");
+    await page.waitForSelector(".wcard:not([hidden]) .wrow button.on");
+    await page.click(".wcard .wrow button.on");              // « Relever les murs » reproposé après la correction
+    await page.waitForSelector("#w-ok", { timeout: 30000 });
+    const t1 = await page.textContent("#w-scale"), w1 = await ev(() => okteo.BG.w);
+    if (process.env.SHOT) console.log("    " + t1.trim().replace(/\s+/g, " "));
+    nbMurs = (await ev(() => okteoExt.walls.result)).walls.length;
+    if (!t1.includes("✓")) throw new Error(t0 + " → " + t1);
+    return t0.includes("⚠") && Math.abs(w1 / w0 - 1) > 0.015 && nbMurs >= 20;
+  });
   await check("épaisseur max. réglable : le relevé se recalcule", async () => {
     const r0 = await ev(() => okteoExt.walls.result);
     const eps = r0.walls.map((w) => w.ep * 100), mid = Math.round((Math.min(...eps) + Math.max(...eps)) / 2);
@@ -404,7 +420,7 @@ try {
     await page.waitForSelector("#d-ok", { timeout: 30000 });
     const r = await ev(() => okteoExt.devices.result);
     const t = await page.textContent(".wcard:not([hidden])");
-    return r.stats.byType.LUM === 10 && r.links.length >= 20 && t.includes("Point lumineux") && t.includes("liaisons") && (await ev(() => okteo.state.app.length)) === 0;
+    return r.stats.byType.LUM === 10 && r.links.length >= 20 && t.includes("Point lumineux") && t.includes("liaisons") && t.includes("Hauteurs lues sur le plan") && (await ev(() => okteo.state.app.length)) === 0;
   });
   await check("ajout : prises et interrupteurs collés à leur mur, liaisons reprises, un seul Ctrl+Z", async () => {
     const n = await ev(() => okteoExt.devices.result.devices.length);
@@ -420,6 +436,10 @@ try {
     const undone = await ev(() => okteo.state.app.length + okteo.state.lia.length);
     await page.keyboard.press("Control+y");
     return undone === 0 && (await ev(() => okteo.state.app.length)) === n && !(await page.isVisible(".wcard"));
+  });
+  await check("hauteurs lues sur le plan (police codée) : prises à 110, 120, 65 cm ; affichées dans la carte", async () => {
+    const hs = await ev(() => okteo.state.app.filter((a) => a.t.startsWith("PC") && a.h !== 30).map((a) => a.h));
+    return hs.length >= 10 && [110, 120, 65].every((h) => hs.includes(h));
   });
   await check("une prise relevée mesure sa distance à l'angle et suit son mur", async () => ev(() => {
     const a = okteo.state.app.find((x) => x.t === "PC16" && x.seg), m = okteo.measure(a.id);

@@ -20,7 +20,7 @@ export function createDevicesTool({ api }) {
     const P = await chantierPage(api);
     if (!P) return null;
     const texts = await chantierTexts(api);
-    return detectDevices({ shapes: P.shapes }, texts, pageMap(api, P));
+    return detectDevices({ shapes: P.shapes, segs: P.segs }, texts, pageMap(api, P));
   }
 
   function render() {
@@ -30,11 +30,12 @@ export function createDevicesTool({ api }) {
     show(`
       <p class="wbig"><b>${n}</b> appareils · <b>${res.links.length}</b> liaisons</p>
       <div class="wlist">${rows}</div>
+      <p class="mut sm" id="d-h">${res.stats.hauteurs ? `Hauteurs lues sur le plan : ${res.stats.hauteurs} prise${res.stats.hauteurs > 1 ? "s" : ""} (« H:1.20m »…) ; les autres à la hauteur par défaut.` : "Aucune hauteur lue sur le plan : hauteurs par défaut."}</p>
       ${res.unknown.length ? `<p class="mut sm">${res.unknown.length} petit${res.unknown.length > 1 ? "s" : ""} cercle${res.unknown.length > 1 ? "s" : ""} non reconnu${res.unknown.length > 1 ? "s" : ""} (pointillés rouges : plaques de cuisson, robinets…) : à poser à la main s'il s'agit d'appareils.</p>` : ""}
       <label class="wck"><input type="checkbox" id="d-lia" ${links ? "checked" : ""}> Reprendre les liaisons commande → lumière</label>
       ${existing ? `<label class="wck"><input type="checkbox" id="d-rep" ${replace ? "checked" : ""}> Remplacer les ${existing} appareils existants</label>` : ""}
       <div class="wrow"><button class="on" id="d-ok">Ajouter les appareils</button><button id="d-no">Annuler</button></div>
-      <p class="mut sm">Les prises, interrupteurs, RJ45 et sorties de câble se collent au mur le plus proche. Hauteurs : valeurs par défaut (modifiables dans le menu de l'appareil). À vérifier avant le câblage.</p>`);
+      <p class="mut sm">Les prises, interrupteurs, RJ45 et sorties de câble se collent au mur le plus proche. Hauteurs modifiables dans le menu de l'appareil. À vérifier avant le câblage.</p>`);
     const rp = card.querySelector("#d-rep"); if (rp) rp.onchange = () => { replace = rp.checked; };
     const lk = card.querySelector("#d-lia"); lk.onchange = () => { links = lk.checked; api.setPreview({ devices: res.devices, links: links ? res.links : [], unknown: res.unknown }); };
     card.querySelector("#d-no").onclick = close;

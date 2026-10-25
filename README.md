@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v19** (25/10/2026) : relevé automatique des appareils du plan PDF.
+Version du prototype : **v20** (25/10/2026) : lecture des cotes et des hauteurs du plan, contrôle de l'échelle.
 (v17 : pièces ; v16 : appareils attachés aux murs ; v15 : relevé des murs ; v14 : chantiers.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
@@ -37,7 +37,7 @@ Pour arrêter : Ctrl+C dans le terminal.
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 77 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 83 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -65,9 +65,14 @@ de la page Chantiers, ou **Ctrl+K** → « Relever les appareils » :
 - **Ajouter les appareils** : les prises, interrupteurs, RJ45 et sorties de câble se **collent à leur mur** (ils suivent ensuite
   le mur et gardent leur distance à l'angle). Un seul **Ctrl+Z** annule tout.
 
-À vérifier avant le câblage : les **hauteurs** sont celles par défaut (le texte « H:1.20m » n'est pas encore lu sur les PDF
-à police codée), les appliques à moitié dessinées dans les murs extérieurs ne sont pas encore reconnues. Sur EVRARD :
-82 appareils et 26 liaisons.
+**Hauteurs (v20)** : les textes « 16A H:1.20m », « 32A H:0.65m »… sont lus, même quand le PDF utilise une police codée
+(les chiffres sont retrouvés grâce aux cotes du plan) : la prise reçoit sa hauteur et son intensité. Les autres gardent
+la hauteur par défaut. Les appliques à moitié dessinées dans les murs extérieurs ne sont pas encore reconnues.
+Sur EVRARD : 82 appareils, 26 liaisons, 13 hauteurs lues.
+
+**Contrôle de l'échelle (v20)** : en ouvrant le relevé des murs, Oktéo relit les cotes du plan et les compare aux
+longueurs mesurées sur le fond : « ✓ Échelle confirmée par 40 cotes » ou « ⚠ échelle décalée de 4,6 % » avec le bouton
+**Corriger l'échelle** (proposé tant qu'aucun mur n'est dessiné).
 
 ## Imprimer le plan en PDF (v18)
 

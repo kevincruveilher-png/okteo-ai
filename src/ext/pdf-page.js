@@ -4,6 +4,7 @@ import * as CHS from "../chantiers.js";
 import { extractSegments } from "../walls/extract.js";
 import { pageLabels } from "../walls/labels.js";
 import { pageTexts } from "../walls/devices.js";
+import { solveDigits } from "../walls/digits.js";
 import { pdfjs } from "./fond-import.js";
 
 let cache = null;   // { id, page, width, segs, labels: Map(clé d'échelle → étiquettes) }
@@ -38,4 +39,16 @@ export async function chantierTexts(api) {
   const P = await chantierPage(api); if (!P) return null;
   if (!P.texts) P.texts = await pageTexts(P.page).catch(() => []);
   return P.texts;
+}
+
+// contrôle de l'échelle du fond par les cotes du plan : { facteur, cotes } (facteur 1 = échelle juste ; 1,05 = le plan
+// réel est 5 % plus grand que le fond) ou null si les cotes ne se lisent pas
+export async function chantierScaleCheck(api) {
+  const P = await chantierPage(api); if (!P) return null;
+  const texts = await chantierTexts(api), m = pageMap(api, P), key = "scale|" + m.k.toFixed(8);
+  if (P.labels.has(key)) return P.labels.get(key);
+  const sols = [...solveDigits(texts, P.segs, m.k).values()].sort((a, b) => b.checked - a.checked);
+  const r = sols.length ? { facteur: sols[0].scale, cotes: sols[0].checked } : null;
+  P.labels.set(key, r);
+  return r;
 }

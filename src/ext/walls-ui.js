@@ -2,14 +2,14 @@
 // permet d'ajuster l'épaisseur min/max, puis ajoute les murs au dessin (un seul Ctrl+Z pour tout annuler).
 import * as CHS from "../chantiers.js";
 import { detectWalls } from "../walls/detect.js";
-import { chantierPage, pageMap } from "./pdf-page.js";
+import { chantierPage, chantierScaleCheck, pageMap } from "./pdf-page.js";
 import { esc } from "./util.js";
 
 export function createWallsTool({ api }) {
   const card = document.createElement("div");
   card.className = "wcard"; card.hidden = true; card.setAttribute("role", "dialog"); card.setAttribute("aria-label", "Relevé des murs");
   document.querySelector(".stage").appendChild(card);
-  let page = null, res = null, opts = { tMin: 4, tMax: 45 }, replace = false, busy = false, detectRoomsAfter = true;
+  let page = null, res = null, scale = null, opts = { tMin: 4, tMax: 45 }, replace = false, busy = false, detectRoomsAfter = true;
 
   const close = () => { card.hidden = true; api.setPreview(null); res = null; };
   function show(html) { card.innerHTML = `<div class="wcard-h"><b>Relevé des murs</b><button class="wx" title="Fermer">✕</button></div>${html}`; card.hidden = false; card.querySelector(".wx").onclick = close; }
@@ -30,7 +30,14 @@ export function createWallsTool({ api }) {
     const ep = Object.entries(by).sort((a, b) => +a[0] - +b[0]).map(([e, n]) => `${n} × ${e} cm`).join(" · ");
     const nP = res.openings.filter((o) => o.kind === "porte").length, nF = res.openings.length - nP;
     const existing = api.state.segs.length;
+    const ecart = scale ? (scale.facteur - 1) * 100 : 0, okScale = scale && Math.abs(ecart) <= 1.5;
+    const pct = (v) => Math.abs(v).toFixed(1).replace(".", ",") + " %";
+    const scaleLine = !scale ? "" : okScale
+      ? `<p class="ok sm" id="w-scale">✓ Échelle confirmée par ${scale.cotes} cotes du plan (écart ${pct(ecart)}).</p>`
+      : `<p class="warn sm" id="w-scale">⚠ ${scale.cotes} cotes du plan indiquent que l'échelle du fond est ${ecart > 0 ? "trop petite" : "trop grande"} de ${pct(ecart)}.
+         ${api.state.segs.length ? "Refaites la mise à l'échelle sur la plus grande cote du plan." : `<button id="w-fix" title="Remet le fond à l'échelle donnée par les cotes du plan">Corriger l'échelle</button>`}</p>`;
     show(`
+      ${scaleLine}
       <p class="wbig"><b>${res.walls.length}</b> murs · <b>${res.openings.length}</b> ouvertures <span class="mut">(${nP} portes, ${nF} fenêtres, à confirmer)</span></p>
       <p class="mut">Épaisseurs : ${ep || "—"}<br>Méthode : ${res.mode === "aplats" ? "murs grisés du PDF (fiable)" : "traits du PDF (méthode de secours : à vérifier de près)"}</p>
       <div class="wgrid">
@@ -46,6 +53,8 @@ export function createWallsTool({ api }) {
     const rp = card.querySelector("#w-rep"); if (rp) rp.onchange = () => { replace = rp.checked; };
     const dr = card.querySelector("#w-rooms"); dr.onchange = () => { detectRoomsAfter = dr.checked; };
     card.querySelector("#w-no").onclick = close;
+    const fx = card.querySelector("#w-fix");
+    if (fx) fx.onclick = () => { const a = { x: api.BG.x, y: api.BG.y }; close(); api.applyCalib(a, { x: a.x + 1, y: a.y }, scale.facteur); };
     card.querySelector("#w-ok").onclick = () => {
       const r = api.importWalls(res, { replace });
       card.hidden = true; res = null;
@@ -65,6 +74,7 @@ export function createWallsTool({ api }) {
     busy = true; show(`<p>Lecture des traits du PDF…</p>`);
     try {
       page = await chantierPage(api);
+      scale = await chantierScaleCheck(api).catch(() => null);
       compute();
       if (!res.walls.length) return message("Aucun mur trouvé sur cette page. Vérifiez que c'est la bonne page du plan (Chantiers → Changer le fond), ou dessinez les murs à la main.", [{ label: "OK", run: () => {} }]);
       summary();
