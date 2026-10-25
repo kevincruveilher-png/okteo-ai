@@ -185,9 +185,16 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - `npm run check` vérifie maintenant la syntaxe de tous les fichiers (scripts/syntax.mjs).
 - Kévin : faire un `git pull` avant de modifier quoi que ce soit dans VS Code (app.js a complètement changé).
 
-## PROCHAINE MISE À JOUR (v27) — à choisir
-Parcours « Premiers pas » ; puis le câblage (boîtes, bandes, SPV) — règles à demander à Kévin. En attente : PDF
-d'autres pavillonneurs (dont un R+1).
+## Version 27 (25/10/2026) — livrée : premiers pas
+- Visite guidée en 15 étapes (zone éclairée + bulle, clavier ← → Échap), proposée à la 1re ouverture sans bloquer.
+- Onglet « Étapes » : 8 étapes du chantier cochées automatiquement, bouton de l'étape suivante (relevés, échelle,
+  liaison, impression, sauvegarde). Événement `okteo:printed` au téléchargement du PDF.
+- Tests : 28 + 77 = 105.
+
+## PROCHAINE ÉTAPE : le câblage
+Partie dessin terminée pour une maison individuelle. Prochaine grande étape : boîtes, bandes de câblage, SPV pour
+Counter — règles métier à recueillir auprès de Kévin (max gaines par boîte, descentes, marges, regroupement des circuits).
+En attente : PDF d'autres pavillonneurs (dont un R+1) pour fiabiliser les relevés.
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.

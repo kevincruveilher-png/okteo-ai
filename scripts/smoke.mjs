@@ -73,6 +73,25 @@ try {
   await page.reload();
   await page.waitForFunction(() => window.okteo && window.okteoExt);
 
+  console.log("Premiers pas (v27)");
+  await check("première ouverture : invitation à la visite guidée (non bloquante)", async () => page.isVisible(".tour-invite"));
+  await check("visite guidée : 15 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
+    await page.click("#ti-go");
+    const s1 = await page.textContent(".tour-bub .tour-n");
+    await page.keyboard.press("ArrowRight");
+    const lit = await ev(() => { const r = document.querySelector(".tour-ring").getBoundingClientRect(), t = document.querySelector('#tabs button[data-tab="chantiers"]').getBoundingClientRect();
+      return !document.querySelector(".tour-ring").hidden && r.left <= t.left && r.right >= t.right && r.top <= t.top && r.bottom >= t.bottom; });
+    await page.keyboard.press("ArrowLeft");
+    const back = await page.textContent(".tour-bub .tour-n");
+    for (let k = 0; k < 15; k++) await page.click("#tour-next");
+    const done = await ev(() => document.querySelector(".tour-bub").hidden && okteoExt.panel.state.pane === "steps" && !!document.querySelector(".steps ol li"));
+    await ev(() => okteoExt.panel.show("props"));
+    await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);
+    const again = await page.isVisible(".tour-invite");
+    if (!(s1 === "1 / 15" && lit && back === "1 / 15" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
+    return true;
+  });
+
   console.log("Dessin");
   await check("une pièce tracée = 4 murs", async () => {
     const before = await ev(() => okteo.state.segs.length);
@@ -641,6 +660,13 @@ try {
     const sizeOk = Math.abs(Math.max(vp.width, vp.height) - L) < 1 && Math.abs(Math.min(vp.width, vp.height) - S) < 1;
     if (!sizeOk) throw new Error(`taille ${vp.width}×${vp.height}`);
     return doc.numPages === 2 && t1.includes("ESSAI") && t1.includes("1:" + lay.scale) && t1.includes("Garage") && t1.includes("Chambre 1") && t1.includes("PLAN") && t2.includes("Nomenclature") && dl.suggestedFilename().endsWith(".pdf");
+  });
+  await check("onglet Étapes : plan, échelle, murs, pièces, appareils, liaisons, impression cochés", async () => {
+    await ev(() => okteoExt.panel.show("steps")); await page.waitForTimeout(250);
+    const r = await ev(() => ({ done: document.querySelectorAll(".steps li.done").length, next: document.querySelector(".steps li.next b")?.textContent || "" }));
+    await ev(() => okteoExt.panel.show("props"));
+    if (!(r.done >= 7 && r.next === "")) throw new Error(JSON.stringify(r));
+    return true;
   });
   await check("échelle exacte : la largeur des murs dans le PDF = largeur réelle × 1000 / échelle", async () => {
     geoW = await ev(() => { const g = okteo.exportGeometry(), xs = g.walls.flat().map((p) => p.x); return Math.max(...xs) - Math.min(...xs); });

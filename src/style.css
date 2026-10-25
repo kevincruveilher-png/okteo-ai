@@ -253,3 +253,23 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .levels .lv-form{display:flex;align-items:center;gap:5px}
 .levels .lv-form input#lv-name{width:110px;padding:4px 6px}
 .levels .lv-ask{font-size:12px;color:var(--accent2);margin-right:4px}
+/* premiers pas (v27) : visite guidée, invitation, onglet Étapes */
+.tour-shade{position:fixed;inset:0;background:rgba(10,20,30,.45);z-index:90}
+.tour-ring{position:fixed;z-index:91;border-radius:9px;box-shadow:0 0 0 3px var(--accent2),0 0 0 9999px rgba(10,20,30,.45);pointer-events:none;transition:all .18s ease}
+.tour-bub{position:fixed;z-index:92;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;box-shadow:0 12px 32px rgba(0,0,0,.28);font-size:13px;line-height:1.45}
+.tour-bub p{margin:6px 0 10px}
+.tour-n{font-size:11px;color:var(--mut);margin-bottom:2px}
+.tour-btns{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tour-btns .grow{flex:1}
+.tour-invite{position:absolute;left:10px;bottom:46px;z-index:20;background:var(--panel);border:1px solid var(--accent);border-radius:9px;padding:9px 11px;font-size:12.5px;box-shadow:0 6px 18px rgba(0,0,0,.15);max-width:340px}
+.tour-invite .tour-btns{margin-top:7px}
+.steps{padding:12px 14px;font-size:13px}
+.steps-h{margin:0 0 10px;color:var(--mut)}
+.steps ol{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:8px}
+.steps li{display:flex;gap:9px;align-items:flex-start;padding:8px;border:1px solid var(--line);border-radius:8px}
+.steps li.next{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.steps li.done{opacity:.7}
+.steps li button{margin-top:6px}
+.st-ic{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--panel2);border:1px solid var(--line)}
+.steps li.done .st-ic{background:var(--ok);color:#fff;border-color:var(--ok)}
+.steps li.next .st-ic{background:var(--accent);color:#fff;border-color:var(--accent)}

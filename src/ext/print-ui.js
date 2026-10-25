@@ -83,6 +83,7 @@ export function createPrintTool({ api }) {
     const ch = api.ch, a = document.createElement("a");
     a.href = url; a.download = `${ch.nom}${ch.numero ? "_" + ch.numero : ""}_plan_${last.layout.paper}_1-${last.layout.scale}.pdf`.replace(/[\\/:*?"<>|]+/g, "_");
     document.body.appendChild(a); a.click(); a.remove();
+    document.dispatchEvent(new CustomEvent("okteo:printed"));
   };
   document.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") { e.preventDefault(); open(); return; }

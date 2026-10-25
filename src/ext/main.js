@@ -13,6 +13,7 @@ import { createPrintTool } from "./print-ui.js";
 import { createDevicesTool } from "./devices-ui.js";
 import { initBackup } from "./backup.js";
 import { createLevelsBar } from "./levels.js";
+import { createTour } from "./tour.js";
 
 function start() {
   const api = window.okteo;
@@ -91,7 +92,10 @@ function start() {
   serverStatus().then((st) => settings.setEnv({ online: !!st.online, anthropic: !!st.anthropic, nvidia: !!st.nvidia }));
 
   // accès pour les tests et le débogage
-  window.okteoExt = { panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, backup: null };
+  const tour = createTour({ api, panel, hooks });
+  hooks.tour = () => tour.start();
+  hooks.steps = () => { panel.show("steps"); tour.render(); };
+  window.okteoExt = { tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 

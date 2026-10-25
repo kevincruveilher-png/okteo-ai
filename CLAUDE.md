@@ -117,11 +117,16 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `buildPlanPdf(geo | [geo…])` : une page par niveau (mise en page commune), nomenclature commune.
   Pièges : pas de flèches ni de caractères hors WinAnsi dans le PDF ; fonctions appelées par `draw()` au démarrage
   = déclarations `function` (pas de `const f=()=>` plus bas : erreur d'initialisation).
+- Premiers pas (v27) : `src/ext/tour.js` (visite `TOUR` = [{t: sélecteur, title, text}] → anneau `.tour-ring` + bulle
+  `.tour-bub` ; invitation `.tour-invite` à la 1re ouverture, état `okteo.tour.v1` ; onglet « Étapes » enregistré dans
+  le panneau, étapes calculées depuis `api.state`/`api.ch`, rafraîchi sur okteo:saved/level/fond/calibrated/tab/printed).
+  Toute nouvelle zone importante de l'écran : ajouter une étape à `TOUR`. Ne pas donner la classe `wcard` à ces éléments
+  (les tests cherchent `.wcard`).
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/walls.test.mjs` (28 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (74 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (77 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v26** (25/10/2026) : code du cœur découpé en fichiers par thème (aucun changement visible).
+Version du prototype : **v27** (25/10/2026) : premiers pas (visite guidée, onglet Étapes du chantier).
 (v17 : pièces ; v16 : appareils attachés aux murs ; v15 : relevé des murs ; v14 : chantiers.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
@@ -37,7 +37,7 @@ Pour arrêter : Ctrl+C dans le terminal.
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 102 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 105 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -52,6 +52,14 @@ Ouvre le logiciel dans un navigateur invisible et fait 102 vérifications (dessi
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Premiers pas (v27)
+
+- **Visite guidée** (2 min) : proposée à la première ouverture (petite invitation en bas à gauche, non bloquante), puis
+  dans Ctrl+K → « Visite guidée » ou l'onglet Étapes. Chaque zone de l'écran est éclairée avec une explication ;
+  Suivant / Précédent (ou flèches ← →), Échap pour quitter.
+- **Onglet « Étapes »** du panneau de droite : plan en fond, échelle, murs, pièces, appareils, liaisons, impression,
+  sauvegarde automatique. Les étapes se cochent toutes seules ; l'étape suivante est encadrée, avec le bouton qui la lance.
 
 ## Niveaux : RDC, R+1, combles (v24)
 
