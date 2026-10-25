@@ -1,8 +1,8 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v17** (25/10/2026) : détection des pièces et de leurs noms.
-(v16 : appareils attachés aux murs ; v15 : relevé des murs du PDF ; v14 : chantiers, import, échelle.)
+Version du prototype : **v18** (25/10/2026) : impression PDF du plan à l'échelle.
+(v17 : pièces ; v16 : appareils attachés aux murs ; v15 : relevé des murs ; v14 : chantiers.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
 ## Installer (une seule fois)
@@ -37,7 +37,7 @@ Pour arrêter : Ctrl+C dans le terminal.
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 65 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 69 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -52,6 +52,16 @@ Ouvre le logiciel dans un navigateur invisible et fait 65 vérifications (dessin
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Imprimer le plan en PDF (v18)
+
+Bouton **🖨 Imprimer** (ou **Ctrl+P**) :
+- format, orientation et échelle **automatiques** (1:50 en A4 si le plan tient, sinon A3, puis 1:75, 1:100…) ou imposés ;
+- page 1 : plan vectoriel à l'échelle exacte (murs, portes, fenêtres, cotes, pièces et surfaces, symboles, repères,
+  hauteurs hors standard, liaisons), légende avec quantités, échelle graphique, cartouche (chantier, n°, pavillonneur,
+  niveau, échelle, date, indice) ;
+- page 2 : **nomenclature** (appareils par pièce et par type, surfaces, totaux) et liste des appareils.
+- **Télécharger le PDF**. Pour imprimer à l'échelle : « Taille réelle / 100 % », jamais « Ajuster à la page ».
 
 ## Détecter les pièces (v17)
 

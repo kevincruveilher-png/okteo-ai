@@ -6,6 +6,8 @@ import http from "node:http";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import * as pdfjsNode from "pdfjs-dist/legacy/build/pdf.mjs";
+import { extractSegments } from "../src/walls/extract.js";
 import { chromium } from "playwright";
 import { createServer } from "vite";
 
@@ -396,6 +398,48 @@ try {
     const r = okteo.state.rooms.find((x) => x.name === "Chambre 1"), p = okteo.roomPoly(r), c = p.reduce((m, q) => ({ x: m.x + q.x / p.length, y: m.y + q.y / p.length }), { x: 0, y: 0 });
     return okteo.roomAt(c.x, c.y)?.name === "Chambre 1";
   }));
+
+  console.log("Impression PDF");
+  let pdfBytes = null, lay = null, geoW = 0;
+  await check("Ctrl+P : aperçu du PDF, format et échelle choisis automatiquement", async () => {
+    await page.keyboard.press("Control+p");
+    await page.waitForSelector(".pr-back:not([hidden])");
+    await page.waitForFunction(() => okteoExt.printer.last && !document.querySelector(".pr-wait:not([hidden])"), null, { timeout: 30000 });
+    lay = await ev(() => okteoExt.printer.last.layout);
+    return lay.fits && (await page.textContent(".pr-info")).includes("1:" + lay.scale);
+  });
+  await check("téléchargement : PDF de 2 pages (plan + nomenclature) avec cartouche et noms de pièces", async () => {
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".pr-dl")]);
+    const f = path.join(os.tmpdir(), "okteo-plan.pdf"); await dl.saveAs(f);
+    pdfBytes = new Uint8Array(fs.readFileSync(f));
+    const doc = await pdfjsNode.getDocument({ data: pdfBytes.slice(), verbosity: 0 }).promise;
+    const p1 = await doc.getPage(1), vp = p1.getViewport({ scale: 1 });
+    const txt = async (p) => (await (await doc.getPage(p)).getTextContent()).items.map((i) => i.str).join(" ");
+    const t1 = await txt(1), t2 = doc.numPages > 1 ? await txt(2) : "";
+    const [L, S] = { A4: [841.89, 595.28], A3: [1190.55, 841.89] }[lay.paper];
+    const sizeOk = Math.abs(Math.max(vp.width, vp.height) - L) < 1 && Math.abs(Math.min(vp.width, vp.height) - S) < 1;
+    if (!sizeOk) throw new Error(`taille ${vp.width}×${vp.height}`);
+    return doc.numPages === 2 && t1.includes("ESSAI") && t1.includes("1:" + lay.scale) && t1.includes("Garage") && t1.includes("Chambre 1") && t1.includes("PLAN") && t2.includes("Nomenclature") && dl.suggestedFilename().endsWith(".pdf");
+  });
+  await check("échelle exacte : la largeur des murs dans le PDF = largeur réelle × 1000 / échelle", async () => {
+    geoW = await ev(() => { const g = okteo.exportGeometry(), xs = g.walls.flat().map((p) => p.x); return Math.max(...xs) - Math.min(...xs); });
+    const doc = await pdfjsNode.getDocument({ data: pdfBytes.slice(), verbosity: 0 }).promise;
+    const ex = await extractSegments(await doc.getPage(1), pdfjsNode.OPS);
+    // gris des murs (60,60,60) ; jsPDF l'écrit avec 3 décimales, d'où un arrondi possible à ±2
+    const grey60 = (h) => h && [1, 3, 5].every((i) => Math.abs(parseInt(h.slice(i, i + 2), 16) - 60) <= 2);
+    const wallSegs = ex.segs.filter((s) => grey60(s.fill));
+    const xs = wallSegs.flatMap((s) => [s.x1, s.x2]), wPt = Math.max(...xs) - Math.min(...xs);
+    const expected = geoW * 1000 / lay.scale * 72 / 25.4;
+    if (Math.abs(wPt - expected) > 0.5) throw new Error(`${wPt.toFixed(2)} pt au lieu de ${expected.toFixed(2)} pt`);
+    return wallSegs.length > 50;
+  });
+  await check("format et échelle imposés (A3, 1:100) : pris en compte", async () => {
+    await page.selectOption('.pr [data-k="paper"]', "A3"); await page.selectOption('.pr [data-k="scale"]', "100");
+    await page.waitForFunction(() => okteoExt.printer.last && okteoExt.printer.last.layout.scale === 100 && okteoExt.printer.last.layout.paper === "A3", null, { timeout: 30000 });
+    await page.selectOption('.pr [data-k="paper"]', "auto"); await page.selectOption('.pr [data-k="scale"]', "auto");
+    await page.keyboard.press("Escape");
+    return !(await page.isVisible(".pr"));
+  });
 
   await check("l'épaisseur d'un mur relevé se modifie dans son menu", async () => {
     const id = await ev(() => okteo.state.segs[0].id);

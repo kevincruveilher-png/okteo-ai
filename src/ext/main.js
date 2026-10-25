@@ -9,6 +9,7 @@ import { PROVIDERS, testProvider, serverStatus, listModels } from "./ai.js";
 import { mountChantiers } from "./chantiers-page.js";
 import { createWallsTool } from "./walls-ui.js";
 import { createRoomsTool } from "./rooms-ui.js";
+import { createPrintTool } from "./print-ui.js";
 
 function start() {
   const api = window.okteo;
@@ -21,9 +22,11 @@ function start() {
     openPalette: () => palette?.open(),
     detectWalls: () => walls.open(),
     detectRooms: () => rooms.open(),
+    print: () => printer.open(),
   };
   const walls = createWallsTool({ api });
   const rooms = createRoomsTool({ api });
+  const printer = createPrintTool({ api });
   document.addEventListener("okteo:walls", () => walls.open());
   const catalog = buildCatalog(api, hooks);
   const getCatalog = () => catalog;
@@ -58,6 +61,7 @@ function start() {
 
   // ---------- barre du haut ----------
   document.getElementById("btn-palette").onclick = () => palette.open();
+  document.getElementById("btn-print").onclick = () => printer.open();
   document.getElementById("btn-assistant").onclick = () => { panel.toggle("assistant"); if (panel.state.pane === "assistant" && !panel.state.collapsed) assistant.focus(); };
 
   // ---------- raccourcis ----------
@@ -73,7 +77,7 @@ function start() {
   serverStatus().then((st) => settings.setEnv({ online: !!st.online, anthropic: !!st.anthropic, nvidia: !!st.nvidia }));
 
   // accès pour les tests et le débogage
-  window.okteoExt = { panel, palette, assistant, catalog, settings, walls, rooms };
+  window.okteoExt = { panel, palette, assistant, catalog, settings, walls, rooms, printer };
 }
 
 if (window.okteo) start(); else document.addEventListener("okteo:ready", start, { once: true });

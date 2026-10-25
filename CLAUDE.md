@@ -57,11 +57,15 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   taille médiane) + `decodeLabels` (texte lisible, ou police codée décodée par la forme des mots, groupe police+taille,
   correspondance code→lettre cohérente, 1re lettre parfois absente). Interface : `src/ext/rooms-ui.js`, page PDF partagée
   `src/ext/pdf-page.js`. Une pièce sans `cycle` reste un rectangle (outil Pièce).
+- Impression (v18) : `okteo.exportGeometry()` (murs découpés aux ouvertures, portes + arc, pièces, appareils avec repère et
+  pièce, liaisons, cotes, fond) → `src/ext/print.js` (jsPDF 2.5.2, unités mm, échelle 1:N exacte, mise en page auto
+  A4→A3 et 1:50→1:200, légende, échelle graphique, cartouche, page 2 nomenclature) ; fenêtre `src/ext/print-ui.js` (Ctrl+P,
+  aperçu dessiné par pdf.js). Le test relit le PDF produit et mesure la largeur des murs pour vérifier l'échelle.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/walls.test.mjs` (14 vérifications : relevé des murs et des pièces
-sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (51 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (55 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

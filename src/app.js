@@ -938,6 +938,31 @@ window.okteo={
   applyCalib(a,b,L){calib={a,b,cur:null};return applyCalib(L);},
   setPreview(p){preview=p||null;draw();},
   roomArea,roomPoly,
+  // tout ce qu'il faut pour imprimer le plan (en mètres) : murs découpés aux ouvertures, portes avec leur arc,
+  // pièces (contour, surface), appareils (repère, pièce), liaisons, cotes, fond
+  exportGeometry(){followWalls();
+    const walls=[],joints=[],openings=[],wallDims=[];
+    state.segs.forEach(seg=>{const d=segDir(seg);if(!d.a||!d.L)return;const e=epOf(seg),e2=e/2,nx=-d.uy*e2,ny=d.ux*e2;
+      wallIntervals(seg).forEach(([s0,s1])=>{const ax=d.a.x+d.ux*s0,ay=d.a.y+d.uy*s0,bx=d.a.x+d.ux*s1,by=d.a.y+d.uy*s1;
+        walls.push([{x:ax+nx,y:ay+ny},{x:bx+nx,y:by+ny},{x:bx-nx,y:by-ny},{x:ax-nx,y:ay-ny}]);});
+      wallDims.push({x:(d.a.x+d.b.x)/2-d.uy*(e2+0.22),y:(d.a.y+d.b.y)/2+d.ux*(e2+0.22),L:d.L,ang:Math.atan2(d.uy,d.ux)});});
+    state.nodes.forEach(n=>{let e=0;state.segs.forEach(s=>{if(s.a===n.id||s.b===n.id)e=Math.max(e,epOf(s));});if(e>0)joints.push({x:n.x,y:n.y,e});});
+    state.openings.forEach(o=>{const seg=segById(o.seg);if(!seg)return;const d=segDir(seg);if(!d.a)return;const ep=epOf(seg),nx=-d.uy,ny=d.ux,hw=o.w/2;
+      const cx=d.a.x+d.ux*o.t,cy=d.a.y+d.uy*o.t,j1={x:cx-d.ux*hw,y:cy-d.uy*hw},j2={x:cx+d.ux*hw,y:cy+d.uy*hw};
+      const O={kind:o.kind,j1,j2,n:{x:nx,y:ny},ep,w:o.w};
+      if(o.kind!=="fenetre"){const sdir=o.swing==="ext"?1:-1,H=o.hinge==="d"?j2:j1,F=o.hinge==="d"?j1:j2,Lp={x:H.x+nx*sdir*o.w,y:H.y+ny*sdir*o.w};
+        let a0=Math.atan2(Lp.y-H.y,Lp.x-H.x),a1=Math.atan2(F.y-H.y,F.x-H.x),da=a1-a0;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;
+        O.hinge=H;O.leaf=Lp;O.arc=Array.from({length:13},(_,i)=>({x:H.x+Math.cos(a0+da*i/12)*o.w,y:H.y+Math.sin(a0+da*i/12)*o.w}));}
+      openings.push(O);});
+    const rooms=state.rooms.map(r=>{const P=roomPoly(r);return {name:r.name,poly:P,area:roomArea(r),label:r.poly?labelPoint(r.poly):{x:(r.x0+r.x1)/2,y:(r.y0+r.y1)/2}};});
+    const reps=repMap();
+    const apps=state.app.map(a=>({id:a.id,t:a.t,x:a.x,y:a.y,h:a.h,hDef:TYPES[a.t].h,rep:reps[a.id],name:TYPES[a.t].n,room:(roomAt(a.x,a.y)||{}).name||null}));
+    const byId=Object.fromEntries(state.app.map(a=>[a.id,a]));
+    const links=state.lia.map(l=>byId[l.c]&&byId[l.l]&&{a:{x:byId[l.c].x,y:byId[l.c].y},b:{x:byId[l.l].x,y:byId[l.l].y}}).filter(Boolean);
+    const dims=state.dims.map(d=>({a:{...d.a},b:{...d.b},L:dist(d.a.x,d.a.y,d.b.x,d.b.y)}));
+    return {walls,joints,openings,wallDims,rooms,apps,links,dims,symU:symScaleOf(),
+      fond:FOND&&BG.w>0?{url:FOND,x:BG.x,y:BG.y,w:BG.w,h:BG.h}:null,
+      chantier:{nom:CH.nom,numero:CH.numero||"",client:CH.client||""}};},
   // ajoute des pièces détectées ({name, cycle, poly, also}) ; replace = retire d'abord toutes les pièces existantes
   addRooms(list,{replace=false}={}){snapshot();if(replace)state.rooms=[];
     for(const r of list){const P=r.poly;state.rooms.push({id:uidR(),name:r.name,cycle:r.cycle,poly:P,also:r.also||[],auto:true,segs:[...new Set(r.cycle.map(c=>c.seg))],

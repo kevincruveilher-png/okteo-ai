@@ -77,6 +77,7 @@ export function buildCatalog(api, hooks) {
   add("Fichier", "file.calib", "Régler l'échelle du fond", "", "Zoomer sur une cote connue du plan, cliquer ses deux extrémités, taper sa longueur réelle : le fond est remis à l'échelle autour du premier point.", () => api.startCalib());
   add("Fichier", "help.nouveau", "Nouveau chantier avec son plan", "", "Chantiers → « Nouveau chantier » : nom, n°, pavillonneur, puis le PDF (choisir la page) ou une photo du plan ; ensuite régler l'échelle.");
   add("Fichier", "help.fichier", "Enregistrer / ouvrir un fichier chantier", "", "Chantiers → bouton « Fichier » : copie .okteo (dessin + fond) ; « Ouvrir un fichier .okteo » pour la recharger sur ce PC ou un autre.");
+  add("Fichier", "file.print", "Imprimer / PDF du plan", "Ctrl+P", "Plan vectoriel à l'échelle (1:50 par défaut), A4 ou A3, avec légende, échelle graphique et cartouche (chantier, pavillonneur, date, indice) ; page 2 : nomenclature des appareils par pièce. Aperçu puis « Télécharger le PDF ».", () => hooks.print());
   add("Fichier", "file.export", "Exporter le chantier (JSON)", "", "Copie tout le chantier au format JSON (murs, pièces, appareils, liaisons, cotes).", () => document.getElementById("export").click());
   add("Fichier", "help.save", "Sauvegarde", "", "Automatique, sur ce PC (pastille « Enregistré » en haut).");
 

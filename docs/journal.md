@@ -86,11 +86,21 @@ l'assistant peut agir seul quand on le lui demande.
   murs dessinés à la main s'ils se rejoignent aux angles) ; panneau de la pièce : surface habitable, avertissements.
 - Tests : 14 (moteur, vrai PDF) + 51 (navigateur) = 65.
 
-## PROCHAINE MISE À JOUR (v18) — proposée : sortie PDF imprimable du plan
-Plan à l'échelle (1:50 / 1:100) sur A4 / A3, cartouche (chantier, n°, pavillonneur, date, dessinateur), légende des symboles,
-repères, nomenclature par pièce (appareils par pièce). Ensuite : relevé des appareils du PDF (symboles) ; murs non grisés
-(traits fins : cloisons WC/Dgt) ; accrochages fins, scinder/fusionner un mur ; étages ; symboles par pavillonneur ;
-parcours « Premiers pas » ; assistant qui dessine à partir des cotes. Puis le câblage (étape 2).
+## Version 18 (25/10/2026) — livrée : impression PDF du plan
+- PDF vectoriel (jsPDF 2.5.2) à l'échelle exacte ; mise en page automatique (A4 puis A3, 1:50 puis 1:75…1:200) ou imposée.
+- Page 1 : plan (murs découpés aux ouvertures, portes avec arc, fenêtres, cotes des murs et cotes libres, pièces + surface
+  habitable, symboles, repères, hauteurs hors standard, liaisons), légende avec quantités, échelle graphique, cartouche
+  (chantier, n°, pavillonneur, niveau, échelle/format, date, indice). Fond de plan estompé en option.
+- Page 2 : nomenclature (appareils par pièce et par type, surfaces, totaux) + liste des appareils (repère, type, hauteur, pièce).
+- Fenêtre « Imprimer » (bouton 🖨, Ctrl+P) avec aperçu dessiné par pdf.js et téléchargement.
+- Contrôle automatique : le test relit le PDF produit (pdf.js) et vérifie format, pages, textes et l'échelle (largeur des murs
+  dans le PDF = largeur réelle × 1000 / échelle, à 0,5 pt près).
+- Tests : 14 + 55 = 69.
+
+## PROCHAINE MISE À JOUR (v19) — à choisir
+Pistes : relevé des appareils du PDF (symboles du plan pavillonneur) ; murs non grisés (cloisons en traits fins : WC/Dgt) ;
+étages ; symboles et règles par pavillonneur ; accrochages fins, scinder/fusionner un mur ; parcours « Premiers pas » ;
+assistant qui dessine à partir des cotes. Puis le câblage (étape 2 : boîtes, bandes, SPV) — demander les règles à Kévin.
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.
