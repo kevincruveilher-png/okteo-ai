@@ -1,8 +1,8 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v16** (25/10/2026) : appareils attachés à leur mur.
-(v15 : relevé automatique des murs du PDF ; v14 : chantiers, import du plan, échelle.)
+Version du prototype : **v17** (25/10/2026) : détection des pièces et de leurs noms.
+(v16 : appareils attachés aux murs ; v15 : relevé des murs du PDF ; v14 : chantiers, import, échelle.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
 ## Installer (une seule fois)
@@ -37,7 +37,7 @@ Pour arrêter : Ctrl+C dans le terminal.
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 55 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 65 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -52,6 +52,16 @@ Ouvre le logiciel dans un navigateur invisible et fait 55 vérifications (dessin
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Détecter les pièces (v17)
+
+Après un relevé des murs, Oktéo propose tout seul les pièces (case « Détecter ensuite les pièces »). Sinon : Ctrl+K → « pièces ».
+- Chaque pièce fermée par des murs est trouvée, **y compris en L**, avec sa **surface habitable** (entre les faces des murs).
+- Les **noms sont lus sur le plan PDF** (même quand la police du PDF est « codée »). Sans nom lisible : « Pièce 1, 2… »,
+  ou le nom d'une pièce déjà dessinée au même endroit.
+- ⚠ Si une pièce contient plusieurs noms (ex. « Espace de Vie » + « WC »), un mur manque sans doute pour les séparer :
+  dessinez-le puis relancez la détection.
+- Les murs doivent se rejoindre aux angles pour fermer une pièce. La forme et la surface suivent ensuite les murs.
 
 ## Appareils attachés à leur mur (v16)
 

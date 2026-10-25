@@ -369,6 +369,34 @@ try {
     await page.keyboard.press("Control+y");
     return undone === 0 && (await ev(() => okteo.state.segs.length)) === nbMurs && !(await page.isVisible(".wcard"));
   });
+  console.log("Détection des pièces");
+  await check("après le relevé, les pièces sont proposées avec leurs noms lus sur le plan", async () => {
+    await page.waitForSelector("#r-ok", { timeout: 30000 });
+    const r = await ev(() => okteoExt.rooms.result);
+    const names = r.rooms.map((x) => x.name).sort().join("|");
+    return r.rooms.length === 7 && r.nLabels === 9 && names === "Bains|Cellier|Chambre 1|Chambre 2|Dressing|Espace de Vie|Garage";
+  });
+  await check("ajout des pièces : formes réelles (séjour en L), surfaces, avertissement mur manquant", async () => {
+    await page.click("#r-ok");
+    const s = await ev(() => okteo.state.rooms.map((r) => ({ n: r.name, c: r.cycle.length, a: okteo.roomArea(r), also: r.also })));
+    const sej = s.find((r) => r.n === "Espace de Vie");
+    return s.length === 7 && sej.c > 4 && sej.also.includes("WC") && s.every((r) => r.a > 2);
+  });
+  await check("la surface d'une pièce détectée suit ses murs", async () => {
+    const before = await ev(() => { const r = okteo.state.rooms.find((x) => x.name === "Chambre 2"); return { a: okteo.roomArea(r), seg: r.cycle[0].seg }; });
+    // déplacer d'un coup le premier mur du contour, puis annuler
+    const moved = await ev((sid) => { const s = okteo.state.segs.find((g) => g.id === sid), A = okteo.state.nodes.find((n) => n.id === s.a), B = okteo.state.nodes.find((n) => n.id === s.b);
+      const dx = Math.abs(A.x - B.x) < 1e-6 ? 0.5 : 0, dy = dx ? 0 : 0.5; okteo.snapshot(); A.x += dx; B.x += dx; A.y += dy; B.y += dy; okteo.draw();
+      return okteo.roomArea(okteo.state.rooms.find((x) => x.name === "Chambre 2")); }, before.seg);
+    await ev(() => okteo.undo());
+    const after = await ev(() => okteo.roomArea(okteo.state.rooms.find((x) => x.name === "Chambre 2")));
+    return Math.abs(moved - before.a) > 0.3 && Math.abs(after - before.a) < 1e-6;
+  });
+  await check("un appareil posé dans une pièce détectée sait dans quelle pièce il est", async () => ev(() => {
+    const r = okteo.state.rooms.find((x) => x.name === "Chambre 1"), p = okteo.roomPoly(r), c = p.reduce((m, q) => ({ x: m.x + q.x / p.length, y: m.y + q.y / p.length }), { x: 0, y: 0 });
+    return okteo.roomAt(c.x, c.y)?.name === "Chambre 1";
+  }));
+
   await check("l'épaisseur d'un mur relevé se modifie dans son menu", async () => {
     const id = await ev(() => okteo.state.segs[0].id);
     await ev((i) => okteo.select([i]), id);
@@ -379,12 +407,15 @@ try {
   await ev(() => document.activeElement && document.activeElement.blur());   // sortir de la case « épaisseur »
   await page.keyboard.press("Escape");
 
+  let essaiRooms = 0;
   await check("chaque chantier garde son propre dessin", async () => {
+    const r0 = await ev(() => okteo.state.rooms.length);
     await page.keyboard.press("e");
     const box = await page.locator("#sv").boundingBox();
     await page.mouse.move(box.x + box.width * 0.4, box.y + box.height * 0.4); await page.mouse.down();
     await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.55, { steps: 6 }); await page.mouse.up();
-    if ((await ev(() => okteo.state.rooms.length)) !== 1) throw new Error("pièce non créée");
+    essaiRooms = await ev(() => okteo.state.rooms.length);
+    if (essaiRooms !== r0 + 1) throw new Error("pièce non créée");
     await page.click(".badge");
     await Promise.all([page.waitForNavigation(), page.click('.ch-list tr:has-text("EVRARD") button[data-act="open"]')]);
     await reopened();
@@ -395,12 +426,12 @@ try {
     const [dl] = await Promise.all([page.waitForEvent("download"), page.click('.ch-list tr:has-text("ESSAI") button[data-act="file"]')]);
     const f = path.join(os.tmpdir(), "okteo-test.okteo"); await dl.saveAs(f);
     const j = JSON.parse(fs.readFileSync(f, "utf8"));
-    const okFile = j.format === "okteo-chantier" && j.fond.image.startsWith("data:image") && j.fond.pdf.startsWith("data:application/pdf") && JSON.parse(j.dessin.s).rooms.length === 1 && dl.suggestedFilename() === "ESSAI_99999.okteo";
+    const okFile = j.format === "okteo-chantier" && j.fond.image.startsWith("data:image") && j.fond.pdf.startsWith("data:application/pdf") && JSON.parse(j.dessin.s).rooms.length === essaiRooms && dl.suggestedFilename() === "ESSAI_99999.okteo";
     const n0 = await nbCh();
     await Promise.all([page.waitForNavigation(), page.setInputFiles("#ch-import", f)]);
     await reopened();
     await page.waitForFunction(() => okteo.FOND && okteo.FOND.startsWith("blob:"), null, { timeout: 30000 });
-    return okFile && (await nbCh()) === n0 + 1 && (await ev(() => okteo.state.rooms.length)) === 1 && (await page.textContent(".badge")).includes("ESSAI");
+    return okFile && (await nbCh()) === n0 + 1 && (await ev(() => okteo.state.rooms.length)) === essaiRooms && (await page.textContent(".badge")).includes("ESSAI");
   });
   await check("dupliquer puis supprimer un chantier (avec confirmation)", async () => {
     await page.click('#tabs button[data-tab="chantiers"]');

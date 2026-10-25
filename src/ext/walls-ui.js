@@ -1,16 +1,15 @@
 // « Relever les murs du PDF » : lance le relevé automatique (src/walls/*), montre l'aperçu sur le plan,
 // permet d'ajuster l'épaisseur min/max, puis ajoute les murs au dessin (un seul Ctrl+Z pour tout annuler).
 import * as CHS from "../chantiers.js";
-import { extractSegments } from "../walls/extract.js";
 import { detectWalls } from "../walls/detect.js";
-import { pdfjs } from "./fond-import.js";
+import { chantierPage, pageMap } from "./pdf-page.js";
 import { esc } from "./util.js";
 
 export function createWallsTool({ api }) {
   const card = document.createElement("div");
   card.className = "wcard"; card.hidden = true; card.setAttribute("role", "dialog"); card.setAttribute("aria-label", "Relevé des murs");
   document.querySelector(".stage").appendChild(card);
-  let page = null, res = null, opts = { tMin: 4, tMax: 45 }, replace = false, busy = false;
+  let page = null, res = null, opts = { tMin: 4, tMax: 45 }, replace = false, busy = false, detectRoomsAfter = true;
 
   const close = () => { card.hidden = true; api.setPreview(null); res = null; };
   function show(html) { card.innerHTML = `<div class="wcard-h"><b>Relevé des murs</b><button class="wx" title="Fermer">✕</button></div>${html}`; card.hidden = false; card.querySelector(".wx").onclick = close; }
@@ -21,8 +20,7 @@ export function createWallsTool({ api }) {
   }
 
   function compute() {
-    const k = api.BG.w / page.width;
-    res = detectWalls(page.segs, { k, ox: api.BG.x, oy: api.BG.y }, { tMin: opts.tMin / 100, tMax: opts.tMax / 100 });
+    res = detectWalls(page.segs, pageMap(api, page), { tMin: opts.tMin / 100, tMax: opts.tMax / 100 });
     api.setPreview(res);
   }
 
@@ -41,16 +39,18 @@ export function createWallsTool({ api }) {
       </div>
       ${existing ? `<label class="wck"><input type="checkbox" id="w-rep" ${replace ? "checked" : ""}> Remplacer les ${existing} murs déjà dessinés</label>` : ""}
       <div class="wrow"><button class="on" id="w-ok" ${res.walls.length ? "" : "disabled"}>Ajouter au dessin</button><button id="w-no">Annuler</button></div>
+      <label class="wck"><input type="checkbox" id="w-rooms" ${detectRoomsAfter ? "checked" : ""}> Détecter ensuite les pièces (noms lus sur le plan)</label>
       <p class="mut sm">En orange : l'aperçu. Après l'ajout, tout reste modifiable (glisser, supprimer, longueur et épaisseur dans le menu du mur, porte ↔ fenêtre dans le menu de l'ouverture). Ctrl+Z annule tout l'ajout.</p>`);
     const rerun = () => { const a = +card.querySelector("#w-min").value, b = +card.querySelector("#w-max").value; if (a > 0 && b > a) { opts = { tMin: a, tMax: b }; compute(); summary(); } };
     card.querySelector("#w-min").onchange = rerun; card.querySelector("#w-max").onchange = rerun;
     const rp = card.querySelector("#w-rep"); if (rp) rp.onchange = () => { replace = rp.checked; };
+    const dr = card.querySelector("#w-rooms"); dr.onchange = () => { detectRoomsAfter = dr.checked; };
     card.querySelector("#w-no").onclick = close;
     card.querySelector("#w-ok").onclick = () => {
       const r = api.importWalls(res, { replace });
       card.hidden = true; res = null;
       api.setHint(`Relevé ajouté : ${r.murs} murs, ${r.ouvertures} ouvertures. Vérifiez portes et fenêtres ; Ctrl+Z pour tout annuler.`);
-      document.dispatchEvent(new CustomEvent("okteo:walls-imported", { detail: r }));
+      document.dispatchEvent(new CustomEvent("okteo:walls-imported", { detail: { ...r, rooms: detectRoomsAfter } }));
     };
   }
 
@@ -64,13 +64,7 @@ export function createWallsTool({ api }) {
     if (!ch.fond.calibre) return message("Réglez d'abord l'échelle du fond : les murs seront relevés à la bonne dimension.", [{ label: "Régler l'échelle", run: () => api.startCalib() }]);
     busy = true; show(`<p>Lecture des traits du PDF…</p>`);
     try {
-      if (!page || page.id !== ch.id) {
-        const L = await pdfjs();
-        const doc = await L.getDocument({ data: new Uint8Array(await pdf.arrayBuffer()) }).promise;
-        const p = await doc.getPage(ch.fond.page || 1);
-        const ex = await extractSegments(p, L.OPS);
-        page = { id: ch.id, ...ex };
-      }
+      page = await chantierPage(api);
       compute();
       if (!res.walls.length) return message("Aucun mur trouvé sur cette page. Vérifiez que c'est la bonne page du plan (Chantiers → Changer le fond), ou dessinez les murs à la main.", [{ label: "OK", run: () => {} }]);
       summary();

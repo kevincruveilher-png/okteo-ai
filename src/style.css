@@ -196,3 +196,8 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .wgrid label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--mut)}.wgrid input{width:60px}
 .wck{display:flex;gap:6px;align-items:center;font-size:12.5px}
 .wrow{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ===== v17 : pièces détectées ===== */
+.wlist{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:7px;padding:4px 8px}
+.wlist div{display:flex;justify-content:space-between;gap:8px;padding:2px 0;border-top:1px solid var(--line);font-size:12.5px}
+.wlist div:first-child{border-top:0}.wlist em{font-style:normal;color:var(--warn);cursor:help}

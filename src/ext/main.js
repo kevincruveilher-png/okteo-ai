@@ -8,6 +8,7 @@ import { settings, mountParams } from "./settings.js";
 import { PROVIDERS, testProvider, serverStatus, listModels } from "./ai.js";
 import { mountChantiers } from "./chantiers-page.js";
 import { createWallsTool } from "./walls-ui.js";
+import { createRoomsTool } from "./rooms-ui.js";
 
 function start() {
   const api = window.okteo;
@@ -19,8 +20,10 @@ function start() {
     analyse: () => { panel.show("assistant"); assistant?.analyse(); },
     openPalette: () => palette?.open(),
     detectWalls: () => walls.open(),
+    detectRooms: () => rooms.open(),
   };
   const walls = createWallsTool({ api });
+  const rooms = createRoomsTool({ api });
   document.addEventListener("okteo:walls", () => walls.open());
   const catalog = buildCatalog(api, hooks);
   const getCatalog = () => catalog;
@@ -70,7 +73,7 @@ function start() {
   serverStatus().then((st) => settings.setEnv({ online: !!st.online, anthropic: !!st.anthropic, nvidia: !!st.nvidia }));
 
   // accès pour les tests et le débogage
-  window.okteoExt = { panel, palette, assistant, catalog, settings, walls };
+  window.okteoExt = { panel, palette, assistant, catalog, settings, walls, rooms };
 }
 
 if (window.okteo) start(); else document.addEventListener("okteo:ready", start, { once: true });

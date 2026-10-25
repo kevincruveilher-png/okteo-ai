@@ -73,10 +73,23 @@ l'assistant peut agir seul quand on le lui demande.
 - Corrigé au passage : le rectangle (et la surface) d'une pièce suit désormais ses murs déplacés.
 - Tests : 8 (relevé PDF) + 47 (navigateur, dont 8 nouveaux sur l'attache) = 55.
 
-## PROCHAINE MISE À JOUR (v17) — proposée : détection des pièces fermées par les murs
-Après un relevé automatique, retrouver les pièces (contours fermés des murs, y compris en L), leur surface, et leur nom
-lu dans le texte du PDF (« Cellier », « Chambre 1 »…). Puis : sortie PDF imprimable du plan (échelle, cartouche) ;
-relevé des appareils du PDF (symboles) ; accrochages fins, scinder/fusionner un mur ; étages ; symboles par pavillonneur ;
+## Version 17 (25/10/2026) — livrée : détection des pièces et de leurs noms (sans IA)
+- Pièces = faces fermées du réseau des axes de murs (après retrait des murs pendants), y compris en L ; une pièce garde la
+  suite ordonnée de ses murs (`cycle`) : forme et surface habitable (entre faces intérieures) suivent les murs.
+- Noms lus dans le PDF : le PDF EVRARD a une police « codée » (glyphes sans correspondance avec les lettres) et la 1re lettre
+  de chaque nom dessinée à part (« hambre 1 », « arage ») ; décodage sans IA par la forme des mots (lettres répétées) et une
+  correspondance code→lettre cohérente dans la police, contre une liste de noms de pièces. EVRARD : 9 noms sur 9 retrouvés.
+- Résultat EVRARD : 7 pièces (Espace de Vie 46,4 m² en L, Garage 13,4, Chambre 1 12,0, Chambre 2 10,0, Bains 6,0,
+  Cellier 5,6, Dressing 4,0 à l'échelle d'essai) ; « Espace de Vie » contient aussi « Dgt » et « WC » : sur ce PDF les
+  cloisons du WC et du dégagement ne sont pas grisées → avertissement « un mur manque ».
+- Proposé automatiquement après « Ajouter au dessin » du relevé ; commande Ctrl+K « Détecter les pièces » (marche aussi sur des
+  murs dessinés à la main s'ils se rejoignent aux angles) ; panneau de la pièce : surface habitable, avertissements.
+- Tests : 14 (moteur, vrai PDF) + 51 (navigateur) = 65.
+
+## PROCHAINE MISE À JOUR (v18) — proposée : sortie PDF imprimable du plan
+Plan à l'échelle (1:50 / 1:100) sur A4 / A3, cartouche (chantier, n°, pavillonneur, date, dessinateur), légende des symboles,
+repères, nomenclature par pièce (appareils par pièce). Ensuite : relevé des appareils du PDF (symboles) ; murs non grisés
+(traits fins : cloisons WC/Dgt) ; accrochages fins, scinder/fusionner un mur ; étages ; symboles par pavillonneur ;
 parcours « Premiers pas » ; assistant qui dessine à partir des cotes. Puis le câblage (étape 2).
 
 ## Limites connues

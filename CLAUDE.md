@@ -51,11 +51,17 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   du mur `a.seg`), côté s (±1). `followWalls()` (début de `draw`) replace les appareils d'après `a.wa` et `followRooms()`
   recale les pièces sur leurs murs. Toute écriture directe de `a.x/a.y` d'un appareil mural doit être suivie de `attach(a)`
   (ou `reattach(a)` s'il a quitté son mur). Mur supprimé : appareils détachés, ou supprimés via `removeSeg(id, true)`.
+- Pièces détectées (v17) : `src/walls/rooms.js` (faces fermées du graphe des axes de murs après retrait des murs
+  pendants ; `r.cycle = [{seg, from}]` ; `r.poly` = contour intérieur (décalé de ep/2) recalculé par `followRooms` ;
+  surface habitable = `roomArea(r)` ; `roomAt` teste le polygone). Noms : `src/walls/labels.js` (textes du PDF ≥ 1,3 × la
+  taille médiane) + `decodeLabels` (texte lisible, ou police codée décodée par la forme des mots, groupe police+taille,
+  correspondance code→lettre cohérente, 1re lettre parfois absente). Interface : `src/ext/rooms-ui.js`, page PDF partagée
+  `src/ext/pdf-page.js`. Une pièce sans `cycle` reste un rectangle (outil Pièce).
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
-Après chaque modification : `npm run check` = `scripts/walls.test.mjs` (8 vérifications du relevé sur le vrai PDF EVRARD)
-+ `scripts/smoke.mjs` (47 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+Après chaque modification : `npm run check` = `scripts/walls.test.mjs` (14 vérifications : relevé des murs et des pièces
+sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (51 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

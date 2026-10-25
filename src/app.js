@@ -1,5 +1,6 @@
 "use strict";
 import * as CHS from "./chantiers.js";
+import { interiorPoly, polyArea, pointInPoly, labelPoint } from "./walls/rooms.js";
 // ---------- chantier ouvert ----------
 // Un seul chantier est chargé à la fois ; changer de chantier recharge la page (état propre, annuler/rétablir compris).
 const CH=CHS.current();
@@ -132,8 +133,7 @@ function draw(){
  const GH=(multi.size>1||(sel&&sel.kind==="room"))?currentGroup():null;
  // pièces
  if(layers.pieces.on){let rf="";state.rooms.forEach(r=>{const on=isSel("room",r.id)||(GH&&GH.rooms.has(r.id));
-   const x=Math.min(r.x0,r.x1),y=Math.min(r.y0,r.y1),w=Math.abs(r.x1-r.x0),hh=Math.abs(r.y1-r.y0);
-   rf+=`<rect x="${x}" y="${y}" width="${w}" height="${hh}" fill="var(--accent)" opacity="${on?0.14:0.07}"/>`;});h+=`<g>${rf}</g>`;}
+   rf+=`<polygon points="${roomPoly(r).map(p=>p.x+","+p.y).join(" ")}" fill="var(--accent)" opacity="${on?0.14:0.07}"/>`;});h+=`<g>${rf}</g>`;}
  // murs (intervalles pleins) + jonctions
  if(layers.murs.on){let mp="",jn="";
   state.segs.forEach(seg=>{const d=segDir(seg);if(!d.a)return;const on=(sel&&(sel.kind==="seg"||sel.kind==="segDelAsk")&&sel.id===seg.id)||(GH&&GH.nodes.has(seg.a)&&GH.nodes.has(seg.b));const col=on?'var(--sel)':'var(--wall)';
@@ -180,7 +180,7 @@ function draw(){
    fd+=`<line x1="${dd.b.x-nx*0.1}" y1="${dd.b.y-ny*0.1}" x2="${dd.b.x+nx*0.1}" y2="${dd.b.y+ny*0.1}" stroke="${c}" stroke-width="0.04"/>`;
    fd+=`<text x="${mx+nx*0.25}" y="${my+ny*0.25}" text-anchor="middle" dominant-baseline="middle" fill="${c}" font-size="0.34" font-family="var(--fm)">${L.toFixed(2)}</text>`;});h+=`<g>${fd}</g>`;}
  // noms + aires pièces
- if(layers.pieces.on){let rl="";state.rooms.forEach(r=>{const cx=(r.x0+r.x1)/2,cy=(r.y0+r.y1)/2,ar=Math.abs((r.x1-r.x0)*(r.y1-r.y0));
+ if(layers.pieces.on){let rl="";state.rooms.forEach(r=>{const lp=r.poly?labelPoint(r.poly):{x:(r.x0+r.x1)/2,y:(r.y0+r.y1)/2},cx=lp.x,cy=lp.y,ar=roomArea(r);
    rl+=`<text x="${cx}" y="${cy-0.15}" text-anchor="middle" fill="var(--fg)" font-size="0.5" font-family="var(--ff)">${r.name}</text>`;
    rl+=`<text x="${cx}" y="${cy+0.5}" text-anchor="middle" fill="var(--mut)" font-size="0.36" font-family="var(--fm)">${ar.toFixed(1)} m²</text>`;});h+=`<g opacity="0.9">${rl}</g>`;}
  // liaisons
@@ -220,11 +220,13 @@ function draw(){
      const last=seriesPrev[seriesPrev.length-1];if(last)h+=`<line x1="${src.x}" y1="${src.y}" x2="${last.x}" y2="${last.y}" stroke="var(--accent2)" stroke-width="0.03" stroke-dasharray="0.2 0.15"/>`;}}
  // aperçu du relevé automatique des murs (avant validation)
  if(preview){const P=preview;let pv="";
-   P.walls.forEach(w=>{const a=P.nodes[w.a],b=P.nodes[w.b];const L=dist(a.x,a.y,b.x,b.y)||1,nx=-(b.y-a.y)/L*w.ep/2,ny=(b.x-a.x)/L*w.ep/2;
+   (P.rooms||[]).forEach(r=>{const lp=labelPoint(r.poly);pv+=`<polygon points="${r.poly.map(p=>p.x+","+p.y).join(" ")}" fill="var(--accent2)" fill-opacity="0.16" stroke="var(--accent2)" stroke-width="0.03" stroke-dasharray="0.15 0.1"/>`+
+     `<text x="${lp.x}" y="${lp.y}" text-anchor="middle" fill="var(--accent2)" font-size="0.42" font-weight="700" font-family="var(--ff)">${r.name}</text><text x="${lp.x}" y="${lp.y+0.45}" text-anchor="middle" fill="var(--accent2)" font-size="0.32" font-family="var(--fm)">${r.area.toFixed(1)} m²</text>`;});
+   (P.walls||[]).forEach(w=>{const a=P.nodes[w.a],b=P.nodes[w.b];const L=dist(a.x,a.y,b.x,b.y)||1,nx=-(b.y-a.y)/L*w.ep/2,ny=(b.x-a.x)/L*w.ep/2;
      pv+=`<polygon points="${a.x+nx},${a.y+ny} ${b.x+nx},${b.y+ny} ${b.x-nx},${b.y-ny} ${a.x-nx},${a.y-ny}" fill="var(--accent2)" fill-opacity="0.5" stroke="var(--accent2)" stroke-width="0.02"/>`;});
-   P.openings.forEach(o=>{const w=P.walls[o.seg],a=P.nodes[w.a],b=P.nodes[w.b];const L=dist(a.x,a.y,b.x,b.y)||1,ux=(b.x-a.x)/L,uy=(b.y-a.y)/L;
+   (P.openings||[]).forEach(o=>{const w=P.walls[o.seg],a=P.nodes[w.a],b=P.nodes[w.b];const L=dist(a.x,a.y,b.x,b.y)||1,ux=(b.x-a.x)/L,uy=(b.y-a.y)/L;
      pv+=`<line x1="${a.x+ux*(o.t-o.w/2)}" y1="${a.y+uy*(o.t-o.w/2)}" x2="${a.x+ux*(o.t+o.w/2)}" y2="${a.y+uy*(o.t+o.w/2)}" stroke="${o.kind==="porte"?"#e07b00":"var(--ok)"}" stroke-width="${Math.max(0.06,w.ep*0.8)}"/>`;});
-   P.nodes.forEach(n=>{pv+=`<circle cx="${n.x}" cy="${n.y}" r="0.05" fill="var(--accent2)"/>`;});
+   (P.walls?P.nodes:[]).forEach(n=>{pv+=`<circle cx="${n.x}" cy="${n.y}" r="0.05" fill="var(--accent2)"/>`;});
    h+=`<g>${pv}</g>`;}
  // mise à l'échelle du fond : segment entre les deux points cliqués
  if(calib&&calib.a){const b=calib.b||calib.cur;const cs=0.22/Math.max(0.6,view.scale/20);
@@ -277,8 +279,16 @@ function posFromAttach(a){const seg=segById(a.seg);if(!seg||!a.wa)return null;co
   let t=a.wa.e==="a"?a.wa.d+cornerHalf(seg.a,seg.id):d.L-a.wa.d-cornerHalf(seg.b,seg.id);t=Math.max(0,Math.min(d.L,t));
   const off=epOf(seg)/2+0.06;
   return {x:+(d.a.x+d.ux*t-d.uy*off*a.wa.s).toFixed(3),y:+(d.a.y+d.uy*t+d.ux*off*a.wa.s).toFixed(3)};}
-// le rectangle d'une pièce suit ses murs (déplacés, tournés, allongés)
-function followRooms(){for(const r of state.rooms){const ss=(r.segs||[]).map(segById);if(!ss.length||ss.some(s=>!s))continue;
+// pièces : rectangle (outil Pièce) ou contour de murs détecté (r.cycle → r.poly = contour intérieur, surface habitable)
+const roomPoly=r=>r.poly&&r.poly.length>2?r.poly:[{x:Math.min(r.x0,r.x1),y:Math.min(r.y0,r.y1)},{x:Math.max(r.x0,r.x1),y:Math.min(r.y0,r.y1)},{x:Math.max(r.x0,r.x1),y:Math.max(r.y0,r.y1)},{x:Math.min(r.x0,r.x1),y:Math.max(r.y0,r.y1)}];
+const roomArea=r=>r.poly&&r.poly.length>2?Math.abs(polyArea(r.poly)):Math.abs((r.x1-r.x0)*(r.y1-r.y0));
+// le contour d'une pièce suit ses murs (déplacés, tournés, allongés, épaissis)
+function followRooms(){for(const r of state.rooms){
+  if(r.cycle){const P=interiorPoly(r.cycle,nodeById,segById,state.wallEp);
+    if(P){r.poly=P;r.x0=Math.min(...P.map(p=>p.x));r.x1=Math.max(...P.map(p=>p.x));r.y0=Math.min(...P.map(p=>p.y));r.y1=Math.max(...P.map(p=>p.y));}
+    else r.open=true;                                                      // un mur du contour a disparu : la pièce n'est plus fermée
+    continue;}
+  const ss=(r.segs||[]).map(segById);if(!ss.length||ss.some(s=>!s))continue;
   const ns=ss.flatMap(s=>[nodeById(s.a),nodeById(s.b)]).filter(Boolean);if(ns.length<4)continue;
   r.x0=Math.min(...ns.map(n=>n.x));r.x1=Math.max(...ns.map(n=>n.x));r.y0=Math.min(...ns.map(n=>n.y));r.y1=Math.max(...ns.map(n=>n.y));}}
 function followWalls(){followRooms();for(const a of state.app){if(!a.seg)continue;
@@ -311,7 +321,9 @@ function toggleMulti(k,id){
   if(k==="seg"){const s=segById(id);if(s){const ka=mk("node",s.a),kb=mk("node",s.b);if(multi.has(ka)&&multi.has(kb)){multi.delete(ka);multi.delete(kb);}else{multi.add(ka);multi.add(kb);}}}
   else{const key=mk(k,id);multi.has(key)?multi.delete(key):multi.add(key);}
   normalizeSel();}
-function roomAt(wx,wy){for(let i=state.rooms.length-1;i>=0;i--){const r=state.rooms[i];if(wx>=Math.min(r.x0,r.x1)&&wx<=Math.max(r.x0,r.x1)&&wy>=Math.min(r.y0,r.y1)&&wy<=Math.max(r.y0,r.y1))return r;}return null;}
+function roomAt(wx,wy){for(let i=state.rooms.length-1;i>=0;i--){const r=state.rooms[i];
+  if(r.poly&&r.poly.length>2){if(pointInPoly(wx,wy,r.poly))return r;continue;}
+  if(wx>=Math.min(r.x0,r.x1)&&wx<=Math.max(r.x0,r.x1)&&wy>=Math.min(r.y0,r.y1)&&wy<=Math.max(r.y0,r.y1))return r;}return null;}
 function roomExpand(r,G){const ep=state.wallEp,own=new Set(),others=new Set();
   (r.segs||[]).forEach(sid=>{const s=segById(sid);if(s){own.add(s.a);own.add(s.b);}});
   state.rooms.forEach(o=>{if(o.id!==r.id)(o.segs||[]).forEach(sid=>{const s=segById(sid);if(s){others.add(s.a);others.add(s.b);}});});
@@ -384,6 +396,7 @@ function instantiateGroup(data,dx,dy){const nm={},sm={},am={};multi.clear();sel=
   data.segs.forEach(s=>{if(nm[s.a]&&nm[s.b]){const id=uidS();sm[s.id]=id;state.segs.push({...s,id,a:nm[s.a],b:nm[s.b]});}});
   data.openings.forEach(o=>{if(sm[o.seg]){const id=uidO();state.openings.push({...o,id,seg:sm[o.seg]});multi.add(mk("open",id));}});
   data.rooms.forEach(r=>{const id=uidR();const segs=(r.segs||[]).map(s=>sm[s]).filter(Boolean);
+    if(r.cycle&&r.cycle.every(c=>sm[c.seg]&&nm[c.from])){state.rooms.push({id,name:r.name+" (copie)",cycle:r.cycle.map(c=>({seg:sm[c.seg],from:nm[c.from]})),poly:r.poly.map(p=>({x:p.x+dx,y:p.y+dy})),x0:r.x0+dx,y0:r.y0+dy,x1:r.x1+dx,y1:r.y1+dy,segs,auto:true});multi.add(mk("room",id));return;}
     state.rooms.push({id,name:r.name+" (copie)",x0:+(r.x0+dx).toFixed(3),y0:+(r.y0+dy).toFixed(3),x1:+(r.x1+dx).toFixed(3),y1:+(r.y1+dy).toFixed(3),segs});multi.add(mk("room",id));});
   data.apps.forEach(a=>{const id=uidA();am[a.id]=id;const na={...a,id,x:+(a.x+dx).toFixed(2),y:+(a.y+dy).toFixed(2)};if(na.seg)na.seg=sm[na.seg];if(!na.seg){delete na.seg;delete na.wa;}state.app.push(na);multi.add(mk("app",id));});
   data.lia.forEach(l=>{if(am[l.c]&&am[l.l])state.lia.push({c:am[l.c],l:am[l.l]});});
@@ -724,16 +737,19 @@ function showSide(){const b=document.getElementById("sidebody");
   if(sel&&sel.kind==="room"){const r=state.rooms.find(x=>x.id===sel.id);const w=Math.abs(r.x1-r.x0),hh=Math.abs(r.y1-r.y0);
     b.innerHTML=`<h3>Pièce</h3>
      <div class="prop"><div class="field full"><label>Nom</label><input id="rn" type="text" value="${r.name.replace(/"/g,'&quot;')}"></div>
-      <div class="field"><label>Largeur <span class="u">m</span></label><input id="rw" type="number" step="0.01" value="${w.toFixed(2)}"></div>
-      <div class="field"><label>Profondeur <span class="u">m</span></label><input id="rh" type="number" step="0.01" value="${hh.toFixed(2)}"></div></div>
-     <div class="kv"><span>Surface</span><span class="num">${(w*hh).toFixed(2)} m²</span></div>
+      ${r.cycle?"":`<div class="field"><label>Largeur <span class="u">m</span></label><input id="rw" type="number" step="0.01" value="${w.toFixed(2)}"></div>
+      <div class="field"><label>Profondeur <span class="u">m</span></label><input id="rh" type="number" step="0.01" value="${hh.toFixed(2)}"></div>`}</div>
+     <div class="kv"><span>${r.cycle?"Surface habitable":"Surface"}</span><span class="num">${roomArea(r).toFixed(2)} m²</span></div>
+     ${r.cycle?`<div class="kv"><span>Murs du contour</span><span class="num">${r.cycle.length}</span></div>`:""}
+     ${r.open?`<p class="note warn">Un mur de son contour a été supprimé : la pièce n'est plus fermée (forme figée). Relancez « Détecter les pièces ».</p>`:""}
+     ${r.also&&r.also.length?`<p class="note warn">Le plan indique aussi ici : <b>${r.also.join(", ")}</b>. Un mur manque peut-être pour les séparer.</p>`:""}
      <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
        <button id="r_ccw" title="Maj+R">⟲ 90°</button><button id="r_cw" title="R">⟳ 90°</button><button id="r_mx" title="X">⇋</button><button id="r_my" title="Y">⇵</button></div>
      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button id="r_dup">Dupliquer</button><button id="delr" class="danger">Supprimer</button></div>
-     <p class="note">La largeur et la profondeur déplacent réellement les murs de droite et du bas. Glissez la pièce sélectionnée pour la déplacer avec ses murs et ses appareils. Supprimer retire la pièce, ses murs et son contenu.</p>`;
+     <p class="note">${r.cycle?"Pièce détectée d'après ses murs : sa forme et sa surface suivent les murs quand on les déplace. Surface mesurée entre les faces intérieures des murs.":"La largeur et la profondeur déplacent réellement les murs de droite et du bas."} Glissez la pièce sélectionnée pour la déplacer avec ses murs et ses appareils. Supprimer retire la pièce, ses murs et son contenu.</p>`;
     b.querySelector("#rn").onchange=e=>{snapshot();r.name=e.target.value||r.name;markDirty();draw();};
-    b.querySelector("#rw").onchange=e=>{const v=+e.target.value;if(v>0.3){snapshot();resizeRoom(r,v,null);markDirty();draw();showSide();}};
-    b.querySelector("#rh").onchange=e=>{const v=+e.target.value;if(v>0.3){snapshot();resizeRoom(r,null,v);markDirty();draw();showSide();}};
+    if(b.querySelector("#rw"))b.querySelector("#rw").onchange=e=>{const v=+e.target.value;if(v>0.3){snapshot();resizeRoom(r,v,null);markDirty();draw();showSide();}};
+    if(b.querySelector("#rh"))b.querySelector("#rh").onchange=e=>{const v=+e.target.value;if(v>0.3){snapshot();resizeRoom(r,null,v);markDirty();draw();showSide();}};
     b.querySelector("#r_ccw").onclick=()=>transformGroup("ccw");b.querySelector("#r_cw").onclick=()=>transformGroup("cw");
     b.querySelector("#r_mx").onclick=()=>transformGroup("mx");b.querySelector("#r_my").onclick=()=>transformGroup("my");
     b.querySelector("#r_dup").onclick=duplicateGroup;
@@ -777,7 +793,7 @@ function showSide(){const b=document.getElementById("sidebody");
     b.querySelector("#del").onclick=delSel;return;}
   // rien sélectionné : stats + calques
   const counts={};state.app.forEach(a=>counts[a.t]=(counts[a.t]||0)+1);
-  const totA=state.rooms.reduce((s,r)=>s+Math.abs((r.x1-r.x0)*(r.y1-r.y0)),0);
+  const totA=state.rooms.reduce((s,r)=>s+roomArea(r),0);
   b.innerHTML=`<h3>Chantier</h3>
     <div class="kv"><span>Pièces</span><span class="num">${state.rooms.length}${totA?` · ${totA.toFixed(1)} m²`:""}</span></div>
     <div class="kv"><span>Murs</span><span class="num">${state.segs.length}</span></div>
@@ -921,6 +937,12 @@ window.okteo={
   startCalib(){resetTransient();clearSel();tool="calib";testMode=false;if(tab!=="plan")setTab("plan");buildTools();setHint(hintFor("calib"));draw();showSide();},
   applyCalib(a,b,L){calib={a,b,cur:null};return applyCalib(L);},
   setPreview(p){preview=p||null;draw();},
+  roomArea,roomPoly,
+  // ajoute des pièces détectées ({name, cycle, poly, also}) ; replace = retire d'abord toutes les pièces existantes
+  addRooms(list,{replace=false}={}){snapshot();if(replace)state.rooms=[];
+    for(const r of list){const P=r.poly;state.rooms.push({id:uidR(),name:r.name,cycle:r.cycle,poly:P,also:r.also||[],auto:true,segs:[...new Set(r.cycle.map(c=>c.seg))],
+      x0:Math.min(...P.map(p=>p.x)),x1:Math.max(...P.map(p=>p.x)),y0:Math.min(...P.map(p=>p.y)),y1:Math.max(...P.map(p=>p.y))});}
+    preview=null;resetTransient();clearSel();if(tab!=="plan")setTab("plan");markDirty();draw();showSide();return list.length;},
   measure(appId){const a=state.app.find(x=>x.id===appId);if(!a||!a.seg)return null;const m=wallMeasure(a.seg,a.x,a.y);return m&&{seg:a.seg,dA:+m.dA.toFixed(3),dB:+m.dB.toFixed(3),near:+Math.min(m.dA,m.dB).toFixed(3),side:m.side};},
   toClient(x,y){const p=worldToScreen(x,y);const r=document.querySelector(".stage").getBoundingClientRect();return p&&{x:p.x+r.left,y:p.y+r.top};},
   // ajoute au dessin le résultat d'un relevé automatique (un seul pas d'annulation)

@@ -5,6 +5,8 @@ import fs from "node:fs";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import { extractSegments } from "../src/walls/extract.js";
 import { detectWalls } from "../src/walls/detect.js";
+import { findRooms, nameRooms } from "../src/walls/rooms.js";
+import { pageLabels } from "../src/walls/labels.js";
 
 const data = new Uint8Array(fs.readFileSync(new URL("../docs/plans/EVRARD_04949_plan.pdf", import.meta.url)));
 const doc = await pdfjs.getDocument({ data, verbosity: 0 }).promise;
@@ -60,6 +62,23 @@ const xs = res.nodes.map((n) => n.x), ys = res.nodes.map((n) => n.y);
 const X1 = Math.max(...xs), Y0 = Math.min(...ys);
 const corner = res.nodes.findIndex((n) => Math.abs(n.x - X1) < 0.02 && Math.abs(n.y - Y0) < 0.02);
 check("angle extérieur haut-droit relié", corner >= 0 && (deg.get(corner) || 0) >= 2);
+
+console.log("Détection des pièces et de leurs noms");
+const nodes = res.nodes.map((n, i) => ({ id: "n" + i, ...n })), segs = res.walls.map((w, i) => ({ id: "s" + i, a: "n" + w.a, b: "n" + w.b, ep: w.ep }));
+const rooms = findRooms(nodes, segs);
+const labels = await pageLabels(page, { k, ox: 0, oy: 0 });
+const named = nameRooms(rooms, labels);
+const names = named.map((r) => r.name).sort();
+check("7 pièces fermées trouvées", rooms.length === 7, String(rooms.length));
+check("9 noms lus sur le plan (police codée décodée)", labels.length === 9, labels.map((l) => l.name).join(", "));
+check("noms : Bains, Cellier, Chambre 1, Chambre 2, Dressing, Espace de Vie, Garage", JSON.stringify(names) === JSON.stringify(["Bains", "Cellier", "Chambre 1", "Chambre 2", "Dressing", "Espace de Vie", "Garage"]), names.join(", "));
+const sej = named.find((r) => r.name === "Espace de Vie");
+check("séjour en L : il contient aussi « Dgt » et « WC » (cloisons non grisées sur ce PDF)", sej && sej.labels.includes("Dgt") && sej.labels.includes("WC") && sej.cycle.length > 4);
+const ch1 = named.find((r) => r.name === "Chambre 1"), ch2 = named.find((r) => r.name === "Chambre 2");
+// surface habitable = entre les faces intérieures : plus petite que la surface aux axes des murs
+const axis = Math.abs(ch1.cycle.reduce((s, c, i, A) => { const p = nodes.find((n) => n.id === c.from), q = nodes.find((n) => n.id === A[(i + 1) % A.length].from); return s + p.x * q.y - q.x * p.y; }, 0) / 2);
+check("surface habitable mesurée entre les faces des murs", ch1.area < axis && ch1.area > axis * 0.85, `${ch1.area.toFixed(2)} < ${axis.toFixed(2)} m²`);
+check("Chambre 1 plus grande que Chambre 2 (comme sur le plan)", ch1.area > ch2.area);
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);
 if (fails.length) process.exit(1);
