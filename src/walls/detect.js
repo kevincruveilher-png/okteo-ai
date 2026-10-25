@@ -1,3 +1,4 @@
+import { doorArcs, closeDoorways } from "./doorways.js";
 // Relevé automatique des murs à partir des tracés vectoriels d'un PDF — sans IA, purement géométrique.
 //
 // Principe (méthode « bandes ») :
@@ -208,11 +209,14 @@ export function detectWalls(segsPage, map, opts = {}) {
     if (op.w < o.openMin || op.w > o.openMax) return;
     openings.push({ seg: i, t: op.t, w: op.w, kind: s.t < o.interiorMax ? "porte" : "fenetre" });
   }));
-  return {
+  const res = {
     mode,
     nodes: net.nodes.map((n) => ({ x: +n.x.toFixed(3), y: +n.y.toFixed(3) })),
     walls: net.segs.map((s) => ({ a: s.a, b: s.b, ep: +s.t.toFixed(3) })),
     openings: openings.map((op) => ({ ...op, t: +op.t.toFixed(3), w: +op.w.toFixed(3) })),
-    stats: { sources: edges.length, bandes: bands.length },
+    stats: { sources: edges.length, bandes: bands.length, portesEnTravers: 0 },
   };
+  // portes posées en travers d'un couloir, sans cloison dessinée (ex. WC sur dégagement) : on ferme la pièce
+  if (opts.shapes) res.stats.portesEnTravers = closeDoorways(res, doorArcs(opts.shapes, map));
+  return res;
 }

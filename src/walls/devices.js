@@ -1,6 +1,7 @@
 // Relevé automatique des appareils électriques d'un plan PDF de pavillonneur, sans IA.
 // Entrée : les tracés de la page (extract.js → shapes, courbes échantillonnées) et ses textes, en points de page.
 // 1. on repère les cercles (tout symbole électrique courant en contient un) ;
+// (et les demi-cercles : appliques contre un mur)
 // 2. on regarde ce qui les accompagne, dans la même couleur : traits intérieurs (point lumineux ⊗, prise ⊖),
 //    rayons courts (spot ☼), queue (interrupteur ○⁄, deux queues = va-et-vient), croix qui dépasse (sortie de câble ⊗,
 //    bouche VMC ⊕), cercle dans le cercle (RJ45 ◎) ;
@@ -28,8 +29,23 @@ function asCircle(s) {
   return { cx, cy, r, color: s.stroke || s.fill, filled: !!s.fill && !s.stroke, pid: s.pid };
 }
 
+// demi-cercle (applique posée contre un mur) : polyligne ouverte sur un cercle, qui fait la moitié du tour
+function asHalf(s) {
+  if (s.closed || s.pts.length < 8) return null;
+  const P = s.pts, a = P[0], b = P[P.length >> 1], c = P[P.length - 1];
+  const d = 2 * (a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1])); if (Math.abs(d) < 1e-9) return null;
+  const A = a[0] ** 2 + a[1] ** 2, B = b[0] ** 2 + b[1] ** 2, C = c[0] ** 2 + c[1] ** 2;
+  const cx = (A * (b[1] - c[1]) + B * (c[1] - a[1]) + C * (a[1] - b[1])) / d, cy = (A * (c[0] - b[0]) + B * (a[0] - c[0]) + C * (b[0] - a[0])) / d;
+  const r = dist(a[0], a[1], cx, cy);
+  if (r < 0.4 || !P.every((p) => Math.abs(dist(p[0], p[1], cx, cy) - r) < r * 0.07)) return null;
+  const a0 = Math.atan2(a[1] - cy, a[0] - cx), a1 = Math.atan2(c[1] - cy, c[0] - cx);
+  let span = Math.abs(a1 - a0); if (span > Math.PI) span = 2 * Math.PI - span;
+  if (span < 2.6) return null;                                                   // ≈ 150° au moins (demi-tour)
+  return { cx, cy, r, color: s.stroke, filled: false, pid: s.pid, half: true };
+}
+
 const KIND = {
-  LUM: "Point lumineux", SPOT: "Spot", PC16: "Prise 16 A", PC20: "Prise 20 A", RJ45: "RJ45", INT: "Interrupteur",
+  LUM: "Point lumineux", APP: "Applique", SPOT: "Spot", PC16: "Prise 16 A", PC20: "Prise 20 A", RJ45: "RJ45", INT: "Interrupteur",
   VV: "Va-et-vient", VMC: "Bouche VMC", SC: "Sortie de câble",
 };
 
@@ -41,6 +57,12 @@ export function detectDevices(ex, texts, { k, ox = 0, oy = 0 }, opts = {}) {
     const c = asCircle(s); if (!c) continue;
     const twin = circles.find((o) => dist(o.cx, o.cy, c.cx, c.cy) < 0.25 * c.r && Math.abs(o.r - c.r) < 0.15 * c.r);
     if (twin) { if (twin.filled && !c.filled) Object.assign(twin, { color: c.color, filled: false }); continue; }
+    circles.push(c);
+  }
+  for (const s of shapes) {
+    if (!s.stroke) continue;
+    const c = asHalf(s); if (!c) continue;
+    if (circles.some((o) => o.half && dist(o.cx, o.cy, c.cx, c.cy) < 0.25 * c.r)) continue;
     circles.push(c);
   }
   // ---- traits disponibles (hors cercles), avec leur couleur et le chemin d'origine
@@ -86,12 +108,13 @@ export function detectDevices(ex, texts, { k, ox = 0, oy = 0 }, opts = {}) {
   }
   // cercles concentriques : le petit appartient au grand (RJ45 ◎, ou décor d'un symbole)
   for (const c of circles) for (const o of circles) {
+    if (c.half || o.half) continue;
     if (o === c || o.r >= c.r || o.color !== c.color) continue;
     if (dist(o.cx, o.cy, c.cx, c.cy) < 0.25 * c.r && o.r / c.r > 0.25 && o.r / c.r < 0.8) { o.inside = c; c.ring = (c.ring || 0) + 1; }
   }
 
   // ---- taille de référence : le petit cercle le plus fréquent (prise, interrupteur)
-  const rs = circles.filter((c) => !c.inside).map((c) => +c.r.toFixed(1));
+  const rs = circles.filter((c) => !c.inside && !c.half).map((c) => +c.r.toFixed(1));
   const freq = {}; rs.forEach((r) => (freq[r] = (freq[r] || 0) + 1));
   const r0 = +Object.entries(freq).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] || 2;
 
@@ -103,6 +126,10 @@ export function detectDevices(ex, texts, { k, ox = 0, oy = 0 }, opts = {}) {
     if (c.inside) continue;
     const f = c.f, rel = c.r / r0;
     let t = null;
+    if (c.half) {                                   // demi-cercle : applique (point lumineux contre un mur), sinon on l'ignore
+      if (rel > 2 && f.inner >= 3) devices.push({ t: "APP", px: c.cx, py: c.cy, pr: c.r, x: +(ox + c.cx * k).toFixed(3), y: +(oy + c.cy * k).toFixed(3) });
+      continue;
+    }
     if (rel > 2 && f.inner >= 4) t = "LUM";
     else if (rel > 1.2 && rel <= 2.2 && f.rays.length >= 3) t = "SPOT";
     else if (f.spokes.length >= 3) t = diag(f.spokes) >= 3 ? "SC" : "VMC";
@@ -169,9 +196,16 @@ export function detectDevices(ex, texts, { k, ox = 0, oy = 0 }, opts = {}) {
   const solList = [...sols.values()].sort((a, b) => b.checked - a.checked);
   const scaleCheck = solList.length ? { facteur: +solList[0].scale.toFixed(4), cotes: solList[0].checked } : null;
 
+  // ---- tableau électrique : texte lisible « Tableau », « TGBT », « GTL » (sur un PDF à police codée, à poser à la main)
+  for (const t of labels) {
+    if (!/\b(tableau|tgbt|gtl)\b/i.test(t.str)) continue;
+    if (devices.some((d) => d.t === "TAB" && dist(d.px, d.py, t.x, t.y) < r0 * 15)) continue;
+    devices.push({ t: "TAB", px: t.x, py: t.y, pr: r0, x: +(ox + t.x * k).toFixed(3), y: +(oy + t.y * k).toFixed(3) });
+  }
+
   // ---- 4. liaisons : un trait (hors symbole) qui part d'une commande et arrive à un point lumineux
   const isCmd = (t) => t === "INT" || t === "VV";
-  const isLight = (t) => t === "LUM" || t === "SPOT";
+  const isLight = (t) => t === "LUM" || t === "SPOT" || t === "APP";
   const symColor = new Set(circles.filter((c) => !c.inside && devices.some((d) => d.px === c.cx && d.py === c.cy)).map((c) => c.color));
   const reach = (d) => (isCmd(d.t) ? d.pr * 5 : d.pr * 1.8);
   const at = (x, y) => {

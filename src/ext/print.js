@@ -6,8 +6,8 @@ export const PAPERS = { A4: [297, 210], A3: [420, 297] };
 const AUTO = [["A4", 50], ["A3", 50], ["A4", 75], ["A3", 75], ["A4", 100], ["A3", 100], ["A3", 125], ["A3", 150], ["A3", 200]];
 const MARGIN = 10, BAND = 44;                       // marge, bandeau bas (légende + cartouche)
 const SHORT = { PC16: "16", PC20: "20", RJ45: "RJ", VMC: "V", TAB: "TD" };
-const COLS = ["PC16", "PC20", "RJ45", "LUM", "SPOT", "INT", "VV", "BP", "VMC", "SC", "TAB"];
-const COLNAME = { PC16: "16 A", PC20: "20 A", RJ45: "RJ45", LUM: "Point", SPOT: "Spot", INT: "Int.", VV: "VV", BP: "BP", VMC: "VMC", SC: "SC", TAB: "TD" };
+const COLS = ["PC16", "PC20", "RJ45", "LUM", "APP", "SPOT", "INT", "VV", "BP", "VMC", "SC", "TAB"];
+const COLNAME = { PC16: "16 A", PC20: "20 A", RJ45: "RJ45", LUM: "Point", APP: "Appl.", SPOT: "Spot", INT: "Int.", VV: "VV", BP: "BP", VMC: "VMC", SC: "SC", TAB: "TD" };
 const fr = (v, d = 2) => v.toFixed(d).replace(".", ",");
 
 let lib = null;
@@ -81,6 +81,12 @@ export async function buildPlanPdf(geo, opts = {}) {
   doc.setFillColor(60, 60, 60); doc.setDrawColor(60, 60, 60); doc.setLineWidth(0.05);
   geo.walls.forEach((P) => poly(P, "F"));
   geo.joints.forEach((j) => doc.rect(X(j.x - j.e / 2), Y(j.y - j.e / 2), j.e * f, j.e * f, "F"));
+  // limites de pièce (sans mur) : trait fin en pointillés
+  if (geo.limits && geo.limits.length) {
+    doc.setDrawColor(150, 150, 150); doc.setLineWidth(0.1); doc.setLineDashPattern([0.6, 0.6], 0);
+    geo.limits.forEach((l) => doc.line(X(l.a.x), Y(l.a.y), X(l.b.x), Y(l.b.y)));
+    doc.setLineDashPattern([], 0);
+  }
   // ouvertures
   doc.setDrawColor(40, 40, 40);
   geo.openings.forEach((op) => {
@@ -264,6 +270,8 @@ export function symbol(doc, t, x, y, u) {
     case "PC16": doc.circle(x, y, 0.9 * u, "FD"); txt(SHORT.PC16); break;
     case "PC20": doc.setFillColor(20, 60, 110); doc.circle(x, y, 0.9 * u, "FD"); txt(SHORT.PC20, true); break;
     case "RJ45": doc.roundedRect(x - 0.8 * u, y - 0.8 * u, 1.6 * u, 1.6 * u, 0.2 * u, 0.2 * u, "FD"); txt(SHORT.RJ45); break;
+    case "APP": { const r = 0.9 * u; const n = 12, P = []; for (let i = 0; i <= n; i++) { const a = Math.PI + Math.PI * i / n; P.push([x + Math.cos(a) * r, y + 0.25 * u + Math.sin(a) * r]); }
+      doc.lines(P.slice(1).map((p, i) => [p[0] - P[i][0], p[1] - P[i][1]]), P[0][0], P[0][1], [1, 1], "FD", true); doc.line(x - 0.55 * u, y - 0.3 * u, x + 0.55 * u, y + 0.25 * u); doc.line(x + 0.55 * u, y - 0.3 * u, x - 0.55 * u, y + 0.25 * u); break; }
     case "LUM": doc.circle(x, y, 0.9 * u, "FD"); doc.line(x - 0.6 * u, y - 0.6 * u, x + 0.6 * u, y + 0.6 * u); doc.line(x + 0.6 * u, y - 0.6 * u, x - 0.6 * u, y + 0.6 * u); break;
     case "SPOT": doc.circle(x, y, 0.6 * u, "FD"); doc.setFillColor(20, 60, 110); doc.circle(x, y, 0.22 * u, "F"); break;
     case "INT": doc.circle(x, y, 0.55 * u, "FD"); doc.line(x + 0.35 * u, y - 0.35 * u, x + 0.95 * u, y - 0.95 * u); break;

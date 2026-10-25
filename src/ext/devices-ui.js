@@ -5,7 +5,7 @@ import { detectDevices } from "../walls/devices.js";
 import { chantierPage, chantierTexts, pageMap } from "./pdf-page.js";
 import { esc } from "./util.js";
 
-const ORDER = ["PC16", "PC20", "RJ45", "INT", "VV", "LUM", "SPOT", "SC", "VMC"];
+const ORDER = ["PC16", "PC20", "RJ45", "INT", "VV", "LUM", "APP", "SPOT", "SC", "VMC", "TAB"];
 
 export function createDevicesTool({ api }) {
   const card = document.createElement("div");

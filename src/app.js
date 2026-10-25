@@ -1,6 +1,6 @@
 "use strict";
 import * as CHS from "./chantiers.js";
-import { interiorPoly, polyArea, pointInPoly, labelPoint } from "./walls/rooms.js";
+import { interiorPoly, polyArea, pointInPoly, labelPoint, addLimit } from "./walls/rooms.js";
 // ---------- chantier ouvert ----------
 // Un seul chantier est chargé à la fois ; changer de chantier recharge la page (état propre, annuler/rétablir compris).
 const CH=CHS.current();
@@ -17,11 +17,11 @@ const layers={fond:{on:true,lock:false},pieces:{on:true,lock:false},murs:{on:tru
   ouvertures:{on:true,lock:false},appareils:{on:true,lock:false},liaisons:{on:true,lock:false},cotes:{on:true,lock:false}};
 const TYPES={
  PC16:{n:"Prise 16 A",h:30,r:"P"}, PC20:{n:"Prise 20 A",h:30,r:"P"}, RJ45:{n:"RJ45",h:30,r:"R"},
- LUM:{n:"Point lumineux",h:null,r:"L"}, SPOT:{n:"Spot",h:null,r:"L"}, INT:{n:"Interrupteur",h:110,r:"I"},
+ LUM:{n:"Point lumineux",h:null,r:"L"}, APP:{n:"Applique",h:180,r:"L"}, SPOT:{n:"Spot",h:null,r:"L"}, INT:{n:"Interrupteur",h:110,r:"I"},
  VV:{n:"Va-et-vient",h:110,r:"I"}, BP:{n:"Bouton poussoir",h:110,r:"BP"}, VMC:{n:"VMC",h:null,r:"V"}, TAB:{n:"Tableau",h:null,r:"TD"},
  SC:{n:"Sortie de câble",h:null,r:"SC"},
 };
-const PAL=["PC16","PC20","RJ45","LUM","SPOT","INT","VV","BP","VMC","SC","TAB"];
+const PAL=["PC16","PC20","RJ45","LUM","APP","SPOT","INT","VV","BP","VMC","SC","TAB"];
 
 let tool="piece", sel=null, testMode=false, tab="plan";
 let draftFrom=null, draftPt=null, typed="", roomDraft=null, dimDraft=null;
@@ -39,7 +39,8 @@ function nodeById(id){return state.nodes.find(n=>n.id===id)}
 function segById(id){return state.segs.find(s=>s.id===id)}
 const dist=(ax,ay,bx,by)=>Math.hypot(ax-bx,ay-by);
 // épaisseur d'un mur : la sienne (murs relevés du PDF) sinon l'épaisseur par défaut du chantier
-const epOf=s=>s&&s.ep>0?s.ep:state.wallEp;
+// limite de pièce (s.virt) : sépare deux pièces sans mur (séjour / dégagement), épaisseur nulle
+const epOf=s=>s&&s.virt?0:s&&s.ep>0?s.ep:state.wallEp;
 // demi-épaisseur des AUTRES murs qui arrivent à un sommet (pour mesurer depuis la face intérieure)
 const cornerHalf=(nodeId,exceptId)=>{let m=0;state.segs.forEach(s=>{if(s.id!==exceptId&&(s.a===nodeId||s.b===nodeId))m=Math.max(m,epOf(s));});return m/2;};
 function segLen(s){const a=nodeById(s.a),b=nodeById(s.b);return a&&b?dist(a.x,a.y,b.x,b.y):0}
@@ -47,7 +48,8 @@ function segDir(s){const a=nodeById(s.a),b=nodeById(s.b),L=segLen(s)||1;return {
 
 // ---------- historique / persistance ----------
 function packState(){return JSON.stringify({nodes:state.nodes,segs:state.segs,rooms:state.rooms,app:state.app,lia:state.lia,openings:state.openings,dims:state.dims,wallEp:state.wallEp})}
-function snapshot(){undo.push(packState());if(undo.length>80)undo.shift();redo.length=0}
+let batching=false;
+function snapshot(){if(batching)return;undo.push(packState());if(undo.length>80)undo.shift();redo.length=0}
 function applyPack(s){const o=JSON.parse(s);["nodes","segs","rooms","app","lia","openings","dims"].forEach(k=>state[k]=o[k]||[]);if(o.wallEp)state.wallEp=o.wallEp;sel=null}
 const KEY=CH.key;
 let saveT=null;
@@ -118,6 +120,7 @@ function glyph(t){switch(t){
   case"PC16":return `<circle r="0.9" class="gy"/><text y="0.3" class="gl">16</text>`;
   case"PC20":return `<circle r="0.9" class="gf"/><text y="0.3" class="glw">20</text>`;
   case"RJ45":return `<rect x="-0.8" y="-0.8" width="1.6" height="1.6" rx="0.2" class="gy"/><text y="0.3" class="gl">RJ</text>`;
+  case"APP":return `<path d="M-0.9 0.25A0.9 0.9 0 0 1 0.9 0.25Z" class="gy"/><path d="M-0.55 -0.3L0.55 0.25M0.55 -0.3L-0.55 0.25" class="gs"/>`;
   case"LUM":return `<circle r="0.9" class="gy"/><path d="M-0.6 -0.6L0.6 0.6M0.6 -0.6L-0.6 0.6" class="gs"/>`;
   case"SPOT":return `<circle r="0.6" class="gy"/><circle r="0.22" class="gf"/>`;
   case"INT":return `<circle r="0.55" class="gy"/><line x1="0.35" y1="-0.35" x2="0.95" y2="-0.95" class="gs"/>`;
@@ -155,6 +158,7 @@ function draw(){
  // murs (intervalles pleins) + jonctions
  if(layers.murs.on){let mp="",jn="";
   state.segs.forEach(seg=>{const d=segDir(seg);if(!d.a)return;const on=(sel&&(sel.kind==="seg"||sel.kind==="segDelAsk")&&sel.id===seg.id)||(GH&&GH.nodes.has(seg.a)&&GH.nodes.has(seg.b));const col=on?'var(--sel)':'var(--wall)';
+    if(seg.virt){mp+=`<line x1="${d.a.x}" y1="${d.a.y}" x2="${d.b.x}" y2="${d.b.y}" stroke="${on?'var(--sel)':'var(--mut)'}" stroke-width="${on?0.05:0.03}" stroke-dasharray="0.14 0.09"/>`;return;}
     const e2=epOf(seg)/2,nx=-d.uy*e2,ny=d.ux*e2;
     wallIntervals(seg).forEach(([s0,s1])=>{const ax=d.a.x+d.ux*s0,ay=d.a.y+d.uy*s0,bxp=d.a.x+d.ux*s1,byp=d.a.y+d.uy*s1;
       mp+=`<polygon points="${ax+nx},${ay+ny} ${bxp+nx},${byp+ny} ${bxp-nx},${byp-ny} ${ax-nx},${ay-ny}" fill="${col}"/>`;});});
@@ -186,7 +190,7 @@ function draw(){
    h+=`<rect x="${x}" y="${y}" width="${w}" height="${hh}" fill="var(--accent)" opacity=".1" stroke="var(--accent)" stroke-width="${ep}" stroke-dasharray="0.3 0.2"/>`;}
  if((tool==="cote")&&dimDraft&&draftPt){h+=`<line x1="${dimDraft.x}" y1="${dimDraft.y}" x2="${draftPt.x}" y2="${draftPt.y}" stroke="var(--dimc)" stroke-width="0.05" stroke-dasharray="0.2 0.15"/>`;}
  // cotes permanentes sur murs
- if(showDims&&layers.cotes.on&&layers.murs.on){let dm="";state.segs.forEach(seg=>{const d=segDir(seg);if(!d.a)return;const L=d.L;
+ if(showDims&&layers.cotes.on&&layers.murs.on){let dm="";state.segs.forEach(seg=>{if(seg.virt)return;const d=segDir(seg);if(!d.a)return;const L=d.L;
    const mx=(d.a.x+d.b.x)/2,my=(d.a.y+d.b.y)/2,ox=-d.uy*(ep/2+0.22),oy=d.ux*(ep/2+0.22);
    dm+=`<text x="${mx+ox}" y="${my+oy}" text-anchor="middle" dominant-baseline="middle" fill="var(--mut)" font-size="0.3" font-family="var(--fm)">${L.toFixed(2)}</text>`;});h+=`<g>${dm}</g>`;}
  // cotes libres
@@ -245,6 +249,7 @@ function draw(){
    (P.openings||[]).forEach(o=>{const w=P.walls[o.seg],a=P.nodes[w.a],b=P.nodes[w.b];const L=dist(a.x,a.y,b.x,b.y)||1,ux=(b.x-a.x)/L,uy=(b.y-a.y)/L;
      pv+=`<line x1="${a.x+ux*(o.t-o.w/2)}" y1="${a.y+uy*(o.t-o.w/2)}" x2="${a.x+ux*(o.t+o.w/2)}" y2="${a.y+uy*(o.t+o.w/2)}" stroke="${o.kind==="porte"?"#e07b00":"var(--ok)"}" stroke-width="${Math.max(0.06,w.ep*0.8)}"/>`;});
    (P.walls?P.nodes:[]).forEach(n=>{pv+=`<circle cx="${n.x}" cy="${n.y}" r="0.05" fill="var(--accent2)"/>`;});
+   (P.limits||[]).forEach(l=>{pv+=`<line x1="${l.a.x}" y1="${l.a.y}" x2="${l.b.x}" y2="${l.b.y}" stroke="var(--accent2)" stroke-width="0.06" stroke-dasharray="0.15 0.1"/>`;});
    if(P.devices){const D=P.devices,ss=symScaleOf();
      (P.links||[]).forEach(l=>{const c=D[l.c],m=D[l.l];if(c&&m)pv+=`<line x1="${c.x}" y1="${c.y}" x2="${m.x}" y2="${m.y}" stroke="var(--accent2)" stroke-width="0.025" stroke-dasharray="0.12 0.08" opacity="0.8"/>`;});
      D.forEach(d=>{pv+=`<circle cx="${d.x}" cy="${d.y}" r="${ss*1.25}" fill="var(--accent2)" fill-opacity="0.25" stroke="var(--accent2)" stroke-width="0.02"/><g transform="translate(${d.x} ${d.y}) scale(${ss})">${glyph(d.t)}</g>`;});
@@ -276,7 +281,7 @@ function hitOpenHandle(wx,wy,o){const H=openHandles(o);if(!H)return null;const t
 function projOnSeg(wx,wy,seg){const d=segDir(seg);const t=Math.max(0,Math.min(d.L,(wx-d.a.x)*d.ux+(wy-d.a.y)*d.uy));
   return {t,x:d.a.x+d.ux*t,y:d.a.y+d.uy*t,d:dist(wx,wy,d.a.x+d.ux*t,d.a.y+d.uy*t),dir:d};}
 // accrocher un appareil mural au mur le plus proche (face côté curseur)
-function snapToWall(wx,wy){let best=null,bd=0.6;for(const seg of state.segs){const p=projOnSeg(wx,wy,seg);if(p.t<=0.001||p.t>=p.dir.L-0.001)continue;if(p.d<bd){bd=p.d;best={seg,p};}}
+function snapToWall(wx,wy){let best=null,bd=0.6;for(const seg of state.segs){if(seg.virt)continue;const p=projOnSeg(wx,wy,seg);if(p.t<=0.001||p.t>=p.dir.L-0.001)continue;if(p.d<bd){bd=p.d;best={seg,p};}}
   if(!best)return null;const d=best.p.dir;const nx=-d.uy,ny=d.ux;const sideSign=((wx-d.a.x)*nx+(wy-d.a.y)*ny)>=0?1:-1;const off=epOf(best.seg)/2+0.06;
   return {x:+(best.p.x+nx*off*sideSign).toFixed(3),y:+(best.p.y+ny*off*sideSign).toFixed(3),seg:best.seg.id,wall:true};}
 // guides d'alignement sur un autre appareil (même x ou même y)
@@ -286,7 +291,7 @@ function snapAlign(x,y,exclId){guides=[];const tol=tolM()*0.9;let rx=x,ry=y;
     if(Math.abs(a.x-x)<tol){rx=a.x;guides.push({v:true,at:a.x});}
     if(Math.abs(a.y-y)<tol){ry=a.y;guides.push({v:false,at:a.y});}}
   return {x:rx,y:ry};}
-const wallMounted=t=>["PC16","PC20","RJ45","INT","VV","BP","SC"].includes(t);
+const wallMounted=t=>["PC16","PC20","RJ45","INT","VV","BP","SC","APP"].includes(t);
 
 // ---------- appareils attachés à leur mur ----------
 // a.wa = {e:"a"|"b", d, s} : distance d (m) depuis la FACE du mur d'angle côté e (le plus proche), côté s (±1) du mur.
@@ -540,7 +545,7 @@ sv.addEventListener("pointerdown",e=>{sv.setPointerCapture(e.pointerId);const [w
     marquee={x0:wx,y0:wy,x1:wx,y1:wy,moved:false,shift,room:rm?rm.id:null};return;}
   if(tool==="lien"){const a=hitApp(wx,wy);if(!a)return;
     if(!sel||sel.kind!=="link"){if(a.t==="INT"||a.t==="VV"||a.t==="BP"){multi.clear();sel={kind:"link",id:a.id};draw();setHint("Cliquez la/les lumière(s) commandée(s). Échap pour terminer.");}}
-    else{if(a.t==="LUM"||a.t==="SPOT"){snapshot();if(!state.lia.some(x=>x.c===sel.id&&x.l===a.id))state.lia.push({c:sel.id,l:a.id});markDirty();draw();}}return;}
+    else{if(a.t==="LUM"||a.t==="SPOT"||a.t==="APP"){snapshot();if(!state.lia.some(x=>x.c===sel.id&&x.l===a.id))state.lia.push({c:sel.id,l:a.id});markDirty();draw();}}return;}
   // pose d'appareil (aperçu = position finale)
   if(TYPES[tool]){snapshot();const p=placementFor(tool,wx,wy,null);guides=[];const na=placeApp(tool,p);setSingle("app",na.id);markDirty();draw();showSide();}
 });
@@ -777,13 +782,15 @@ function showSide(){const b=document.getElementById("sidebody");
     b.querySelector("#r_dup").onclick=duplicateGroup;
     b.querySelector("#delr").onclick=()=>deleteGroup(currentGroup());return;}
   if(sel&&sel.kind==="seg"){const s=segById(sel.id);const a=nodeById(s.a),c=nodeById(s.b);const L=dist(a.x,a.y,c.x,c.y);
-    b.innerHTML=`<h3>Mur</h3><div class="prop">
+    b.innerHTML=`<h3>${s.virt?"Limite de pièce":"Mur"}</h3><div class="prop">
       <div class="field full"><label>Longueur <span class="u">m</span></label><input id="f_L" type="number" step="0.01" value="${L.toFixed(2)}"></div>
-      <div class="field full"><label>Épaisseur des murs <span class="u">m</span></label><input id="f_ep" type="number" step="0.01" value="${state.wallEp}"></div></div>
+      ${s.virt?"":`<div class="field full"><label>Épaisseur des murs <span class="u">m</span></label><input id="f_ep" type="number" step="0.01" value="${state.wallEp}"></div>`}</div>
+     <label class="ck" style="margin-top:10px" title="Une limite sépare deux pièces sans mur (séjour / dégagement, cuisine ouverte) : pointillés, pas imprimée comme un mur, pas d'appareil collé dessus."><input type="checkbox" id="f_virt" ${s.virt?"checked":""}> Limite de pièce (pas un vrai mur)</label>
      <div style="margin-top:12px"><button id="delseg" class="danger">Supprimer ce mur</button></div>
      <p class="note">Modifier la longueur déplace l'extrémité B. Glissez un sommet pour ajuster un angle.</p>`;
     b.querySelector("#f_L").onchange=e=>{const nl=+e.target.value,d=dist(a.x,a.y,c.x,c.y)||1;snapshot();c.x=+(a.x+(c.x-a.x)/d*nl).toFixed(3);c.y=+(a.y+(c.y-a.y)/d*nl).toFixed(3);markDirty();draw();showSide();};
-    b.querySelector("#f_ep").onchange=e=>{snapshot();state.wallEp=+(+e.target.value).toFixed(2);markDirty();draw();showSide();};
+    if(b.querySelector("#f_ep"))b.querySelector("#f_ep").onchange=e=>{snapshot();state.wallEp=+(+e.target.value).toFixed(2);markDirty();draw();showSide();};
+    b.querySelector("#f_virt").onchange=e=>{snapshot();if(e.target.checked){s.virt=true;state.openings=state.openings.filter(o=>o.seg!==s.id);state.app.forEach(x=>{if(x.seg===s.id)reattach(x);});}else delete s.virt;markDirty();draw();showSide();};
     b.querySelector("#delseg").onclick=()=>{snapshot();state.openings=state.openings.filter(o=>o.seg!==sel.id);state.segs=state.segs.filter(x=>x.id!==sel.id);cleanNodes();sel=null;markDirty();draw();showSide();};return;}
   if(sel&&sel.kind==="node"){const n=nodeById(sel.id);
     b.innerHTML=`<h3>Sommet</h3><div class="prop"><div class="field"><label>X <span class="u">m</span></label><input id="nx" type="number" step="0.01" value="${n.x}"></div>
@@ -971,7 +978,8 @@ window.okteo={
   // pièces (contour, surface), appareils (repère, pièce), liaisons, cotes, fond
   exportGeometry(){followWalls();
     const walls=[],joints=[],openings=[],wallDims=[];
-    state.segs.forEach(seg=>{const d=segDir(seg);if(!d.a||!d.L)return;const e=epOf(seg),e2=e/2,nx=-d.uy*e2,ny=d.ux*e2;
+    const limits=[];
+    state.segs.forEach(seg=>{const d=segDir(seg);if(!d.a||!d.L)return;if(seg.virt){limits.push({a:{x:d.a.x,y:d.a.y},b:{x:d.b.x,y:d.b.y}});return;}const e=epOf(seg),e2=e/2,nx=-d.uy*e2,ny=d.ux*e2;
       wallIntervals(seg).forEach(([s0,s1])=>{const ax=d.a.x+d.ux*s0,ay=d.a.y+d.uy*s0,bx=d.a.x+d.ux*s1,by=d.a.y+d.uy*s1;
         walls.push([{x:ax+nx,y:ay+ny},{x:bx+nx,y:by+ny},{x:bx-nx,y:by-ny},{x:ax-nx,y:ay-ny}]);});
       wallDims.push({x:(d.a.x+d.b.x)/2-d.uy*(e2+0.22),y:(d.a.y+d.b.y)/2+d.ux*(e2+0.22),L:d.L,ang:Math.atan2(d.uy,d.ux)});});
@@ -989,7 +997,7 @@ window.okteo={
     const byId=Object.fromEntries(state.app.map(a=>[a.id,a]));
     const links=state.lia.map(l=>byId[l.c]&&byId[l.l]&&{a:{x:byId[l.c].x,y:byId[l.c].y},b:{x:byId[l.l].x,y:byId[l.l].y}}).filter(Boolean);
     const dims=state.dims.map(d=>({a:{...d.a},b:{...d.b},L:dist(d.a.x,d.a.y,d.b.x,d.b.y)}));
-    return {walls,joints,openings,wallDims,rooms,apps,links,dims,symU:symScaleOf(),
+    return {walls,joints,openings,wallDims,limits,rooms,apps,links,dims,symU:symScaleOf(),
       fond:FOND&&BG.w>0?{url:FOND,x:BG.x,y:BG.y,w:BG.w,h:BG.h}:null,
       chantier:{nom:CH.nom,numero:CH.numero||"",client:CH.client||""}};},
   // ajoute des pièces détectées ({name, cycle, poly, also}) ; replace = retire d'abord toutes les pièces existantes
@@ -1006,6 +1014,14 @@ window.okteo={
     let nl=0;links.forEach(l=>{const c=ids[l.c],lm=ids[l.l];if(c&&lm&&!state.lia.some(x=>x.c===c&&x.l===lm)){state.lia.push({c,l:lm});nl++;}});
     preview=null;resetTransient();clearSel();tool="sel";testMode=false;if(tab!=="plan")setTab("plan");buildTools();markDirty();draw();showSide();
     return {appareils:ids.filter(Boolean).length,muraux:state.app.filter(a=>ids.includes(a.id)&&a.seg).length,liaisons:nl};},
+  // plusieurs modifications = un seul pas d'annulation
+  batch(fn){snapshot();batching=true;try{return fn();}finally{batching=false;}},
+  // limites de pièce [{a,b}] (points proches des axes de murs) : coupe les murs touchés et ajoute des murs virtuels
+  addLimits(list){snapshot();let n=0;
+    for(const l of list){const r=addLimit(state.nodes,state.segs,l.a,l.b,{node:()=>uidN(),seg:()=>uidS()});if(!r)continue;n++;
+      r.splits.forEach(sp=>{state.openings.forEach(o=>{if(o.seg===sp.seg&&o.t>sp.at){o.seg=sp.newSeg;o.t=+(o.t-sp.at).toFixed(3);}});
+        state.app.forEach(a=>{if(a.seg===sp.seg)reattach(a);});});}
+    markDirty();draw();showSide();return n;},
   measure(appId){const a=state.app.find(x=>x.id===appId);if(!a||!a.seg)return null;const m=wallMeasure(a.seg,a.x,a.y);return m&&{seg:a.seg,dA:+m.dA.toFixed(3),dB:+m.dB.toFixed(3),near:+Math.min(m.dA,m.dB).toFixed(3),side:m.side};},
   toClient(x,y){const p=worldToScreen(x,y);const r=document.querySelector(".stage").getBoundingClientRect();return p&&{x:p.x+r.left,y:p.y+r.top};},
   // ajoute au dessin le résultat d'un relevé automatique (un seul pas d'annulation)

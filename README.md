@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v21** (25/10/2026) : fiabilité (repères fixes, sauvegarde automatique, alerte d'enregistrement), barre d'outils revue.
+Version du prototype : **v22** (25/10/2026) : WC et dégagement séparés du séjour, appliques reconnues.
 (v17 : pièces ; v16 : appareils attachés aux murs ; v15 : relevé des murs ; v14 : chantiers.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
@@ -37,7 +37,7 @@ Pour arrêter : Ctrl+C dans le terminal.
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 88 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 93 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -52,6 +52,17 @@ Ouvre le logiciel dans un navigateur invisible et fait 88 vérifications (dessin
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Pièces ouvertes, portes en travers, appliques (v22)
+
+- **Porte en travers d'un couloir** (ex. WC qui ouvre sur le dégagement, sans cloison dessinée sur le PDF) : le relevé
+  des murs le voit grâce à l'arc de la porte et ajoute un mur avec sa porte → le WC devient une pièce.
+- **Pièces ouvertes** : quand deux noms du plan tombent dans la même pièce (séjour + « Dgt »), la détection des pièces
+  propose une **limite de pièce** à l'étranglement (trait en pointillés, sans mur). Case à décocher si on n'en veut pas.
+  À la main : dessiner un mur, le sélectionner, cocher **Limite de pièce** dans son menu.
+- **Appliques** (demi-cercles contre un mur, souvent à l'extérieur) : nouveau type d'appareil, collé au mur, 180 cm
+  par défaut, avec ses liaisons. **Tableau** : repéré seulement si le texte « Tableau / TGBT / GTL » est lisible.
+- Sur EVRARD : 9 pièces (WC 1,7 m² et Dgt 2,2 m² séparés), 5 appliques.
 
 ## Sauvegarde et repères (v21)
 

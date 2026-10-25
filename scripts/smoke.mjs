@@ -392,13 +392,21 @@ try {
     await page.waitForSelector("#r-ok", { timeout: 30000 });
     const r = await ev(() => okteoExt.rooms.result);
     const names = r.rooms.map((x) => x.name).sort().join("|");
-    return r.rooms.length === 7 && r.nLabels === 9 && names === "Bains|Cellier|Chambre 1|Chambre 2|Dressing|Espace de Vie|Garage";
+    const t = await page.textContent(".wcard:not([hidden])");
+    return r.rooms.length === 9 && r.nLabels === 9 && names === "Bains|Cellier|Chambre 1|Chambre 2|Dgt|Dressing|Espace de Vie|Garage|WC" && r.limits.length === 1 && t.includes("Séparer les pièces ouvertes");
   });
-  await check("ajout des pièces : formes réelles (séjour en L), surfaces, avertissement mur manquant", async () => {
+  await check("ajout des pièces : WC fermé par sa porte, Dgt séparé par une limite, un seul Ctrl+Z", async () => {
+    const segs0 = await ev(() => okteo.state.segs.length);
     await page.click("#r-ok");
     const s = await ev(() => okteo.state.rooms.map((r) => ({ n: r.name, c: r.cycle.length, a: okteo.roomArea(r), also: r.also })));
-    const sej = s.find((r) => r.n === "Espace de Vie");
-    return s.length === 7 && sej.c > 4 && sej.also.includes("WC") && s.every((r) => r.a > 2);
+    const virt = await ev(() => okteo.state.segs.filter((g) => g.virt).length);
+    const sej = s.find((r) => r.n === "Espace de Vie"), wc = s.find((r) => r.n === "WC"), dgt = s.find((r) => r.n === "Dgt");
+    const ok = s.length === 9 && sej.c > 4 && !sej.also.length && wc && wc.a > 1 && wc.a < 2.5 && dgt && dgt.a > 1.5 && virt === 1 && s.every((r) => r.a > 1);
+    await ev(() => okteo.undo());
+    const back = await ev(() => ({ r: okteo.state.rooms.length, v: okteo.state.segs.filter((g) => g.virt).length, n: okteo.state.segs.length }));
+    await ev(() => okteo.redo());
+    if (!ok) throw new Error(JSON.stringify({ s, virt }));
+    return back.r === 0 && back.v === 0 && back.n === segs0 && (await ev(() => okteo.state.rooms.length)) === 9;
   });
   await check("la surface d'une pièce détectée suit ses murs", async () => {
     const before = await ev(() => { const r = okteo.state.rooms.find((x) => x.name === "Chambre 2"); return { a: okteo.roomArea(r), seg: r.cycle[0].seg }; });
@@ -428,10 +436,10 @@ try {
     await page.click("#d-ok");
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/appareils-ajoutes.png" });
     const s = await ev(() => {
-      const A = okteo.state.app, wall = A.filter((a) => ["PC16", "PC20", "RJ45", "INT", "VV", "SC"].includes(a.t));
-      return { n: A.length, wall: wall.length, att: wall.filter((a) => a.seg && a.wa).length, lia: okteo.state.lia.length, lum: A.filter((a) => a.t === "LUM" && !a.seg).length };
+      const A = okteo.state.app, wall = A.filter((a) => ["PC16", "PC20", "RJ45", "INT", "VV", "SC", "APP"].includes(a.t));
+      return { n: A.length, wall: wall.length, att: wall.filter((a) => a.seg && a.wa).length, lia: okteo.state.lia.length, lum: A.filter((a) => a.t === "LUM" && !a.seg).length, app: A.filter((a) => a.t === "APP" && a.seg).length };
     });
-    if (s.n !== n || s.att < s.wall * 0.9 || s.lia < 20 || s.lum !== 10) throw new Error(JSON.stringify(s));
+    if (s.n !== n || s.att < s.wall * 0.9 || s.lia < 20 || s.lum !== 10 || s.app !== 5) throw new Error(JSON.stringify(s));
     await page.keyboard.press("Control+z");
     const undone = await ev(() => okteo.state.app.length + okteo.state.lia.length);
     await page.keyboard.press("Control+y");

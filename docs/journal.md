@@ -139,9 +139,21 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
   symbole, menu « Affichage » (cotes, repères, fond, symboles, thème, export JSON).
 - Tests : 23 + 65 = 88.
 
-## PROCHAINE MISE À JOUR (v22)
-Cloisons en traits fins (WC/Dgt), appliques (demi-cercles), tableau électrique, boutons poussoirs. Puis v23 lisibilité
-(anti-chevauchement noms/repères/liaisons à l'écran et à l'impression), étages, découpage d'app.js, câblage.
+## Version 22 (25/10/2026) — livrée : WC/Dgt séparés, appliques
+- Constat sur le PDF EVRARD : le WC n'a pas de cloison côté dégagement, seulement sa porte dessinée en travers ; le
+  dégagement est réellement ouvert sur le séjour (passage sans porte).
+- Portes en travers : arc de porte → mur + porte ajoutés (coupe en T des deux murs). WC = 1,7 m² (échelle réelle).
+- Limites de pièce (murs virtuels, pointillés) proposées aux étranglements quand deux noms tombent dans la même pièce ;
+  aussi à la main (case « Limite de pièce » dans le menu d'un mur). EVRARD : 9 pièces, chaque nom dans sa pièce.
+- Appliques (demi-cercles contre un mur) : nouveau type « Applique » (repère L, murale, 180 cm). EVRARD : 5 trouvées
+  (extérieur nord ×2, sud, garage, au-dessus de la vasque des Bains), toutes avec leur interrupteur.
+- Tableau : seulement si le texte est lisible (EVRARD est en police codée → à poser à la main).
+- Boutons poussoirs : aucun sur EVRARD → pas de reconnaissance sans exemple réel (à faire avec un plan qui en a).
+- Tests : 28 + 65 = 93.
+
+## PROCHAINE MISE À JOUR (v23)
+Lisibilité du plan (anti-chevauchement des noms, repères, liaisons à l'écran et à l'impression). Puis étages, découpage
+d'app.js, câblage. En attente de Kévin : PDF d'autres pavillonneurs (BP, tableau, autres symboles).
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.

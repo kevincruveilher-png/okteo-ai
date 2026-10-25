@@ -20,7 +20,7 @@ export function createWallsTool({ api }) {
   }
 
   function compute() {
-    res = detectWalls(page.segs, pageMap(api, page), { tMin: opts.tMin / 100, tMax: opts.tMax / 100 });
+    res = detectWalls(page.segs, pageMap(api, page), { tMin: opts.tMin / 100, tMax: opts.tMax / 100, shapes: page.shapes });
     api.setPreview(res);
   }
 
@@ -39,6 +39,7 @@ export function createWallsTool({ api }) {
     show(`
       ${scaleLine}
       <p class="wbig"><b>${res.walls.length}</b> murs · <b>${res.openings.length}</b> ouvertures <span class="mut">(${nP} portes, ${nF} fenêtres, à confirmer)</span></p>
+      ${res.stats.portesEnTravers ? `<p class="mut sm">Dont ${res.stats.portesEnTravers} porte${res.stats.portesEnTravers > 1 ? "s" : ""} posée${res.stats.portesEnTravers > 1 ? "s" : ""} en travers d'un couloir sans cloison dessinée (ex. WC sur dégagement) : un mur avec porte est ajouté pour fermer la pièce.</p>` : ""}
       <p class="mut">Épaisseurs : ${ep || "—"}<br>Méthode : ${res.mode === "aplats" ? "murs grisés du PDF (fiable)" : "traits du PDF (méthode de secours : à vérifier de près)"}</p>
       <div class="wgrid">
         <label>Épaisseur min. <span><input id="w-min" type="number" min="1" max="40" step="1" value="${opts.tMin}"> cm</span></label>

@@ -50,7 +50,7 @@ export function interiorPoly(cycle, getNode, getSeg, defEp = 0.2) {
   for (const c of cycle) {
     const s = getSeg(c.seg); if (!s) return null;
     const p = getNode(c.from), q = getNode(c.from === s.a ? s.b : s.a); if (!p || !q) return null;
-    E.push({ p, q, e: (s.ep > 0 ? s.ep : defEp) / 2 });
+    E.push({ p, q, e: (s.virt ? 0 : s.ep > 0 ? s.ep : defEp) / 2 });      // limite de pièce (virt) : épaisseur nulle
   }
   if (E.length < 3) return null;
   const S = polyArea(E.map((e) => e.p));
@@ -207,4 +207,124 @@ export function nameRooms(rooms, labels) {
     if (n > 1) name += ` (${n})`;
     return { ...r, name, labels: inside.map((l) => l.name) };
   });
+}
+
+// ---------- 3. limites de pièce (sans mur) aux étranglements ----------
+// Un dégagement ou un coin repas ouvert sur le séjour forme une seule « pièce » fermée par les murs, avec deux noms
+// dedans (« Espace de Vie » + « Dgt »). On cherche la coupe la plus courte (prolongement d'un mur, ou coupe horizontale /
+// verticale, partant d'un angle rentrant) qui sépare les deux noms : elle devient une limite de pièce (mur virtuel,
+// épaisseur nulle, dessiné en pointillés, jamais imprimé comme un mur).
+
+// ajoute une limite a→b (points proches des axes de murs) au graphe ; coupe les murs touchés (jonctions en T).
+// ids = {node(), seg()} : fabriques d'identifiants. Renvoie {seg, splits:[{seg, newSeg, at}]} ou null.
+export function addLimit(nodes, segs, a, b, ids) {
+  const N = new Map(nodes.map((n) => [n.id, n]));
+  const splits = [];
+  // point d'accroche : là où la droite a→b coupe l'axe d'un mur, près de p (la limite reste droite)
+  const L0 = Math.hypot(b.x - a.x, b.y - a.y) || 1, dx = (b.x - a.x) / L0, dy = (b.y - a.y) / L0;
+  const anchor = (p) => {
+    let best = null;
+    for (const s of segs) {
+      const A = N.get(s.a), B = N.get(s.b); if (!A || !B) continue;
+      const L = Math.hypot(B.x - A.x, B.y - A.y); if (L < 1e-6) continue;
+      const ux = (B.x - A.x) / L, uy = (B.y - A.y) / L, det = ux * dy - dx * uy;
+      if (Math.abs(det) < 0.3) continue;
+      // p + d·q = A + u·t
+      const qx = A.x - p.x, qy = A.y - p.y, q = (ux * qy - uy * qx) / det, t = (dx * qy - dy * qx) / det;
+      const ep = s.virt ? 0 : (s.ep || 0.2);
+      if (t < -0.03 || t > L + 0.03 || Math.abs(q) > ep / 2 + 0.1) continue;
+      if (!best || Math.abs(q) < Math.abs(best.q)) best = { s, A, B, L, ux, uy, t: Math.max(0, Math.min(L, t)), q };
+    }
+    if (!best) {     // pas de mur coupé franchement (coin, mur parallèle) : le mur le plus proche
+      for (const s of segs) {
+        const A = N.get(s.a), B = N.get(s.b); if (!A || !B) continue;
+        const L = Math.hypot(B.x - A.x, B.y - A.y); if (L < 1e-6) continue;
+        const ux = (B.x - A.x) / L, uy = (B.y - A.y) / L, t = (p.x - A.x) * ux + (p.y - A.y) * uy, d = Math.abs((p.x - A.x) * -uy + (p.y - A.y) * ux);
+        const ep = s.virt ? 0 : (s.ep || 0.2);
+        if (t < -0.03 || t > L + 0.03 || d > ep / 2 + 0.08) continue;
+        if (!best || d < Math.abs(best.q)) best = { s, A, B, L, ux, uy, t: Math.max(0, Math.min(L, t)), q: d };
+      }
+    }
+    if (!best) return null;
+    const { s, A, B, L, ux, uy, t } = best;
+    if (t < 0.03) return s.a;
+    if (L - t < 0.03) return s.b;
+    const n = { id: ids.node(), x: +(A.x + ux * t).toFixed(3), y: +(A.y + uy * t).toFixed(3) };
+    nodes.push(n); N.set(n.id, n);
+    const ns = { ...s, id: ids.seg(), a: n.id, b: s.b };
+    s.b = n.id; segs.push(ns);
+    splits.push({ seg: s.id, newSeg: ns.id, at: t });
+    return n.id;
+  };
+  const na = anchor(a); if (!na) return null;
+  const nb = anchor(b); if (!nb || nb === na) return null;
+  const id = ids.seg();
+  segs.push({ id, a: na, b: nb, virt: true });
+  return { seg: id, splits };
+}
+
+// coupes proposées pour séparer les noms d'une même pièce ; labels = [{name, x, y}]
+export function findLimits(nodes, segs, labels, { defEp = 0.2, maxLen = 2.6 } = {}) {
+  const out = [];
+  let G = { nodes: nodes.map((n) => ({ ...n })), segs: segs.map((s) => ({ ...s })) };
+  let k = 0; const ids = { node: () => "tn" + ++k, seg: () => "ts" + ++k };
+  for (let pass = 0; pass < 4; pass++) {
+    const rooms = findRooms(G.nodes, G.segs, { defEp });
+    const multi = rooms.map((r) => ({ r, L: labels.filter((l) => pointInPoly(l.x, l.y, r.poly)) })).filter((x) => x.L.length >= 2);
+    if (!multi.length) break;
+    let applied = false;
+    for (const { r, L } of multi) {
+      const cands = neckCandidates(r.poly, maxLen);
+      for (const c of cands) {
+        // les bouts de la coupe, ramenés sur l'axe des murs (au-delà de la face intérieure)
+        const ext = (p, q) => { const d = Math.hypot(p.x - q.x, p.y - q.y) || 1; return { x: p.x + (p.x - q.x) / d * defEp * 0.5, y: p.y + (p.y - q.y) / d * defEp * 0.5 }; };
+        const a = ext(c.a, c.b), b = ext(c.b, c.a);
+        const T = { nodes: G.nodes.map((n) => ({ ...n })), segs: G.segs.map((s) => ({ ...s })) };
+        const res = addLimit(T.nodes, T.segs, a, b, ids); if (!res) continue;
+        const after = findRooms(T.nodes, T.segs, { defEp });
+        const where = (l) => after.findIndex((x) => pointInPoly(l.x, l.y, x.poly));
+        const idx = L.map(where);
+        if (idx.some((i) => i < 0) || new Set(idx).size < 2 || after.length !== rooms.length + 1) continue;
+        const nn = new Map(T.nodes.map((n) => [n.id, n])), s = T.segs.find((x) => x.id === res.seg);
+        out.push({ a: { x: nn.get(s.a).x, y: nn.get(s.a).y }, b: { x: nn.get(s.b).x, y: nn.get(s.b).y }, L: c.L, names: L.map((l) => l.name) });
+        G = T; applied = true; break;
+      }
+      if (applied) break;
+    }
+    if (!applied) break;
+  }
+  return out;
+}
+
+// coupes partant des angles rentrants du contour : prolongement des deux côtés de l'angle, et horizontale / verticale
+function neckCandidates(P, maxLen) {
+  const n = P.length, S = polyArea(P), out = [];
+  const hit = (o, dx, dy, skip) => {
+    let best = Infinity, pt = null;
+    for (let j = 0; j < n; j++) {
+      if (skip.includes(j)) continue;
+      const A = P[j], B = P[(j + 1) % n], ex = B.x - A.x, ey = B.y - A.y, den = dx * ey - dy * ex;
+      if (Math.abs(den) < 1e-9) continue;
+      const t = ((A.x - o.x) * ey - (A.y - o.y) * ex) / den, u = ((A.x - o.x) * dy - (A.y - o.y) * dx) / den;
+      if (t > 1e-4 && u >= -1e-6 && u <= 1 + 1e-6 && t < best) { best = t; pt = { x: o.x + dx * t, y: o.y + dy * t }; }
+    }
+    return pt && { pt, L: best };
+  };
+  for (let i = 0; i < n; i++) {
+    const A = P[(i - 1 + n) % n], V = P[i], B = P[(i + 1) % n];
+    const cr = (V.x - A.x) * (B.y - V.y) - (V.y - A.y) * (B.x - V.x);
+    if (Math.sign(cr) === Math.sign(S) || Math.abs(cr) < 1e-9) continue;   // angle saillant : pas d'étranglement ici
+    const dirs = [];
+    const l1 = Math.hypot(V.x - A.x, V.y - A.y) || 1, l2 = Math.hypot(V.x - B.x, V.y - B.y) || 1;
+    dirs.push([(V.x - A.x) / l1, (V.y - A.y) / l1], [(V.x - B.x) / l2, (V.y - B.y) / l2], [1, 0], [-1, 0], [0, 1], [0, -1]);
+    for (const [dx, dy] of dirs) {
+      const h = hit(V, dx, dy, [(i - 1 + n) % n, i]);
+      if (!h || h.L < 0.4 || h.L > maxLen) continue;
+      const mid = { x: (V.x + h.pt.x) / 2, y: (V.y + h.pt.y) / 2 };
+      if (!pointInPoly(mid.x, mid.y, P)) continue;
+      if (out.some((o) => Math.hypot(o.a.x - V.x, o.a.y - V.y) < 0.02 && Math.hypot(o.b.x - h.pt.x, o.b.y - h.pt.y) < 0.02)) continue;
+      out.push({ a: { x: V.x, y: V.y }, b: h.pt, L: h.L });
+    }
+  }
+  return out.sort((p, q) => p.L - q.L);
 }

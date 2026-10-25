@@ -82,10 +82,16 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   de sauvegarde (File System Access, handle dans IndexedDB `backup:dir`, permission redemandée à chaque session),
   copie 20 s après `okteo:saved`, alerte d'échec. Barre d'outils sur 2 lignes (`.top` / `.top2 #tools`), icônes `TI`,
   appareils = `glyph(t)` dans `.ticon`, menu `#pop-view` (Affichage) qui contient dims/reps/bg/sym/theme/export.
+- v22 : `src/walls/doorways.js` (arcs de porte 70–110°, r 0,5–1,2 m ; porte fermée = rayon charnière→mur opposé ;
+  mur + porte ajoutés avec coupe en T, si aucun mur n'est déjà le long ; redressé si presque perpendiculaire), appelé par
+  `detectWalls(..., {shapes})`. Limites de pièce = murs `virt:true` (epOf 0, pointillés, pas de cote, pas d'accroche,
+  `exportGeometry().limits`, imprimés en pointillés) ; `findLimits` / `addLimit` (rooms.js : coupes depuis les angles
+  rentrants qui séparent deux noms) ; `okteo.addLimits`, `okteo.batch(fn)` (un seul Ctrl+Z). Type `APP` (applique,
+  demi-cercle `asHalf`, famille L, murale, 180 cm). Tableau : texte lisible seulement.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
-Après chaque modification : `npm run check` = `scripts/walls.test.mjs` (23 vérifications : relevé des murs, des pièces et des
+Après chaque modification : `npm run check` = `scripts/walls.test.mjs` (28 vérifications : relevé des murs, des pièces et des
 appareils sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (65 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 

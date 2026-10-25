@@ -5,7 +5,7 @@ import fs from "node:fs";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import { extractSegments } from "../src/walls/extract.js";
 import { detectWalls } from "../src/walls/detect.js";
-import { findRooms, nameRooms } from "../src/walls/rooms.js";
+import { findRooms, nameRooms, findLimits, addLimit } from "../src/walls/rooms.js";
 import { pageLabels } from "../src/walls/labels.js";
 import { detectDevices, pageTexts } from "../src/walls/devices.js";
 import { solveDigits, readDigits } from "../src/walls/digits.js";
@@ -82,6 +82,16 @@ const axis = Math.abs(ch1.cycle.reduce((s, c, i, A) => { const p = nodes.find((n
 check("surface habitable mesurée entre les faces des murs", ch1.area < axis && ch1.area > axis * 0.85, `${ch1.area.toFixed(2)} < ${axis.toFixed(2)} m²`);
 check("Chambre 1 plus grande que Chambre 2 (comme sur le plan)", ch1.area > ch2.area);
 
+console.log("Pièces ouvertes et portes en travers (v22)");
+const res2 = detectWalls(ex.segs, { k, ox: 0, oy: 0 }, { shapes: ex.shapes });
+check("porte du WC posée en travers du dégagement : un mur avec porte ajouté", res2.stats.portesEnTravers === 1 && res2.openings.length === res.openings.length + 1, JSON.stringify(res2.stats));
+const n2 = res2.nodes.map((n, i) => ({ id: "n" + i, ...n })), s2 = res2.walls.map((w, i) => ({ id: "s" + i, a: "n" + w.a, b: "n" + w.b, ep: w.ep }));
+const lims = findLimits(n2, s2, labels);
+check("limite proposée entre « Espace de Vie » et « Dgt » (0,6 à 1,2 m)", lims.length === 1 && lims[0].names.includes("Dgt") && lims[0].L > 0.6 && lims[0].L < 1.2, JSON.stringify(lims));
+let kk = 0; lims.forEach((l) => addLimit(n2, s2, l.a, l.b, { node: () => "x" + ++kk, seg: () => "y" + ++kk }));
+const named2 = nameRooms(findRooms(n2, s2), labels), nm2 = named2.map((r) => r.name).sort();
+check("9 pièces : WC et Dgt séparés du séjour, chaque nom dans sa pièce", nm2.join("|") === "Bains|Cellier|Chambre 1|Chambre 2|Dgt|Dressing|Espace de Vie|Garage|WC" && named2.every((r) => r.labels.length === 1), nm2.join(", "));
+
 console.log("Relevé des appareils (symboles du PDF)");
 const texts = await pageTexts(page);
 const dv = detectDevices(ex, texts, { k, ox: 0, oy: 0 });
@@ -89,8 +99,8 @@ const by = dv.stats.byType, prises = (by.PC16 || 0) + (by.PC20 || 0);
 check("10 points lumineux et 8 spots", by.LUM === 10 && by.SPOT === 8, JSON.stringify(by));
 check("prises : 30 à 36, dont des 20/32 A repérées par leur texte", prises >= 30 && prises <= 36 && by.PC20 >= 2, `${by.PC16} + ${by.PC20}`);
 check("4 RJ45, 7 sorties de câble, 18 à 24 interrupteurs", by.RJ45 === 4 && by.SC === 7 && (by.INT || 0) + (by.VV || 0) >= 18 && (by.INT || 0) + (by.VV || 0) <= 24, JSON.stringify(by));
-const lit = new Set(dv.links.map((l) => l.l)), lights = dv.devices.map((d, i) => [d, i]).filter(([d]) => d.t === "LUM" || d.t === "SPOT");
-check("liaisons : toujours commande → lumière, ≥ 80 % des lumières commandées", dv.links.length >= 20 && dv.links.every((l) => ["INT", "VV"].includes(dv.devices[l.c].t) && ["LUM", "SPOT"].includes(dv.devices[l.l].t)) && lit.size >= lights.length * 0.8, `${dv.links.length} liaisons, ${lit.size}/${lights.length} lumières`);
+const lit = new Set(dv.links.map((l) => l.l)), lights = dv.devices.map((d, i) => [d, i]).filter(([d]) => d.t === "LUM" || d.t === "SPOT" || d.t === "APP");
+check("liaisons : toujours commande → lumière, ≥ 80 % des lumières commandées", dv.links.length >= 20 && dv.links.every((l) => ["INT", "VV"].includes(dv.devices[l.c].t) && ["LUM", "SPOT", "APP"].includes(dv.devices[l.l].t)) && lit.size >= lights.length * 0.8, `${dv.links.length} liaisons, ${lit.size}/${lights.length} lumières`);
 // la lumière de Chambre 1 est commandée par un interrupteur situé dans la même pièce (près de sa porte)
 const inCh1 = (d) => ch1 && d && (() => { const P = ch1.poly; let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) if ((P[i].y > d.y) !== (P[j].y > d.y) && d.x < (P[j].x - P[i].x) * (d.y - P[i].y) / (P[j].y - P[i].y) + P[i].x) c = !c; return c; })();
 const l1 = dv.devices.findIndex((d) => d.t === "LUM" && inCh1(d));
@@ -98,6 +108,14 @@ const cmd1 = dv.links.filter((l) => l.l === l1).map((l) => dv.devices[l.c]);
 check("Chambre 1 : son point lumineux a son interrupteur, à moins de 50 cm de la pièce", l1 >= 0 && cmd1.length >= 1 && cmd1.every((c) => {
   const P = ch1.poly, x0 = Math.min(...P.map((p) => p.x)) - 0.5, x1 = Math.max(...P.map((p) => p.x)) + 0.5, y0 = Math.min(...P.map((p) => p.y)) - 0.5, y1 = Math.max(...P.map((p) => p.y)) + 0.5;
   return c.x > x0 && c.x < x1 && c.y > y0 && c.y < y1; }), JSON.stringify(cmd1));
+
+const apps = dv.devices.filter((d) => d.t === "APP");
+const onWall = (d) => res.walls.some((w) => { const A = res.nodes[w.a], B = res.nodes[w.b], L = Math.hypot(B.x - A.x, B.y - A.y), ux = (B.x - A.x) / L, uy = (B.y - A.y) / L, t = (d.x - A.x) * ux + (d.y - A.y) * uy;
+  return t > -0.05 && t < L + 0.05 && Math.abs((d.x - A.x) * -uy + (d.y - A.y) * ux) < w.ep / 2 + 0.08; });
+check("5 appliques (demi-cercles) reconnues, toutes contre un mur, chacune commandée", apps.length === 5 && apps.every(onWall) && apps.every((d) => dv.links.some((l) => dv.devices[l.l] === d)), `${apps.length} appliques`);
+
+const dvT = detectDevices(ex, [...texts, { str: "Tableau Elec.", font: "x", size: 5, ang: 0, x: 300, y: 410 }], { k, ox: 0, oy: 0 });
+check("tableau électrique repéré quand le texte « Tableau » est lisible", dvT.devices.filter((d) => d.t === "TAB").length === 1 && dv.devices.every((d) => d.t !== "TAB"));
 
 console.log("Lecture des chiffres en police codée (par les cotes du plan)");
 const sols = solveDigits(texts, ex.segs, k), f3 = sols.get("g_d0_f3");
