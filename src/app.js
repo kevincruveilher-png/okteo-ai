@@ -263,6 +263,13 @@ function draw(){
     const cands=pos.map(([dx,dy,an])=>({b:textBox(a.x+dx,a.y+dy,str,F*pm,{anchor:an}),x:a.x+dx,y:a.y+dy,an}));
     let c=cands.find(c=>PL.free(c.b));if(!c&&isSel("app",a.id))c=cands[0];if(!c)return;PL.add(c.b);
     lb+=`<text x="${c.x}" y="${c.y}" text-anchor="${c.an}" dominant-baseline="central" fill="var(--accent2)" font-size="${F*pm}" font-weight="600" font-family="var(--fm)">${str}</text>`;});}
+  // 3 bis. liaisons vers un autre niveau : « → L3 R+1 » à côté de l'appareil (toujours affiché)
+  if(layers.appareils.on&&layers.liaisons.on){const F=10.5,byId=Object.fromEntries(state.app.map(a=>[a.id,a])),seen={};
+   crossLinks().forEach(x=>{const a=byId[x.id];if(!a)return;const k=seen[x.id]=(seen[x.id]||0)+1,g=R+3*pm,dy=(k-1)*(F+2)*pm;
+    const pos=[[g,g+dy,"start"],[-g,g+dy,"end"],[g,-g-dy,"start"],[-g,-g-dy,"end"]];
+    const cands=pos.map(([dx,yy,an])=>({b:textBox(a.x+dx,a.y+yy,x.txt,F*pm,{anchor:an}),x:a.x+dx,y:a.y+yy,an}));
+    const c=cands.find(c=>PL.free(c.b))||cands[0];PL.add(c.b);
+    lb+=`<text class="xlink" x="${c.x}" y="${c.y}" text-anchor="${c.an}" dominant-baseline="central" fill="var(--warn)" font-size="${F*pm}" font-weight="700" font-family="var(--fm)">${x.txt}</text>`;});}
   // 4. longueur des murs : d'un côté ou de l'autre du mur, seulement s'il y a la place
   if(showDims&&layers.cotes.on&&layers.murs.on){const F=10;state.segs.forEach(seg=>{if(seg.virt)return;const d=segDir(seg);if(!d.a||d.L<0.3)return;
     const str=d.L.toFixed(2),mx=(d.a.x+d.b.x)/2,my=(d.a.y+d.b.y)/2,e=epOf(seg)/2+8*pm;
@@ -595,7 +602,8 @@ sv.addEventListener("pointerdown",e=>{sv.setPointerCapture(e.pointerId);const [w
     marquee={x0:wx,y0:wy,x1:wx,y1:wy,moved:false,shift,room:rm?rm.id:null};return;}
   if(tool==="lien"){const a=hitApp(wx,wy);if(!a)return;
     if(!sel||sel.kind!=="link"){if(a.t==="INT"||a.t==="VV"||a.t==="BP"){multi.clear();sel={kind:"link",id:a.id};draw();setHint("Cliquez la/les lumière(s) commandée(s). Échap pour terminer.");}}
-    else{if(a.t==="LUM"||a.t==="SPOT"||a.t==="APP"){snapshot();if(!state.lia.some(x=>x.c===sel.id&&x.l===a.id))state.lia.push({c:sel.id,l:a.id});markDirty();draw();}}return;}
+    else{if(a.t==="LUM"||a.t==="SPOT"||a.t==="APP"){snapshot();if(!allLinks().some(x=>x.c===sel.id&&x.l===a.id))state.lia.push({c:sel.id,l:a.id});markDirty();draw();
+      if(sel.lv&&sel.lv!==LV.cur)setHint(`Liaison entre niveaux : ${sel.rep} (${levelName(sel.lv)}) → ${repMap()[a.id]} (${levelName()}). Échap pour terminer.`);}}return;}
   // pose d'appareil (aperçu = position finale)
   if(TYPES[tool]){snapshot();const p=placementFor(tool,wx,wy,null);guides=[];const na=placeApp(tool,p);setSingle("app",na.id);markDirty();draw();showSide();}
 });
@@ -1017,10 +1025,29 @@ function applyLevelFond(){Object.assign(CH,CHS.update(CH.id,{level:LV.cur})||{})
   const L=CH.levels.find(l=>l.id===LV.cur);CH.level=LV.cur;CH.fond=L?L.fond||null:null;loadFondImage(false);
   document.dispatchEvent(new CustomEvent("okteo:level",{detail:{id:LV.cur}}));}
 function stashLevel(){LV.data[LV.cur]=Object.fromEntries(LKEYS.map(k=>[k,state[k]]));}
-function switchLevel(id){if(id===LV.cur||!CH.levels.some(l=>l.id===id))return false;snapshot();resetTransient();clearSel();
+function switchLevel(id){if(id===LV.cur||!CH.levels.some(l=>l.id===id))return false;
+  // outil Liaison en cours : on garde la commande choisie pour la relier à une lumière de l'autre niveau
+  const carry=tool==="lien"&&sel&&sel.kind==="link"?{kind:"link",id:sel.id,lv:sel.lv||LV.cur,rep:sel.rep||repMap()[sel.id]}:null;
+  snapshot();resetTransient();clearSel();
   stashLevel();const d=LV.data[id]||{};LKEYS.forEach(k=>state[k]=d[k]||[]);delete LV.data[id];LV.cur=id;
-  applyLevelFond();markDirty();fit();showSide();setHint(`Niveau « ${levelName()} ». Page ↑ / Page ↓ pour changer de niveau.`);return true;}
-const levelName=(id=LV.cur)=>(CH.levels.find(l=>l.id===id)||{}).name||id;
+  applyLevelFond();markDirty();fit();
+  if(carry){sel=carry;draw();setHint(`Liaison depuis ${carry.rep} (${levelName(carry.lv)}) : cliquez la ou les lumières de ce niveau. Échap pour terminer.`);}
+  else setHint(`Niveau « ${levelName()} ». Page ↑ / Page ↓ pour changer de niveau.`);
+  showSide();return true;}
+// toutes les liaisons, tous niveaux, et où se trouve chaque appareil
+function allLinks(){return [state.lia,...Object.entries(LV.data).filter(([id])=>id!==LV.cur).map(([,d])=>d.lia||[])].flat();}
+function appIndex(){const m=new Map();state.app.forEach(a=>m.set(a.id,{lv:LV.cur,a}));
+  for(const [id,d] of Object.entries(LV.data))if(id!==LV.cur)(d.app||[]).forEach(a=>m.set(a.id,{lv:id,a}));return m;}
+// repère d'un appareil d'un autre niveau (numérotation propre à chaque niveau)
+function repOn(lv,id){if(lv===LV.cur)return repMap()[id]||"?";const d=LV.data[lv];const a=d&&(d.app||[]).find(x=>x.id===id);return a&&a.rf&&a.n?a.rf+a.n:(a?TYPES[a.t].r:"?");}
+// liaisons qui partent de ce niveau vers un autre (ou qui en arrivent) : {id (appareil d'ici), txt}
+function crossLinks(){const idx=appIndex(),out=[];
+  for(const l of allLinks()){const c=idx.get(l.c),m=idx.get(l.l);if(!c||!m||c.lv===m.lv)continue;
+    // txt : à l'écran ; word : à l'impression (les flèches n'existent pas dans les polices PDF standard)
+    if(c.lv===LV.cur)out.push({id:l.c,txt:`→ ${repOn(m.lv,l.l)} ${levelName(m.lv)}`,word:`commande ${repOn(m.lv,l.l)} (${levelName(m.lv)})`});
+    if(m.lv===LV.cur)out.push({id:l.l,txt:`← ${repOn(c.lv,l.c)} ${levelName(c.lv)}`,word:`commandé par ${repOn(c.lv,l.c)} (${levelName(c.lv)})`});}
+  return out;}
+function levelName(id=LV.cur){return (CH.levels.find(l=>l.id===id)||{}).name||id;}
 // liste des niveaux telle qu'enregistrée (le fond du niveau ouvert a pu changer : mise à l'échelle…)
 function levelsNow(){return CHS.levelsOf(CHS.get(CH.id)||CH);}
 function saveLevels(levels){Object.assign(CH,CHS.update(CH.id,{levels})||{});CH.levels=CHS.levelsOf(CH);document.dispatchEvent(new CustomEvent("okteo:level",{detail:{id:LV.cur}}));}
@@ -1041,6 +1068,43 @@ function removeLevel(id){if(CH.levels.length<2)return false;const i=CH.levels.fi
   const gone=levelsNow().find(l=>l.id===id);CHS.update(CH.id,{levelsTrash:{...((CHS.get(CH.id)||{}).levelsTrash||{}),[id]:gone}});
   delete LV.data[id];saveLevels(levelsNow().filter(l=>l.id!==id));
   markDirty();draw();showSide();return true;}
+
+// géométrie d'impression du niveau ouvert (ou d'un autre via withLevel)
+function okteoGeo(){followWalls();
+    const walls=[],joints=[],openings=[],wallDims=[];
+    const limits=[];
+    state.segs.forEach(seg=>{const d=segDir(seg);if(!d.a||!d.L)return;if(seg.virt){limits.push({a:{x:d.a.x,y:d.a.y},b:{x:d.b.x,y:d.b.y}});return;}const e=epOf(seg),e2=e/2,nx=-d.uy*e2,ny=d.ux*e2;
+      wallIntervals(seg).forEach(([s0,s1])=>{const ax=d.a.x+d.ux*s0,ay=d.a.y+d.uy*s0,bx=d.a.x+d.ux*s1,by=d.a.y+d.uy*s1;
+        walls.push([{x:ax+nx,y:ay+ny},{x:bx+nx,y:by+ny},{x:bx-nx,y:by-ny},{x:ax-nx,y:ay-ny}]);});
+      wallDims.push({x:(d.a.x+d.b.x)/2-d.uy*(e2+0.22),y:(d.a.y+d.b.y)/2+d.ux*(e2+0.22),L:d.L,ang:Math.atan2(d.uy,d.ux)});});
+    state.nodes.forEach(n=>{let e=0;state.segs.forEach(s=>{if(s.a===n.id||s.b===n.id)e=Math.max(e,epOf(s));});if(e>0)joints.push({x:n.x,y:n.y,e});});
+    state.openings.forEach(o=>{const seg=segById(o.seg);if(!seg)return;const d=segDir(seg);if(!d.a)return;const ep=epOf(seg),nx=-d.uy,ny=d.ux,hw=o.w/2;
+      const cx=d.a.x+d.ux*o.t,cy=d.a.y+d.uy*o.t,j1={x:cx-d.ux*hw,y:cy-d.uy*hw},j2={x:cx+d.ux*hw,y:cy+d.uy*hw};
+      const O={kind:o.kind,j1,j2,n:{x:nx,y:ny},ep,w:o.w};
+      if(o.kind!=="fenetre"){const sdir=o.swing==="ext"?1:-1,H=o.hinge==="d"?j2:j1,F=o.hinge==="d"?j1:j2,Lp={x:H.x+nx*sdir*o.w,y:H.y+ny*sdir*o.w};
+        let a0=Math.atan2(Lp.y-H.y,Lp.x-H.x),a1=Math.atan2(F.y-H.y,F.x-H.x),da=a1-a0;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;
+        O.hinge=H;O.leaf=Lp;O.arc=Array.from({length:13},(_,i)=>({x:H.x+Math.cos(a0+da*i/12)*o.w,y:H.y+Math.sin(a0+da*i/12)*o.w}));}
+      openings.push(O);});
+    const rooms=state.rooms.map(r=>{const P=roomPoly(r);return {name:r.name,poly:P,area:roomArea(r),label:r.poly?labelPoint(r.poly):{x:(r.x0+r.x1)/2,y:(r.y0+r.y1)/2}};});
+    const reps=repMap();
+    const xl={};crossLinks().forEach(x=>{xl[x.id]=(xl[x.id]?xl[x.id]+' · ':'')+x.word;});
+    const apps=state.app.map(a=>({id:a.id,t:a.t,x:a.x,y:a.y,h:a.h,hDef:TYPES[a.t].h,rep:reps[a.id],name:TYPES[a.t].n,room:(roomAt(a.x,a.y)||{}).name||null,xlink:xl[a.id]||null}));
+    const byId=Object.fromEntries(state.app.map(a=>[a.id,a]));
+    const links=state.lia.map(l=>byId[l.c]&&byId[l.l]&&{a:{x:byId[l.c].x,y:byId[l.c].y},b:{x:byId[l.l].x,y:byId[l.l].y}}).filter(Boolean);
+    const dims=state.dims.map(d=>({a:{...d.a},b:{...d.b},L:dist(d.a.x,d.a.y,d.b.x,d.b.y)}));
+    return {walls,joints,openings,wallDims,limits,rooms,apps,links,dims,symU:symScaleOf(),
+      fond:FOND&&BG.w>0?{url:FOND,x:BG.x,y:BG.y,w:BG.w,h:BG.h}:null,
+      chantier:{nom:CH.nom,numero:CH.numero||"",client:CH.client||""},level:levelName(),levelId:LV.cur};}
+// exécute fn avec le niveau `id` chargé dans `state` (sans dessin, sans historique), puis remet le niveau ouvert
+function withLevel(id,fn){const keep={cur:LV.cur,arrays:Object.fromEntries(LKEYS.map(k=>[k,state[k]])),BG,FOND,sel};
+  const d=LV.data[id]||{};LV.data[LV.cur]=keep.arrays;LKEYS.forEach(k=>state[k]=d[k]||[]);delete LV.data[id];LV.cur=id;
+  const L=CH.levels.find(l=>l.id===id);BG=L&&L.fond?{x:L.fond.x,y:L.fond.y,w:L.fond.w,h:L.fond.h}:{x:0,y:0,w:0,h:0};FOND="";sel=null;
+  try{return fn();}finally{LV.data[id]=Object.fromEntries(LKEYS.map(k=>[k,state[k]]));LKEYS.forEach(k=>state[k]=keep.arrays[k]);delete LV.data[keep.cur];LV.cur=keep.cur;BG=keep.BG;FOND=keep.FOND;sel=keep.sel;}}
+// fond d'un niveau pour l'impression : {url, x, y, w, h} (image relue dans IndexedDB)
+async function levelFondInfo(id){if(id===LV.cur)return FOND&&BG.w>0?{url:FOND,x:BG.x,y:BG.y,w:BG.w,h:BG.h}:null;
+  const L=levelsNow().find(l=>l.id===id);if(!L||!L.fond||!(L.fond.w>0))return null;
+  if(L.fond.src==="asset")return {url:L.fond.url,x:L.fond.x,y:L.fond.y,w:L.fond.w,h:L.fond.h};
+  const bl=await CHS.getFile(CHS.fondKey(CH,id)).catch(()=>null);return bl?{url:URL.createObjectURL(bl),x:L.fond.x,y:L.fond.y,w:L.fond.w,h:L.fond.h}:null;}
 
 // ---------- interface publique (extensions : assistant, palette, paramètres ; tests) ----------
 function zoomToBox(x0,y0,x1,y1){syncVB();const pad=0.8,w=Math.max(1.5,x1-x0),h=Math.max(1.5,y1-y0);
@@ -1065,30 +1129,9 @@ window.okteo={
   roomArea,roomPoly,
   // tout ce qu'il faut pour imprimer le plan (en mètres) : murs découpés aux ouvertures, portes avec leur arc,
   // pièces (contour, surface), appareils (repère, pièce), liaisons, cotes, fond
-  exportGeometry(){followWalls();
-    const walls=[],joints=[],openings=[],wallDims=[];
-    const limits=[];
-    state.segs.forEach(seg=>{const d=segDir(seg);if(!d.a||!d.L)return;if(seg.virt){limits.push({a:{x:d.a.x,y:d.a.y},b:{x:d.b.x,y:d.b.y}});return;}const e=epOf(seg),e2=e/2,nx=-d.uy*e2,ny=d.ux*e2;
-      wallIntervals(seg).forEach(([s0,s1])=>{const ax=d.a.x+d.ux*s0,ay=d.a.y+d.uy*s0,bx=d.a.x+d.ux*s1,by=d.a.y+d.uy*s1;
-        walls.push([{x:ax+nx,y:ay+ny},{x:bx+nx,y:by+ny},{x:bx-nx,y:by-ny},{x:ax-nx,y:ay-ny}]);});
-      wallDims.push({x:(d.a.x+d.b.x)/2-d.uy*(e2+0.22),y:(d.a.y+d.b.y)/2+d.ux*(e2+0.22),L:d.L,ang:Math.atan2(d.uy,d.ux)});});
-    state.nodes.forEach(n=>{let e=0;state.segs.forEach(s=>{if(s.a===n.id||s.b===n.id)e=Math.max(e,epOf(s));});if(e>0)joints.push({x:n.x,y:n.y,e});});
-    state.openings.forEach(o=>{const seg=segById(o.seg);if(!seg)return;const d=segDir(seg);if(!d.a)return;const ep=epOf(seg),nx=-d.uy,ny=d.ux,hw=o.w/2;
-      const cx=d.a.x+d.ux*o.t,cy=d.a.y+d.uy*o.t,j1={x:cx-d.ux*hw,y:cy-d.uy*hw},j2={x:cx+d.ux*hw,y:cy+d.uy*hw};
-      const O={kind:o.kind,j1,j2,n:{x:nx,y:ny},ep,w:o.w};
-      if(o.kind!=="fenetre"){const sdir=o.swing==="ext"?1:-1,H=o.hinge==="d"?j2:j1,F=o.hinge==="d"?j1:j2,Lp={x:H.x+nx*sdir*o.w,y:H.y+ny*sdir*o.w};
-        let a0=Math.atan2(Lp.y-H.y,Lp.x-H.x),a1=Math.atan2(F.y-H.y,F.x-H.x),da=a1-a0;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;
-        O.hinge=H;O.leaf=Lp;O.arc=Array.from({length:13},(_,i)=>({x:H.x+Math.cos(a0+da*i/12)*o.w,y:H.y+Math.sin(a0+da*i/12)*o.w}));}
-      openings.push(O);});
-    const rooms=state.rooms.map(r=>{const P=roomPoly(r);return {name:r.name,poly:P,area:roomArea(r),label:r.poly?labelPoint(r.poly):{x:(r.x0+r.x1)/2,y:(r.y0+r.y1)/2}};});
-    const reps=repMap();
-    const apps=state.app.map(a=>({id:a.id,t:a.t,x:a.x,y:a.y,h:a.h,hDef:TYPES[a.t].h,rep:reps[a.id],name:TYPES[a.t].n,room:(roomAt(a.x,a.y)||{}).name||null}));
-    const byId=Object.fromEntries(state.app.map(a=>[a.id,a]));
-    const links=state.lia.map(l=>byId[l.c]&&byId[l.l]&&{a:{x:byId[l.c].x,y:byId[l.c].y},b:{x:byId[l.l].x,y:byId[l.l].y}}).filter(Boolean);
-    const dims=state.dims.map(d=>({a:{...d.a},b:{...d.b},L:dist(d.a.x,d.a.y,d.b.x,d.b.y)}));
-    return {walls,joints,openings,wallDims,limits,rooms,apps,links,dims,symU:symScaleOf(),
-      fond:FOND&&BG.w>0?{url:FOND,x:BG.x,y:BG.y,w:BG.w,h:BG.h}:null,
-      chantier:{nom:CH.nom,numero:CH.numero||"",client:CH.client||""}};},
+  exportGeometry(lvId){if(lvId&&lvId!==LV.cur&&CH.levels.some(l=>l.id===lvId))return withLevel(lvId,()=>okteoGeo());return okteoGeo();},
+  levelFond:levelFondInfo,
+  allLevelsGeometry(){return CH.levels.map(l=>window.okteo.exportGeometry(l.id));},
   // ajoute des pièces détectées ({name, cycle, poly, also}) ; replace = retire d'abord toutes les pièces existantes
   addRooms(list,{replace=false}={}){snapshot();if(replace)state.rooms=[];
     for(const r of list){const P=r.poly;state.rooms.push({id:uidR(),name:r.name,cycle:r.cycle,poly:P,also:r.also||[],auto:true,segs:[...new Set(r.cycle.map(c=>c.seg))],

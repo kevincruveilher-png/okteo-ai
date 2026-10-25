@@ -15,6 +15,7 @@ export function createPrintTool({ api }) {
       <label class="f">Orientation<select data-k="orient"><option value="auto">Automatique</option><option value="paysage">Paysage</option><option value="portrait">Portrait</option></select></label>
       <label class="f">Échelle<select data-k="scale"><option value="auto">Automatique</option><option value="50">1:50</option><option value="75">1:75</option><option value="100">1:100</option><option value="150">1:150</option><option value="200">1:200</option></select></label>
       <label class="f">Niveau<input data-k="niveau" value="RDC"></label>
+      <label class="f" id="pr-lvwrap" title="Tous les niveaux : une page par niveau, même format et même échelle, nomenclature commune">Niveaux imprimés<select data-k="levels"><option value="cur">Le niveau ouvert</option><option value="all">Tous les niveaux</option></select></label>
       <label class="f">Indice<input data-k="indice" value="A" maxlength="3"></label>
       <div class="pr-ck">
         <label><input type="checkbox" data-k="cotes"> Cotes</label>
@@ -31,7 +32,7 @@ export function createPrintTool({ api }) {
   </div>`;
   document.body.appendChild(back);
   const $ = (s) => back.querySelector(s);
-  let opts = { paper: "auto", orient: "auto", scale: "auto", niveau: "RDC", indice: "A", cotes: true, reperes: true, liaisons: true, fond: false, nomenclature: true, ...store(KEY, {}) };
+  let opts = { paper: "auto", orient: "auto", scale: "auto", niveau: "RDC", levels: "cur", indice: "A", cotes: true, reperes: true, liaisons: true, fond: false, nomenclature: true, ...store(KEY, {}) };
   let last = null, url = null, timer = null, seq = 0;
 
   function fill() {
@@ -40,8 +41,10 @@ export function createPrintTool({ api }) {
   async function refresh() {
     const my = ++seq;
     $(".pr-wait").hidden = false;
-    const geo = api.exportGeometry();
-    const L = layoutPlan(geo, opts);
+    const all = opts.levels === "all" && api.levels.length > 1;
+    const geo = all ? api.allLevelsGeometry() : api.exportGeometry();
+    if (all && opts.fond) for (const g of geo) g.fond = await api.levelFond(g.levelId);
+    const L = layoutPlan(all ? { walls: geo.flatMap((g) => g.walls), apps: geo.flatMap((g) => g.apps), rooms: geo.flatMap((g) => g.rooms), fond: geo[0].fond } : geo, opts);
     $(".pr-info").innerHTML = `${L.paper} ${L.orient} · <b>1:${L.scale}</b> · ${L.fits ? "le plan tient dans le cadre" : `<span class="warn">le plan dépasse : choisissez un plus grand format ou une plus petite échelle</span>`}`;
     try {
       const r = await buildPlanPdf(geo, opts);
@@ -86,6 +89,6 @@ export function createPrintTool({ api }) {
     if (e.key === "Escape" && !back.hidden) close();
   });
   // le niveau imprimé est celui qui est ouvert
-  function open() { if (api.tab !== "plan") api.setTab("plan"); opts.niveau = api.level.name; fill(); back.hidden = false; refresh(); }
+  function open() { if (api.tab !== "plan") api.setTab("plan"); opts.niveau = api.level.name; $("#pr-lvwrap").hidden = api.levels.length < 2; if (api.levels.length < 2) opts.levels = "cur"; fill(); back.hidden = false; refresh(); }
   return { open, close, get last() { return last; } };
 }

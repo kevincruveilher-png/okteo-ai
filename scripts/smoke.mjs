@@ -587,6 +587,39 @@ try {
     return named === "Étage" && one.n === 1 && one.lv === "RDC" && one.apps === rdc.apps && back === "RDC+fond|Étage+fond" && (await ev(() => okteo.level.name)) === "RDC";
   });
 
+  await check("liaison entre niveaux : interrupteur du RDC → lumière de l'étage, affichée des deux côtés", async () => {
+    await ev(() => okteo.setTool("lien"));
+    const int = await ev(() => { const a = okteo.state.app.find((x) => x.t === "INT"); return { id: a.id, rep: okteo.repMap()[a.id], p: okteo.toClient(a.x, a.y) }; });
+    await page.mouse.click(int.p.x, int.p.y);
+    await page.keyboard.press("PageUp"); await page.waitForFunction(() => okteo.level.name === "Étage");
+    const hint = await page.textContent("#hint");
+    const lum = await ev(() => { const a = okteo.state.app.find((x) => x.t === "LUM"); return okteo.toClient(a.x, a.y); });
+    await page.mouse.click(lum.x, lum.y);
+    const up = await ev(() => [...document.querySelectorAll("#sv text.xlink")].map((t) => t.textContent).join("|"));
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("PageDown"); await page.waitForFunction(() => okteo.level.name === "RDC");
+    const down = await ev(() => [...document.querySelectorAll("#sv text.xlink")].map((t) => t.textContent).join("|"));
+    await ev(() => okteo.setTool("sel"));
+    if (!(hint.includes("Liaison depuis " + int.rep) && up === "← " + int.rep + " RDC" && down === "→ L1 Étage")) throw new Error(JSON.stringify({ hint, up, down, rep: int.rep }));
+    return true;
+  });
+  await check("impression de tous les niveaux : une page par niveau + nomenclature commune, liaison inter-niveaux écrite", async () => {
+    await page.keyboard.press("Control+p");
+    await page.waitForSelector(".pr-back:not([hidden])");
+    await page.selectOption('.pr [data-k="levels"]', "all");
+    await page.waitForFunction(() => okteoExt.printer.last && okteoExt.printer.last.pages >= 3 && !document.querySelector(".pr-wait:not([hidden])"), null, { timeout: 30000 });
+    const blob = await ev(async () => Array.from(new Uint8Array(await okteoExt.printer.last.blob.arrayBuffer())));
+    const doc = await pdfjsNode.getDocument({ data: new Uint8Array(blob), verbosity: 0 }).promise;
+    const txt = async (p) => (await (await doc.getPage(p)).getTextContent()).items.map((i) => i.str).join(" ");
+    const t1 = await txt(1), t2 = await txt(2); let t3 = ""; for (let i = 3; i <= doc.numPages; i++) t3 += " " + await txt(i);
+    await page.selectOption('.pr [data-k="levels"]', "cur");
+    await page.waitForFunction(() => okteoExt.printer.last && okteoExt.printer.last.pages === 2, null, { timeout: 30000 });
+    await page.keyboard.press("Escape");
+    const ok = t1.includes("RDC") && t2.includes("Étage") && t3.includes("Nomenclature") && t3.includes("Étage · ") && t3.includes("commande L1 (Étage)") && t3.includes("commandé par");
+    if (!ok) throw new Error(JSON.stringify({ a: t1.includes("RDC"), b: t2.includes("Étage"), c: t3.includes("Étage · "), d: t3.includes("commande L1 (Étage)"), t3: t3.slice(-600) }));
+    return true;
+  });
+
   console.log("Impression PDF");
   let pdfBytes = null, lay = null, geoW = 0;
   await check("Ctrl+P : aperçu du PDF, format et échelle choisis automatiquement", async () => {

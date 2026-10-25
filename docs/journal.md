@@ -171,9 +171,16 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - Limite : pas de liaison entre deux niveaux (va-et-vient d'escalier) ; pas d'impression de tous les niveaux d'un coup.
 - Tests : 28 + 72 = 100.
 
-## PROCHAINE MISE À JOUR (v25) — à choisir
-Liaisons entre niveaux + impression de tous les niveaux ; découpage d'app.js en modules ; parcours « Premiers pas ».
-Puis le câblage (boîtes, bandes, SPV) — règles à demander à Kévin. En attente : PDF d'autres pavillonneurs (dont un R+1).
+## Version 25 (25/10/2026) — livrée : liaisons entre niveaux, impression de tous les niveaux
+- Outil Liaison : la commande choisie reste active en changeant de niveau (Page ↑/↓) ; étiquettes « → L1 Étage » /
+  « ← I5 RDC » à l'écran, « commande … / commandé par … » à l'impression et dans la nomenclature.
+- Impression « Tous les niveaux » : une page par niveau (même format, même échelle), nomenclature commune.
+- Corrigé au passage : « plafond » écrit pour une sortie de câble sans hauteur → « hauteur à préciser ».
+- Tests : 28 + 74 = 102.
+
+## PROCHAINE MISE À JOUR (v26) — à choisir
+Découpage d'app.js en modules (maintenance, VS Code) ; parcours « Premiers pas ». Puis le câblage (boîtes, bandes, SPV)
+— règles à demander à Kévin. En attente : PDF d'autres pavillonneurs (dont un R+1).
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.

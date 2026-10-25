@@ -101,11 +101,18 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `switchLevel` (snapshot, fond rechargé `loadFondImage`, événement `okteo:level`), `addLevel(name,{withWalls})`,
   `renameLevel`, `removeLevel`, `levelsNow()` (toujours relire la liste enregistrée), ids uniques sur tous les niveaux
   (`bumpIds`), niveau du dessous en `g.below`. Interface : `src/ext/levels.js` (barre `#levels`, Page ↑/↓).
+- v25 : liaisons entre niveaux = entrées `lia` ordinaires dont un bout est sur un autre niveau (ids uniques) ;
+  `allLinks()`, `appIndex()`, `crossLinks()` ({txt écran avec flèche, word pour le PDF}) ; l'outil Liaison garde la
+  commande en changeant de niveau (`sel.lv`). `okteo.exportGeometry(levelId)` via `withLevel(id, fn)` (charge un autre
+  niveau dans `state` le temps du calcul), `allLevelsGeometry()`, `levelFond(id)` (async, image du fond).
+  `buildPlanPdf(geo | [geo…])` : une page par niveau (mise en page commune), nomenclature commune.
+  Pièges : pas de flèches ni de caractères hors WinAnsi dans le PDF ; fonctions appelées par `draw()` au démarrage
+  = déclarations `function` (pas de `const f=()=>` plus bas : erreur d'initialisation).
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/walls.test.mjs` (28 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (72 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/smoke.mjs` (74 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

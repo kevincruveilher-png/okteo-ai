@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v24** (25/10/2026) : niveaux (RDC, R+1, combles, sous-sol).
+Version du prototype : **v25** (25/10/2026) : liaisons entre niveaux, impression de tous les niveaux.
 (v17 : pièces ; v16 : appareils attachés aux murs ; v15 : relevé des murs ; v14 : chantiers.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
@@ -37,7 +37,7 @@ Pour arrêter : Ctrl+C dans le terminal.
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 100 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 102 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -63,7 +63,11 @@ Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre
 - Relevé des murs, pièces et appareils : sur le niveau ouvert, avec son plan.
 - Le niveau du dessous s'affiche en gris clair (menu Affichage → « Niveau du dessous en transparence »).
 - Impression : le niveau ouvert, avec son nom dans le cartouche. Le fichier .okteo contient tous les niveaux.
-- Pas encore : liaison entre deux niveaux (va-et-vient d'escalier).
+- **Liaison entre niveaux** (v25, ex. va-et-vient d'escalier) : outil **Liaison**, cliquer l'interrupteur, **Page ↑**
+  (la commande reste choisie), cliquer la lumière de l'étage. L'interrupteur affiche « → L1 Étage », la lumière
+  « ← I5 RDC » ; à l'impression : « commande L1 (Étage) » / « commandé par I5 (RDC) ».
+- **Imprimer tous les niveaux** (v25) : fenêtre Imprimer → « Niveaux imprimés : Tous les niveaux » : une page par
+  niveau, même format et même échelle, puis une nomenclature commune (pièces et appareils niveau par niveau).
 
 ## Lisibilité du plan (v23)
 
