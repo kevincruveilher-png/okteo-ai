@@ -13,6 +13,17 @@
     <div class="brand">Oktéo <b>AI</b></div>
     <button class="badge" title="Chantier ouvert : cliquez pour changer de chantier">…</button>
     <div class="levels" id="levels" role="tablist" aria-label="Niveaux"></div>
+    <div class="pop pop-left" id="pop-relev">
+      <button id="btn-relev" aria-haspopup="true" aria-expanded="false" title="Relever automatiquement le plan PDF : murs, pièces, appareillage, ou relevé par l'IA">⤓ Relevé ▾</button>
+      <div class="pop-body relev" hidden>
+        <p class="mut sm">Chaque relevé montre un aperçu en orange : vous gardez ou non le résultat. Ctrl+Z annule.</p>
+        <button id="rv-walls" title="Lit les murs dessinés dans le PDF (sans IA) : épaisseurs, portes, fenêtres. L'échelle est réglée toute seule d'après les cotes si besoin."><b>1. Murs</b><small>du PDF, sans IA</small></button>
+        <button id="rv-rooms" title="Trouve les pièces fermées par les murs, leur surface et leur nom lu sur le plan. Il faut des murs."><b>2. Pièces</b><small>noms et surfaces</small></button>
+        <button id="rv-devices" title="Lit les symboles du plan : prises, interrupteurs, points lumineux… et leurs liaisons."><b>3. Appareillage</b><small>symboles et liaisons</small></button>
+        <div class="pop-sep"></div>
+        <button id="rv-ai" class="btn-ai" title="L'IA regarde l'image du plan et propose murs, pièces et appareils, pour comparer avec le relevé sans IA. Il faut une clé IA (Paramètres)."><b>✦ Relevé par l'IA</b><small>murs, pièces et appareils, pour comparer</small></button>
+      </div>
+    </div>
     <div class="grow"></div>
     <label class="ck" title="Force les murs et les cotes à l'horizontale ou à la verticale"><input type="checkbox" id="ortho" checked> Angles droits</label>
     <div class="pop" id="pop-view">

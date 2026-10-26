@@ -16,6 +16,7 @@ import { createLevelsBar } from "./levels.js";
 import { createTour } from "./tour.js";
 import { createCablagePane } from "./cablage-ui.js";
 import { mountBoxesPage, mountDirectPage } from "./cablage-pages.js";
+import { createAiReleve } from "./ai-releve.js";
 
 function start() {
   const api = window.okteo;
@@ -37,6 +38,8 @@ function start() {
   const devices = createDevicesTool({ api });
   const printer = createPrintTool({ api });
   const levels = createLevelsBar({ api });
+  const aiReleve = createAiReleve({ api, openParams: () => api.setTab("params") });
+  hooks.aiReleve = () => aiReleve.open();
   document.addEventListener("okteo:walls", () => walls.open());
   document.addEventListener("okteo:devices", () => devices.open());
   const catalog = buildCatalog(api, hooks);
@@ -74,12 +77,23 @@ function start() {
 
   // ---------- barre du haut ----------
   document.getElementById("btn-palette").onclick = () => palette.open();
-  // menu « Affichage » : s'ouvre au clic, se ferme au clic ailleurs ou avec Échap
-  const pop = document.getElementById("pop-view"), popBtn = document.getElementById("btn-view"), popBody = pop.querySelector(".pop-body");
-  const setPop = (open) => { popBody.hidden = !open; popBtn.setAttribute("aria-expanded", String(open)); popBtn.classList.toggle("on", open); };
-  popBtn.onclick = (e) => { e.stopPropagation(); setPop(popBody.hidden); };
-  document.addEventListener("pointerdown", (e) => { if (!popBody.hidden && !pop.contains(e.target)) setPop(false); });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !popBody.hidden) setPop(false); });
+  // menus « Affichage » et « Relevé » : s'ouvrent au clic, se ferment au clic ailleurs ou avec Échap
+  const popMenu = (id, btnId) => {
+    const pop = document.getElementById(id), btn = document.getElementById(btnId), body = pop.querySelector(".pop-body");
+    const set = (open) => { body.hidden = !open; btn.setAttribute("aria-expanded", String(open)); btn.classList.toggle("on", open); };
+    btn.onclick = (e) => { e.stopPropagation(); set(body.hidden); };
+    document.addEventListener("pointerdown", (e) => { if (!body.hidden && !pop.contains(e.target)) set(false); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !body.hidden) set(false); });
+    return set;
+  };
+  popMenu("pop-view", "btn-view");
+  const setRelev = popMenu("pop-relev", "btn-relev");
+  const relev = (fn) => () => { setRelev(false); fn(); };
+  document.getElementById("rv-walls").onclick = relev(() => walls.open());
+  document.getElementById("rv-rooms").onclick = relev(() => rooms.open());
+  document.getElementById("rv-devices").onclick = relev(() => devices.open());
+  document.getElementById("rv-ai").onclick = relev(() => aiReleve.open());
+  hooks.openReleve = () => setRelev(true);
   document.getElementById("btn-print").onclick = () => printer.open();
   document.getElementById("btn-assistant").onclick = () => { panel.toggle("assistant"); if (panel.state.pane === "assistant" && !panel.state.collapsed) assistant.focus(); };
 
@@ -103,7 +117,7 @@ function start() {
   const tour = createTour({ api, panel, hooks });
   hooks.tour = () => tour.start();
   hooks.steps = () => { panel.show("steps"); tour.render(); };
-  window.okteoExt = { cablage, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, backup: null };
+  window.okteoExt = { cablage, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 

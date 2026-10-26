@@ -140,11 +140,22 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `okteo.setBoxes`, `setCab`, `boxSel`. Interface : `cablage-ui.js` (section Boîtes), `cablage-data.js` (`wiringNow`,
   `autoBoxes`), `cablage-pages.js` (onglets Boîtes et Lignes directes). Piège : ne jamais donner la classe `app` à un
   élément (c'est la grille de la page).
+- v31 : liaisons (render : `path.lia`, `circle.lia-miss` / `.lia-on` avec l'outil Liaison ; attach.js `linkRole`,
+  `linkCtrl`, `hitLink` ; interact.js `linkInfo`/`lightInfo`/`linkSummary` ; `K.linkHot` (Suppr la retire), `K.linkLight`).
+  Menu `#pop-relev` (index.html, `popMenu` dans ext/main.js) : `#rv-walls`/`#rv-rooms`/`#rv-devices`/`#rv-ai`.
+  `autoScale(api)` (pdf-page.js) : échelle déduite des cotes (≥ 4) si le fond n'est pas calibré (walls-ui, devices-ui,
+  ai-releve ; `autoScale.busy` évite la proposition « Relever les murs » en double). Relevé IA : `src/walls/ai-plan.js`
+  (pur : `aiPrompt`, `parseAiJson`, `aiToPlan` → murs redressés, sommets fusionnés, T coupés, ouvertures sur le mur le
+  plus proche, en pixels × `map` {x0,y0,sx,sy}) + `src/ext/ai-releve.js` (image du fond rognée ≤ 1568 px, aperçu, cases
+  murs/pièces/appareils, `fromText(text, map)` pour les tests). ai.js : Claude appelé directement
+  (`anthropic-dangerous-direct-browser-access`) quand le relais local manque ; NVIDIA refusé en ligne (message clair).
+- Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
+  poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
-Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (28 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (26 : gaines, circuits, boîtes, fils) + `scripts/smoke.mjs` (84 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (26 : gaines, circuits, boîtes, fils) + `scripts/smoke.mjs` (91 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

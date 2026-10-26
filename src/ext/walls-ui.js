@@ -2,14 +2,14 @@
 // permet d'ajuster l'épaisseur min/max, puis ajoute les murs au dessin (un seul Ctrl+Z pour tout annuler).
 import * as CHS from "../chantiers.js";
 import { detectWalls } from "../walls/detect.js";
-import { chantierPage, chantierScaleCheck, pageMap } from "./pdf-page.js";
+import { autoScale, chantierPage, chantierScaleCheck, pageMap } from "./pdf-page.js";
 import { esc } from "./util.js";
 
 export function createWallsTool({ api }) {
   const card = document.createElement("div");
   card.className = "wcard"; card.hidden = true; card.setAttribute("role", "dialog"); card.setAttribute("aria-label", "Relevé des murs");
   document.querySelector(".stage").appendChild(card);
-  let page = null, res = null, scale = null, opts = { tMin: 4, tMax: 45 }, replace = false, busy = false, detectRoomsAfter = true;
+  let page = null, res = null, scale = null, auto = null, opts = { tMin: 4, tMax: 45 }, replace = false, busy = false, detectRoomsAfter = true;
 
   const close = () => { card.hidden = true; api.setPreview(null); res = null; };
   function show(html) { card.innerHTML = `<div class="wcard-h"><b>Relevé des murs</b><button class="wx" title="Fermer">✕</button></div>${html}`; card.hidden = false; card.querySelector(".wx").onclick = close; }
@@ -32,7 +32,7 @@ export function createWallsTool({ api }) {
     const existing = api.state.segs.length;
     const ecart = scale ? (scale.facteur - 1) * 100 : 0, okScale = scale && Math.abs(ecart) <= 1.5;
     const pct = (v) => Math.abs(v).toFixed(1).replace(".", ",") + " %";
-    const scaleLine = !scale ? "" : okScale
+    const scaleLine = auto && auto.auto ? `<p class="ok sm" id="w-scale">✓ Échelle réglée automatiquement d'après ${auto.cotes} cotes du plan.</p>` : !scale ? "" : okScale
       ? `<p class="ok sm" id="w-scale">✓ Échelle confirmée par ${scale.cotes} cotes du plan (écart ${pct(ecart)}).</p>`
       : `<p class="warn sm" id="w-scale">⚠ ${scale.cotes} cotes du plan indiquent que l'échelle du fond est ${ecart > 0 ? "trop petite" : "trop grande"} de ${pct(ecart)}.
          ${api.state.segs.length ? "Refaites la mise à l'échelle sur la plus grande cote du plan." : `<button id="w-fix" title="Remet le fond à l'échelle donnée par les cotes du plan">Corriger l'échelle</button>`}</p>`;
@@ -71,9 +71,11 @@ export function createWallsTool({ api }) {
     if (!ch.fond) return message("Ce chantier n'a pas encore de plan. Ajoutez le PDF du plan dans l'onglet Chantiers.", [{ label: "Ouvrir Chantiers", run: () => api.setTab("chantiers") }]);
     const pdf = await CHS.getFile(CHS.pdfKey(ch)).catch(() => null);
     if (!pdf) return message("Le fond de ce chantier n'est pas un PDF (c'est une image) : le relevé automatique lit les traits du PDF d'origine. Remplacez le fond par le PDF du plan (Chantiers → Changer le fond).", [{ label: "Ouvrir Chantiers", run: () => api.setTab("chantiers") }]);
-    if (!ch.fond.calibre) return message("Réglez d'abord l'échelle du fond : les murs seront relevés à la bonne dimension.", [{ label: "Régler l'échelle", run: () => api.startCalib() }]);
     busy = true; show(`<p>Lecture des traits du PDF…</p>`);
     try {
+      // pas encore d'échelle : on la déduit des cotes du plan ; sinon on la demande
+      auto = await autoScale(api);
+      if (!auto.ok) { busy = false; return message("Le logiciel n'a pas réussi à lire assez de cotes sur le plan pour régler l'échelle tout seul. Réglez-la à la main : cliquez les deux bouts d'une cote connue, puis tapez sa longueur.", [{ label: "Régler l'échelle", run: () => api.startCalib() }, { label: "Plus tard", run: () => {} }]); }
       page = await chantierPage(api);
       scale = await chantierScaleCheck(api).catch(() => null);
       compute();
@@ -86,7 +88,7 @@ export function createWallsTool({ api }) {
 
   // juste après la mise à l'échelle d'un plan PDF encore vide : proposer le relevé
   document.addEventListener("okteo:calibrated", async () => {
-    if (api.state.segs.length) return;
+    if (autoScale.busy || busy || api.state.segs.length) return;
     const pdf = await CHS.getFile(CHS.pdfKey(api.ch)).catch(() => null);
     if (pdf) message("Échelle réglée. Voulez-vous relever automatiquement les murs du plan ?", [{ label: "Relever les murs", run: open }, { label: "Plus tard", run: () => {} }]);
   });

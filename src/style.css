@@ -314,3 +314,14 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .wchip b{background:var(--fg);color:var(--panel);border-radius:8px;padding:0 5px;font-size:10.5px}
 .nets{margin-top:8px;font-size:12.5px}.nets ol{margin:6px 0 0 18px;padding:0}.nets li{list-style:none;margin:2px 0}
 .warnbox{margin:6px 0 10px}
+
+/* menu Relevé (v31) */
+.pop-left .pop-body{left:0;right:auto}
+.pop-body.relev{min-width:270px}
+.pop-body.relev button{display:flex;flex-direction:column;align-items:flex-start;gap:1px}
+.pop-body.relev button small{color:var(--mut);font-size:11px}
+.pop-body.relev p{margin:0}
+.pop-sep{border-top:1px solid var(--line)}
+.ai-row{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;font-size:12.5px;margin:6px 0}
+.ai-row input{margin-top:2px}
+.ai-raw{max-height:160px;overflow:auto;white-space:pre-wrap;font-size:11px;background:var(--bg);padding:6px;border-radius:6px}

@@ -211,9 +211,23 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - À valider par Kévin : contenu des gaines (va-et-vient, télérupteur), hauteur du haut du tableau (1,80 m), surlongueurs.
 - Tests : 28 + 26 + 84 = 138.
 
-## PROCHAINE MISE À JOUR (v31) : schéma de boîte pour le câbleur
+## Version 31 (26/10/2026) — livrée : liaisons visibles, menu Relevé, relevé par l'IA, version en ligne
+- Demandes de Kévin : « je ne vois pas les liaisons », « je n'arrive pas à utiliser la détection des murs », trois
+  détections séparées, et un bouton IA pour comparer.
+- Outil Liaison : tout visible, appareils sans liaison cerclés en orange, compteur, clic commande / lumière / liaison,
+  Suppr. Menu « ⤓ Relevé » en haut (avant : relevés cachés dans Ctrl+K et l'onglet Étapes). Échelle réglée toute seule
+  d'après les cotes. Relevé par l'IA (Claude en ligne ou en local, NVIDIA en local) avec cases murs / pièces / appareils.
+- Version en ligne : https://kevincruveilher-png.github.io/okteo-ai/ (GitHub Pages, branche gh-pages, `npm run deploy`).
+- Essai IA sur EVRARD (Claude a rédigé la réponse à l'œil sur l'image envoyée par le bouton) : murs à 6 cm près en
+  moyenne, 95 % à moins de 15 cm ; 8 pièces sur 9 (le Dgt fondu dans l'Espace de vie) ; 62 appareils dont 50 au bon
+  endroit sur 87 ; 22 liaisons sur 31. Conclusion : géométrie = référence pour les PDF vectoriels, IA = secours pour
+  les plans scannés. À refaire avec une vraie clé (Claude Sonnet) et un plan scanné.
+- Tests : 30 + 26 + 91 = 147.
+
+## PROCHAINE MISE À JOUR (v32) : schéma de boîte pour le câbleur
 La boîte carrée dessinée avec ses faces et ses gaines, fils numérotés, retours lampe et navettes tracés, liste des
-raccordements à cocher ; impression (une page par boîte). Puis SPV pour Counter.
+raccordements à cocher ; impression (une page par boîte). Puis SPV pour Counter. Aussi : page « Reprendre le projet »
+pour le collègue qui reprend le développement.
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.

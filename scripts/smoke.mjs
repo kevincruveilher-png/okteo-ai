@@ -28,6 +28,20 @@ const mock = http.createServer((req, res) => {
     let text = "OK";
     if (/nemotron-test/.test(lastText)) text = "<think>brouillon secret</think>Réponse Nemotron.";
     if (/outil pi[eè]ce/i.test(lastText)) text = 'Je lance l\'outil Pièce : glissez un rectangle.\n```okteo\n{"actions":[{"do":"cmd","id":"tool.piece"}]}\n```';
+    else if (/Relève ce plan/.test(lastText)) {
+      // relevé par l'IA : une maison rectangulaire coupée en deux pièces, en pixels de l'image envoyée
+      const [, W, H] = (lastText.match(/image de (\d+) × (\d+) pixels/) || [0, 1000, 700]).map(Number);
+      const X = (f) => Math.round(f * W), Y = (f) => Math.round(f * H);
+      text = "Voici le relevé :\n```json\n" + JSON.stringify({
+        murs: [{ x1: X(0.1), y1: Y(0.1), x2: X(0.9), y2: Y(0.1), ep: 25 }, { x1: X(0.9), y1: Y(0.1), x2: X(0.9), y2: Y(0.9), ep: 25 },
+          { x1: X(0.9), y1: Y(0.9), x2: X(0.1), y2: Y(0.9), ep: 25 }, { x1: X(0.1), y1: Y(0.9), x2: X(0.1), y2: Y(0.1), ep: 25 },
+          { x1: X(0.5), y1: Y(0.1) + 2, x2: X(0.5) + 3, y2: Y(0.9), ep: 7 }],
+        ouvertures: [{ x: X(0.5), y: Y(0.5), l: 80, t: "porte" }, { x: X(0.3), y: Y(0.9), l: 120, t: "fenetre" }],
+        pieces: [{ nom: "Séjour", x: X(0.3), y: Y(0.5) }, { nom: "Chambre", x: X(0.7), y: Y(0.5) }],
+        appareils: [{ t: "INT", x: X(0.48), y: Y(0.6) }, { t: "LUM", x: X(0.3), y: Y(0.5) }, { t: "PC16", x: X(0.12), y: Y(0.5) }, { t: "XYZ", x: 1, y: 1 }],
+        liaisons: [[0, 1]], remarques: "plan de test",
+      }) + "\n```";
+    }
     else if (/Analyse ce plan/.test(lastText)) {
       const rid = (j.system || msgs[0]?.content || "").match(/"id":"(r\d+)"/)?.[1] || "r1";
       text = `## Dessin\n- La pièce [${rid}] n'a pas de point lumineux.\n## Priorités\n1. Ajouter un point lumineux${hasImage ? "\n(image reçue)" : ""}\n\`\`\`okteo\n{"suggest":[{"do":"zoom","ids":["${rid}"],"label":"Voir la pièce"}]}\n\`\`\``;
@@ -344,6 +358,17 @@ try {
     const px = await ev(() => JSON.parse(localStorage.getItem("okteo.chantiers.v1")).find((c) => c.nom === "ESSAI").fond.pxW);
     return (await page.textContent(".badge")).includes("ESSAI · 99999") && (await ev(() => okteo.tool)) === "calib" && (await ev(() => okteo.state.rooms.length)) === 0 && px > 3000;
   });
+  await check("sans échelle : « Relevé → 1. Murs » règle l'échelle tout seul d'après les cotes du plan (à 1,5 % près)", async () => {
+    await page.keyboard.press("Escape");
+    await page.click("#btn-relev"); await page.click("#rv-walls");
+    await page.waitForSelector("#w-ok", { timeout: 60000 });
+    const t = await page.textContent("#w-scale");
+    const r = await ev(async () => { const m = await import("/src/ext/pdf-page.js"); const s = await m.chantierScaleCheck(okteo); return { cal: okteo.ch.fond.calibre, f: s && s.facteur, n: s && s.cotes }; });
+    await page.keyboard.press("Escape");
+    await ev(() => okteo.startCalib());
+    if (!/réglée automatiquement/.test(t) || r.cal !== true || !(Math.abs(r.f - 1) < 0.015)) throw new Error(JSON.stringify({ t, r }));
+    return true;
+  });
   await check("mise à l'échelle 2 points : la cote mesure exactement 10,00 m", async () => {
     const box = await page.locator("#sv").boundingBox();
     const w0 = await ev(() => okteo.BG.w);
@@ -501,9 +526,105 @@ try {
   await check("liaisons : celles de l'appareil sélectionné ressortent, les autres s'effacent", async () => ev(() => {
     const l = okteo.state.lia[0]; okteo.select([l.c]);
     const paths = [...document.querySelectorAll("#sv path[d^='M']")].filter((p) => p.getAttribute("d").includes(" Q "));
-    const hot = paths.filter((p) => +p.getAttribute("opacity") > 0.9).length, dim = paths.filter((p) => +p.getAttribute("opacity") < 0.2).length;
+    const hot = paths.filter((p) => +p.getAttribute("opacity") > 0.9).length, dim = paths.filter((p) => +p.getAttribute("opacity") < 0.3).length;
     okteo.clearSel(); return hot >= 1 && dim > 5;
   }));
+
+  console.log("Liaisons et relevés (v31)");
+  await check("outil Liaison : toutes les liaisons en trait épais, compteur, appareils sans liaison cerclés en orange", async () => {
+    await ev(() => okteo.setTool("lien"));
+    const r = await ev(() => {
+      const P = [...document.querySelectorAll("#sv path.lia")], A = okteo.state.app, L = okteo.allLinks();
+      const role = (t) => (["INT", "VV", "BP"].includes(t) ? "c" : ["LUM", "SPOT", "APP"].includes(t) ? "l" : null);
+      const linked = new Set(L.flatMap((x) => [x.c, x.l])), miss = A.filter((a) => role(a.t) && !linked.has(a.id)).length;
+      return { n: P.length, lia: okteo.state.lia.length, op: Math.min(...P.map((p) => +p.getAttribute("opacity"))), hint: document.getElementById("hint").textContent, miss, rings: document.querySelectorAll("#sv circle.lia-miss").length };
+    });
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/liaisons.png" });
+    if (r.n !== r.lia || r.op < 0.8 || r.rings !== r.miss || !/\d+ liaisons sur ce niveau/.test(r.hint)) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("outil Liaison : clic sur une commande = ses lumières ressortent ; clic sur une de ses lumières = détachée (Ctrl+Z)", async () => {
+    const t = await ev(() => { const x = okteo.state.lia[0], A = okteo.state.app, c = A.find((a) => a.id === x.c), l = A.find((a) => a.id === x.l); return { c: okteo.toClient(c.x, c.y), l: okteo.toClient(l.x, l.y), n: okteo.state.lia.length }; });
+    await page.mouse.click(t.c.x, t.c.y);
+    const h1 = await ev(() => document.getElementById("hint").textContent), on = await ev(() => document.querySelectorAll("#sv circle.lia-on").length);
+    await page.mouse.click(t.l.x, t.l.y);
+    const n2 = await ev(() => okteo.state.lia.length), h2 = await ev(() => document.getElementById("hint").textContent);
+    await page.keyboard.press("Control+z");
+    const n3 = await ev(() => okteo.state.lia.length);
+    if (!/lumière/.test(h1) || on < 1 || n2 !== t.n - 1 || !/retirée/.test(h2) || n3 !== t.n) throw new Error(JSON.stringify({ h1, on, n2, h2, n3, n: t.n }));
+    return true;
+  });
+  await check("outil Liaison : clic sur une liaison = elle est choisie (les deux appareils nommés) ; Suppr la retire", async () => {
+    await ev(() => okteo.setTool("lien"));
+    const t = await ev(() => {
+      const A = okteo.state.app, by = Object.fromEntries(A.map((a) => [a.id, a]));
+      for (const x of okteo.state.lia) {
+        const c = by[x.c], l = by[x.l]; if (!c || !l) continue;
+        const d = Math.hypot(l.x - c.x, l.y - c.y); if (d < 1.5) continue;
+        const q = { x: (c.x + l.x) / 2, y: (c.y + l.y) / 2 - d * 0.18 }, m = { x: 0.25 * c.x + 0.5 * q.x + 0.25 * l.x, y: 0.25 * c.y + 0.5 * q.y + 0.25 * l.y };
+        if (A.every((a) => Math.hypot(a.x - m.x, a.y - m.y) > 0.5)) { okteo.zoomToBox(m.x - 2, m.y - 2, m.x + 2, m.y + 2); return { p: okteo.toClient(m.x, m.y), n: okteo.state.lia.length }; }
+      }
+      return null;
+    });
+    if (!t) throw new Error("pas de liaison isolée");
+    await page.mouse.click(t.p.x, t.p.y);
+    const h = await ev(() => document.getElementById("hint").textContent);
+    await page.keyboard.press("Delete");
+    const n2 = await ev(() => okteo.state.lia.length);
+    await page.keyboard.press("Control+z");
+    const n3 = await ev(() => okteo.state.lia.length);
+    await page.keyboard.press("Escape"); await ev(() => okteo.fit());
+    if (!/^Liaison \S+ → \S+/.test(h) || n2 !== t.n - 1 || n3 !== t.n) throw new Error(JSON.stringify({ h, n2, n3, n: t.n }));
+    return true;
+  });
+  await check("menu Relevé : 3 relevés séparés + relevé par l'IA, chacun ouvre sa fenêtre", async () => {
+    await page.click("#btn-relev");
+    const vis = await Promise.all(["#rv-walls", "#rv-rooms", "#rv-devices", "#rv-ai"].map((s) => page.isVisible(s)));
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/releve-menu.png" });
+    await page.click("#rv-rooms");
+    await page.waitForSelector("#r-ok", { timeout: 15000 });
+    const closed = !(await page.isVisible("#rv-rooms"));
+    await page.keyboard.press("Escape");
+    return vis.every(Boolean) && closed && !(await page.isVisible("#r-ok"));
+  });
+  await check("relevé par l'IA : image envoyée, aperçu par-dessus le dessin, on coche ce qu'on garde, un seul Ctrl+Z", async () => {
+    await ev(() => okteoExt.settings.set({ provider: "anthropic" }));
+    const before = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.length, app: okteo.state.app.length }));
+    const n0 = seen.length;
+    await page.click("#btn-relev"); await page.click("#rv-ai");
+    await page.waitForSelector("#ai-ok", { timeout: 30000 });
+    const req = seen.slice(n0).find((r) => r.url === "/v1/messages");
+    const img = req && req.body.messages[0].content.find((c) => c.type === "image");
+    const P = await ev(() => { const p = okteoExt.aiReleve.plan; return { walls: p.walls.length, nodes: p.nodes.length, op: p.openings.length, dev: p.devices.length, links: p.links.length, coupes: p.stats.coupes, prev: !!document.querySelector("#sv polygon[fill-opacity='0.5']") }; });
+    const txt = await page.textContent(".aicard");
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/ia-apercu.png" });
+    // on garde murs et pièces, pas les appareils
+    await page.uncheck('.aicard [data-k="devices"]');
+    await page.click("#ai-ok");
+    const after = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.map((r) => r.name).sort().join(","), app: okteo.state.app.length, op: okteo.state.openings.length }));
+    await page.keyboard.press("Control+z");
+    const undone = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.length, app: okteo.state.app.length }));
+    const r = { img: !!img && img.source.data.length > 20000, P, after, undone, before, txt: txt.includes("Séjour") };
+    if (!r.img || P.walls !== 7 || P.nodes !== 6 || P.coupes !== 2 || P.op !== 2 || P.dev !== 3 || P.links !== 1 || !P.prev || !r.txt
+      || after.segs !== 7 || after.rooms !== "Chambre,Séjour" || after.app !== before.app || after.op !== 2
+      || undone.segs !== before.segs || undone.rooms !== before.rooms || undone.app !== before.app) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("version en ligne : Claude appelé directement depuis le navigateur ; NVIDIA refusé avec un message clair", async () => {
+    let hdr = null;
+    await page.route("https://api.anthropic.com/v1/messages", (route) => { hdr = route.request().headers(); route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: [{ type: "text", text: "OK direct" }] }) }); });
+    const r = await ev(async () => {
+      const ai = await import("/src/ext/ai.js"), env = { ...okteoExt.settings.env };
+      okteoExt.settings.setEnv({ online: false });
+      const a = await ai.chat({ provider: "anthropic", system: "s", messages: [{ role: "user", text: "q" }] }).then((x) => x.text, (e) => "ERR " + e.message);
+      const n = await ai.chat({ provider: "nvidia", system: "s", messages: [{ role: "user", text: "q" }] }).then((x) => x.text, (e) => "ERR " + e.message);
+      okteoExt.settings.setEnv(env);
+      return { a, n };
+    });
+    await page.unroute("https://api.anthropic.com/v1/messages");
+    if (r.a !== "OK direct" || !hdr || hdr["anthropic-dangerous-direct-browser-access"] !== "true" || hdr["x-api-key"] !== "sk-test" || !/version locale/.test(r.n)) throw new Error(JSON.stringify({ r, hdr }));
+    return true;
+  });
 
   console.log("Fiabilité (v21)");
   await check("repères fixes : supprimer P2 ne renumérote pas les autres ; une copie reçoit un nouveau numéro", async () => {

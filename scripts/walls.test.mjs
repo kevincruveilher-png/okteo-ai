@@ -9,6 +9,7 @@ import { findRooms, nameRooms, findLimits, addLimit } from "../src/walls/rooms.j
 import { pageLabels } from "../src/walls/labels.js";
 import { detectDevices, pageTexts } from "../src/walls/devices.js";
 import { solveDigits, readDigits } from "../src/walls/digits.js";
+import { parseAiJson, aiToPlan } from "../src/walls/ai-plan.js";
 
 const data = new Uint8Array(fs.readFileSync(new URL("../docs/plans/EVRARD_04949_plan.pdf", import.meta.url)));
 const doc = await pdfjs.getDocument({ data, verbosity: 0 }).promise;
@@ -127,6 +128,18 @@ check("échelle contrôlée par les cotes (facteur stable sur toute la page)", d
 const hs = dv.devices.filter((d) => d.h);
 const near = (x, y) => dv.devices.filter((d) => d.t.startsWith("PC")).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
 check("hauteurs lues : ≥ 10 prises, Bains 110 cm, Cellier 120 cm, plaque de cuisson 32 A à 65 cm", hs.length >= 10 && near(492 * k, 198 * k).h === 110 && near(185 * k, 159 * k).h === 120 && near(252 * k, 177 * k).h === 65 && near(252 * k, 177 * k).t === "PC20", hs.map((d) => d.h).join(","));
+
+console.log("Relevé par l'IA : remise au propre de la réponse");
+{
+  const txt = 'Voilà :\n```json\n{"murs":[{"x1":100,"y1":100,"x2":900,"y2":104,"ep":25},{"x1":900,"y1":104,"x2":902,"y2":700,"ep":25},{"x1":902,"y1":700,"x2":98,"y2":700,"ep":25},{"x1":98,"y1":700,"x2":100,"y2":100,"ep":25},{"x1":500,"y1":103,"x2":503,"y2":700,"ep":7},{"x1":10,"y1":10,"x2":12,"y2":11}],"ouvertures":[{"x":501,"y":400,"l":80,"t":"porte"},{"x":2000,"y":2000,"l":90}],"pieces":[{"nom":"Séjour {1}","x":300,"y":400}],"appareils":[{"t":"int","x":480,"y":420},{"t":"LUM","x":300,"y":400},{"t":"???","x":1,"y":1}],"liaisons":[[1,0],[0,2]],"remarques":"ok"}\n```\nfin';
+  const raw = parseAiJson(txt), P = aiToPlan(raw, { x0: 0, y0: 0, sx: 0.01, sy: 0.01 });
+  const R = nameRooms(findRooms(P.nodes.map((n, i) => ({ id: "n" + i, ...n })), P.walls.map((w, i) => ({ id: "s" + i, a: "n" + w.a, b: "n" + w.b, ep: w.ep }))), P.pieces);
+  const axisOk = P.walls.every((w) => { const A = P.nodes[w.a], B = P.nodes[w.b]; return Math.abs(A.x - B.x) < 1e-9 || Math.abs(A.y - B.y) < 1e-9; });
+  check("réponse lue malgré le texte autour ; murs redressés, sommets fusionnés, jonctions en T coupées : 2 pièces fermées",
+    P.walls.length === 7 && P.nodes.length === 6 && P.stats.coupes === 2 && axisOk && R.length === 2 && R.some((r) => r.name === "Séjour {1}"), JSON.stringify({ w: P.walls.length, n: P.nodes.length, s: P.stats, rooms: R.map((r) => r.name) }));
+  check("ouverture loin des murs ignorée, type inconnu ignoré, liaison remise dans le bon sens (commande → lumière)",
+    P.openings.length === 1 && P.openings[0].kind === "porte" && P.stats.ouverturesPerdues === 1 && P.devices.length === 2 && P.links.length === 1 && P.devices[P.links[0].c].t === "INT", JSON.stringify({ o: P.openings, d: P.devices, l: P.links }));
+}
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);
 if (fails.length) process.exit(1);

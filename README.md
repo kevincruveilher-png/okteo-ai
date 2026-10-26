@@ -1,7 +1,10 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v30** (25/10/2026) : câblage — circuits, boîtes, gaines et fils, lignes directes.
+Version du prototype : **v31** (26/10/2026) : liaisons visibles, menu Relevé (murs, pièces, appareillage séparés), relevé par l'IA.
+
+**Version en ligne (sans rien installer) : https://kevincruveilher-png.github.io/okteo-ai/**
+Les chantiers restent dans le navigateur de chaque ordinateur (fichier `.okteo` pour les transporter). En ligne, l'IA marche avec une clé Claude ; NVIDIA seulement en version locale.
 (v17 : pièces ; v16 : appareils attachés aux murs ; v15 : relevé des murs ; v14 : chantiers.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
@@ -31,13 +34,16 @@ Le navigateur s'ouvre sur le logiciel. Chaque modification d'un fichier recharge
 Pour arrêter : Ctrl+C dans le terminal.
 (Raccourci : **Terminal → Exécuter la tâche… → Lancer Oktéo AI**.)
 
+Mettre à jour la version en ligne : `npm run deploy` (construit le logiciel et le publie sur la branche `gh-pages` ;
+GitHub Pages doit être réglé sur cette branche).
+
 ## Vérifier que rien n'est cassé
 
 ```
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 138 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 147 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -52,6 +58,23 @@ Ouvre le logiciel dans un navigateur invisible et fait 138 vérifications (dessi
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Liaisons et relevés (v31)
+
+- **Outil Liaison** : toutes les liaisons s'affichent en trait épais ; les commandes et lumières sans liaison sont
+  **cerclées en orange** ; en bas, « 31 liaisons sur ce niveau · 3 appareils sans liaison ». Clic sur un interrupteur :
+  ses lumières ressortent et sont nommées ; clic sur une lumière : on la relie (ou on la détache si elle l'était).
+  Clic sur une liaison : elle est choisie, **Suppr** la retire. Ctrl+Z annule.
+- **Menu « ⤓ Relevé »** (en haut) : **1. Murs**, **2. Pièces**, **3. Appareillage** — trois relevés séparés, chacun avec
+  son aperçu orange et son bouton d'ajout : on garde les murs et pas l'appareillage, par exemple. Si le plan n'est pas
+  encore à l'échelle, elle est réglée toute seule d'après les cotes du plan (au moins 4 cotes concordantes).
+- **✦ Relevé par l'IA** (même menu) : l'image du plan est envoyée à l'IA, qui propose murs, portes et fenêtres, pièces,
+  appareils et liaisons. L'aperçu se pose par-dessus le dessin actuel pour comparer avec le relevé sans IA ; on coche
+  ce qu'on garde (murs / pièces / appareils), un seul Ctrl+Z annule. En ligne : clé Claude (appel direct, la clé reste
+  dans le navigateur) ; en local : Claude ou NVIDIA.
+- Essai sur EVRARD (réponse « IA » rédigée par Claude à l'œil sur la même image) : murs à 6 cm près en moyenne
+  (95 % à moins de 15 cm), 8 pièces sur 9 retrouvées, 50 appareils sur 87 au bon endroit. Le relevé sans IA reste
+  la référence sur un PDF vectoriel ; l'IA sert pour les plans scannés ou en image.
 
 ## Câblage — boîtes, gaines et fils (v29–v30)
 

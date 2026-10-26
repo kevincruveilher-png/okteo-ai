@@ -5,10 +5,10 @@ import { labelPoint, pointInPoly } from "../walls/rooms.js";
 import { Placer, roomCandidates, textBox } from "../place.js";
 import { TYPES, VB, dist, epOf, layers, nodeById, pmNow, segById, segDir, segLen, state, symView } from "./model.js";
 import { V2W, W2V, ensureReps, pxPerVB, repMap, syncVB } from "./view.js";
-import { followWalls, openHandles, roomArea, roomPoly } from "./attach.js";
+import { followWalls, linkCtrl, linkRole, openHandles, roomArea, roomPoly } from "./attach.js";
 import { bbox, currentGroup, groupPoints, isSel, multi } from "./groups.js";
 import { placeHud } from "./hud.js";
-import { belowData, crossLinks } from "./levels.js";
+import { allLinks, belowData, crossLinks } from "./levels.js";
 
 // ---------- rendu ----------
 export const sv = document.getElementById("sv");
@@ -239,18 +239,35 @@ export function draw() {
     const byId = Object.fromEntries(state.app.map(a => [a.id, a]));
     let ll = "";
     // trait fin et discret ; ceux de l'appareil sélectionné (ou de la commande testée) ressortent, les autres s'effacent
+    // avec l'outil Liaison : toutes les liaisons en trait épais, la commande choisie et ses lumières ressortent,
+    // les commandes et lumières sans liaison sont cerclées en orange (on voit tout de suite ce qui manque)
     const pmL = pmNow(),
-      focus = K.sel && K.sel.kind === "app" ? K.sel.id : null;
+      tool = K.tool === "lien",
+      focus = K.sel && (K.sel.kind === "app" || K.sel.kind === "link") ? K.sel.id : tool ? K.linkLight : null,
+      hotLink = K.linkHot;
     state.lia.forEach(x => {
       const c = byId[x.c],
         l = byId[x.l];
       if (!c || !l) return;
-      const mx = (c.x + l.x) / 2,
-        my = (c.y + l.y) / 2 - dist(c.x, c.y, l.x, l.y) * 0.18;
-      const hot = K.testMode && K.sel && K.sel.id === c.id || focus && (focus === c.id || focus === l.id),
-        dim = focus && !hot;
-      ll += `<path d="M${c.x} ${c.y} Q ${mx} ${my} ${l.x} ${l.y}" fill="none" stroke="${hot ? 'var(--accent2)' : 'var(--accent)'}" stroke-width="${(hot ? 2.4 : 1.1) * pmL}" opacity="${hot ? 0.95 : dim ? 0.15 : 0.35}"/>`;
+      const q = linkCtrl(c, l);
+      const picked = hotLink && hotLink.c === x.c && hotLink.l === x.l,
+        hot = picked || K.testMode && K.sel && K.sel.id === c.id || focus && (focus === c.id || focus === l.id),
+        dim = (focus || hotLink) && !hot;
+      const w = (picked ? 4 : hot ? 3 : tool ? 2.2 : 1.4) * pmL,
+        op = hot ? 0.95 : tool ? (dim ? 0.4 : 0.8) : dim ? 0.25 : 0.55;
+      ll += `<path class="lia" d="M${c.x} ${c.y} Q ${q.x} ${q.y} ${l.x} ${l.y}" fill="none" stroke="${hot ? 'var(--accent2)' : 'var(--accent)'}" stroke-width="${w}" opacity="${op}"/>`;
     });
+    if (tool) {
+      const linked = new Set();
+      allLinks().forEach(x => { linked.add(x.c); linked.add(x.l); });
+      const r = 13 * pmL;
+      state.app.forEach(a => {
+        const role = linkRole(a.t);
+        if (!role) return;
+        if (focus && role === "l" && state.lia.some(x => x.c === focus && x.l === a.id)) ll += `<circle class="lia-on" cx="${a.x}" cy="${a.y}" r="${r}" fill="none" stroke="var(--accent2)" stroke-width="${2.4 * pmL}"/>`;
+        else if (!linked.has(a.id)) ll += `<circle class="lia-miss" cx="${a.x}" cy="${a.y}" r="${r}" fill="none" stroke="#f28c1b" stroke-width="${2 * pmL}" stroke-dasharray="${4 * pmL} ${3 * pmL}"/>`;
+      });
+    }
     h += `<g>${ll}</g>`;
   }
   // boîtes de pieuvre (onglet Câblage) : liens boîte → appareils, alimentation depuis le tableau, carré + nom

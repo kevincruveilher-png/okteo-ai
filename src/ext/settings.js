@@ -17,6 +17,8 @@ export const settings = {
   // fournisseur utilisé : celui choisi s'il a une clé, sinon le premier qui en a une
   activeProvider() {
     const s = this.get();
+    // version en ligne (pas de serveur local) : NVIDIA ne passe pas, Claude d'abord s'il a une clé
+    if (envKeys.checked && !envKeys.online && s.provider === "nvidia" && this.hasKey("anthropic")) return "anthropic";
     if (s.provider && this.hasKey(s.provider)) return s.provider;
     return ["anthropic", "nvidia"].find((p) => this.hasKey(p)) || "";
   },

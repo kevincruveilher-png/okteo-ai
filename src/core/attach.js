@@ -22,6 +22,31 @@ export function hitNode(wx, wy) {
   return b;
 }
 
+// Liaisons : rôle d'un appareil ("c" = commande, "l" = lumière, null = ni l'un ni l'autre),
+// point de contrôle de la courbe dessinée, et liaison sous la souris (courbe échantillonnée).
+export function linkRole(t) {
+  return t === "INT" || t === "VV" || t === "BP" ? "c" : t === "LUM" || t === "SPOT" || t === "APP" ? "l" : null;
+}
+export function linkCtrl(c, l) {
+  return { x: (c.x + l.x) / 2, y: (c.y + l.y) / 2 - dist(c.x, c.y, l.x, l.y) * 0.18 };
+}
+export function hitLink(wx, wy) {
+  const byId = Object.fromEntries(state.app.map(a => [a.id, a]));
+  let best = null, bd = Math.max(tolM(), 0.12);
+  for (const x of state.lia) {
+    const c = byId[x.c], l = byId[x.l];
+    if (!c || !l) continue;
+    const q = linkCtrl(c, l);
+    for (let i = 0; i <= 24; i++) {
+      const t = i / 24, u = 1 - t;
+      const px = u * u * c.x + 2 * u * t * q.x + t * t * l.x, py = u * u * c.y + 2 * u * t * q.y + t * t * l.y;
+      const d = dist(wx, wy, px, py);
+      if (d < bd) { bd = d; best = x; }
+    }
+  }
+  return best;
+}
+
 export function hitApp(wx, wy) {
   let b = null,
     bd = Math.max(tolM(), K.symCm / 100);

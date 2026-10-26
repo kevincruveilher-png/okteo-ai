@@ -255,6 +255,8 @@ K.CAB = {
 };
 K.showCirc = false;
 K.boxDrag = null;
+K.linkHot = null; // liaison choisie avec l'outil Liaison ({c, l})
+K.linkLight = null; // lumière cliquée avec l'outil Liaison (ses commandes ressortent)
 K.boxSel = null;
 K.__boxLayer = "";
 K.bgLevel = 0.60;

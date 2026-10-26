@@ -5,7 +5,7 @@ import { TYPES, cornerHalf, dist, epOf, layers, node, nodeById, segById, segDir,
 import { markDirty, save, snapshot } from "./persist.js";
 import { applyOrtho, evWorld, pxPerVB, repMap, snapWorld, tolM } from "./view.js";
 import { draw, hitBox, sv } from "./render.js";
-import { attach, hitApp, hitNode, hitOpen, hitOpenHandle, hitSeg, projOnSeg, segDistPt, snapAlign, snapToWall, wallMounted } from "./attach.js";
+import { attach, hitApp, hitLink, linkRole, hitNode, hitOpen, hitOpenHandle, hitSeg, projOnSeg, segDistPt, snapAlign, snapToWall, wallMounted } from "./attach.js";
 import { clampOpenings, clearSel, currentGroup, isSel, marqueeSelect, mk, moveGroup, multi, normalizeSel, roomAt, setSingle, startGroupDrag, toggleMulti } from "./groups.js";
 import { showSide } from "./panel.js";
 import { buildTools, hintFor, setHint } from "./controls.js";
@@ -601,30 +601,48 @@ sv.addEventListener("pointerdown", e => {
     return;
   }
   if (K.tool === "lien") {
-    const a = hitApp(wx, wy);
-    if (!a) return;
-    if (!K.sel || K.sel.kind !== "link") {
-      if (a.t === "INT" || a.t === "VV" || a.t === "BP") {
-        multi.clear();
-        K.sel = {
-          kind: "link",
-          id: a.id
-        };
-        draw();
-        setHint("Cliquez la/les lumière(s) commandée(s). Échap pour terminer.");
-      }
-    } else {
-      if (a.t === "LUM" || a.t === "SPOT" || a.t === "APP") {
-        snapshot();
-        if (!allLinks().some(x => x.c === K.sel.id && x.l === a.id)) state.lia.push({
-          c: K.sel.id,
-          l: a.id
-        });
-        markDirty();
-        draw();
-        if (K.sel.lv && K.sel.lv !== K.LV.cur) setHint(`Liaison entre niveaux : ${K.sel.rep} (${levelName(K.sel.lv)}) → ${repMap()[a.id]} (${levelName()}). Échap pour terminer.`);
-      }
+    const a = hitApp(wx, wy), role = a ? linkRole(a.t) : null;
+    K.linkHot = null;
+    if (role === "c") {
+      multi.clear();
+      K.linkLight = null;
+      K.sel = { kind: "link", id: a.id };
+      draw();
+      setHint(linkInfo(a.id) + " Cliquez une lumière pour la relier (ou la détacher si elle l'est déjà). Échap pour terminer.");
+      return;
     }
+    if (role === "l" && K.sel && K.sel.kind === "link") {
+      snapshot();
+      const i = state.lia.findIndex(x => x.c === K.sel.id && x.l === a.id);
+      const reps = repMap();
+      if (i >= 0) state.lia.splice(i, 1);
+      else if (!allLinks().some(x => x.c === K.sel.id && x.l === a.id)) state.lia.push({ c: K.sel.id, l: a.id });
+      markDirty();
+      draw();
+      if (K.sel.lv && K.sel.lv !== K.LV.cur) setHint(`Liaison entre niveaux : ${K.sel.rep} (${levelName(K.sel.lv)}) → ${reps[a.id]} (${levelName()}). Échap pour terminer.`);
+      else setHint((i >= 0 ? `Liaison ${reps[K.sel.id] || ""} → ${reps[a.id] || ""} retirée (Ctrl+Z pour annuler). ` : "") + linkInfo(K.sel.id));
+      return;
+    }
+    if (role === "l") {
+      K.sel = null;
+      K.linkLight = a.id;
+      draw();
+      setHint(lightInfo(a.id));
+      return;
+    }
+    const x = a ? null : hitLink(wx, wy);
+    K.linkLight = null;
+    if (x) {
+      K.sel = null;
+      K.linkHot = { c: x.c, l: x.l };
+      const reps = repMap();
+      draw();
+      setHint(`Liaison ${reps[x.c] || "?"} → ${reps[x.l] || "?"}. Suppr : retirer cette liaison · Échap : terminer.`);
+      return;
+    }
+    K.sel = null;
+    draw();
+    setHint(hintFor("lien"));
     return;
   }
   // pose d'appareil (aperçu = position finale)
@@ -822,3 +840,19 @@ sv.addEventListener("wheel", e => {
 });
 }
 
+
+// textes d'aide de l'outil Liaison
+export function linkInfo(cid) {
+  const reps = repMap(), ls = allLinks().filter(x => x.c === cid).map(x => reps[x.l] || "lumière d'un autre niveau");
+  return `${reps[cid] || "Commande"} : ${ls.length ? ls.length + " lumière" + (ls.length > 1 ? "s" : "") + " (" + ls.join(", ") + ")." : "aucune lumière reliée."}`;
+}
+export function lightInfo(lid) {
+  const reps = repMap(), cs = allLinks().filter(x => x.l === lid).map(x => reps[x.c] || "commande d'un autre niveau");
+  return cs.length ? `${reps[lid] || "Lumière"} est commandée par ${cs.join(", ")}. Cliquez une commande pour modifier ses liaisons.` : `${reps[lid] || "Lumière"} n'a aucune commande : cliquez d'abord un interrupteur, puis cette lumière.`;
+}
+export function linkSummary() {
+  const n = state.lia.length, cmd = state.app.filter(a => linkRole(a.t) === "c"), lum = state.app.filter(a => linkRole(a.t) === "l");
+  const linked = new Set(); allLinks().forEach(x => { linked.add(x.c); linked.add(x.l); });
+  const miss = cmd.filter(a => !linked.has(a.id)).length + lum.filter(a => !linked.has(a.id)).length;
+  return `${n} liaison${n > 1 ? "s" : ""} sur ce niveau` + (miss ? ` · ${miss} appareil${miss > 1 ? "s" : ""} sans liaison (cerclé${miss > 1 ? "s" : ""} en orange)` : " · tout est relié");
+}

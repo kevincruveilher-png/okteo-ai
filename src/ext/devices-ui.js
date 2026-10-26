@@ -2,7 +2,7 @@
 // lus sur les symboles du plan du pavillonneur (sans IA), avec les liaisons commande → lumière.
 // Aperçu sur le dessin, puis « Ajouter les appareils » (un seul Ctrl+Z). Les appareils muraux se collent à leur mur.
 import { detectDevices } from "../walls/devices.js";
-import { chantierPage, chantierTexts, pageMap } from "./pdf-page.js";
+import { autoScale, chantierPage, chantierTexts, pageMap } from "./pdf-page.js";
 import { esc } from "./util.js";
 
 const ORDER = ["PC16", "PC20", "RJ45", "INT", "VV", "LUM", "APP", "SPOT", "SC", "VMC", "TAB"];
@@ -51,6 +51,8 @@ export function createDevicesTool({ api }) {
     if (api.tab !== "plan") api.setTab("plan");
     if (!api.ch.fond || !api.BG || !(api.BG.w > 0)) { show(`<p>Il faut un plan PDF en fond, mis à l'échelle : page Chantiers → importer le PDF, puis « Mettre à l'échelle ».</p>`); return; }
     show(`<p>Lecture des symboles du plan…</p>`);
+    const sc = await autoScale(api).catch(() => ({ ok: true }));
+    if (!sc.ok) { show(`<p>Le logiciel n'a pas réussi à lire assez de cotes pour régler l'échelle tout seul. Réglez-la à la main (outil Échelle : les deux bouts d'une cote connue, puis sa longueur), puis relancez.</p>`); return; }
     try { res = await compute(); } catch (e) { show(`<p class="warn">Échec de la lecture du PDF : ${esc(e.message)}</p>`); return; }
     if (!res) { show(`<p>Ce chantier n'a pas de PDF d'origine (fond image seulement) : le relevé a besoin du PDF. Réimportez le plan en PDF depuis la page Chantiers.</p>`); return; }
     if (!res.devices.length) { show(`<p>Aucun symbole d'appareil reconnu sur ce plan. Les symboles de ce pavillonneur sont peut-être différents : envoyez le PDF pour qu'on les ajoute.</p>`); return; }

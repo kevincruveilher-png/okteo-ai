@@ -1,5 +1,7 @@
-// Appels IA : Claude (Anthropic) ou NVIDIA, toujours via le petit serveur local (/ai/...),
+// Appels IA : Claude (Anthropic) ou NVIDIA, via le petit serveur local (/ai/...),
 // qui ajoute la clé et contourne le blocage des appels directs depuis le navigateur.
+// Version en ligne (pas de serveur local) : Claude est appelé directement depuis le navigateur (Anthropic l'autorise,
+// la clé reste dans ce navigateur) ; NVIDIA bloque ces appels, il ne marche qu'en version locale.
 // Format interne des messages : { role: "user" | "assistant", text, image?: { data, type } }.
 
 import { settings } from "./settings.js";
@@ -97,6 +99,29 @@ async function nvidiaCall({ key, model, system, messages, maxTokens, think }) {
   }
 }
 
+// Claude : par le serveur local s'il tourne, sinon directement (version en ligne)
+const NO_RELAY = new Set([0, 404, 405, 501]);
+async function anthropicDirect(key, payload) {
+  if (!key) throw new AIError("Version en ligne : ajoutez votre clé Claude (Anthropic) dans l'onglet Paramètres.", 401);
+  let res;
+  try {
+    res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify(payload) });
+  } catch (e) {
+    throw new AIError("Pas de connexion à Claude (" + e.message + ").", 0);
+  }
+  const txt = await res.text();
+  let body; try { body = JSON.parse(txt); } catch { body = txt; }
+  if (!res.ok) throw new AIError(frenchError(res.status, body), res.status, rawMsg(body));
+  return body;
+}
+async function anthropicCall(key, payload) {
+  const env = settings.env || {};
+  if (env.checked && !env.online) return anthropicDirect(key, payload);
+  try { return await call("POST", "/ai/anthropic", key, payload); }
+  catch (e) { if (NO_RELAY.has(e.status) && key) return anthropicDirect(key, payload); throw e; }
+}
+export const relayOnline = () => !!(settings.env && settings.env.online);
+
 // Envoie une conversation ; renvoie { text, provider, model, ms, sawImage, switched? }.
 export async function chat({ system, messages, maxTokens = 1800, provider, model, think = false }) {
   const s = settings.get();
@@ -114,9 +139,11 @@ export async function chat({ system, messages, maxTokens = 1800, provider, model
         ? [{ type: "image", source: { type: "base64", media_type: m.image.type, data: m.image.data } }, { type: "text", text: m.text }]
         : m.text,
     }));
-    const body = await call("POST", "/ai/anthropic", key, { model, max_tokens: maxTokens, system, messages: msgs });
+    const body = await anthropicCall(key, { model, max_tokens: maxTokens, system, messages: msgs });
     text = (body.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
   } else {
+    const env = settings.env || {};
+    if (env.checked && !env.online) throw new AIError("NVIDIA ne marche que dans la version locale du logiciel (NVIDIA bloque les appels depuis un site en ligne). En ligne, utilisez une clé Claude (Paramètres).", 0);
     let body;
     try {
       body = await nvidiaCall({ key, model, system, messages, maxTokens, think });

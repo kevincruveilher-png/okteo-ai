@@ -53,3 +53,17 @@ export async function chantierScaleCheck(api) {
   P.labels.set(key, r);
   return r;
 }
+
+// Échelle automatique : un fond PDF pas encore mis à l'échelle l'est d'après ses cotes (au moins 4 cotes concordantes),
+// sans rien demander. { ok, auto, cotes } ; ok = false si le fond n'a pas d'échelle et que les cotes ne se lisent pas.
+export async function autoScale(api) {
+  const f = api.ch.fond;
+  if (!f) return { ok: false, cotes: 0 };
+  if (f.calibre) return { ok: true, auto: false };
+  const s = await chantierScaleCheck(api).catch(() => null);
+  if (!s || s.cotes < 4 || !(s.facteur > 0)) return { ok: false, cotes: s ? s.cotes : 0 };
+  const a = { x: api.BG.x, y: api.BG.y };
+  autoScale.busy = true;
+  try { api.applyCalib(a, { x: a.x + 1, y: a.y }, s.facteur); } finally { autoScale.busy = false; }
+  return { ok: !!api.ch.fond.calibre, auto: true, cotes: s.cotes };
+}

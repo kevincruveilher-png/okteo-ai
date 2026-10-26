@@ -8,7 +8,7 @@ import { applyOrtho, fit, repMap } from "./view.js";
 import { draw, glyph } from "./render.js";
 import { wallMounted } from "./attach.js";
 import { clearSel, currentGroup, duplicateGroup, groupCount, groupEmpty, instantiateGroup, multi, selectAll, serializeGroup, setSingle, transformGroup } from "./groups.js";
-import { hideReadout, placeApp, posOnWall, showText, wallMeasure } from "./interact.js";
+import { hideReadout, linkSummary, placeApp, posOnWall, showText, wallMeasure } from "./interact.js";
 import { delSel, showSide } from "./panel.js";
 import { levelsNow, loadFondImage } from "./levels.js";
 
@@ -106,6 +106,8 @@ export function resetTransient() {
   K.seriesMode = null;
   K.seriesPrev = null;
   K.ghost = null;
+  K.linkHot = null;
+  K.linkLight = null;
   hideReadout();
 }
 
@@ -120,7 +122,7 @@ export function hintFor(v) {
     calib: "Échelle du fond : zoomez sur une cote connue du plan (ex. 13,00), cliquez ses deux extrémités, puis tapez sa longueur réelle.",
     cote: "Cliquez deux points pour poser une cote mesurée.",
     pan: "Faites glisser pour déplacer la vue.",
-    lien: "Cliquez une commande, puis la/les lumière(s)."
+    lien: linkSummary() + ". Cliquez une commande pour voir ses lumières, puis une lumière pour la relier ou la détacher ; cliquez une liaison pour la choisir (Suppr la retire)."
   };
   if (TYPES[v]) return "Pose : " + TYPES[v].n + ". L'outil reste actif." + (wallMounted(v) ? " Près d'un mur, tapez une distance en cm puis Entrée pour poser à cette distance de l'angle." : "");
   return m[v] || "";
@@ -346,6 +348,19 @@ document.addEventListener("keydown", e => {
     setHint(hintFor("sel"));
     draw();
     showSide();
+    return;
+  }
+  if ((e.key === "Delete" || e.key === "Backspace") && K.tool === "lien" && K.linkHot) {
+    e.preventDefault();
+    const i = state.lia.findIndex(x => x.c === K.linkHot.c && x.l === K.linkHot.l);
+    if (i >= 0) {
+      snapshot();
+      state.lia.splice(i, 1);
+      markDirty();
+    }
+    K.linkHot = null;
+    draw();
+    setHint("Liaison retirée (Ctrl+Z pour annuler). " + hintFor("lien"));
     return;
   }
   if ((e.key === "Delete" || e.key === "Backspace") && (K.sel || multi.size > 1)) {
