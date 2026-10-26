@@ -64,3 +64,12 @@ avec une valeur de base modifiable.
 - **Alimentation d'une boîte** (26/10/2026) : **une seule gaine** depuis le tableau pour tous les circuits de la boîte —
   phase + neutre de chaque circuit et **fils de télérupteur** s'il y en a, **une seule terre** (à la plus grosse section) ;
   dès que la gaine passerait en **Ø25**, on la divise en deux gaines — **toujours une seule terre**, dans la 1re gaine.
+
+## Couleurs, gaines partagées, extérieur (v34) — Kévin, 26/10/2026, après la boîte FTZ « LI03 »
+
+- **Couleurs par circuit** : dans une boîte, 1er circuit d'une section = rouge/bleu, 2e = gris/bleu foncé (3e : à définir).
+- **Retours et navettes** : orange, marron, noir, ivoire à tour de rôle (les 2 navettes d'un va-et-vient : même couleur).
+- **Gaine partagée** : appareils **au même endroit** dans une seule gaine, sans limite de nombre.
+- **Câble** : pour les appareils **à l'extérieur**.
+- Les n° encadrés à côté de l'alimentation (5, 6, 7 sur FTZ) = n° de circuit au tableau ; « Ouverture vers le haut »
+  sert à orienter la boîte. Liste des fils par couleur et section : reprise sur le schéma.

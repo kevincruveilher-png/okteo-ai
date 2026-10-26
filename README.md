@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v33** (26/10/2026) : schémas de boîte pour le câbleur (onglet Bandes), à imprimer.
+Version du prototype : **v34** (26/10/2026) : couleurs par circuit, gaines partagées (même endroit), câble pour l'extérieur.
 
 **Version en ligne (sans rien installer) : https://kevincruveilher-png.github.io/okteo-ai/**
 Les chantiers restent dans le navigateur de chaque ordinateur (fichier `.okteo` pour les transporter). En ligne, l'IA marche avec une clé Claude ; NVIDIA seulement en version locale.
@@ -43,7 +43,7 @@ GitHub Pages doit être réglé sur cette branche).
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 159 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 164 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -58,6 +58,19 @@ Ouvre le logiciel dans un navigateur invisible et fait 159 vérifications (dessi
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Couleurs par circuit, gaines partagées, extérieur (v34)
+
+Après comparaison avec une boîte FTZ (LI03, Joyeux Constructions), règles de Kévin :
+- **Couleurs par circuit dans une boîte** : 1er circuit d'une section en rouge/bleu, 2e en gris/bleu foncé (réglage
+  « Phase/neutre des circuits d'une boîte ») — deux circuits dans la même gaine ne se confondent plus.
+- **Retours lampe et navettes** : orange, marron, noir, ivoire à tour de rôle ; les 2 navettes d'un va-et-vient ont la
+  même couleur (n° différents).
+- **Appareils au même endroit** (≤ 30 cm, réglable) : **une seule gaine** « P17 + P18 + I12 », chaque fil commun une
+  seule fois (repiquage sur place) ; moins de départs et de cuivre.
+- **Appareil à l'extérieur** (hors de toute pièce, ex. applique de façade) : **câble** dans la gaine (3G1,5 : marron,
+  bleu, vert/jaune ; 4G/5G : marron, noir, gris, bleu, vert/jaune).
+- Schéma : liste des **fils de la boîte** par section et couleur (« 6 × 2,5 rouge »), câbles à part.
 
 ## Schémas de boîte pour le câbleur (v33)
 

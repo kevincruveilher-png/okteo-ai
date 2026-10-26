@@ -4,7 +4,7 @@
 // l'ordre (à cocher) et le contrôle final. Impression : une feuille par boîte.
 import { wiringNow, wireCss, wireSolid, facesSides, fr } from "./cablage-data.js";
 import { getCab } from "../cablage/settings.js";
-import { boxSteps, boxMaterial, boxChecks, parseSizes, schemaSVG, FN_SHORT } from "../cablage/schema.js";
+import { boxSteps, boxMaterial, boxChecks, boxWires, parseSizes, schemaSVG, FN_SHORT } from "../cablage/schema.js";
 import { pointInPoly } from "../walls/rooms.js";
 import { buildBandsPdf } from "./bandes-pdf.js";
 import { esc } from "./util.js";
@@ -14,7 +14,7 @@ export function boxSheets(api) {
   return W.boxes.map((box) => {
     if (!geos.has(box.lv)) geos.set(box.lv, api.exportGeometry(box.lv));
     const steps = boxSteps(box, sizes);
-    return { box, steps, material: boxMaterial(steps), checks: boxChecks(box, steps), sides: facesSides(box, geos.get(box.lv), pointInPoly), level: lvName.get(box.lv) || box.lv };
+    return { box, steps, material: boxMaterial(steps), fils: boxWires(box), checks: boxChecks(box, steps), sides: facesSides(box, geos.get(box.lv), pointInPoly), level: lvName.get(box.lv) || box.lv };
   });
 }
 
@@ -48,7 +48,7 @@ export function mountBandsPage(el, { api }) {
       return;
     }
     if (!sheets.some((s) => s.box.id === cur)) cur = sheets[0].box.id;
-    const S = sheets.find((s) => s.box.id === cur), { box, steps, material, checks, sides } = S;
+    const S = sheets.find((s) => s.box.id === cur), { box, steps, material, checks, sides, fils } = S;
     const ok = done.get(box.id) || new Set();
     const svg = schemaSVG(box, steps, { color: wireSolid, sides });
     el.innerHTML = `<div class="params-in cabpage bands">
@@ -63,6 +63,7 @@ export function mountBandsPage(el, { api }) {
           <ul class="bd-or">${["A", "B", "C", "D"].map((f, i) => `<li><b>Face ${f}</b> <span class="mut">(${["haut", "droite", "bas", "gauche"][i]} du plan)</span> : ${esc(sides[f] || "—")}</li>`).join("")}</ul>
           <h3>2. Préparer le matériel</h3>
           <ul>${material.sizes.map(([k, n]) => `<li>${n} connecteur${n > 1 ? "s" : ""} <b>${k} entrées</b></li>`).join("")}${material.ponts ? `<li>${material.ponts} pont${material.ponts > 1 ? "s" : ""} (bout de fil de la même couleur, pour relier deux connecteurs)</li>` : ""}</ul>
+          <p class="sm bd-fils" title="Nombre de fils de chaque section et couleur dans les gaines de la boîte">Fils : ${fils.wires.map((w) => `${w.n} × ${fr(w.section, 1)} ${chip({ color: w.color, section: w.section }).replace(/ [\d,]+<\/span>$/, "</span>")}`).join(" · ")}${fils.cables.length ? ` · câbles : ${fils.cables.map((c) => `${c.n} × ${esc(c.cable)}`).join(", ")}` : ""}</p>
           <h3>3. Raccorder dans l'ordre</h3>
           <p class="mut sm">Terres, neutres, phases, puis retours lampe et navettes. Pour chaque numéro : dans chaque gaine indiquée, prendre le fil de la couleur indiquée, le dénuder et l'enfoncer dans le connecteur. Cocher au fur et à mesure.</p>
         </div>

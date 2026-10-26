@@ -2,9 +2,24 @@
 import { getCab } from "../cablage/settings.js";
 import { placeBoxes } from "../cablage/boites.js";
 import { computeWiring } from "../cablage/gaines.js";
+import { pointInPoly } from "../walls/rooms.js";
+
+// appareil à l'extérieur : ni sur lui ni à 12 cm autour, aucune pièce (un appareil intérieur posé contre un mur
+// touche sa pièce ; un appareil sur la façade est de l'autre côté du mur)
+export function markExterior(api, items) {
+  const geos = new Map(), at = (lv) => { if (!geos.has(lv)) geos.set(lv, (api.exportGeometry(lv).rooms || []).filter((r) => r.poly && r.poly.length > 2)); return geos.get(lv); };
+  const D = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
+  return items.map((a) => {
+    if (a.t === "TAB") return a;
+    const R = at(a.lv);
+    if (!R.length) return a;
+    const inside = D.some(([dx, dy]) => R.some((r) => pointInPoly(a.x + dx * 0.12, a.y + dy * 0.12, r.poly)));
+    return inside ? a : { ...a, ext: true };
+  });
+}
 
 export function wiringNow(api) {
-  const S = getCab(), items = api.allApps(), links = api.allLinks();
+  const S = getCab(), items = markExterior(api, api.allApps()), links = api.allLinks();
   return computeWiring({ items, links, circuits: api.cab.circuits || [], boxes: api.cab.boxes || [], levels: api.levels.map((l) => l.id), S });
 }
 
@@ -20,7 +35,8 @@ export function autoBoxes(api, keepIds = []) {
 
 // couleur d'affichage d'un fil d'après son nom (réglages « Couleurs des fils »)
 const CSS = { rouge: "#d42a2a", bleu: "#2459d6", "vert/jaune": "linear-gradient(90deg,#2c9b3a 50%,#f0d020 50%)", orange: "#f28c1b", violet: "#8a3ccf", noir: "#222",
-  marron: "#7b4a12", gris: "#8a8a8a", blanc: "#f4f4f4", jaune: "#f0d020", vert: "#2c9b3a", rose: "#ee7fb5" };
+  marron: "#7b4a12", gris: "#8a8a8a", blanc: "#f4f4f4", jaune: "#f0d020", vert: "#2c9b3a", rose: "#ee7fb5",
+  "bleu foncé": "#0b2a8a", "bleu fonce": "#0b2a8a", "bleu clair": "#7fd3f0", ivoire: "#efe6c4", beige: "#d9c79e" };
 export const wireCss = (c) => CSS[String(c || "").toLowerCase().trim()] || "#999";
 export const fr = (v, d = 1) => (v == null ? "—" : Number(v).toFixed(d).replace(".", ","));
 

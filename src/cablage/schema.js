@@ -38,6 +38,17 @@ export function boxSteps(box, sizes) {
 }
 
 // matériel : connecteurs par taille + ponts
+// fils de la boîte par section et couleur (« 7 × 1,5 bleu »), comme la liste de FTZ ; câbles à part
+export function boxWires(box) {
+  const m = new Map(), cables = new Map();
+  for (const g of box.gaines) {
+    if (g.cable) { cables.set(g.cable, (cables.get(g.cable) || 0) + 1); continue; }
+    for (const w of g.wires) { const k = `${w.section}|${w.color}`; m.set(k, (m.get(k) || 0) + 1); }
+  }
+  const wires = [...m].map(([k, n]) => { const [sec, color] = k.split("|"); return { section: +sec, color, n }; }).sort((a, b) => a.section - b.section || a.color.localeCompare(b.color, "fr"));
+  return { wires, cables: [...cables].map(([cable, n]) => ({ cable, n })) };
+}
+
 export function boxMaterial(steps) {
   const sizes = {};
   let ponts = 0;
@@ -86,7 +97,7 @@ export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font =
       const w = g.diam >= 20 ? 12 : 9;
       h += `<line x1="${ex}" y1="${ey}" x2="${ox}" y2="${oy}" stroke="${g.kind === "alim" ? "#222" : "#666"}" stroke-width="${w}" stroke-linecap="butt" opacity="0.85"/>`;
       // étiquette : vers l'extérieur, tournée pour les faces A et C
-      const lines = [`${g.no}  ·  ${fr(g.length)} m  ·  Ø${g.diam}`, cut(g.label + (g.room ? ` (${g.room})` : ""), 34)];
+      const lines = [`${g.no}  ·  ${fr(g.length)} m  ·  Ø${g.diam}${g.cable ? "  ·  câble " + g.cable : ""}`, cut(g.label + (g.room ? ` (${g.room})` : ""), 34)];
       const rot = dy ? -90 : 0, anchor = dx < 0 || dy < 0 ? "end" : "start";
       const bx = ox + dx * 8, by = oy + dy * 8;
       h += `<g transform="translate(${bx} ${by}) rotate(${rot})">`;

@@ -29,7 +29,7 @@ export async function buildBandsPdf(pages, { chantier = "", numero = "" } = {}) 
   const W = 210, M = 12;
   let first = true;
   for (const P of pages) {
-    const { box, steps, material, checks, sides, level } = P;
+    const { box, steps, material, checks, sides, level, fils } = P;
     if (!first) doc.addPage(); first = false;
     // en-tête
     doc.setFont("helvetica", "bold"); doc.setFontSize(15);
@@ -48,8 +48,13 @@ export async function buildBandsPdf(pages, { chantier = "", numero = "" } = {}) 
     doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.text("Matériel", M, y);
     doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
     const mat = material.sizes.map(([k, n]) => `${n} connecteur${n > 1 ? "s" : ""} ${k} entrées`).join(" · ") + (material.ponts ? ` · ${material.ponts} pont${material.ponts > 1 ? "s" : ""} (bout de fil de la même couleur)` : "");
-    doc.text(doc.splitTextToSize(win(mat || "-"), W - 2 * M - 4), M + 2, y + 5.5);
-    y += 16;
+    const matT = doc.splitTextToSize(win(mat || "-"), W - 2 * M - 4);
+    doc.text(matT, M + 2, y + 5.5);
+    y += (matT.length - 1) * 4.4;
+    const fl = fils ? "Fils : " + fils.wires.map((w) => `${w.n} x ${fr(w.section, 1)} ${w.color}`).join(" · ") + (fils.cables.length ? " · câbles : " + fils.cables.map((c) => `${c.n} x ${c.cable}`).join(", ") : "") : "";
+    const flT = doc.splitTextToSize(win(fl), W - 2 * M - 4);
+    if (fl) doc.text(flT, M + 2, y + 11);
+    y += 16 + (fl ? flT.length * 4.4 : 0);
     doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.text("Comment faire", M, y);
     doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
     doc.text(doc.splitTextToSize(win("Faire les raccordements dans l'ordre des numéros (au verso) : terres, neutres, phases, puis retours lampe et navettes. Pour chaque numéro : prendre dans chaque gaine indiquée le fil de la couleur indiquée, dénuder, l'enfoncer dans le connecteur indiqué, cocher la case."), W - 2 * M - 4), M + 2, y + 5.5);

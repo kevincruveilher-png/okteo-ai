@@ -71,9 +71,15 @@ function median(pts, start) {
 
 // coût en cuivre d'une boîte : longueurs horizontales boîte → appareils (pondérées par le nombre de fils ≈ 3)
 // + alimentations depuis le tableau (une par circuit, 3 fils)
-function boxCost(box, units, tab) {
+// points desservis par une boîte : les appareils au même endroit (≤ near) partagent une gaine → un seul point
+function spotPts(units, near = 0.3) {
+  const out = [];
+  for (const u of units) for (const p of u.pts) if (!out.some((q) => d2(p, q) <= near + 1e-9)) out.push(p);
+  return out;
+}
+function boxCost(box, units, tab, near) {
   let c = 0;
-  for (const u of units) for (const p of u.pts) c += d2(box, p) * 3;
+  for (const p of spotPts(units, near)) c += d2(box, p) * 3;
   if (tab) { const nc = new Set(units.flatMap((u) => u.circuits)).size; c += d2(box, tab) * (2 * nc + 1); }   // phase + neutre par circuit, une terre
   return c;
 }
@@ -88,7 +94,7 @@ function placeLevel(units, tab, S, tries = 4) {
     for (let seed = 0; seed < 3; seed++) {
       const r = cluster(units, k, tab, S, seed);
       if (!r) continue;
-      const cost = r.reduce((s, b) => s + boxCost(b, b.units, tab), 0) + r.length * 0.5;   // une boîte de plus coûte un peu
+      const cost = r.reduce((s, b) => s + boxCost(b, b.units, tab, S.memeEndroit ?? 0.3), 0) + r.length * 0.5;   // une boîte de plus coûte un peu
       if (!best || cost < best.cost) best = { cost, boxes: r };
     }
     if (best && k > kmin + 1) break;
@@ -118,7 +124,7 @@ function cluster(units, k, tab, S, seed) {
     }
     const moved = boxes.map((b) => {
       if (!b.units.length) return 0;
-      const pts = b.units.flatMap((u) => u.pts);
+      const pts = spotPts(b.units, S.memeEndroit ?? 0.3);
       if (tab) pts.push({ x: tab.x, y: tab.y, w: (2 * new Set(b.units.flatMap((u) => u.circuits)).size + 1) / 3 });
       const np = median(pts, b); const m = d2(np, b); b.x = np.x; b.y = np.y; return m;
     });

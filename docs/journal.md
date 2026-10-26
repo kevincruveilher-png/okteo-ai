@@ -246,6 +246,15 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
   télérupteur dans la gaine d'alimentation (confirmé), connecteurs 2, 3, 4, 5, 6, 8, 10, 12 entrées.
 - Tests : 30 + 33 + 96 = 159.
 
+## Version 34 (26/10/2026) — livrée : couleurs par circuit, gaines partagées, câble extérieur
+- Comparaison avec une boîte FTZ (LI03) : deux circuits 1,5 dans une même gaine étaient tous deux rouge/bleu
+  (indiscernables) → paires de couleurs par circuit (rouge/bleu, gris/bleu foncé) ; retours/navettes orange, marron,
+  noir, ivoire ; appareils au même endroit = une gaine (« P17 + P18 + I12 ») ; câble 3G pour l'extérieur ; liste des
+  fils de la boîte. EVRARD (test moteur) : 1 276 → 1 228 m de fil.
+- À demander à Kévin : 3e paire de couleurs phase/neutre ; « Ouverture vers le haut » (sens exact) ; n° de circuit
+  du tableau à afficher à côté de l'alimentation.
+- Tests : 30 + 37 + 97 = 164.
+
 ## PROCHAINE MISE À JOUR : à décider avec Kévin
 Pistes : retours de Kévin sur les schémas (essai avec un câbleur débutant), SPV pour Counter, page « Reprendre le projet ».
 

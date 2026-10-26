@@ -9,12 +9,28 @@
 // - va-et-vient (2 commandes pour les mêmes lumières) : la 1re reçoit phase + navettes 1 et 2, la 2e retour + navettes ;
 // - 3 commandes ou plus, ou bouton poussoir : télérupteur au tableau → chaque commande reçoit phase + commande TL,
 //   et l'alimentation du circuit apporte en plus « commande TL » (vers le tableau) et « retour TL » (vers les lumières) ;
-// - alimentation de la boîte (une gaine par circuit) : phase, neutre, terre (+ fils du télérupteur s'il y en a un).
+// - alimentation de la boîte : une seule gaine (phase + neutre de chaque circuit, télérupteur, une terre), coupée avant Ø25.
+// Couleurs (v34) : dans une boîte, 1er circuit d'une section = rouge/bleu, 2e = gris/bleu foncé… (réglage pairesCircuits) ;
+// retours et navettes : orange, marron, noir, ivoire à tour de rôle (les 2 navettes d'un va-et-vient : même couleur).
+// Appareils au même endroit (≤ memeEndroit) : une seule gaine, chaque fil commun une seule fois (repiquage).
+// Appareil à l'extérieur : câble nG (marron, noir, gris, bleu, vert/jaune) au lieu de fils.
 import { gaineFor, packAlim } from "./gaine.js";
 import { assignFaces, FACES } from "./boites.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
 const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const list = (v) => String(v || "").split(",").map((x) => x.trim()).filter(Boolean);
+// « rouge/bleu, gris/bleu foncé » → [{phase, neutre}]
+export function parsePairs(v) {
+  const P = list(v).map((x) => x.split("/").map((y) => y.trim())).filter((x) => x.length === 2 && x[0] && x[1]).map(([phase, neutre]) => ({ phase, neutre }));
+  return P.length ? P : [{ phase: "rouge", neutre: "bleu" }];
+}
+// conducteurs d'un câble : la terre en vert/jaune, le neutre en bleu, les autres en marron, noir, gris
+export function cableColors(wires) {
+  const n = wires.length, rest = ["marron", "noir", "gris"];
+  const hasBlue = n === 2 || n === 3 || n >= 5;
+  return wires.map((w) => (w.fn === "terre" ? "vert/jaune" : w.fn === "neutre" && hasBlue ? "bleu" : rest.shift() || "gris"));
+}
 // longueur à plat d'une gaine : boîte → points de passage (tracé à la main, b.routes[clé]) → arrivée
 export function viaLen(from, pts, to) {
   let p = from, L = 0;
@@ -41,7 +57,8 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
   const issues = [];
   if (!tab) issues.push("Pas de tableau sur le plan : posez-le (appareil « Tableau ») pour calculer les alimentations et les lignes directes.");
   const hTab = S.hTableau ?? 1.8;
-  const col = { phase: S.cPhase, neutre: S.cNeutre, terre: S.cTerre, retour: S.cRetour, nav1: S.cNavette1, nav2: S.cNavette2, cmdTL: S.cRetour, retTL: S.cRetour };
+  const pairs = parsePairs(S.pairesCircuits || `${S.cPhase}/${S.cNeutre}`), cmdCols = list(S.couleursCommande || `${S.cRetour}, ${S.cNavette1}, ${S.cNavette2}`);
+  const col = { phase: pairs[0].phase, neutre: pairs[0].neutre, terre: S.cTerre, retour: cmdCols[0] || S.cRetour, nav1: cmdCols[1] || S.cNavette1, nav2: cmdCols[1] || S.cNavette2, cmdTL: cmdCols[0] || S.cRetour, retTL: cmdCols[0] || S.cRetour };
 
   const outBoxes = boxes.map((b) => {
     const apps = b.apps.map((id) => byId.get(id)).filter(Boolean);
@@ -50,6 +67,16 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
     // ---------- n° de raccordement (« circuit de câblage ») ----------
     const nets = []; const net = (key, label, fn) => { let x = nets.find((n) => n.key === key); if (!x) { x = { key, n: nets.length + 1, label, fn, wires: [] }; nets.push(x); } return x; };
     net("T", "Terres (toutes ensemble)", "terre");
+    // couleurs de la boîte : chaque circuit sa paire phase/neutre (par section), chaque allumage ses couleurs de commande
+    const keyColor = new Map([["T", S.cTerre]]), bySec = new Map();
+    for (const c of circs) {
+      const sec = c.section || 1.5, k = bySec.get(sec) || 0; bySec.set(sec, k + 1);
+      const p = pairs[k % pairs.length];
+      if (k >= pairs.length) issues.push(`${b.n} : plus de ${pairs.length} circuits en ${String(sec).replace(".", ",")} mm² — couleurs phase/neutre à compléter (Paramètres → Câblage)`);
+      keyColor.set("P" + c.id, p.phase); keyColor.set("N" + c.id, p.neutre);
+    }
+    let ci = 0;
+    const nextCol = () => cmdCols.length ? cmdCols[ci++ % cmdCols.length] : S.cRetour;
     // ordre de câblage (= ordre des n°) : terres, neutres circuit par circuit, phases, puis retours et navettes
     for (const c of circs) net("N" + c.id, `Neutre ${c.n}`, "neutre");
     for (const c of circs) net("P" + c.id, `Phase ${c.n}`, "phase");
@@ -71,15 +98,18 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
       if (!cmds.length) { issues.push(`${b.n} : ${lab} sans commande (retour lampe non raccordé)`); }
       if (!lights.length) { cmds.forEach((k) => role.set(k.id, [["phase", "P" + c.id], ["retour", null]])); issues.push(`${b.n} : ${cmds.map((k) => k.rep).join(" ")} ne commande aucune lumière`); continue; }
       const R = net("R" + gi, `Retour lampe ${lab}`, "retour").key;
+      keyColor.set(R, nextCol());
       lights.forEach((l) => role.set(l.id, [["retour", R], ["neutre", "N" + circOf.get(l.id).id], ["terre", "T"]]));
       const tele = cmds.length >= 3 || cmds.some((k) => k.t === "BP");
       if (cmds.length === 1 && !tele) role.set(cmds[0].id, [["phase", "P" + c.id], ["retour", R]]);
       else if (cmds.length === 2 && !tele) {
         const n1 = net("V1" + gi, `Navette 1 ${cmds[0].rep}↔${cmds[1].rep}`, "nav1").key, n2 = net("V2" + gi, `Navette 2 ${cmds[0].rep}↔${cmds[1].rep}`, "nav2").key;
+        const cn = nextCol(); keyColor.set(n1, cn); keyColor.set(n2, cn);
         role.set(cmds[0].id, [["phase", "P" + c.id], ["nav1", n1], ["nav2", n2]]);
         role.set(cmds[1].id, [["retour", R], ["nav1", n1], ["nav2", n2]]);
       } else if (cmds.length) {
         const K = net("K" + gi, `Commande télérupteur ${lab}`, "cmdTL").key;
+        keyColor.set(K, nextCol());
         cmds.forEach((k) => role.set(k.id, [["phase", "P" + c.id], ["cmdTL", K]]));
         if (!tl.has(c.id)) tl.set(c.id, []);
         tl.get(c.id).push(["cmdTL", K], ["retTL", R]);
@@ -92,13 +122,36 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
     // ---------- gaines ----------
     const deps = [];
     const lvB = lvIdx(b.lv);
+    // appareils au même endroit (même niveau, ≤ memeEndroit) : une seule gaine
+    const near = S.memeEndroit ?? 0.3, spots = [];
     for (const a of apps) {
-      const c = circOf.get(a.id), sec = c.section || 1.5;
-      const wires = (role.get(a.id) || []).map(([fn, key]) => ({ fn, color: col[fn], section: ["retour", "nav1", "nav2", "cmdTL", "retTL"].includes(fn) ? sec : sec, net: key }));
-      const route = (b.routes || {})[a.id] || null;
-      const len = gaineLength({ horiz: viaLen(b, route, a), downA: down(a.h, S), levels: Math.abs(lvIdx(a.lv) - lvB) }, S);
+      const sp = spots.find((g) => g[0].lv === a.lv && g.some((o) => d2(o, a) <= near + 1e-9));
+      if (sp) sp.push(a); else spots.push([a]);
+    }
+    const colorOf = (fn, key) => (key != null && keyColor.has(key) ? keyColor.get(key) : col[fn]);
+    for (const G of spots) {
+      const a = G[0], seen = new Set(), wires = [];
+      for (const m of G) {
+        const sec = circOf.get(m.id).section || 1.5;
+        for (const [fn, key] of role.get(m.id) || []) {
+          if (key != null && seen.has(key)) continue;          // fil commun : une seule fois (repiqué sur place)
+          if (key != null) seen.add(key);
+          wires.push({ fn, color: colorOf(fn, key), section: sec, net: key });
+        }
+      }
+      let cable = null;
+      if (S.cableExt && G.every((m) => m.ext)) {
+        const cc = cableColors(wires);
+        wires.forEach((w, i) => { w.color = cc[i]; });
+        cable = `${wires.length}G${String(Math.max(...wires.map((w) => w.section))).replace(".", ",")}`;
+      }
+      const route = G.map((m) => (b.routes || {})[m.id]).find(Boolean) || null;
+      const downMax = Math.max(...G.map((m) => down(m.h, S)));
+      const len = gaineLength({ horiz: viaLen(b, route, a), downA: downMax, levels: Math.abs(lvIdx(a.lv) - lvB) }, S);
+      const label = G.length === 1 ? `${NAMES[a.t] || a.t} ${a.rep || ""}`.trim() : G.map((m) => m.rep || NAMES[m.t] || m.t).join(" + ");
+      const cn = [...new Set(G.map((m) => circOf.get(m.id).n))];
       // la face est celle par où la gaine sort : vers son 1er point de passage s'il y en a un
-      deps.push({ id: a.id, kind: "app", p: route ? route[0] : a, app: a, routed: !!route, label: `${NAMES[a.t] || a.t} ${a.rep || ""}`.trim(), room: a.room, circuit: c.n, wires, length: len });
+      deps.push({ id: a.id, kind: "app", p: route ? route[0] : a, app: a, appIds: G.map((m) => m.id), routed: !!route, label, room: a.room, circuit: cn.join(", "), wires, length: len, cable, ext: !!cable });
     }
     // alimentation depuis le tableau : une seule gaine (phase + neutre de chaque circuit, télérupteur, une terre) ;
     // divisée si elle passait en Ø25, la terre restant dans la 1re
@@ -107,10 +160,10 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
       const wires = [];
       for (const c of G) {
         const sec = c.section || 1.5;
-        [["phase", "P" + c.id], ["neutre", "N" + c.id], ...(tl.get(c.id) || [])].forEach(([fn, key]) => wires.push({ fn, color: col[fn], section: sec, net: key, circuit: c.n }));
+        [["phase", "P" + c.id], ["neutre", "N" + c.id], ...(tl.get(c.id) || [])].forEach(([fn, key]) => wires.push({ fn, color: colorOf(fn, key), section: sec, net: key, circuit: c.n }));
       }
       // une seule terre par boîte : dans la 1re gaine d'alimentation, à la plus grosse section de la boîte
-      if (gi === 0) wires.push({ fn: "terre", color: col.terre, section: Math.max(...circs.map((c) => c.section || 1.5)), net: "T" });
+      if (gi === 0) wires.push({ fn: "terre", color: S.cTerre, section: Math.max(...circs.map((c) => c.section || 1.5)), net: "T" });
       const route = (b.routes || {}).tab || null;
       const len = tab ? gaineLength({ horiz: viaLen(b, route, tab), downA: S.traversee + Math.max(0, S.hsp - hTab), levels: Math.abs(lvIdx(tab.lv) - lvB) }, S) : null;
       const names = G.map((c) => c.n);

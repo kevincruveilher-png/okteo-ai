@@ -166,13 +166,19 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   (« 2,3,4,5,6,8,10,12 », les connecteurs de KiTéOHM). Interface : `src/ext/cablage-bandes.js` (onglet `bandes`, `boxSheets(api)`, `facesSides` dans
   cablage-data.js = pièce de chaque côté, `wireSolid`) + `src/ext/bandes-pdf.js` (jsPDF A4, schéma en JPEG — un PNG
   ferait un PDF énorme —, texte WinAnsi via `win()`). `okteoExt.pages.bandes.ui.last` = dernier PDF (tests).
+- v34 : gaines.js `parsePairs` (réglage `pairesCircuits` « rouge/bleu, gris/bleu foncé » : paire par circuit et par
+  section dans la boîte, `keyColor` par n°), `couleursCommande` (retours/navettes à tour de rôle, navettes d'un VV de
+  même couleur), `memeEndroit` (0,3 m : appareils groupés dans une gaine, fils dédoublonnés par n° ; gaine `appIds`),
+  `cableExt` + `cableColors` (appareil `ext` → `g.cable` « 3G1,5 »). `markExterior(api, items)` (cablage-data.js :
+  aucune pièce sur l'appareil ni à 12 cm autour). Placement : `spotPts` (un point par endroit). schema.js `boxWires`
+  (fils par section/couleur). Couleurs CSS en plus : bleu foncé, ivoire.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (33 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (96 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (37 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (97 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

@@ -929,11 +929,11 @@ try {
     await page.waitForSelector(".bands .bd-svg svg");
     const r = await ev(() => ({ picks: document.querySelectorAll(".bands .bd-pick [data-b]").length, boxes: okteo.cab.boxes.length, faces: ["Face A", "Face B", "Face C", "Face D"].every((f) => document.querySelector(".bands .bd-svg").textContent.includes(f)),
       or: [...document.querySelectorAll(".bands .bd-or li")].map((l) => l.textContent), mat: document.querySelectorAll(".bands h3 + ul li").length, rows: [...document.querySelectorAll(".bands .bd-steps tbody tr")].map((t) => t.children[2].textContent),
-      wires: document.querySelectorAll(".bands .bd-steps .wchip").length }));
+      wires: document.querySelectorAll(".bands .bd-steps .wchip").length, fils: (document.querySelector(".bands .bd-fils") || {}).textContent || "" }));
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/bandes.png", fullPage: false });
     await page.check(".bands .bd-steps input[data-n='1']");
     const done = await ev(() => document.querySelector(".bands .bd-steps tbody tr").classList.contains("done"));
-    const ok = r.picks === r.boxes && r.faces && r.or.length === 4 && r.or.every((t) => /côté/.test(t)) && r.mat >= 2 && /^Terres/.test(r.rows[0]) && r.rows.length > 8 && r.wires > 20 && done;
+    const ok = r.picks === r.boxes && r.faces && r.or.length === 4 && r.or.every((t) => /côté/.test(t)) && r.mat >= 2 && /^Terres/.test(r.rows[0]) && r.rows.length > 8 && r.wires > 20 && done && /\d+ × 1,5/.test(r.fils);
     if (!ok) throw new Error(JSON.stringify(r).slice(0, 600));
     return true;
   });
@@ -950,6 +950,14 @@ try {
     if (!ok) throw new Error(JSON.stringify({ pages: doc.numPages, n, t1: t1.slice(0, 300), t2: t2.slice(0, 300) }));
     return true;
   });
+  await check("couleurs par circuit et gaines partagées : une gaine « P… + P… » ; deux circuits 1,5 d'une boîte en rouge/bleu et gris/bleu foncé", async () => ev(async () => {
+    const m = await import("/src/ext/cablage-data.js"), W = m.wiringNow(okteo), G = W.boxes.flatMap((b) => b.gaines);
+    const shared = G.filter((g) => g.appIds && g.appIds.length > 1).length;
+    const alim = W.boxes.map((b) => b.gaines.filter((g) => g.kind === "alim").flatMap((g) => g.wires.filter((w) => w.fn === "phase" && w.section === 1.5).map((w) => w.color)));
+    const ok = shared > 0 && alim.some((c) => c.includes("rouge") && c.includes("gris")) && alim.every((c) => new Set(c).size === c.length);
+    if (!ok) throw new Error(JSON.stringify({ shared, alim }));
+    return true;
+  }));
   await check("circuits et boîtes enregistrés avec le chantier (rechargement)", async () => {
     const n = await ev(() => { okteo.saveNow(); return [okteo.cab.circuits.length, okteo.cab.boxes.length]; });
     await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);

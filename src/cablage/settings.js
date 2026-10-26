@@ -25,6 +25,12 @@ export const CAB_DEFAULTS = {
   vmcCablee: false,        // « VMC » sur le plan = bouche d'extraction (pas de câble) ; cocher si c'est le groupe VMC
   // couleurs des fils
   cPhase: "rouge", cNeutre: "bleu", cTerre: "vert/jaune", cRetour: "orange", cNavette1: "violet", cNavette2: "noir",
+  // v34 (règles de Kévin) : dans une boîte, chaque circuit a ses couleurs phase/neutre (1er circuit d'une section, 2e…) ;
+  // les retours et navettes prennent les couleurs de commande à tour de rôle (les 2 navettes d'un va-et-vient : même couleur)
+  pairesCircuits: "rouge/bleu, gris/bleu foncé",
+  couleursCommande: "orange, marron, noir, ivoire",
+  memeEndroit: 0.3,        // appareils à moins de … m l'un de l'autre = même endroit = une seule gaine (repiquage)
+  cableExt: true,          // appareil à l'extérieur : câble (3G1,5…) dans la gaine
 };
 
 const KEY = "okteo.cablage.v1";
@@ -55,8 +61,10 @@ export const CAB_FIELDS = [
     ["secPrises", "Section prises", "mm²", "sec"], ["protPrises", "Protection prises", "A", "prot"],
     ["secSpecialise", "Section circuits spécialisés", "mm²", "sec"], ["protSpecialise", "Protection circuits spécialisés", "A", "prot"],
     ["scSpecialise", "Une sortie de câble = un circuit spécialisé", "", "bool"], ["vmcCablee", "« VMC » = groupe VMC à alimenter (sinon : bouche, pas de câble)", "", "bool"]]],
-  ["Couleurs des fils", [["cPhase", "Phase", "", "txt"], ["cNeutre", "Neutre", "", "txt"], ["cTerre", "Terre", "", "txt"],
-    ["cRetour", "Retour lampe", "", "txt"], ["cNavette1", "Navette 1", "", "txt"], ["cNavette2", "Navette 2", "", "txt"]]],
+  ["Couleurs des fils", [["pairesCircuits", "Phase/neutre des circuits d'une boîte (1er, 2e… de même section)", "", "txt"], ["cTerre", "Terre", "", "txt"],
+    ["couleursCommande", "Retours lampe et navettes (à tour de rôle)", "", "txt"]]],
+  ["Gaines partagées et extérieur", [["memeEndroit", "Appareils au même endroit (une seule gaine) : distance maximum", "m", "num"],
+    ["cableExt", "Appareil à l'extérieur : câble (3G1,5…) dans la gaine", "", "bool"]]],
 ];
 export const SECTIONS = [1.5, 2.5, 4, 6, 10];
 export const PROTS = [2, 10, 16, 20, 25, 32, 40];

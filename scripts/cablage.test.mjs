@@ -7,7 +7,7 @@ import { gaineFor } from "../src/cablage/gaine.js";
 import { computeCircuits, checkCircuits } from "../src/cablage/circuits.js";
 import { CAB_DEFAULTS as S } from "../src/cablage/settings.js";
 import { placeBoxes, buildUnits, faceToward } from "../src/cablage/boites.js";
-import { computeWiring, gaineLength } from "../src/cablage/gaines.js";
+import { computeWiring, gaineLength, cableColors } from "../src/cablage/gaines.js";
 import { connectorsFor, boxSteps, boxMaterial, boxChecks, parseSizes, schemaSVG } from "../src/cablage/schema.js";
 
 let ok = 0; const fails = [];
@@ -70,10 +70,12 @@ const better = P.boxes.some((b, i) => [[0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]]
 check("placement économe : déplacer une boîte de 50 cm n'économise pas de cuivre", !better);
 const one = { id: "x", n: "B1", lv: "rdc", x: items.reduce((s, a) => s + a.x, 0) / items.length, y: items.reduce((s, a) => s + a.y, 0) / items.length, apps: [...boxedIds] };
 console.log("    (une seule boîte au centre : " + cost([one]) + " m de cuivre)");
-const g = (t) => W.boxes.flatMap((b) => b.gaines).find((x) => x.appId && byId.get(x.appId).t === t);
+const g = (t) => W.boxes.flatMap((b) => b.gaines).find((x) => x.appId && x.appIds.length === 1 && byId.get(x.appId).t === t);
 const fns = (x) => x.wires.map((w) => w.fn + "/" + w.color + "/" + w.section).join(" ");
 check("prise 16 A : phase rouge, neutre bleu, terre vert/jaune en 2,5 mm², Ø16", fns(g("PC16")) === "phase/rouge/2.5 neutre/bleu/2.5 terre/vert/jaune/2.5" && g("PC16").diam === 16, fns(g("PC16")));
-check("point lumineux : retour orange, neutre, terre en 1,5 mm² ; interrupteur : phase + retour", fns(g("LUM")) === "retour/orange/1.5 neutre/bleu/1.5 terre/vert/jaune/1.5" && W.boxes.flatMap((b) => b.gaines).filter((x) => x.appId && byId.get(x.appId).t === "INT").some((x) => fns(x) === "phase/rouge/1.5 retour/orange/1.5"));
+const CMDC = ["orange", "marron", "noir", "ivoire"];
+check("point lumineux : retour (orange, marron, noir ou ivoire), neutre, terre en 1,5 mm² ; interrupteur : phase + retour",
+  /^retour\/(orange|marron|noir|ivoire)\/1\.5 neutre\/(bleu|bleu foncé)\/1\.5 terre\/vert\/jaune\/1\.5$/.test(fns(g("LUM"))) && W.boxes.flatMap((b) => b.gaines).filter((x) => x.appIds && x.appIds.length === 1 && byId.get(x.appId).t === "INT").some((x) => /^phase\/(rouge|gris)\/1\.5 retour\/(orange|marron|noir|ivoire)\/1\.5$/.test(fns(x))), fns(g("LUM")));
 const allNets = W.boxes.flatMap((b) => b.nets.map((n) => ({ ...n, box: b })));
 check("n° 1 de chaque boîte = toutes les terres ensemble", W.boxes.every((b) => b.nets[0].fn === "terre" && b.nets[0].wires.length === b.gaines.filter((x) => x.wires.some((w) => w.fn === "terre")).length));
 check("chaque raccordement réunit au moins 2 fils (rien ne reste en l'air)", allNets.every((n) => n.wires.length >= 2), allNets.filter((n) => n.wires.length < 2).map((n) => n.box.n + " " + n.label).join(", "));
@@ -84,6 +86,32 @@ check("alimentation : une seule gaine par boîte (phase + neutre de chaque circu
       && A.reduce((s, x) => s + x.wires.filter((w) => w.fn === "terre").length, 0) === 1 && A[0].wires.some((w) => w.fn === "terre") && A.every((x) => x.diam < 25); }),
   W.boxes.map((b) => b.gaines.filter((x) => x.kind === "alim").map((x) => `${x.circuit} Ø${x.diam} (${x.wires.length} fils)`).join(" | ")).join(" ; "));
 check("lignes directes : prises spécialisées, sorties de câble et RJ45 (tableau → appareil)", W.direct.length === T("PC20").length + T("SC").length + T("RJ45").length && W.direct.every((x) => x.length > 2));
+
+console.log("Couleurs par circuit, gaines partagées, câble extérieur (v34)");
+{
+  const G = W.boxes.flatMap((b) => b.gaines.map((g) => ({ ...g, box: b })));
+  // dans une même gaine, deux circuits de même section n'ont jamais les mêmes couleurs de phase
+  const clash = G.filter((g) => { const ph = g.wires.filter((w) => w.fn === "phase"); return ph.some((w, i) => ph.some((v, j) => j > i && v.net !== w.net && v.color === w.color && v.section === w.section)); });
+  const two = W.boxes.find((b) => { const secs = b.gaines.filter((g) => g.kind === "alim").flatMap((g) => g.wires.filter((w) => w.fn === "phase")); return secs.some((w, i) => secs.some((v, j) => j > i && v.section === w.section)); });
+  const ph2 = two && two.gaines.filter((g) => g.kind === "alim").flatMap((g) => g.wires.filter((w) => w.fn === "phase"));
+  check("couleurs : dans une boîte, 2 circuits de même section = rouge/bleu puis gris/bleu foncé ; jamais deux phases pareilles dans une gaine",
+    !clash.length && two && ph2.some((w) => w.color === "rouge") && ph2.some((w) => w.color === "gris") && two.gaines.some((g) => g.wires.some((w) => w.color === "bleu foncé")), clash.map((g) => g.no).join(" "));
+  const vv = G.find((g) => g.wires.some((w) => w.fn === "nav1"));
+  const n1 = vv && vv.wires.find((w) => w.fn === "nav1"), n2 = vv && vv.wires.find((w) => w.fn === "nav2");
+  const allCmd = G.flatMap((g) => g.wires.filter((w) => ["retour", "nav1", "nav2"].includes(w.fn))).every((w) => CMDC.includes(w.color));
+  check("retours et navettes : orange, marron, noir, ivoire à tour de rôle ; les 2 navettes d'un va-et-vient de la même couleur",
+    allCmd && (!vv || (n1.color === n2.color && n1.n !== n2.n)), vv ? vv.no + " " + fns(vv) : "pas de va-et-vient");
+  const grp = G.filter((g) => g.appIds && g.appIds.length > 1);
+  check("appareils au même endroit (≤ 30 cm) : une seule gaine « P2 + P3… », chaque fil commun une seule fois",
+    grp.length >= 3 && grp.every((g) => g.label.includes(" + ") && new Set(g.wires.filter((w) => w.net).map((w) => w.net)).size === g.wires.filter((w) => w.net).length), grp.map((g) => g.label).join(" | "));
+  // un appareil à l'extérieur : câble
+  const ext = { id: "ext1", t: "APP", x: 1, y: -1, h: 180, lv: "rdc", room: null, rep: "AP9", ext: true }, extC = { id: "ext2", t: "INT", x: 1.2, y: 1, h: 110, lv: "rdc", room: "Entrée", rep: "I9" };
+  const We = computeWiring({ items: [...items, ext, extC], links: [...links, { c: "ext2", l: "ext1" }], circuits: C.map((c, i) => (i === 0 ? { ...c, apps: [...c.apps, "ext1", "ext2"] } : c)),
+    boxes: [{ id: "bx", n: "BX", lv: "rdc", x: 1, y: 0.5, apps: ["ext1", "ext2"] }], levels: ["rdc"], S });
+  const ge = We.boxes[0].gaines.find((g) => g.appId === "ext1"), gi = We.boxes[0].gaines.find((g) => g.appId === "ext2");
+  check("appareil à l'extérieur : câble 3G1,5 (marron, bleu, vert/jaune) ; à l'intérieur : fils",
+    ge && ge.cable === "3G1,5" && ge.wires.map((w) => w.color).join() === "marron,bleu,vert/jaune" && !gi.cable && cableColors([{ fn: "phase" }, { fn: "retour" }, { fn: "neutre" }, { fn: "terre" }]).join() === "marron,noir,gris,vert/jaune", ge && (ge.cable + " " + ge.wires.map((w) => w.color)));
+}
 
 console.log("Tracé des gaines et boîtes gardées (v32)");
 {
