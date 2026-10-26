@@ -35,6 +35,11 @@ Décidée avec Kévin le 26/10/2026. Détail des échanges : `docs/journal.md` (
 - Va-et-vient en inversion, télérupteur par bouton-poussoir, un disjoncteur simple par circuit dans l'onglet Câblage.
 - Bouton « Tester tout » : liste les commandes sans effet ou sur un autre circuit.
 
+## Prochaine mise à jour (demandes de Kévin du 26/10, après la 45) — à faire avec la 46
+- **Quadrillage retiré** du fond du plan (trop d'informations, on ne s'y retrouve plus) : calque « Quadrillage » désactivé par défaut et retiré des vues Bâti / Implantation / Câblage (il reste activable à la main dans l'encart Vues).
+- **Contrôle — lampes raccordées à rien** : vérifier pourquoi des lampes sans liaison n'apparaissent pas comme des interrupteurs seuls (le cas « lumière sans commande » existe déjà : chercher le cas manqué sur le chantier de Kévin, ex. lumière reliée seulement à une autre lumière, spot, applique, lumière d'un autre niveau).
+- **Contrôle — deux interrupteurs simples sur la même lampe** : nouvelle alerte « Deux interrupteurs sur la même lumière : il faut des va-et-vient » (aussi un interrupteur simple mêlé à un va-et-vient) ; le mode essai et « Tester tout » la signalent aussi.
+
 ## 46 — Onglet Tableau
 - Tracé du tableau complet : disjoncteurs et circuits, disjoncteurs déplaçables sur les rangées.
 - Modèle de tableau au choix (grand Schneider), avec sa taille et son nombre de rangées.
