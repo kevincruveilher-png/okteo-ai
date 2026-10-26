@@ -289,8 +289,9 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 | Claude Opus | 4 min | 3/8 (murs coupés aux portes) | 11/16 | 79 | 21/21 | 12 |
 | OpenAI Luna | 2 min | 10 dont pièces inventées (Ch2 7,4, SdE 2,6, garage 18,9) | 10/15 | 50 | ~2/9 | 1 |
 | OpenAI Sol | 5 min | 8/8 à 1-2 % (garage 14,8) | 15/16 | 77 | 21/21 | 12 |
+| OpenAI Astra | 5 min | 8/8 à 1-2 % (garage 14,7) | 17/17 | 70 (aucune SC) | 21/21 | 12 |
 | Référence (Claude, mesure au pixel) | — | 8/8 à 1-2 % | 17/17 | 81 | 21/21 | 12 |
-- OpenAI Sol : seul relevé complet et juste (pièces, appareils, liaisons) ; manquent sonnette, chauffe-eau et PAC.
+- OpenAI Sol et Astra (géométrie quasi identique) : relevés complets et justes ; Astra ne met aucune sortie de câble, Sol compte les commandes VR en SC (pièces, appareils, liaisons) ; manquent sonnette, chauffe-eau et PAC.
 - Opus lit aussi bien l'électricité mais coupe les murs aux portes ; Sonnet ferme les pièces mais rate des liaisons.
 - Piste : recoller les murs coupés aux portes (ouverture tombée dans un trou entre deux bouts alignés) → le relevé d'Opus
   fermerait ses pièces.
