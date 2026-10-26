@@ -114,7 +114,7 @@ avec une valeur de base modifiable.
 - **v39 (fait) — trois modes de pieuvre + comparatif** pour choisir : *proximité* (le moins de cuivre, une pièce peut être
   partagée entre plusieurs boîtes), *équilibrée* (boîtes réparties régulièrement, surfaces et départs à peu près égaux :
   « une pieuvre qui plaît à l'œil », ce que fait le bureau d'études ; pas de zones dessinées), *par pièce*.
-- **v40 — packs** : « ajouter un pack » = appareillage type d'une pièce (ex. chambre : 3 prises, 1 point lumineux
+- **v40 (fait) — packs** : « ajouter un pack » = appareillage type d'une pièce (ex. chambre : 3 prises, 1 point lumineux
   commandé à l'entrée, RJ45 selon la pratique) sans boîte ; « ajouter une pieuvre type » = la boîte de la pièce avec son
   pack et ses gaines (fabrication en série). Norme : chambre = 3 prises min + 1 point lumineux ; RJ45 : 2 au séjour et 2
   dans au moins une chambre (T3 et plus).

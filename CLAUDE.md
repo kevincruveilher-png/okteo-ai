@@ -211,13 +211,20 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `roomsByLevel`, `autoBoxes(api, keep, count, mode, circuits)`, `compareModes(api)` (cablage-data.js) ;
   `src/ext/pieuvre-compare.js` (`.cmpcard`, mini-plans, chiffres, « Appliquer » = `setCab({mode, boxes, circuits})`),
   `okteo:compare-modes` ; onglet Câblage : `#bx-mode`, `#bx-cmp`.
+- v40 : packs = `src/cablage/packs.js` (pur : `PACK_DEFAULTS` norme + pratique KiTéOHM, `parseItems` « PC16×3, LUM, INT »
+  / « PC16×norme » (`prisesNorme`), `packFor(nom)` (mots, le plus long gagne), `missing` (décompte par famille :
+  commande INT/VV/BP, lumière LUM/SPOT/APP), `placePack(room, openings, need, existing)` → commande à côté de la porte
+  côté poignée (15 cm), lumières au centre, prises/RJ45/SC réparties sur le contour loin des ouvertures et des angles,
+  RJ45 à côté d'une prise, liaisons). `src/ext/packs-ui.js` : onglet « Packs » (`okteoExt.packs.rooms/completeAll/
+  completeOne/pieuvre`), packs dans localStorage `okteo.packs.v1`, éditeur ; pieuvre type = compléter + boîte verrouillée
+  `{pack}` au centre de la pièce + circuits (`api.batch`). `importDevices` : liaison vers un id existant, renvoie `ids`.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (46 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (111 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (48 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (112 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

@@ -11,7 +11,7 @@ import { wiringNow, autoBoxes, removeBoxPlan, fr } from "./cablage-data.js";
 import { buildUnits, MODES } from "../cablage/boites.js";
 import { createCompare } from "./pieuvre-compare.js";
 
-const KIND = { eclairage: "Éclairage", prises: "Prises", specialise: "Spécialisé", comm: "Communication" };
+const KIND = { eclairage: "Éclairage", prises: "Prises", cuisine: "Prises cuisine", specialise: "Spécialisé", comm: "Communication" };
 const LIGHT = new Set(["LUM", "SPOT", "APP"]);
 
 export function createCablagePane({ api, panel }) {

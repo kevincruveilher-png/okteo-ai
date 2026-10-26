@@ -281,6 +281,17 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 40 (26/10/2026) — livrée : packs et pieuvres types
+- Onglet « Packs » (panneau de droite) : chaque pièce du niveau, son pack reconnu d'après son nom (modifiable), ce qui
+  manque ; « Compléter », « Équiper toutes les pièces », « Pieuvre type » (pack + boîte verrouillée au centre de la pièce
+  + circuits), un seul Ctrl+Z chacun ; « Modifier les packs… » (communs à tous les chantiers, sur ce PC).
+- Packs de base : chambre 3 prises + point lumineux + interrupteur + RJ45 ; séjour prises selon la norme (1 par 4 m²,
+  5 min, 7 au-delà de 28 m²) + 2 RJ45 ; cuisine 6 prises + 3 spécialisées ; salle de bain/d'eau prise + point + applique ;
+  WC ; dégagement ; bureau ; garage ; cellier. Choix pris sans réponse de Kévin : packs communs (pas encore par
+  pavillonneur), pose automatique puis ajustement à la main.
+- Essai PASQUIER (murs et pièces seuls) : 47 appareils posés dans 8 pièces, interrupteurs à côté des portes.
+- Tests : 30 + 48 + 112 = 190.
+
 ## Version 39 (26/10/2026) — livrée : trois modes de pieuvre et leur comparatif
 - Proximité (le moins de cuivre, une pièce peut être partagée), Équilibrée (boîtes régulières, départs à peu près égaux,
   « qui plaisent à l'œil », comme le bureau d'études), Par pièce (une boîte par pièce, petites pièces rattachées à la

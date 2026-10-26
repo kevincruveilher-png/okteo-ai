@@ -89,7 +89,7 @@ try {
 
   console.log("Premiers pas (v27)");
   await check("première ouverture : invitation à la visite guidée (non bloquante)", async () => page.isVisible(".tour-invite"));
-  await check("visite guidée : 18 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
+  await check("visite guidée : 19 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
     await page.click("#ti-go");
     const s1 = await page.textContent(".tour-bub .tour-n");
     await page.keyboard.press("ArrowRight");
@@ -97,12 +97,12 @@ try {
       return !document.querySelector(".tour-ring").hidden && r.left <= t.left && r.right >= t.right && r.top <= t.top && r.bottom >= t.bottom; });
     await page.keyboard.press("ArrowLeft");
     const back = await page.textContent(".tour-bub .tour-n");
-    for (let k = 0; k < 18; k++) await page.click("#tour-next");
+    for (let k = 0; k < 19; k++) await page.click("#tour-next");
     const done = await ev(() => document.querySelector(".tour-bub").hidden && okteoExt.panel.state.pane === "steps" && !!document.querySelector(".steps ol li"));
     await ev(() => okteoExt.panel.show("props"));
     await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);
     const again = await page.isVisible(".tour-invite");
-    if (!(s1 === "1 / 18" && lit && back === "1 / 18" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
+    if (!(s1 === "1 / 19" && lit && back === "1 / 19" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
     return true;
   });
 
@@ -226,7 +226,7 @@ try {
   }));
 
   console.log("Assistant sans clé");
-  await check("touche A ouvre l'assistant", async () => { await page.keyboard.press("Escape"); await page.keyboard.press("a"); return await page.isVisible(".as-in textarea"); });
+  await check("touche A ouvre l'assistant", async () => { await page.keyboard.press("Escape"); await page.keyboard.press("a"); return await page.waitForSelector(".as-in textarea", { state: "visible", timeout: 5000 }).then(() => true, () => false); });
   await check("sans clé : recherche locale dans les fonctions", async () => {
     await page.fill(".as-in textarea", "porte"); await page.keyboard.press("Enter");
     await page.waitForSelector(".as-meta");
@@ -1176,6 +1176,30 @@ try {
     const ok = r.length === 3 && r.every((x) => x.boxes > 0 && x.rows === 7 && x.fil > 0) && E.ecart <= P.ecart && r.some((x) => x.best > 0)
       && after.mode === "piece" && !after.card && after.boxes !== before.boxes && back.mode === before.mode && back.boxes === before.boxes;
     if (!ok) throw new Error(JSON.stringify({ r, before: before.mode, after: after.mode, back: back.mode }));
+    return true;
+  });
+  await check("packs (v40) : pièce reconnue, « Compléter » pose ce qui manque (commande près de la porte, lumière, prises dans la pièce), « Pieuvre type » = boîte verrouillée de la pièce ; Ctrl+Z", async () => {
+    await page.click('#tabs button[data-tab="plan"]');
+    await ev(() => okteoExt.panel.show("packs")); await page.waitForTimeout(200);
+    const t = await ev(() => { const R = okteoExt.packs.rooms(); const r = R.find((x) => x.pack && x.need.length) || R.find((x) => x.pack);
+      return r ? { key: r.key, name: r.room.name, pack: r.pack.id, need: r.need.reduce((s, x) => s + x.n, 0), n0: okteo.state.app.length, rows: R.length, packs: R.filter((x) => x.pack).length } : null; });
+    if (!t) throw new Error("aucune pièce avec pack");
+    await page.click(`.pk-room[data-k="${t.key}"] [data-a="fill"]`).catch(() => {});
+    const r1 = await ev(({ key }) => { const R = okteoExt.packs.rooms().find((x) => x.key === key); const inside = R.apps.length;
+      return { n: okteo.state.app.length, left: R.need.reduce((s, x) => s + x.n, 0), inside }; }, t);
+    await page.keyboard.press("Control+z");
+    const n1 = await ev(() => okteo.state.app.length);
+    await ev(() => okteoExt.panel.show("packs")); await page.waitForTimeout(150);
+    const b0 = await ev(() => okteo.cab.boxes.length);
+    await page.click(`.pk-room[data-k="${t.key}"] [data-a="pieuvre"]`);
+    const r2 = await ev(({ key }) => { const R = okteoExt.packs.rooms().find((x) => x.key === key), B = okteo.cab.boxes, nb = B[B.length - 1] && B.find((b) => b.pack);
+      const ids = R.apps.filter((a) => !["RJ45", "PC20", "SC", "TAB", "VMC"].includes(a.t)).map((a) => a.id);
+      return { n: B.length, locked: !!(nb && nb.locked), all: !!nb && ids.every((id) => nb.apps.includes(id)), only: !!nb && B.filter((b) => b !== nb).every((b) => !b.apps.some((id) => ids.includes(id))) }; }, t);
+    await page.keyboard.press("Control+z");
+    const b1 = await ev(() => okteo.cab.boxes.length);
+    await page.click('#tabs button[data-tab="bandes"]'); await page.waitForSelector(".bands .bd-svg svg");
+    const ok = t.rows > 2 && t.packs > 2 && (t.need === 0 || (r1.n === t.n0 + t.need && r1.left === 0)) && n1 === t.n0 && r2.locked && r2.all && r2.only && b1 === b0;
+    if (!ok) throw new Error(JSON.stringify({ t, r1, n1, b0, r2, b1 }));
     return true;
   });
   await check("impression des schémas : une feuille par boîte + raccordements à cocher, texte lisible (PDF relu)", async () => {

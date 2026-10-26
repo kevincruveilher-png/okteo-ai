@@ -325,9 +325,11 @@ window.okteo = {
       return na.id;
     });
     let nl = 0;
+    // un bout de liaison = indice dans la liste, ou id d'un appareil déjà posé (v40 : packs)
+    const idOf = v => typeof v === "string" ? state.app.some(a => a.id === v) ? v : null : ids[v];
     links.forEach(l => {
-      const c = ids[l.c],
-        lm = ids[l.l];
+      const c = idOf(l.c),
+        lm = idOf(l.l);
       if (c && lm && !state.lia.some(x => x.c === c && x.l === lm)) {
         state.lia.push({
           c,
@@ -349,7 +351,8 @@ window.okteo = {
     return {
       appareils: ids.filter(Boolean).length,
       muraux: state.app.filter(a => ids.includes(a.id) && a.seg).length,
-      liaisons: nl
+      liaisons: nl,
+      ids
     };
   },
   // plusieurs modifications = un seul pas d'annulation

@@ -15,6 +15,7 @@ import { initBackup } from "./backup.js";
 import { createLevelsBar } from "./levels.js";
 import { createTour } from "./tour.js";
 import { createCablagePane } from "./cablage-ui.js";
+import { createPacksPane } from "./packs-ui.js";
 import { mountBoxesPage, mountDirectPage } from "./cablage-pages.js";
 import { createAiReleve } from "./ai-releve.js";
 import { ensurePaperW, chantierScaleCheck } from "./pdf-page.js";
@@ -125,13 +126,15 @@ function start() {
 
   // accès pour les tests et le débogage
   const cablage = createCablagePane({ api, panel });
+  const packs = createPacksPane({ api, panel });
+  hooks.packs = () => panel.show("packs");
   hooks.cablage = () => panel.show("cablage");
   hooks.circuitsAuto = () => { panel.show("cablage"); cablage.auto(); };
   hooks.boxesAuto = () => { panel.show("cablage"); cablage.placeAuto(); };
   const tour = createTour({ api, panel, hooks });
   hooks.tour = () => tour.start();
   hooks.steps = () => { panel.show("steps"); tour.render(); };
-  window.okteoExt = { cablage, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, pages, backup: null };
+  window.okteoExt = { cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 

@@ -8,6 +8,7 @@ import { computeCircuits, checkCircuits, circuitsByBox } from "../src/cablage/ci
 import { CAB_DEFAULTS as S } from "../src/cablage/settings.js";
 import { placeBoxes, buildUnits, faceToward, portLayout, portXY } from "../src/cablage/boites.js";
 import { pointInPoly } from "../src/walls/rooms.js";
+import { PACK_DEFAULTS, packFor, missing, placePack, prisesNorme } from "../src/cablage/packs.js";
 import { computeWiring, gaineLength, cableColors } from "../src/cablage/gaines.js";
 import { connectorsFor, boxSteps, boxMaterial, boxChecks, parseSizes, schemaSVG } from "../src/cablage/schema.js";
 
@@ -246,6 +247,25 @@ console.log("Modes de pieuvre (v39)");
   check("pieuvre par pièce : une boîte par pièce posée dans sa pièce ; le WC (2 départs) rejoint la pièce voisine ; l'appareil extérieur va à la pièce la plus proche",
     pr.boxes.length === 2 && pr.boxes.map(roomOfBox).sort().join() === "Chambre,Séjour" && boxWith("wl") === boxWith("cl") && boxWith("ex") === boxWith("cp0") && boxWith("sl") === boxWith("sp0"),
     pr.boxes.map((b) => `${b.n}@${roomOfBox(b)}:${b.apps.length}`).join(" "));
+}
+
+console.log("Packs (v40)");
+{
+  const sq = [{ x: 0, y: 0 }, { x: 4, y: 0 }, { x: 4, y: 3.5 }, { x: 0, y: 3.5 }];
+  const door = { kind: "porte", j1: { x: 3, y: 3.5 }, j2: { x: 3.8, y: 3.5 }, hinge: { x: 3.8, y: 3.5 } }, win = { kind: "fenetre", j1: { x: 1.5, y: 0 }, j2: { x: 2.5, y: 0 } };
+  const room = { name: "Chambre 2", poly: sq, area: 14, label: { x: 2, y: 1.75 } };
+  const pk = packFor(room.name, PACK_DEFAULTS), need = missing(pk, room, []);
+  const r = placePack(room, [door, win], need, []);
+  const of = (t) => r.list.filter((x) => x.t === t), onWall = (p) => Math.min(p.x, 4 - p.x, p.y, 3.5 - p.y) < 0.2;
+  const I = of("INT")[0], P = of("PC16");
+  check("pack chambre : 3 prises sur les murs (loin de la fenêtre et des angles), point lumineux au centre, interrupteur à 15-30 cm de la porte côté poignée, RJ45, liaison interrupteur → lumière",
+    pk.id === "chambre" && P.length === 3 && P.every(onWall) && P.every((p) => !(p.y < 0.2 && p.x > 1.2 && p.x < 2.8)) && of("LUM").length === 1 && Math.abs(of("LUM")[0].x - 2) < 0.01
+    && I && Math.abs(I.y - 3.38) < 0.01 && I.x < 3 && I.x > 2.65 && of("RJ45").length === 1 && r.links.some((l) => r.list[l.c].t === "INT" && r.list[l.l].t === "LUM"), JSON.stringify(r.list));
+  const have = [{ t: "PC16", x: 0.1, y: 1 }, { t: "VV", x: 2.8, y: 3.4 }, { id: "x9", t: "SPOT", x: 2, y: 2 }];
+  const n2 = missing(pk, room, have), r2 = placePack(room, [door], n2, have);
+  check("pack : seul ce qui manque est ajouté (un va-et-vient compte pour la commande, un spot pour la lumière) ; séjour : prises selon la norme (1 par 4 m², 5 min, 7 au-delà de 28 m²)",
+    n2.map((x) => x.t + x.n).sort().join() === "PC162,RJ451" && !r2.list.some((x) => x.t === "INT" || x.t === "LUM") && prisesNorme(20) === 5 && prisesNorme(31.5) === 8 && prisesNorme(26) === 7 && prisesNorme(30) === 8 && packFor("Pièce de vie", PACK_DEFAULTS).id === "sejour" && packFor("Salle d'eau", PACK_DEFAULTS).id === "sdb",
+    JSON.stringify(n2));
 }
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);
