@@ -71,7 +71,24 @@ export const wireSolid = (c) => { const k = String(c || "").toLowerCase().trim()
 
 // repère d'orientation de chaque face : la pièce qu'on trouve en partant de la boîte dans cette direction
 // (A = haut du plan, B = droite, C = bas, D = gauche) ; geo = exportGeometry(niveau de la boîte)
+// v47 (Kévin) : la pièce d'une face = la pièce des appareils desservis par ses gaines (la plus fréquente) ; à égalité,
+// ou sans appareil, la pièce vers laquelle la face regarde ; une face qui n'a que l'alimentation = « Tableau »
 export function facesSides(box, geo, pointInPoly) {
+  const look = facesLook(box, geo, pointInPoly), out = { under: look.under };
+  for (const f of ["A", "B", "C", "D"]) {
+    const G = (box.gaines || []).filter((g) => g.face === f), cnt = new Map();
+    G.filter((g) => g.kind === "app" && g.room).forEach((g) => cnt.set(g.room, (cnt.get(g.room) || 0) + 1));
+    const best = [...cnt].sort((p, q) => q[1] - p[1]);
+    const lookName = String(look[f] || "").replace(/^côté /, "");
+    if (best.length && (best.length === 1 || best[0][1] > best[1][1])) out[f] = best[0][0];
+    else if (best.length) out[f] = best.some(([r]) => r === lookName) ? lookName : best[0][0];
+    else if (G.some((g) => g.kind === "alim")) out[f] = "Tableau";
+    else out[f] = lookName === "façade (extérieur)" ? "façade" : lookName;
+  }
+  return out;
+}
+// pièce vers laquelle chaque face regarde (v33)
+export function facesLook(box, geo, pointInPoly) {
   const R = (geo && geo.rooms) || [];
   const at = (x, y) => R.find((r) => r.poly && r.poly.length > 2 && pointInPoly(x, y, r.poly));
   const under = at(box.x, box.y);

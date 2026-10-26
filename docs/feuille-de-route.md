@@ -41,12 +41,12 @@ Décidée avec Kévin le 26/10/2026. Détail des échanges : `docs/journal.md` (
 - **Effets (retour de Kévin)** : lumière de l'essai moins forte (effet et halo gardés : intensité du dégradé ≈ −40 %, rayon un peu réduit) ; alertes plus visibles et plus rouges (anneau rouge-orangé #e4472b plus épais, pulsation plus marquée).
 - **Contrôle — deux interrupteurs simples sur la même lampe** : nouvelle alerte « Deux interrupteurs sur la même lumière : il faut des va-et-vient » (aussi un interrupteur simple mêlé à un va-et-vient) ; le mode essai et « Tester tout » la signalent aussi.
 
-## 46 — Onglet Tableau
+## 46 — Onglet Tableau — FAIT (27/10/2026)
 - Tracé du tableau complet : disjoncteurs et circuits, disjoncteurs déplaçables sur les rangées.
 - Modèle de tableau au choix (grand Schneider), avec sa taille et son nombre de rangées.
 - Remplace les disjoncteurs simples du mode essai.
 
-## 47 — Feuille de boîte
+## 47 — Feuille de boîte — FAIT (27/10/2026)
 Spécification complète : `docs/journal.md`, section « feuille de boîte ». En bref :
 - En-tête : Pavillonneur et Chantier (haut gauche) ; N° d'affaire, « Nom BE », cadre d'émargement du câbleur (haut droite) ; ancienne ligne de sous-titre supprimée.
 - Grosse flèche vers le tableau (direction réelle) avec le mot « TABLEAU » ; lettre et pièce de chaque face à l'extérieur de la boîte, sur les quatre bords ; A, B, C, D inchangés (pas de miroir).

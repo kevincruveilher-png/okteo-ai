@@ -89,7 +89,7 @@ try {
 
   console.log("Premiers pas (v27)");
   await check("première ouverture : invitation à la visite guidée (non bloquante)", async () => page.isVisible(".tour-invite"));
-  await check("visite guidée : 22 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
+  await check("visite guidée : 23 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
     await page.click("#ti-go");
     const s1 = await page.textContent(".tour-bub .tour-n");
     await page.keyboard.press("ArrowRight");
@@ -97,12 +97,12 @@ try {
       return !document.querySelector(".tour-ring").hidden && r.left <= t.left && r.right >= t.right && r.top <= t.top && r.bottom >= t.bottom; });
     await page.keyboard.press("ArrowLeft");
     const back = await page.textContent(".tour-bub .tour-n");
-    for (let k = 0; k < 22; k++) await page.click("#tour-next");
+    for (let k = 0; k < 23; k++) await page.click("#tour-next");
     const done = await ev(() => document.querySelector(".tour-bub").hidden && okteoExt.panel.state.pane === "steps" && !!document.querySelector(".steps ol li"));
     await ev(() => okteoExt.panel.show("props"));
     await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);
     const again = await page.isVisible(".tour-invite");
-    if (!(s1 === "1 / 22" && lit && back === "1 / 22" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
+    if (!(s1 === "1 / 23" && lit && back === "1 / 23" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
     return true;
   });
 
@@ -1147,7 +1147,7 @@ try {
   await check("onglet Bandes : boîte carrée (faces A–D, gaines, connecteurs), orientation, matériel, raccordements dans l'ordre à cocher", async () => {
     await page.click('#tabs button[data-tab="bandes"]');
     await page.waitForSelector(".bands .bd-svg svg");
-    const r = await ev(() => ({ picks: document.querySelectorAll(".bands .bd-pick [data-b]").length, boxes: okteo.cab.boxes.length, faces: ["A haut", "B droite", "C bas", "D gauche"].every((f) => document.querySelector(".bands .bd-svg").textContent.includes(f)),
+    const r = await ev(() => ({ picks: document.querySelectorAll(".bands .bd-pick [data-b]").length, boxes: okteo.cab.boxes.length, faces: ["A", "B", "C", "D"].every((f) => (document.querySelector(`.bands .bd-svg g.face[data-f="${f}"]`)?.textContent || "").startsWith(f)),
       or: [...document.querySelectorAll(".bands .bd-or li")].map((l) => l.textContent), mat: document.querySelectorAll(".bands h3 + ul li").length, rows: [...document.querySelectorAll(".bands .bd-steps tbody tr")].map((t) => t.children[2].textContent),
       wires: document.querySelectorAll(".bands .bd-steps .wchip").length, fils: (document.querySelector(".bands .bd-fils") || {}).textContent || "" }));
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/bandes.png", fullPage: false });
@@ -1159,7 +1159,7 @@ try {
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/bandes-calque.png" });
     await page.click(".bands .bd-calq button[data-cq='']");
     if (!(calq.faded > 5 && calq.kept > 3)) throw new Error("calque : " + JSON.stringify(calq));
-    const ok = r.picks === r.boxes && r.faces && r.or.length === 4 && r.or.every((t) => /côté/.test(t)) && r.mat >= 2 && /^Terres/.test(r.rows[0]) && r.rows.length >= 5 && r.wires > 20 && done && /\d+ × 1,5/.test(r.fils);
+    const ok = r.picks === r.boxes && r.faces && r.or.length === 4 && r.or.every((t) => /: \S/.test(t)) && r.mat >= 2 && /^Terres/.test(r.rows[0]) && r.rows.length >= 5 && r.wires > 20 && done && /\d+ × 1,5/.test(r.fils);
     if (!ok) throw new Error(JSON.stringify(r).slice(0, 600));
     return true;
   });
@@ -1243,7 +1243,19 @@ try {
     if (!ok) throw new Error(JSON.stringify({ t, r1, n1, b0, r2, b1 }));
     return true;
   });
+  await check("feuille de boîte (v47) : étiquette (pavillonneur, chantier, n° d'affaire, flèche du tableau), ordre de câblage, couvercle, code barre", async () => {
+    await page.waitForSelector("#bd-code svg", { timeout: 8000 });
+    const r = await ev(() => ({ lab: document.querySelector(".bd-label").textContent, rows: document.querySelectorAll(".bd-order tr").length, steps: document.querySelectorAll(".bd-steps tbody tr").length,
+      first: document.querySelector(".bd-order tr td")?.textContent, bars: document.querySelectorAll("#bd-code svg rect").length, faces: [...document.querySelectorAll(".bd-svg g.face text")].map((t) => t.textContent) }));
+    await page.selectOption("#bd-cover", "bas");
+    const cover = await ev(() => okteo.cab.boxes.some((b) => b.cover === "bas"));
+    await ev(() => okteo.undo());
+    const ok = /Pavillonneur/.test(r.lab) && /TABLEAU/.test(r.lab) && /N° d'affaire/.test(r.lab) && r.rows === r.steps && r.first === "1" && r.bars > 20 && r.faces.length === 4 && r.faces[0].startsWith("A") && cover;
+    if (!ok) throw new Error(JSON.stringify({ ...r, cover }));
+    return true;
+  });
   await check("impression des schémas : une feuille par boîte + raccordements à cocher, texte lisible (PDF relu)", async () => {
+    await page.click('#tabs button[data-tab="bandes"]'); await page.waitForSelector(".bands .bd-svg svg");
     await page.click("#bd-all");
     await page.waitForFunction(() => okteoExt.pages.bandes.ui.last, null, { timeout: 30000 });
     const b64 = await ev(async () => { const u = new Uint8Array(await okteoExt.pages.bandes.ui.last.blob.arrayBuffer()); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); });
@@ -1252,7 +1264,7 @@ try {
     const txt = async (i) => (await (await doc.getPage(i)).getTextContent()).items.map((x) => x.str).join(" ");
     const t1 = await txt(1), t2 = await txt(2), n = await ev(() => okteo.cab.boxes.length);
     await page.click('#tabs button[data-tab="plan"]');
-    const ok = doc.numPages >= 2 * n && /Boîte LI01/.test(t1) && /Orienter la boîte/.test(t1) && /connecteur/.test(t1) && /raccordements à faire dans l'ordre/.test(t2) && /1\. Terres/.test(t2) && /Contrôle final/.test(await txt(doc.numPages));
+    const ok = doc.numPages >= 2 * n && /Boîte LI01/.test(t1) && /PAVILLONNEUR/.test(t1) && /TABLEAU/.test(t1) && /ORDRE DE CABLAGE/.test(t1) && /MODÈLE DE BOÎTE/.test(t1) && /-LI01/.test(t1) && /connecteur/.test(t1) && /raccordements à faire dans l'ordre/.test(t2) && /1\. Terres/.test(t2) && /Contrôle final/.test(await txt(doc.numPages));
     if (!ok) throw new Error(JSON.stringify({ pages: doc.numPages, n, t1: t1.slice(0, 300), t2: t2.slice(0, 300) }));
     return true;
   });
@@ -1455,6 +1467,24 @@ try {
     const back = await ev((i) => !okteo.state.app.some((a) => i.includes(a.id)), ids);
     const ok = card && on1 && glow && off1 && v1 && v2 && v3 && t1 && t2 && brk && brk2 && viaLamp && res === "rien" && listed && out && back;
     if (!ok) throw new Error(JSON.stringify({ card, on1, glow, off1, v1, v2, v3, t1, t2, brk, brk2, viaLamp, res, listed, out, back }));
+    return true;
+  });
+  console.log("Tableau (v46)");
+  await check("onglet Tableau : coffret Resi9 dessiné, disjoncteurs glissés d'une rangée à l'autre (un Ctrl+Z), manette = circuit coupé pour l'essai", async () => {
+    if (!(await ev(() => (okteo.cab.circuits || []).length))) await ev(() => okteoExt.cablage.auto());
+    await page.click('#tabs button[data-tab="tableau"]'); await page.waitForSelector("#tableau .tb-box");
+    const r0 = await ev(() => ({ rows: document.querySelectorAll("#tableau .tb-row").length, cb: document.querySelectorAll("#tableau .tb-it.tcb").length, id: document.querySelectorAll("#tableau .tb-it.tid").length, model: document.querySelector("#tb-model").value }));
+    const src = page.locator("#tableau .tb-row[data-r='0'] .tb-it.tcb").first(), c = await src.getAttribute("data-c");
+    await src.dragTo(page.locator("#tableau .tb-row[data-r='1'] .tb-free").first()); await page.waitForTimeout(200);
+    const moved = await ev((c) => okteo.cab.tableau && okteo.cab.tableau.rows.findIndex((r) => r.some((x) => x.c === c)), c);
+    await page.click(`#tableau [data-cut="${c}"]`);
+    const cut = await ev((c) => okteo.essai.off.includes(c), c);
+    await page.click(`#tableau [data-cut="${c}"]`);
+    const back = await ev((c) => !okteo.essai.off.includes(c), c);
+    await ev(() => okteo.undo()); await page.waitForTimeout(150);
+    const undone = await ev(() => !okteo.cab.tableau);
+    const ok = r0.rows >= 4 && r0.cb > 0 && r0.id >= 2 && r0.model === "r9-13x4" && moved === 1 && cut && back && undone;
+    if (!ok) throw new Error(JSON.stringify({ r0, c, moved, cut, back, undone }));
     return true;
   });
   await page.click('#tabs button[data-tab="plan"]');

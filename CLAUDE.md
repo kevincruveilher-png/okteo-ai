@@ -239,13 +239,25 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   du HUD pièce ; Maj+P ; `.pk-menu`). `exportGeometry().rooms[].id`. Visite : 22 étapes.
   v45.1 : `linkTables` ne compte que les vraies commandes et suit les chaînes de lumières ; alertes `int2`, `nobox` ;
   quadrillage `layers.grille.on=false` par défaut (drapeau `g451` dans les données enregistrées).
+- v46 : `src/cablage/tableau.js` (pur : `MODELS` Resi9, `autoTableau(circuits, {model, area})`, `syncTableau`,
+  `tableauIssues`, `protections` (ID = le plus proche à gauche sur la rangée), `moveItem`, `addBreaker`, `newId`,
+  `suggestModel`) ; `cab.tableau = {model, rows:[[{k:"id"|"cb", id, a, type?, c?, w}]]}` (absent = disposition auto non
+  enregistrée) ; page `src/ext/tableau-page.js` (onglet `tableau`, glisser-déposer HTML5, manettes `[data-cut]` /
+  `[data-lev]` → `okteo.essai.breaker`).
+- v47 : numérotation des raccordements par circuit (gaines.js `RANK` cuisine, spécialisé, prises, éclairage : N puis P) ;
+  `g.reps` (repères des appareils de la gaine) ; schema.js : faces + pièces en `g.face[data-f]` aux bords, titres
+  3 lignes, plus de `FN_TAG` au bout des fils, `orderLines(steps)`, `BOX_MODELS` ; cablage-data `facesSides` (pièce des
+  gaines de la face) + `facesLook` (ancienne règle) ; cablage-bandes `boxSheets` → `order`, `tabAng`, `code`, `model`,
+  `cover` (`box.cover` haut|bas), `arrowSVG` ; `src/ext/barcode.js` (`code128` via jsbarcode CODE128B, `bars`,
+  `barsSVG`, `boxCode`) ; bandes-pdf.js page 1 = étiquette. Playwright : garder la version qui correspond au navigateur
+  installé (`npm install --no-save playwright@1.63.0` si `npm install` la change).
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (48 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (120 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (51 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (122 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

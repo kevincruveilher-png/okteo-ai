@@ -22,6 +22,7 @@ import { mountBoxesPage, mountDirectPage } from "./cablage-pages.js";
 import { createAiReleve } from "./ai-releve.js";
 import { ensurePaperW, chantierScaleCheck } from "./pdf-page.js";
 import { mountBandsPage } from "./cablage-bandes.js";
+import { mountTableauPage } from "./tableau-page.js";
 
 function start() {
   const api = window.okteo;
@@ -73,6 +74,7 @@ function start() {
     boites: { el: document.getElementById("boites"), mount: (el) => mountBoxesPage(el, { api }), ui: null },
     lignes: { el: document.getElementById("lignes"), mount: (el) => mountDirectPage(el, { api }), ui: null },
     bandes: { el: document.getElementById("bandes"), mount: (el) => mountBandsPage(el, { api }), ui: null },
+    tableau: { el: document.getElementById("tableau"), mount: (el) => mountTableauPage(el, { api }), ui: null },
   };
   const onTab = (t) => {
     stage.hidden = !!pages[t];

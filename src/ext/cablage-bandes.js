@@ -4,18 +4,31 @@
 // l'ordre (à cocher) et le contrôle final. Impression : une feuille par boîte.
 import { wiringNow, wireCss, wireSolid, facesSides, fr } from "./cablage-data.js";
 import { getCab } from "../cablage/settings.js";
-import { boxSteps, boxMaterial, boxChecks, boxWires, parseSizes, schemaSVG, FN_SHORT, wireName } from "../cablage/schema.js";
+import { boxSteps, boxMaterial, boxChecks, boxWires, parseSizes, schemaSVG, FN_SHORT, wireName, orderLines, BOX_MODELS } from "../cablage/schema.js";
+import { code128, barsSVG, boxCode } from "./barcode.js";
 import { pointInPoly } from "../walls/rooms.js";
 import { buildBandsPdf } from "./bandes-pdf.js";
 import { esc } from "./util.js";
 
 export function boxSheets(api) {
   const W = wiringNow(api), sizes = parseSizes(getCab().bornes), geos = new Map(), lvName = new Map(api.levels.map((l) => [l.id, l.name]));
+  const tabs = api.allApps().filter((a) => a.t === "TAB");
   return W.boxes.map((box) => {
     if (!geos.has(box.lv)) geos.set(box.lv, api.exportGeometry(box.lv));
     const steps = boxSteps(box, sizes);
-    return { box, steps, material: boxMaterial(steps), fils: boxWires(box), checks: boxChecks(box, steps), sides: facesSides(box, geos.get(box.lv), pointInPoly), level: lvName.get(box.lv) || box.lv };
+    // direction du tableau depuis la boîte (même niveau de préférence), en radians dans le repère du plan (y vers le bas)
+    const tab = tabs.find((t) => t.lv === box.lv) || tabs[0];
+    const tabAng = tab && Math.hypot(tab.x - box.x, tab.y - box.y) > 0.05 ? Math.atan2(tab.y - box.y, tab.x - box.x) : null;
+    return { box, steps, material: boxMaterial(steps), fils: boxWires(box), checks: boxChecks(box, steps), sides: facesSides(box, geos.get(box.lv), pointInPoly), level: lvName.get(box.lv) || box.lv,
+      order: orderLines(steps), tabAng, code: boxCode(api.ch, box), model: (BOX_MODELS.find((m) => m.id === box.model) || BOX_MODELS[0]).name, cover: box.cover === "bas" ? "bas" : "haut",
+      ch: { nom: api.ch.nom, numero: api.ch.numero || "", client: api.ch.client || "" } };
   });
+}
+// flèche vers le tableau (SVG, pour l'écran)
+export function arrowSVG(ang, size = 70) {
+  if (ang == null) return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}"><text x="${size / 2}" y="${size / 2 + 5}" text-anchor="middle" font-size="12">?</text></svg>`;
+  const deg = ang * 180 / Math.PI, c = size / 2;
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" class="tab-arrow"><g transform="rotate(${deg.toFixed(1)} ${c} ${c})"><path d="M${c - 26} ${c - 7}H${c + 6}V${c - 17}L${c + 28} ${c}L${c + 6} ${c + 17}V${c + 7}H${c - 26}Z" fill="#1f2a36"/></g></svg>`;
 }
 
 export function mountBandsPage(el, { api }) {
@@ -60,6 +73,16 @@ export function mountBandsPage(el, { api }) {
         <div class="bd-svgw"><div class="bd-calq" title="Cliquez un circuit (ou un fil du schéma) : les autres s'estompent, comme un calque">Circuits : <button data-cq="" class="${focusC ? "" : "on"}">Tous</button>${box.circuits.map((c) => `<button data-cq="${esc(c)}" class="${focusC === c ? "on" : ""}">${esc(c)}</button>`).join("")}</div>
         <div class="bd-svg">${svg}</div></div>
         <div class="bd-side">
+          <div class="bd-label" title="Étiquette collée sur la boîte (en-tête de la feuille imprimée)">
+            <div class="bl-l"><div><span class="mut">Pavillonneur</span><b>${esc(S.ch.client || "—")}</b></div><div><span class="mut">Chantier</span><b>${esc(S.ch.nom)}</b></div></div>
+            <div class="bl-c" title="Direction du tableau depuis la boîte (haut de la feuille = haut du plan)">${arrowSVG(S.tabAng, 58)}<b>TABLEAU</b></div>
+            <div class="bl-r"><div><span class="mut">N° d'affaire</span><b>${esc(S.ch.numero || "—")}</b></div><div><span class="mut">Nom BE</span><b>…………</b></div><div><span class="mut">Câbleur (initiales)</span><span class="sig"></span></div></div>
+          </div>
+          <div class="bl-bot"><label class="sm">Modèle de boîte <select disabled title="Seul modèle connu pour l'instant">${BOX_MODELS.map((m) => `<option>${esc(m.name)}</option>`).join("")}</select></label>
+            <label class="sm" title="Simple indication pour la pose : ne change ni le plan ni la pieuvre">Couvercle <select id="bd-cover"><option value="haut" ${S.cover === "haut" ? "selected" : ""}>vers le haut</option><option value="bas" ${S.cover === "bas" ? "selected" : ""}>vers le bas</option></select></label>
+            <div class="bl-code" id="bd-code" title="Code barre unique de la boîte : ${esc(S.code)}"></div></div>
+          <h3>Ordre de câblage</h3>
+          <table class="bd-order"><tbody>${S.order.map((o) => `<tr><td class="c"><b>${o.n}</b></td><td><span class="wchip"><i style="background:${wireCss(o.color)}"></i>${esc(o.color)} ${o.section ? fr(o.section, 1) : ""}</span></td><td class="r">${o.count} fil${o.count > 1 ? "s" : ""}</td><td class="mut sm">${esc(FN_SHORT[o.fn] || o.fn)}</td></tr>`).join("")}</tbody></table>
           <h3>1. Orienter la boîte</h3>
           <ul class="bd-or">${["A", "B", "C", "D"].map((f, i) => `<li><b>Face ${f}</b> <span class="mut">(${["haut", "droite", "bas", "gauche"][i]} du plan)</span> : ${esc(sides[f] || "—")}</li>`).join("")}</ul>
           <h3>2. Préparer le matériel</h3>
@@ -95,6 +118,8 @@ export function mountBandsPage(el, { api }) {
     applyFocus();
     el.querySelectorAll("input[data-n]").forEach((c) => (c.onchange = () => { const s = done.get(box.id) || new Set(); c.checked ? s.add(+c.dataset.n) : s.delete(+c.dataset.n); done.set(box.id, s); c.closest("tr").classList.toggle("done", c.checked); }));
     el.querySelector("#bd-one").onclick = () => print([S]);
+    el.querySelector("#bd-cover").onchange = (e) => { api.setBoxes((api.cab.boxes || []).map((b) => (b.id === box.id ? { ...b, cover: e.target.value } : b))); render(); };
+    code128(S.code).then((bits) => { const c = el.querySelector("#bd-code"); if (c) c.innerHTML = barsSVG(bits, S.code, { mod: 1.4, h: 40 }); }).catch(() => {});
     el.querySelector("#bd-all").onclick = () => print(sheets);
   }
   render();

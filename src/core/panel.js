@@ -124,7 +124,8 @@ export function showSide() {
     return;
   }
   if (K.tab !== "plan") {
-    b.innerHTML = `<h3>${K.tab}</h3><p class="note">Onglet à venir.</p>`;
+    const T = { boites: "Boîtes : chaque boîte, ses gaines, leurs longueurs et leurs fils.", bandes: "Bandes : le schéma de chaque boîte pour le câbleur, à imprimer.", lignes: "Lignes directes : les circuits qui partent directement du tableau.", tableau: "Tableau : le coffret, ses différentiels et ses disjoncteurs. Glissez-les pour les déplacer ; les manettes coupent les circuits pour le mode essai." };
+    b.innerHTML = `<h3>${K.tab}</h3><p class="note">${T[K.tab] || ""} Cliquez sur <b>Plan</b> pour revenir au dessin.</p>`;
     return;
   }
   if (K.sel && K.sel.kind === "offsetAsk") {

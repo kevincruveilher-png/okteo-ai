@@ -281,6 +281,27 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Versions 46 et 47 (27/10/2026) — livrées : onglet Tableau, feuille de boîte
+- v46 — onglet « Tableau » (à gauche) : coffret Schneider Resi9 au choix (1 à 4 rangées de 13 ou 18 modules ;
+  4 × 13 = R9H13404 par défaut), dessiné module par module. Placement automatique (NF C 15-100 simplifiée) : ID 40 A
+  30 mA type A pour les circuits spécialisés, ID type AC selon la surface (1 jusqu'à 35 m², 2 jusqu'à 100 m², 3 au-delà),
+  8 circuits au plus par ID, une rangée par ID ; les RJ45 n'ont pas de disjoncteur. Disjoncteurs et différentiels se
+  glissent d'une place à l'autre (un Ctrl+Z) ; « ＋ Différentiel » ; circuits pas encore au tableau proposés ; coffret
+  plus grand proposé si besoin. Alertes : circuit sans différentiel, spécialisé hors type A, plus de 8 circuits par ID,
+  rangée trop pleine, réserve de 20 %. La manette d'un disjoncteur (ou d'un différentiel) coupe ses circuits pour le
+  mode essai ; bouton « Essai sur le plan », et bouton « Tableau » dans l'encart Essai. Enregistré dans le chantier
+  (`cab.tableau`) dès la première modification. Hypothèses à valider avec Kévin : pas de télérupteurs ni de
+  parafoudre dans le coffret, ID 40 A partout.
+- v47 — feuille de boîte (photo annotée LI01) : en-tête pavillonneur / chantier (gauche), flèche vers le tableau avec
+  « TABLEAU » (centre, direction réelle depuis la boîte), n° d'affaire, Nom BE (libellé), cadre d'émargement du câbleur
+  (droite) ; faces et pièces écrites à l'extérieur, aux quatre bords (pièce = celle des appareils des gaines de la face ;
+  « Tableau » pour une face qui n'a que l'alimentation) ; gaines en « LI01.10 / P14 / 4,8 m · Ø16 », textes plus gros,
+  plus de Ph / N / PE ; cadre « Ordre de câblage » (borne, couleur, section, nombre de fils) ; raccordements numérotés
+  terre, puis neutre et phase circuit par circuit (cuisine, prises, éclairage), puis retours et navettes ; modèle de
+  boîte (pavillonnaire carrée) et couvercle haut / bas (choix dans l'onglet Bandes, simple mention) ; code barre Code 128
+  « n° d'affaire-LI01 » (jsbarcode 3.11.6, chargé à la demande). La même étiquette apparaît dans l'onglet Bandes.
+- Tests : 30 + 51 + 122.
+
 ## Version 45.1 (27/10/2026) — livrée : retours de Kévin sur les 43 à 45
 - Quadrillage masqué par défaut (y compris sur les anciens dessins, une fois) et retiré de la vue Bâti ; il reste dans
   l'encart Vues pour qui le veut.

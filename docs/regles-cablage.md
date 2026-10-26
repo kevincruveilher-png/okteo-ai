@@ -119,3 +119,12 @@ avec une valeur de base modifiable.
   pack et ses gaines (fabrication en série). Norme : chambre = 3 prises min + 1 point lumineux ; RJ45 : 2 au séjour et 2
   dans au moins une chambre (T3 et plus).
 - Nouvel appareillage (interrupteur à voyant…) à câbler ensemble ; export SPV.
+
+## Feuille de boîte (v47) — Kévin, 26/10/2026 (photo annotée LI01)
+
+- Ordre de câblage (= n° des bornes) : terres, puis circuit par circuit neutre puis phase — cuisine (bleu / rouge 2,5),
+  prises (bleu foncé / gris 1,5), éclairage (bleu / rouge 1,5) — puis va-et-vient, retours et le reste. Le cadre
+  « Ordre de câblage » donne pour chaque borne la couleur, la section et le nombre de fils.
+- Faces A, B, C, D inchangées même couvercle vers le bas (le plan est collé sur le couvercle, la boîte est percée en
+  conséquence) ; pièce d'une face = celle d'où viennent ses gaines.
+- La feuille est une étiquette collée sur la boîte : émargement du câbleur (initiales), code barre unique.

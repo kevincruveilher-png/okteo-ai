@@ -152,9 +152,11 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
     }
     let ci = 0;
     const nextCol = () => cmdCols.length ? cmdCols[ci++ % cmdCols.length] : S.cRetour;
-    // ordre de câblage (= ordre des n°) : terres, neutres circuit par circuit, phases, puis retours et navettes
-    for (const c of circs) net("N" + c.id, `Neutre ${c.n}`, "neutre");
-    for (const c of circs) net("P" + c.id, `Phase ${c.n}`, "phase");
+    // ordre de câblage (= ordre des n°, v47, demande de Kévin) : terres, puis circuit par circuit neutre et phase —
+    // cuisine (bleu / rouge 2,5), prises (bleu foncé / gris 1,5), éclairage (bleu / rouge 1,5) — puis retours et navettes
+    const RANK = { cuisine: 0, specialise: 1, prises: 2, eclairage: 3 };
+    const ordered = [...circs].sort((p, q) => (RANK[p.kind] ?? 4) - (RANK[q.kind] ?? 4) || String(p.n).localeCompare(String(q.n), "fr", { numeric: true }));
+    for (const c of ordered) { net("N" + c.id, `Neutre ${c.n}`, "neutre"); net("P" + c.id, `Phase ${c.n}`, "phase"); }
     // allumages de la boîte, dans l'ordre commun à toutes les boîtes (le plus fréquent du chantier d'abord)
     const groupsL = boxGroups(b).sort((p, q) => (freq.get(q.sig) || 0) - (freq.get(p.sig) || 0) || p.sig.localeCompare(q.sig) || p.cy - q.cy || p.cx - q.cx);
     const role = new Map();            // appareil → fils
@@ -228,7 +230,7 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
       const label = G.length === 1 ? `${NAMES[a.t] || a.t} ${a.rep || ""}`.trim() : G.map((m) => m.rep || NAMES[m.t] || m.t).join(" + ");
       const cn = [...new Set(G.map((m) => circOf.get(m.id).n))];
       // la face est celle par où la gaine sort : vers son 1er point de passage s'il y en a un
-      deps.push({ id: a.id, kind: "app", p: route ? route[0] : a, app: a, appIds: G.map((m) => m.id), routed: !!route, label, room: a.room, circuit: cn.join(", "), wires, length: len, cable, ext: !!cable });
+      deps.push({ id: a.id, kind: "app", p: route ? route[0] : a, app: a, appIds: G.map((m) => m.id), reps: G.map((m) => m.rep || NAMES[m.t] || m.t), routed: !!route, label, room: a.room, circuit: cn.join(", "), wires, length: len, cable, ext: !!cable });
     }
     // alimentation depuis le tableau : une seule gaine (phase + neutre de chaque circuit, télérupteur, une terre) ;
     // divisée si elle passait en Ø25, la terre restant dans la 1re

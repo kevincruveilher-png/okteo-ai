@@ -35,12 +35,14 @@ export function createEssai({ api, ctlDescribe }) {
       <p class="mut sm">Cliquez un interrupteur pour allumer, recliquez pour éteindre. Va-et-vient : chacun inverse. Poussoir : télérupteur.</p>
       <div class="es-btns"><button data-a="off" title="Éteindre toutes les lumières (remet les commandes à zéro)">Tout éteindre</button>
         <button data-a="test" class="on" title="Actionne chaque commande seule et liste celles qui n'allument rien, qui laissent une lumière éteinte ou qui allument une lumière d'un autre circuit">Tester tout</button>
-        <button data-a="brk" class="${showBrk ? "act" : ""}" title="Un disjoncteur par circuit : couper un circuit éteint ses lumières">Disjoncteurs ${showBrk ? "▴" : "▾"}</button></div>
+        <button data-a="brk" class="${showBrk ? "act" : ""}" title="Un disjoncteur par circuit : couper un circuit éteint ses lumières">Disjoncteurs ${showBrk ? "▴" : "▾"}</button>
+        <button data-a="tab" title="Onglet Tableau : le tableau complet, ses différentiels et ses disjoncteurs (les manettes coupent aussi les circuits)">Tableau</button></div>
       ${brk}${out}`;
     card.querySelector(".es-x").onclick = () => api.setEssai(false);
     card.querySelector('[data-a="off"]').onclick = () => { api.essai.reset(); api.setHint("Essai : tout est éteint."); render(); };
     card.querySelector('[data-a="test"]').onclick = () => { res = api.essai.testAll(); render(); };
     card.querySelector('[data-a="brk"]').onclick = () => { showBrk = !showBrk; render(); };
+    card.querySelector('[data-a="tab"]').onclick = () => api.setTab("tableau");
     card.querySelectorAll("[data-n]").forEach((c) => (c.onchange = () => { api.essai.breaker(c.dataset.n, c.checked); api.setHint(`Disjoncteur ${c.dataset.n} ${c.checked ? "remis" : "coupé"}.`); render(); }));
     card.querySelectorAll(".es-res li").forEach((li) => (li.onclick = () => {
       const it = res.issues[+li.dataset.i];

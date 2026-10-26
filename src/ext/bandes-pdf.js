@@ -3,6 +3,7 @@
 // (pas de flèches ni d'émojis).
 import { schemaSVG, FN_SHORT, wireName } from "../cablage/schema.js";
 import { wireSolid } from "./cablage-data.js";
+import { code128, bars } from "./barcode.js";
 
 let lib = null;
 async function jspdf() { if (!lib) lib = (await import("jspdf")).jsPDF; return lib; }
@@ -29,37 +30,76 @@ export async function buildBandsPdf(pages, { chantier = "", numero = "" } = {}) 
   const W = 210, M = 12;
   let first = true;
   for (const P of pages) {
-    const { box, steps, material, checks, sides, level, fils } = P;
+    const { box, steps, material, checks, sides, level, fils, order = [], tabAng = null, code = "", model = "Boîte pavillonnaire carrée", cover = "haut", ch = {} } = P;
     if (!first) doc.addPage(); first = false;
-    // en-tête
-    doc.setFont("helvetica", "bold"); doc.setFontSize(15);
-    doc.text(win(`Boîte ${box.n}`), M, 16);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
-    doc.text(win(`${chantier}${numero ? " · " + numero : ""} · ${level || ""}${sides.under ? " · au-dessus de : " + sides.under : ""} · ${box.gaines.length} gaines · ${steps.length} raccordements`), M, 22);
-    // schéma
+    // ---------- en-tête (v47, feuille de Kévin) : étiquette collée sur la boîte ----------
+    doc.setTextColor(0);
+    const lab = (k, v, x, y, al = "left") => { doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(110); doc.text(win(k), x, y, { align: al }); doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(0); doc.text(win(v || "-"), x, y + 4.6, { align: al }); };
+    lab("PAVILLONNEUR", ch.client || chantier, M, 11);
+    lab("CHANTIER", ch.nom || chantier, M, 22);
+    lab("N° D'AFFAIRE", ch.numero || numero, W - M, 11, "right");
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(110); doc.text("NOM BE", W - M, 22, { align: "right" });
+    doc.setDrawColor(150); doc.setLineWidth(0.2); doc.line(W - M - 34, 27, W - M, 27);
+    doc.text(win("CÂBLEUR (initiales)"), W - M - 22, 32.5, { align: "right" });
+    doc.setDrawColor(0); doc.setLineWidth(0.4); doc.rect(W - M - 20, 29, 20, 9);
+    // flèche vers le tableau
+    const cx = W / 2, cy = 16;
+    if (tabAng != null) {
+      const c = Math.cos(tabAng), s2 = Math.sin(tabAng), L = 9, P2 = (a, b) => [cx + a * c - b * s2, cy + a * s2 + b * c];
+      doc.setFillColor(31, 42, 54);
+      const pts = [P2(-L, -2.2), P2(2.5, -2.2), P2(2.5, -5.5), P2(L + 1, 0), P2(2.5, 5.5), P2(2.5, 2.2), P2(-L, 2.2)];
+      doc.lines(pts.slice(1).map((p, k) => [p[0] - pts[k][0], p[1] - pts[k][1]]), pts[0][0], pts[0][1], [1, 1], "F", true);
+    }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(0); doc.text(tabAng != null ? "TABLEAU" : "TABLEAU ?", cx, 31, { align: "center" });
+    doc.setFontSize(16); doc.text(win(`Boîte ${box.n}`), M, 40);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90); doc.text(win(level || ""), M + 32, 40); doc.setTextColor(0);
+    // ---------- schéma (faces et pièces aux quatre bords) ----------
     const png = await svgToPng(schemaSVG(box, steps, { color: wireSolid, sides }));
-    doc.addImage(png, "JPEG", M + 6, 26, 174, 174);
-    // orientation + matériel
-    let y = 206;
-    doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.text("Orienter la boîte", M, y);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
-    ["A", "B", "C", "D"].forEach((f, i) => doc.text(win(`Face ${f} (${["haut", "droite", "bas", "gauche"][i]} du plan) : ${sides[f] || "-"}`), M + 2, y + 5.5 + i * 5));
-    y += 28;
-    doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.text("Matériel", M, y);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
+    doc.addImage(png, "JPEG", M - 2, 44, 148, 148);
+    // ---------- ordre de câblage (cadre à droite) ----------
+    const ox = M + 148, ow = W - M - ox;
+    let oy = 48;
+    doc.setDrawColor(0); doc.setLineWidth(0.4);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.text("ORDRE DE CABLAGE", ox + ow / 2, oy, { align: "center" });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(100); doc.text("borne · fil · nombre", ox + ow / 2, oy + 3.6, { align: "center" }); doc.setTextColor(0);
+    oy += 8;
+    const rowH = Math.min(5.2, 124 / Math.max(1, order.length));
+    for (const o of order) {
+      const [r, g, b] = rgb(wireSolid(o.color));
+      doc.setFont("helvetica", "bold"); doc.setFontSize(Math.min(8.5, rowH * 1.8)); doc.text(String(o.n), ox + 4, oy, { align: "center" });
+      doc.setFillColor(r, g, b); doc.rect(ox + 7.5, oy - rowH * 0.62, 3.2, rowH * 0.75, "F");
+      if (/jaune/.test(o.color)) { doc.setFillColor(40, 160, 70); doc.rect(ox + 7.5, oy - rowH * 0.62, 1.6, rowH * 0.75, "F"); }
+      doc.setFont("helvetica", "normal"); doc.text(win(`${o.color} ${o.section ? fr(o.section, 1) : ""}`), ox + 12.5, oy);
+      doc.setFont("helvetica", "bold"); doc.text(`${o.count}`, ox + ow - 2, oy, { align: "right" });
+      doc.setDrawColor(210); doc.setLineWidth(0.15); doc.line(ox + 1, oy + rowH * 0.35, ox + ow - 1, oy + rowH * 0.35);
+      oy += rowH;
+    }
+    doc.setDrawColor(0); doc.setLineWidth(0.5); doc.rect(ox, 43, ow, Math.max(oy - 43, 40));
+    // ---------- sous le schéma : matériel, fils, bagues, mode d'emploi ----------
+    let y = 200;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.text("Matériel", M, y);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
     const mat = material.sizes.map(([k, n]) => `${n} connecteur${n > 1 ? "s" : ""} ${k} entrées`).join(" · ") + (material.ponts ? ` · ${material.ponts} pont${material.ponts > 1 ? "s" : ""} (bout de fil de la même couleur)` : "");
-    const matT = doc.splitTextToSize(win(mat || "-"), W - 2 * M - 4);
-    doc.text(matT, M + 2, y + 5.5);
-    y += (matT.length - 1) * 4.4;
+    const matT = doc.splitTextToSize(win(mat || "-"), W - 2 * M - 22); doc.text(matT, M + 20, y); y += matT.length * 4.2 + 1.5;
     const bg = [...new Set(box.gaines.filter((g) => g.kind === "alim").flatMap((g) => g.wires.map((w) => w.bague)).filter(Boolean))];
-    if (bg.length) { doc.text(win("Bagues sur l'alimentation : " + bg.join(" · ")), M + 2, y + 11); y += 5; }
-    const fl = fils ? "Fils : " + fils.wires.map((w) => `${w.n} x ${fr(w.section, 1)} ${w.color}`).join(" · ") + (fils.cables.length ? " · câbles : " + fils.cables.map((c) => `${c.n} x ${c.cable}`).join(", ") : "") : "";
-    const flT = doc.splitTextToSize(win(fl), W - 2 * M - 4);
-    if (fl) doc.text(flT, M + 2, y + 11);
-    y += 16 + (fl ? flT.length * 4.4 : 0);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.text("Comment faire", M, y);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
-    doc.text(doc.splitTextToSize(win("Faire les raccordements dans l'ordre des numéros (au verso) : terres, neutres, phases, puis retours lampe et navettes. Pour chaque numéro : prendre dans chaque gaine indiquée le fil de la couleur indiquée, dénuder, l'enfoncer dans le connecteur indiqué, cocher la case."), W - 2 * M - 4), M + 2, y + 5.5);
+    if (bg.length) { doc.text(win("Bagues sur l'alimentation (accolades) : " + bg.join(" · ")), M + 20, y); y += 5; }
+    const fl = fils ? fils.wires.map((w) => `${w.n} x ${fr(w.section, 1)} ${w.color}`).join(" · ") + (fils.cables.length ? " · câbles : " + fils.cables.map((c) => `${c.n} x ${c.cable}`).join(", ") : "") : "";
+    if (fl) { doc.setFont("helvetica", "bold"); doc.text("Fils", M, y); doc.setFont("helvetica", "normal"); const t = doc.splitTextToSize(win(fl), W - 2 * M - 22); doc.text(t, M + 20, y); y += t.length * 4.2 + 1.5; }
+    doc.setFontSize(8.5); doc.setTextColor(70);
+    const how = doc.splitTextToSize(win("Câbler dans l'ordre des bornes (cadre « Ordre de câblage », détail au verso) : terres, puis neutre et phase de chaque circuit, puis retours lampe et navettes. Bornes = n° de raccordement ; tracés à l'intérieur : retours, navettes (N2 en pointillés) et commandes ; accolade = bague à poser sur l'alimentation ; câble : âme repérée à la couleur de sa fonction ; xn = gaines identiques sur le chantier."), W - 2 * M);
+    doc.text(how, M, y + 2); doc.setTextColor(0);
+    // ---------- pied : modèle de boîte (gauche), code barre (droite) ----------
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(110); doc.text(win("MODÈLE DE BOÎTE"), M, 268);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(0); doc.text(win(model), M, 273);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.text(win(`Couvercle vers le ${cover}`), M, 279);
+    if (code) {
+      try {
+        const bits = await code128(code), mw = 0.3, bw = bits.length * mw, x0 = W - M - bw, y0 = 262;
+        doc.setFillColor(0);
+        bars(bits).forEach(([x, w]) => doc.rect(x0 + x * mw, y0, w * mw, 14, "F"));
+        doc.setFont("courier", "normal"); doc.setFontSize(9); doc.text(win(code), x0 + bw / 2, y0 + 18, { align: "center" });
+      } catch (e) { /* code barre impossible : la feuille reste utilisable */ }
+    }
 
     // raccordements à cocher
     doc.addPage();

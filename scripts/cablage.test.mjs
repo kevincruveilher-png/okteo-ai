@@ -11,6 +11,7 @@ import { pointInPoly } from "../src/walls/rooms.js";
 import { PACK_DEFAULTS, packFor, missing, placePack, prisesNorme } from "../src/cablage/packs.js";
 import { computeWiring, gaineLength, cableColors } from "../src/cablage/gaines.js";
 import { connectorsFor, boxSteps, boxMaterial, boxChecks, parseSizes, schemaSVG } from "../src/cablage/schema.js";
+import { autoTableau, syncTableau, tableauIssues, protections, moveItem, suggestModel, addBreaker } from "../src/cablage/tableau.js";
 
 let ok = 0; const fails = [];
 const check = (name, cond, info = "") => { if (cond) { ok++; console.log("  ✓ " + name); } else { fails.push(name); console.log("  ✗ " + name + (info ? " : " + info : "")); } };
@@ -196,17 +197,21 @@ console.log("Schéma de boîte pour le câbleur (v33)");
   const B = W.boxes[0], st = boxSteps(B, Z), fnOrder = st.map((x) => x.fn);
   const lastN = fnOrder.lastIndexOf("neutre"), firstP = fnOrder.indexOf("phase"), lastP = fnOrder.lastIndexOf("phase"), firstR = fnOrder.findIndex((f) => !["terre", "neutre", "phase"].includes(f));
   const wired = B.gaines.reduce((s, g) => s + g.wires.filter((w) => w.n != null).length, 0);
-  check("étapes dans l'ordre de câblage : n° 1 = terres, puis tous les neutres, puis les phases, puis retours et navettes",
-    fnOrder[0] === "terre" && lastN < firstP && (firstR < 0 || lastP < firstR) && st.every((x, i) => x.n === i + 1), fnOrder.join(","));
+  // v47 (Kévin) : terres, puis circuit par circuit neutre puis phase (cuisine, prises, éclairage), puis retours et navettes
+  const pairs = fnOrder.slice(1, firstR < 0 ? undefined : firstR);
+  const byPair = pairs.every((f, i) => f === (i % 2 ? "phase" : "neutre"));
+  const RK = { cuisine: 0, specialise: 1, prises: 2, eclairage: 3 }, circK = (lab) => (C.find((c) => lab.endsWith(" " + c.n)) || {}).kind;
+  const kinds = st.filter((x) => x.fn === "neutre").map((x) => RK[circK(x.label)] ?? 4);
+  check("étapes dans l'ordre de câblage (v47) : n° 1 = terres, puis neutre et phase circuit par circuit (cuisine, prises, éclairage), puis retours et navettes",
+    fnOrder[0] === "terre" && byPair && (firstR < 0 || lastP < firstR) && kinds.every((k, i) => !i || kinds[i - 1] <= k) && st.every((x, i) => x.n === i + 1), fnOrder.join(",") + " " + kinds.join(","));
   const mat = boxMaterial(st), nConn = mat.sizes.reduce((s, [, n]) => s + n, 0);
   check("chaque fil de chaque gaine apparaît dans une étape ; matériel = un connecteur par raccordement (+ ponts)",
     st.reduce((s, x) => s + x.wires.length, 0) === wired && nConn === st.length + mat.ponts && boxChecks(B, st).every((t) => /un seul fil|sans raccordement/.test(t)), JSON.stringify(mat));
-  const svg = schemaSVG(B, st, { sides: { A: "côté Chambre 1" } });
+  const svg = schemaSVG(B, st, { sides: { A: "Chambre 1", C: "Garage" } });
   const nW = B.gaines.reduce((s, g) => s + g.wires.length, 0), traced = st.filter((x) => ["retour", "nav1", "nav2", "cmdTL", "retTL"].includes(x.fn));
-  check("dessin de la boîte : faces A–D, chaque fil dessiné jusqu'à sa borne numérotée, un point par retour/navette, traits intérieurs",
-    ["A haut", ">A<", ">B<", ">C<", ">D<"].every((f) => svg.includes(f)) && (svg.match(/class="term"/g) || []).length === nW && (svg.match(/class="w"/g) || []).length === nW
-    && (svg.match(/class="node"/g) || []).length === traced.length && (svg.match(/class="lnk"/g) || []).length === traced.reduce((s, x) => s + x.wires.length, 0) && svg.includes("côté Chambre 1")
-    && /data-c="C\d/.test(svg), `${nW} fils, ${traced.length} points`);
+  check("dessin de la boîte (v47) : faces et pièces à l'extérieur, chaque fil jusqu'à sa borne numérotée, sans Ph / N / PE, un point par retour/navette",
+    [">A · Chambre 1<", ">B<", ">C · Garage<", ">D<"].every((f) => svg.includes(f)) && !/>(Ph|PE|N)( C\d+)?</.test(svg) && /LI\d+\.\d+<\/text>/.test(svg) && /[\d,]+ m · Ø\d+</.test(svg) && (svg.match(/class="term"/g) || []).length === nW && (svg.match(/class="w"/g) || []).length === nW
+    && (svg.match(/class="node"/g) || []).length === traced.length && (svg.match(/class="lnk"/g) || []).length === traced.reduce((s, x) => s + x.wires.length, 0) && /data-c="C\d/.test(svg), `${nW} fils, ${traced.length} points`);
 }
 
 {
@@ -266,6 +271,28 @@ console.log("Packs (v40)");
   check("pack : seul ce qui manque est ajouté (un va-et-vient compte pour la commande, un spot pour la lumière) ; séjour : prises selon la norme (1 par 4 m², 5 min, 7 au-delà de 28 m²)",
     n2.map((x) => x.t + x.n).sort().join() === "PC162,RJ451" && !r2.list.some((x) => x.t === "INT" || x.t === "LUM") && prisesNorme(20) === 5 && prisesNorme(31.5) === 8 && prisesNorme(26) === 7 && prisesNorme(30) === 8 && packFor("Pièce de vie", PACK_DEFAULTS).id === "sejour" && packFor("Salle d'eau", PACK_DEFAULTS).id === "sdb",
     JSON.stringify(n2));
+}
+
+console.log("Tableau électrique (v46)");
+{
+  const mk = (kind, n, k, prot) => Array.from({ length: n }, (_, i) => ({ n: "C" + (k + i), kind, prot, name: kind }));
+  const C = [...mk("eclairage", 3, 1, 10), ...mk("prises", 4, 4, 16), ...mk("cuisine", 2, 8, 20), ...mk("specialise", 4, 10, 20), { n: "COM", kind: "comm" }];
+  const T = autoTableau(C, { model: "r9-13x4", area: 120 }), P = protections(T.rows), cbs = T.rows.flat().filter((x) => x.k === "cb");
+  const ids = T.rows.map((r) => r[0]);
+  const specUnderA = cbs.filter((x) => +x.c.slice(1) >= 10).every((x) => P.get(x.id).type === "A");
+  check("auto : 3 ID type AC (> 100 m²) + 1 type A, une rangée chacun, COM sans disjoncteur, spécialisés sous type A",
+    T.rows.length === 4 && ids.filter((x) => x.type === "AC").length === 3 && ids.filter((x) => x.type === "A").length === 1 && cbs.length === 13 && specUnderA && tableauIssues(T, C).length === 0,
+    JSON.stringify(T.rows.map((r) => r.map((x) => x.k === "id" ? "ID" + x.type : x.c))) + " " + JSON.stringify(tableauIssues(T, C)));
+  const sp = cbs.find((x) => x.c === "C10"), firstAC = T.rows[0];
+  const T2 = { ...T, rows: moveItem(T.rows, sp.id, 0, null) };
+  const iss = tableauIssues(T2, C);
+  check("déplacer un spécialisé sous un ID type AC : alerte type A ; un circuit avant tout ID : alerte « aucun différentiel »",
+    iss.some((x) => /C10.*type A/.test(x)) && tableauIssues({ ...T, rows: moveItem(T.rows, firstAC[1].id, 0, firstAC[0].id) }, C).some((x) => /aucun interrupteur différentiel/.test(x)), JSON.stringify(iss));
+  const S2 = syncTableau({ model: "r9-13x1", rows: T.rows }, [...C.filter((c) => c.n !== "C4"), { n: "C20", kind: "prises", prot: 16 }]);
+  const big = suggestModel({ model: "r9-13x1", rows: T.rows });
+  check("synchro : circuit disparu retiré, nouveau circuit signalé ; coffret 1 rangée trop petit → suggestion 4 rangées ; ajout sous un ID du bon type",
+    !S2.rows.flat().some((x) => x.c === "C4") && S2.missing.map((c) => c.n).join() === "C20" && tableauIssues(S2, C).some((x) => /rangées pour un coffret de 1/.test(x)) && big.rows >= 4
+      && protections(addBreaker(T.rows, { n: "C21", kind: "specialise", prot: 32 })).size === 14, big.id);
 }
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);
