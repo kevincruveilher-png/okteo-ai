@@ -396,3 +396,17 @@ Pistes : retours de Kévin sur les schémas (essai avec un câbleur débutant), 
   - Point 3 (mode essai) : lumière animée et soignée, pas un simple jaune qui s'allume : fondu à l'allumage et à l'extinction, halo qui éclaire autour de la lampe, légère variation d'intensité en continu. Prévoir la réduction des animations si le système la demande.
   - Disjoncteurs : un **onglet « Tableau »** où l'on trace le tableau complet (disjoncteurs, circuits), disjoncteurs déplaçables sur les rangées ; modèle de tableau au choix (grand Schneider), avec taille et nombre de rangées. À faire juste après le mode essai ; le disjoncteur de chaque circuit commande alors l'essai.
   - Kévin n'a pas encore dit « go » : attendre sa confirmation et ses autres remarques avant de coder.
+
+## À faire — feuille de boîte (notes du 26/10/2026, photo annotée de Kévin sur LI01)
+
+Mise à jour prévue avant l'impression. Plan d'ensemble : 41 mise en page, 42 Paramètres et surfaces, 43 contrôle des appareils seuls, 44 Pack en peu de clics, 45 mode essai, 46 onglet Tableau, 47 feuille de boîte, 48 impression complète.
+
+- **En-tête** : en haut à gauche Pavillonneur (= client du chantier) et Chantier ; en haut à droite N° d'affaire, « Nom BE » (libellé seul), puis cadre d'émargement du câbleur (initiales à la main : la feuille est une étiquette collée sur la boîte). Ancienne ligne de sous-titre supprimée (nom, n°, RDC, « au-dessus de », nombre de gaines et de raccordements).
+- **Flèche** : grosse flèche vers le tableau, en haut au centre, mot « TABLEAU » dessous ; elle tourne selon la direction réelle du tableau depuis la boîte.
+- **Faces** : lettre + pièce écrites à l'extérieur de la boîte, sur les quatre bords de la feuille. Pas de miroir : A haut, B droite, C bas, D gauche restent ainsi même couvercle vers le bas (le plan est collé sur le couvercle, la boîte est percée en conséquence). Pièce d'une face = pièce des appareils desservis par les gaines de la face (la plus fréquente ; égalité : pièce vers laquelle la face regarde ; face avec la seule alimentation : « Tableau »).
+- **Ordre de câblage** (cadre à droite) : une ligne par couleur et section, avec la quantité de fils et le n° de raccordement (borne). Ordre : vert/jaune, bleu 2,5, rouge 2,5, bleu foncé 1,5, gris 1,5, bleu 1,5, rouge 1,5, puis va-et-vient / retours / navettes. Exemple : « Vert/jaune · 12 fils · borne 1 ».
+- **Numérotation des raccordements** : suit cet ordre (terres, puis par circuit neutre puis phase : cuisine, prises, éclairage, puis retours et navettes), à la place de « tous les neutres puis toutes les phases ».
+- **Code barre** (en bas à droite) : code 128 unique, fabriqué sans bibliothèque à partir de l'identifiant du chantier + nom de la boîte (stable à chaque réimpression) ; sa signification sera décidée plus tard.
+- **Modèle de boîte** (en bas à gauche) : réglage de la boîte, « Boîte pavillonnaire carrée » (seul modèle connu, liste prévue pour d'autres) ; « Couvercle : haut / bas » = simple mention, sans effet sur le plan, les gaines ni le dessin.
+- **Textes** : plus gros ; plus de lettres Ph / N / PE ; gaine écrite « LI01.10 · P14 · 4,8 m · Ø16 » (repère de l'appareil, pas son nom long ; gaines groupées : « P17 + P18 + I12 »).
+- **Alimentation** : plus de « Ph C1 / N C1 » sur chaque fil ; accolade par paire sous les bornes avec son chiffre (bague 1, 2…), comme sur le croquis de Kévin.
