@@ -345,6 +345,16 @@ export function draw() {
         `<path d="${b.locked ? "M-3 -2V-4.5a3 3 0 0 1 6 0V-2" : "M-3 -2V-4.5a3 3 0 0 1 6 0"}" fill="none" stroke="${b.locked ? "var(--accent2)" : "var(--mut)"}" stroke-width="1.3"/></g></g>`;
     });
     bx += wp;
+    // allumage coupé entre deux boîtes : trait rouge pointillé commande → lumière et « ! » sur la commande
+    const boxOfApp = new Map();
+    K.CAB.boxes.forEach(b => b.apps.forEach(id => boxOfApp.set(id, b)));
+    const cut = new Set();
+    state.lia.forEach(x => {
+      const bc = boxOfApp.get(x.c), bl = boxOfApp.get(x.l), c = byId[x.c], l = byId[x.l];
+      if (!bc || !bl || bc.id === bl.id || !c || !l) return;
+      bx += `<line class="split" x1="${c.x}" y1="${c.y}" x2="${l.x}" y2="${l.y}" stroke="#d33" stroke-width="${2.2 * pm}" stroke-dasharray="${6 * pm} ${4 * pm}"><title>Allumage coupé : la commande (${bc.n}) et sa lumière (${bl.n}) ne sont pas dans la même boîte — onglet Câblage : « Ramener dans la même boîte »</title></line>`;
+      if (!cut.has(x.c)) { cut.add(x.c); bx += `<g class="split-mark" transform="translate(${c.x + 9 * pm} ${c.y - 9 * pm})"><circle r="${7 * pm}" fill="#d33"/><text y="${3.5 * pm}" text-anchor="middle" font-size="${10 * pm}" font-weight="700" fill="#fff">!</text></g>`; }
+    });
     // bouts des gaines (boîte choisie) : une poignée sur chaque point d'accroche utilisé, à tirer vers un autre point ou une autre boîte
     const sb = K.boxSel && K.CAB.boxes.find(b => b.id === K.boxSel && b.lv === K.LV.cur);
     if (sb && showBoxes) gaineEnds(sb).forEach(e => {

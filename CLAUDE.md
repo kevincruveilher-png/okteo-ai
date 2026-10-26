@@ -127,7 +127,7 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   (`gaineFor(sections, remplissage)` : surfaces des fils H07V-U vs surface intérieure ICTA), `circuits.js`
   (`computeCircuits(items, links, S)`, `checkCircuits`). Circuits stockés dans le chantier : `K.CAB.circuits`
   (dans `packState`, tous niveaux, annulable) ; `okteo.cab`, `setCircuits(list)`, `showCircuits`, `allApps()` (tous
-  niveaux, avec pièce et repère), `allLinks()`, `circuitColors` ; anneaux `circle.circ` dans `draw` (`circuitMap`).
+  niveaux, avec pièce et repère), `allLinks()`, `circuitColors` ; couleur du circuit sur le symbole dans `draw` (`circuitMap`).
   Interface : `src/ext/cablage-ui.js` (onglet « Câblage ») ; réglages dans `settings.js` (page Paramètres).
 - Boîtes et gaines (v29–v30) : `src/cablage/boites.js` (`buildUnits` = allumages indivisibles + appareils seuls des
   circuits à boîte ; `placeBoxes(items, links, circuits, tabs, S)` = regroupement avec capacité (18 départs dont une
@@ -194,13 +194,22 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   le plan (3 symboles, ≥ 34 px), N = `departsFace` points par face (`circle.port`), départs = un par endroit + alimentation ;
   `portLayout`/`portXY` (boites.js, pur, aussi utilisé par gaines.js) range sans croisement, `box.ports` = épinglages
   {appId|"tab": {f,i}} ; bout de gaine (`circle.gend[data-k]`) lâché sur un point = épingle, sur une autre boîte = déplacement.
+- v38 (règles KiTéOHM, `docs/regles-cablage.md`) : circuits.js `circuitsByBox` (réglage `circuitsParBoite` : après le
+  placement / déplacement des boîtes, chaque boîte a ses circuits éclairage / prises / cuisine, parts égales au-delà de la
+  norme, commandes au même endroit sur le même circuit) + `isCuisine` (réglage `motsCuisine`) ; cablage-ui `commitBoxes`
+  (boîtes + circuits en un Ctrl+Z), `withAllumage` (on ne coupe jamais un allumage), `fixSplits` (`okteo:fix-splits`).
+  gaines.js : `pairOf(kind)` (couleursPrises/Eclairage/Cuisine/Specialise), `bagueOf` (C5 → « 5 », `w.bague` sur
+  l'alimentation, T1… télérupteur), ronde par boîte avec harmonisation (`boxGroups` + fréquence des compositions),
+  `chooseCable`/`parseStock`/`cableCores` (âme `w.core`, fil `fn:"isole"`), `W.splits`, `W.series` + `g.serie`.
+  schema.js : accolades `g.bague`, gaine de câble `g.cable`, `wireName(w)` (« marron repéré orange »). Réglages : version
+  `_v` (anciennes valeurs de base remplacées, `OLD_DEFAULTS`). Plan : `line.split` + `g.split-mark` (allumage coupé).
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (38 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (108 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (44 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (110 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

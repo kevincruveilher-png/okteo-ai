@@ -3,7 +3,9 @@
 // terres → neutres → phases → retours et navettes), le connecteur rapide à prendre pour chacune, la liste de matériel,
 // les contrôles, et le dessin SVG de la boîte carrée (faces A–D, gaines, connecteurs, retours et navettes tracés).
 
-export const FN_SHORT = { terre: "Terre", neutre: "Neutre", phase: "Phase", retour: "Retour lampe", nav1: "Navette 1", nav2: "Navette 2", cmdTL: "Cde télérupteur", retTL: "Ret. télérupteur" };
+export const FN_SHORT = { terre: "Terre", neutre: "Neutre", phase: "Phase", retour: "Retour lampe", nav1: "Navette 1", nav2: "Navette 2", cmdTL: "Cde télérupteur", retTL: "Ret. télérupteur", isole: "Fil en trop" };
+// couleur d'un fil pour le câbleur : « orange » ; âme d'un câble : « marron repéré orange »
+export const wireName = (w) => (w.core && w.core !== w.color ? `${w.core} repéré ${w.color}` : w.color);
 
 // « 2,3,5,8,12 » → [2, 3, 5, 8, 12]
 export function parseSizes(s) {
@@ -29,7 +31,7 @@ export function boxSteps(box, sizes) {
   for (const g of box.gaines) for (const w of g.wires) {
     if (w.n == null) continue;
     if (!by.has(w.n)) by.set(w.n, []);
-    by.get(w.n).push({ gaine: g.no, label: g.label, room: g.room || null, fn: w.fn, color: w.color, section: w.section, face: g.face, kind: g.kind });
+    by.get(w.n).push({ gaine: g.no, label: g.label, room: g.room || null, fn: w.fn, color: w.color, core: w.core || null, bague: w.bague || null, section: w.section, face: g.face, kind: g.kind });
   }
   return box.nets.map((nt) => {
     const wires = by.get(nt.n) || [];
@@ -42,7 +44,7 @@ export function boxSteps(box, sizes) {
 export function boxWires(box) {
   const m = new Map(), cables = new Map();
   for (const g of box.gaines) {
-    if (g.cable) { cables.set(g.cable, (cables.get(g.cable) || 0) + 1); continue; }
+    if (g.cable) { cables.set(g.cable, (cables.get(g.cable) || 0) + 1); continue; }   // un câble = un article
     for (const w of g.wires) { const k = `${w.section}|${w.color}`; m.set(k, (m.get(k) || 0) + 1); }
   }
   const wires = [...m].map(([k, n]) => { const [sec, color] = k.split("|"); return { section: +sec, color, n }; }).sort((a, b) => a.section - b.section || a.color.localeCompare(b.color, "fr"));
@@ -59,7 +61,7 @@ export function boxMaterial(steps) {
 // contrôles : fil sans raccordement, raccordement d'un seul fil
 export function boxChecks(box, steps) {
   const out = [];
-  for (const g of box.gaines) for (const w of g.wires) if (w.n == null) out.push(`${g.no} (${g.label}) : fil ${w.color} (${FN_SHORT[w.fn] || w.fn}) sans raccordement — à isoler et signaler`);
+  for (const g of box.gaines) for (const w of g.wires) if (w.n == null && w.fn !== "isole") out.push(`${g.no} (${g.label}) : fil ${wireName(w)} (${FN_SHORT[w.fn] || w.fn}) sans raccordement — à isoler et signaler`);
   for (const s of steps) if (s.wires.length === 1) out.push(`Raccordement ${s.n} (${s.label}) : un seul fil — vérifier le plan`);
   return out;
 }
@@ -77,7 +79,7 @@ const cut = (s, n) => (String(s).length > n ? String(s).slice(0, n - 1) + "…" 
 // numérotée au bord de la boîte ; à l'intérieur, seuls les retours, navettes et commandes sont tracés (lignes à angle
 // droit vers un point numéroté) ; N / Ph / PE : numéro de borne seulement. Chaque fil porte data-c = ses circuits
 // (pour estomper les autres circuits au clic, comme un calque). color(nom) → couleur CSS ; sides = { A: "côté …" }.
-const FN_TAG = { terre: "PE", neutre: "N", phase: "Ph", retour: "RET", nav1: "N1", nav2: "N2", cmdTL: "CTL", retTL: "RTL" };
+const FN_TAG = { terre: "PE", neutre: "N", phase: "Ph", retour: "RET", nav1: "N1", nav2: "N2", cmdTL: "CTL", retTL: "RTL", isole: "isolé" };
 const TRACED = new Set(["retour", "nav1", "nav2", "cmdTL", "retTL"]);
 export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font = "Arial, sans-serif" } = {}) {
   const X0 = 250, X1 = 750, S = X1 - X0, LANE = 13, TERM = 16;
@@ -112,7 +114,12 @@ export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font =
         if (f === "B") { y1 = y2 = t; x1 = X1 + out; x2 = X1; tx = X1 - 2 - TERM / 2; ty = t; nx = -1; }
         if (f === "D") { y1 = y2 = t; x1 = X0 - out; x2 = X0; tx = X0 + 2 + TERM / 2; ty = t; nx = 1; }
         const sw = w.section >= 2.5 ? 4 : 3;
-        h += `<g class="w" data-c="${cAttr(wc)}" data-n="${w.n ?? ""}"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${sw}"${w.fn === "terre" ? ` stroke-dasharray="7 5"` : ""}/>`;
+        h += `<g class="w" data-c="${cAttr(wc)}" data-n="${w.n ?? ""}"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${sw}"${w.fn === "terre" ? ` stroke-dasharray="7 5"` : ""}${w.fn === "isole" ? ` opacity="0.45"` : ""}/>`;
+        // âme d'un câble : sa vraie couleur sur le bout extérieur (dans la gaine du câble), repérée à la couleur de sa fonction
+        if (w.core && w.core !== w.color && !/jaune/.test(w.core)) {
+          const k = 0.45, cx2 = x1 + (x2 - x1) * k, cy2 = y1 + (y2 - y1) * k;
+          h += `<line class="core" x1="${x1}" y1="${y1}" x2="${cx2}" y2="${cy2}" stroke="${color(w.core)}" stroke-width="${sw}"/>`;
+        }
         if (/jaune/.test(w.color)) h += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color("vert")}" stroke-width="${sw}" stroke-dasharray="7 5" stroke-dashoffset="7"/>`;
         // fonction du fil, au bout extérieur
         const tag = (FN_TAG[w.fn] || w.fn) + (g.kind === "alim" && w.circuit ? " " + w.circuit : "");
@@ -122,9 +129,27 @@ export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font =
         h += `<rect class="term" x="${tx - TERM / 2}" y="${ty - TERM / 2}" width="${TERM}" height="${TERM}" rx="2" fill="#fff" stroke="#333" stroke-width="1"/><text x="${tx}" y="${ty + 4}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#111">${w.n ?? "–"}</text></g>`;
         term.set(g.no + "|" + i, { x: tx + nx * TERM / 2, y: ty + ny * TERM / 2, f, nx, ny, w, wc });
       });
+      // câble : gaine du câble dessinée sur le bout extérieur des fils (début de câble), avec son type
+      if (g.cable) {
+        const a0 = start - L * 0.55, a1 = start + (n - 1) * L + L * 0.55;
+        const sh = vert ? { x: a0, y: f === "A" ? X0 - 58 : X1 + 26, w: a1 - a0, h: 32 } : { x: f === "B" ? X1 + 26 : X0 - 58, y: a0, w: 32, h: a1 - a0 };
+        h += `<g class="cable" data-c="${cAttr(gc)}"><rect x="${sh.x}" y="${sh.y}" width="${sh.w}" height="${sh.h}" rx="6" fill="#2b3440" fill-opacity="0.13" stroke="#2b3440" stroke-width="1.6"/>` +
+          `<text x="${sh.x + sh.w / 2}" y="${sh.y + sh.h / 2 + 4}" text-anchor="middle" font-size="10" font-weight="700" fill="#2b3440"${vert ? "" : ` transform="rotate(-90 ${sh.x + sh.w / 2} ${sh.y + sh.h / 2 + 4})"`}>${esc(g.cable)}</text></g>`;
+      }
+      // bagues de l'alimentation : une accolade par n° de bague sur les fils qui la portent
+      if (g.kind === "alim") {
+        const runs = [];
+        g.wires.forEach((w, i) => { if (!w.bague) return; const r = runs[runs.length - 1]; if (r && r.b === w.bague && r.j === i - 1) r.j = i; else runs.push({ b: w.bague, i, j: i }); });
+        for (const r of runs) {
+          const a0 = start + r.i * L - 4, a1 = start + r.j * L + 4, m = (a0 + a1) / 2, o = vert ? (f === "A" ? X0 - 30 : X1 + 30) : (f === "B" ? X1 + 30 : X0 - 30), d = vert ? (f === "A" ? -8 : 8) : (f === "B" ? 8 : -8);
+          const path = vert ? `M${a0} ${o} v${d} H${a1} v${-d} M${m} ${o + d} v${d}` : `M${o} ${a0} h${d} V${a1} h${-d} M${o + d} ${m} h${d}`;
+          const tx = vert ? m : o + d * 2.6, ty = vert ? o + d * 2.6 + 4 : m + 4;
+          h += `<g class="bague" data-b="${esc(r.b)}"><path d="${path}" fill="none" stroke="#111" stroke-width="1.6"/><rect x="${tx - 12}" y="${ty - 12}" width="24" height="16" rx="8" fill="#fff" stroke="#111" stroke-width="1.4"/><text x="${tx}" y="${ty}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#111">${esc(r.b)}</text></g>`;
+        }
+      }
       // titre de la gaine : n° · face, appareil · pièce, longueur (+ câble)
       const mid = start + (n - 1) * L / 2;
-      const l1 = `${g.no} · ${f}`, l2 = cut(g.label + (g.room ? ` · ${g.room}` : ""), vert ? 18 : 30), l3 = `${fr(g.length)} m · Ø${g.diam}${g.cable ? " · câble " + g.cable : ""}`;
+      const l1 = `${g.no} · ${f}${g.serie > 1 ? ` · ×${g.serie}` : ""}`, l2 = cut(g.label + (g.room ? ` · ${g.room}` : ""), vert ? 18 : 30), l3 = `${fr(g.length)} m · Ø${g.diam}${g.cable ? " · câble " + g.cable : ""}`;
       const gAttr = `class="gt" data-c="${cAttr(gc)}"`;
       // faces A et C : titre tourné (comme sur les bandes FTZ), trois lignes côte à côte
       if (f === "A" || f === "C") {
@@ -155,6 +180,7 @@ export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font =
     }));
     h += `<g class="node" data-c="${cAttr([...wc])}" data-n="${s.n}"><circle cx="${P.x}" cy="${P.y}" r="12" fill="#fff" stroke="#2b3440" stroke-width="1.6"/><text x="${P.x}" y="${P.y + 4}" text-anchor="middle" font-size="11" font-weight="700" fill="#111">${s.n}</text></g>`;
   }
-  h += `<text x="500" y="985" text-anchor="middle" font-size="12" fill="#555">Bornes = n° de raccordement · tracés à l'intérieur : retours lampe, navettes (N2 en pointillés) et commandes · N / Ph / PE : n° seulement, sans trait.</text>`;
+  h += `<text x="500" y="972" text-anchor="middle" font-size="12" fill="#555">Bornes = n° de raccordement · tracés à l'intérieur : retours lampe, navettes (N2 en pointillés) et commandes · N / Ph / PE : n° seulement, sans trait.</text>`;
+  h += `<text x="500" y="990" text-anchor="middle" font-size="12" fill="#555">Accolade = bague à poser sur ces fils de l'alimentation (n° du circuit, T1… télérupteur) · câble : gaine grise, âme repérée à la couleur de sa fonction · ×n = gaines identiques sur le chantier.</text>`;
   return h + `</svg>`;
 }

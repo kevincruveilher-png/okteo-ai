@@ -4,7 +4,7 @@
 //   « Voir » sélectionne ses appareils du niveau ouvert ; « ← Sélection » y met les appareils sélectionnés sur le plan ;
 // - alertes : circuit trop chargé, appareil sans circuit.
 // Tout passe par okteo.setCircuits (un Ctrl+Z par changement).
-import { computeCircuits, checkCircuits } from "../cablage/circuits.js";
+import { computeCircuits, checkCircuits, circuitsByBox } from "../cablage/circuits.js";
 import { getCab, SECTIONS, PROTS } from "../cablage/settings.js";
 import { esc } from "./util.js";
 import { wiringNow, autoBoxes, removeBoxPlan, fr } from "./cablage-data.js";
@@ -23,10 +23,46 @@ export function createCablagePane({ api, panel }) {
     return { S, items, C, chk: checkCircuits(C, items, S), byId: new Map(items.map((a) => [a.id, a])) };
   }
   function auto() {
-    const { S, items } = data();
+    const { S, items } = data(), B = api.cab.boxes || [];
+    if (B.length && S.circuitsParBoite) {
+      api.setCircuits(circuitsByBox(items, api.allLinks(), B, S));
+      api.setHint(`Circuits répartis par boîte (règles KiTéOHM) : dans chaque boîte un circuit éclairage, un circuit prises, un circuit cuisine s'il y en a. Ctrl+Z pour annuler.`);
+      return;
+    }
     api.setCircuits(computeCircuits(items, api.allLinks(), S));
     api.setHint(`Circuits répartis automatiquement (NF C 15-100). Les couleurs sur le plan montrent le circuit de chaque appareil. Ctrl+Z pour annuler.`);
   }
+  // boîtes modifiées : les circuits suivent les boîtes (réglage « Les circuits suivent les boîtes ») — un seul Ctrl+Z
+  function commitBoxes(boxes) {
+    const S = getCab();
+    if (S.circuitsParBoite && (api.cab.circuits || []).length) api.setCab({ boxes, circuits: circuitsByBox(api.allApps(), api.allLinks(), boxes, S) });
+    else api.setBoxes(boxes);
+  }
+  // allumage complet : appareils d'un circuit à boîte reliés (commande ↔ lumières) à ceux de la liste
+  function withAllumage(ids) {
+    const out = new Set(ids), units = buildUnits(api.allApps(), api.allLinks(), api.cab.circuits || []);
+    for (let grew = true; grew;) { grew = false; for (const u of units) if (u.ids.some((k) => out.has(k))) u.ids.forEach((k) => { if (!out.has(k)) { out.add(k); grew = true; } }); }
+    return out;
+  }
+  // allumages coupés entre deux boîtes : tout l'allumage va dans la boîte qui a le plus de ses lumières
+  function fixSplits() {
+    const B = (api.cab.boxes || []).map((b) => ({ ...b, apps: [...b.apps] })), items = api.allApps(), by = new Map(items.map((a) => [a.id, a]));
+    const units = buildUnits(items, api.allLinks(), api.cab.circuits || []), boxOf = (id) => B.find((b) => b.apps.includes(id));
+    let n = 0;
+    for (const u of units) {
+      const bs = new Set(u.ids.map((id) => boxOf(id)).filter(Boolean).map((b) => b.id));
+      if (bs.size < 2) continue;
+      const score = (bid) => u.ids.filter((id) => boxOf(id)?.id === bid && ["LUM", "SPOT", "APP"].includes(by.get(id)?.t)).length * 10 + u.ids.filter((id) => boxOf(id)?.id === bid).length;
+      const target = [...bs].sort((p, q) => score(q) - score(p))[0];
+      B.forEach((b) => { if (b.id !== target) b.apps = b.apps.filter((id) => !u.ids.includes(id)); });
+      const T = B.find((b) => b.id === target); u.ids.forEach((id) => { if (!T.apps.includes(id)) T.apps.push(id); });
+      n++;
+    }
+    if (!n) { api.setHint("Aucun allumage coupé entre deux boîtes."); return; }
+    commitBoxes(B);
+    api.setHint(`${n} allumage${n > 1 ? "s" : ""} ramené${n > 1 ? "s" : ""} dans une seule boîte (avec ses commandes). Ctrl+Z pour annuler.`);
+  }
+  document.addEventListener("okteo:fix-splits", fixSplits);
   const selectedApps = () => api.selection.filter((k) => k.startsWith("app:")).map((k) => k.slice(4));
   // met des appareils dans un circuit (et les retire de leur ancien circuit)
   function moveInto(cid, ids) {
@@ -100,7 +136,8 @@ export function createCablagePane({ api, panel }) {
         <div class="mut sm">circuits ${esc(b.circuits.join(", "))} · ${fr(b.cuivre)} m de fil${src.manual ? " · déplacée à la main" : ""}${nR ? ` · ${nR} gaine${nR > 1 ? "s" : ""} tracée${nR > 1 ? "s" : ""} à la main` : ""}</div>
         <div class="cb-ctl"><button data-a="see" title="Montrer la boîte sur le plan">Voir</button><button data-a="take" title="Raccorder à cette boîte les appareils sélectionnés sur le plan">← Sélection</button><button data-a="list" title="Ses gaines et ses fils (onglet Boîtes)">Gaines</button><button data-a="del" title="Supprimer la boîte : ses appareils vont dans la boîte la plus proche (Ctrl+Z pour annuler). Sur le plan : cliquer la boîte puis Suppr.">🗑</button>${nR ? `<button data-a="straight" title="Supprimer les points de passage : toutes les gaines de cette boîte reprennent la ligne droite">Remettre en ligne droite</button>` : ""}</div></div></div>`;
     }).join("");
-    const issues = W.issues.filter((x) => !/^Pas de tableau/.test(x)).map((x) => `<p class="warn sm">⚠ ${esc(x)}</p>`).join("");
+    const issues = W.issues.filter((x) => !/^Pas de tableau/.test(x)).map((x) => `<p class="warn sm">⚠ ${esc(x)}</p>`).join("")
+      + (W.splits && W.splits.length ? `<p><button id="cb-fixsplit" title="Chaque allumage coupé va entier (commandes + lumières) dans la boîte qui a le plus de ses lumières. Ctrl+Z pour annuler.">Ramener dans la même boîte (${W.splits.length})</button></p>` : "");
     return `${head}${tabWarn}<p class="sm"><b>${W.totals.boites}</b> boîtes · <b>${W.totals.gaines}</b> gaines · <b>${fr(W.totals.gaine)}</b> m de gaine · <b>${fr(W.totals.cuivre)}</b> m de fil</p>
       ${issues}<div class="cb-list">${rows}</div>
       ${askBox ? `<div class="cb-ask bx-ask"><b>Quelles boîtes recalculer ?</b> <span class="mut sm">Les boîtes décochées gardent leur place, leurs appareils et leurs tracés.</span>
@@ -114,7 +151,7 @@ export function createCablagePane({ api, panel }) {
     const r = removeBoxPlan(api, id);
     if (!r) return;
     api.boxSel = null;
-    api.setBoxes(r.boxes);
+    commitBoxes(r.boxes);
     const mv = Object.entries(r.moved).map(([n, k]) => `${k} vers ${n}`).join(", ");
     api.setHint(`${r.name} supprimée${mv ? " : appareils " + mv : ""}${r.orphan ? ` ; ${r.orphan} appareil${r.orphan > 1 ? "s" : ""} sans boîte (aucune autre boîte sur ce niveau)` : ""}. Ctrl+Z pour annuler.`);
   }
@@ -126,14 +163,11 @@ export function createCablagePane({ api, panel }) {
     if (!src || !dst) return;
     const items = api.allApps(), by = new Map(items.map((a) => [a.id, a])), a0 = by.get(id), near = getCab().memeEndroit ?? 0.3;
     if (!a0) return;
-    const ids = new Set(src.apps.filter((k) => { const a = by.get(k); return a && a.lv === a0.lv && Math.hypot(a.x - a0.x, a.y - a0.y) <= near + 1e-9; }));
-    const units = buildUnits(items, api.allLinks(), api.cab.circuits || []);
-    for (let grew = true; grew;) {
-      grew = false;
-      for (const u of units) if (u.ids.some((k) => ids.has(k))) u.ids.forEach((k) => { if (src.apps.includes(k) && !ids.has(k)) { ids.add(k); grew = true; } });
-    }
+    // l'endroit tiré, avec tout l'allumage de chaque appareil (commandes et lumières, même déjà dans une autre boîte) :
+    // une commande et ses lumières ne sont jamais séparées
+    const ids = withAllumage(src.apps.filter((k) => { const a = by.get(k); return a && a.lv === a0.lv && Math.hypot(a.x - a0.x, a.y - a0.y) <= near + 1e-9; }));
     const before = (wiringNow(api).boxes.find((b) => b.id === to) || {}).circuits || [];
-    api.setBoxes(B.map((b) => (b.id === from ? { ...b, apps: b.apps.filter((k) => !ids.has(k)), locked: true } : b.id === to ? { ...b, apps: [...new Set([...b.apps, ...ids])], locked: true } : b)));
+    commitBoxes(B.map((b) => (b.id === to ? { ...b, apps: [...new Set([...b.apps, ...ids])], locked: true } : b.apps.some((k) => ids.has(k)) ? { ...b, apps: b.apps.filter((k) => !ids.has(k)), locked: b.id === from ? true : b.locked } : b)));
     const W = wiringNow(api), tb = W.boxes.find((b) => b.id === to) || { circuits: [], n: dst.n };
     const added = tb.circuits.filter((c) => !before.includes(c));
     const warn = W.issues.filter((x) => x.startsWith(tb.n + " ") || x.startsWith(tb.n + " :"));
@@ -147,7 +181,7 @@ export function createCablagePane({ api, panel }) {
   function placeAuto(keepIds = [], count = 0) {
     if (!(api.cab.circuits || []).length) { api.setHint("Répartissez d'abord les appareils en circuits."); return; }
     const r = autoBoxes(api, keepIds, count);
-    api.setBoxes(r.boxes); api.showCircuits = true;
+    commitBoxes(r.boxes); api.showCircuits = true;
     const kept = keepIds.length ? ` (${keepIds.length} gardée${keepIds.length > 1 ? "s" : ""} telle${keepIds.length > 1 ? "s" : ""} quelle${keepIds.length > 1 ? "s" : ""})` : "";
     api.setHint(`${r.boxes.length} boîtes${kept}, placées pour économiser le cuivre${r.issues.length ? " — " + r.issues.join(" ; ") : ""}. Glissez une boîte pour la déplacer ; Ctrl+Z pour annuler.`);
   }
@@ -161,12 +195,15 @@ export function createCablagePane({ api, panel }) {
     };
     const n = $("#bx-no"); if (n) n.onclick = () => { askBox = false; render(); };
     const t = $("#bx-tab"); if (t) t.onclick = () => { api.setTool("TAB"); api.setHint("Cliquez sur le plan à l'emplacement du tableau (TD)."); };
+    const fx = $("#cb-fixsplit"); if (fx) fx.onclick = fixSplits;
     el.querySelectorAll(".bx-row").forEach((r) => {
       const id = r.dataset.b, b = () => api.cab.boxes.find((x) => x.id === id);
       r.querySelector('[data-a="see"]').onclick = () => { const B = b(); if (B.lv !== api.level.id) api.switchLevel(B.lv); api.showCircuits = true; api.boxSel = id; api.zoomToBox(B.x - 3, B.y - 3, B.x + 3, B.y + 3); render(); };
       r.querySelector('[data-a="take"]').onclick = () => {
-        const ids = selectedApps(); if (!ids.length) { api.setHint("Sélectionnez d'abord des appareils sur le plan, puis « ← Sélection » sur la boîte."); return; }
-        api.setBoxes(api.cab.boxes.map((x) => ({ ...x, apps: x.id === id ? [...new Set([...x.apps, ...ids])] : x.apps.filter((k) => !ids.includes(k)) })));
+        const sel = selectedApps(); if (!sel.length) { api.setHint("Sélectionnez d'abord des appareils sur le plan, puis « ← Sélection » sur la boîte."); return; }
+        const ids = [...withAllumage(sel)];
+        commitBoxes(api.cab.boxes.map((x) => ({ ...x, apps: x.id === id ? [...new Set([...x.apps, ...ids])] : x.apps.filter((k) => !ids.includes(k)) })));
+        if (ids.length > sel.length) api.setHint(`${ids.length - sel.length} appareil(s) du même allumage emmené(s) aussi : une commande et ses lumières restent dans la même boîte.`);
       };
       r.querySelector('[data-a="del"]').onclick = () => deleteBox(id);
       r.querySelector('[data-a="lock"]').onclick = () => api.setBoxes(api.cab.boxes.map((x) => (x.id === id ? { ...x, locked: !x.locked } : x)));

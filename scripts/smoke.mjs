@@ -1118,8 +1118,44 @@ try {
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/bandes-calque.png" });
     await page.click(".bands .bd-calq button[data-cq='']");
     if (!(calq.faded > 5 && calq.kept > 3)) throw new Error("calque : " + JSON.stringify(calq));
-    const ok = r.picks === r.boxes && r.faces && r.or.length === 4 && r.or.every((t) => /côté/.test(t)) && r.mat >= 2 && /^Terres/.test(r.rows[0]) && r.rows.length > 8 && r.wires > 20 && done && /\d+ × 1,5/.test(r.fils);
+    const ok = r.picks === r.boxes && r.faces && r.or.length === 4 && r.or.every((t) => /côté/.test(t)) && r.mat >= 2 && /^Terres/.test(r.rows[0]) && r.rows.length >= 5 && r.wires > 20 && done && /\d+ × 1,5/.test(r.fils);
     if (!ok) throw new Error(JSON.stringify(r).slice(0, 600));
+    return true;
+  });
+  await check("règles KiTéOHM (v38) : circuits par boîte (prises gris/bleu foncé 1,5, éclairage rouge/bleu), bagues sur l'alimentation", async () => {
+    const r = await ev(async () => {
+      const { wiringNow } = await import("/src/ext/cablage-data.js");
+      const W = wiringNow(okteo), C = okteo.cab.circuits;
+      const perBox = okteo.cab.boxes.map((b) => C.filter((c) => c.box === b.id));
+      const alim = W.boxes.flatMap((b) => b.gaines.filter((g) => g.kind === "alim").flatMap((g) => g.wires));
+      return { boxed: perBox.every((cs) => cs.filter((c) => c.kind === "prises").length <= 1 && cs.filter((c) => c.kind === "eclairage").length <= 1),
+        prises: C.filter((c) => c.kind === "prises").every((c) => c.section === 1.5 && c.apps.length <= 8),
+        cols: alim.filter((w) => w.fn === "phase").every((w) => ["gris", "rouge"].includes(w.color)) && alim.some((w) => w.color === "gris"),
+        bagues: alim.filter((w) => w.fn === "phase" || w.fn === "neutre").every((w) => w.bague && w.bague === String(w.circuit).replace("C", "")),
+        drawn: document.querySelectorAll(".bands .bd-svg g.bague").length, chip: document.querySelectorAll(".bands .bague").length };
+    });
+    if (!(r.boxed && r.prises && r.cols && r.bagues && r.drawn > 0 && r.chip > 0)) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("allumage coupé entre deux boîtes : alerte rouge sur le plan + « Ramener dans la même boîte » (tout l'allumage, Ctrl+Z)", async () => {
+    await page.click('#tabs button[data-tab="plan"]');
+    // on coupe un allumage à la main (sans passer par l'interface, qui l'empêche)
+    const cut = await ev(() => {
+      const B = okteo.cab.boxes, lk = okteo.allLinks().find((l) => { const bc = B.find((b) => b.apps.includes(l.c)), bl = B.find((b) => b.apps.includes(l.l)); return bc && bl && bc.id === bl.id && bc.lv === okteo.level.id; });
+      const src = B.find((b) => b.apps.includes(lk.l)), dst = B.find((b) => b.id !== src.id && b.lv === src.lv);
+      okteo.setBoxes(B.map((b) => (b.id === src.id ? { ...b, apps: b.apps.filter((k) => k !== lk.l) } : b.id === dst.id ? { ...b, apps: [...b.apps, lk.l] } : b)));
+      okteo.viewPreset("cab");
+      return { l: lk.l, marks: document.querySelectorAll("#sv line.split").length };
+    });
+    await ev(() => okteoExt.panel.show("cablage")); await page.waitForTimeout(200);
+    const btn = await page.isVisible("#cb-fixsplit");
+    await page.click("#cb-fixsplit");
+    const after = await ev(() => document.querySelectorAll("#sv line.split").length);
+    await page.keyboard.press("Control+z");
+    const back = await ev(() => document.querySelectorAll("#sv line.split").length);
+    await page.keyboard.press("Control+z");
+    await page.click('#tabs button[data-tab="bandes"]'); await page.waitForSelector(".bands .bd-svg svg");
+    if (!(cut.marks > 0 && btn && after === 0 && back > 0)) throw new Error(JSON.stringify({ cut, btn, after, back }));
     return true;
   });
   await check("impression des schémas : une feuille par boîte + raccordements à cocher, texte lisible (PDF relu)", async () => {

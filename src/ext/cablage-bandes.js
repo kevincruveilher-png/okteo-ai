@@ -4,7 +4,7 @@
 // l'ordre (à cocher) et le contrôle final. Impression : une feuille par boîte.
 import { wiringNow, wireCss, wireSolid, facesSides, fr } from "./cablage-data.js";
 import { getCab } from "../cablage/settings.js";
-import { boxSteps, boxMaterial, boxChecks, boxWires, parseSizes, schemaSVG, FN_SHORT } from "../cablage/schema.js";
+import { boxSteps, boxMaterial, boxChecks, boxWires, parseSizes, schemaSVG, FN_SHORT, wireName } from "../cablage/schema.js";
 import { pointInPoly } from "../walls/rooms.js";
 import { buildBandsPdf } from "./bandes-pdf.js";
 import { esc } from "./util.js";
@@ -65,13 +65,14 @@ export function mountBandsPage(el, { api }) {
           <h3>2. Préparer le matériel</h3>
           <ul>${material.sizes.map(([k, n]) => `<li>${n} connecteur${n > 1 ? "s" : ""} <b>${k} entrées</b></li>`).join("")}${material.ponts ? `<li>${material.ponts} pont${material.ponts > 1 ? "s" : ""} (bout de fil de la même couleur, pour relier deux connecteurs)</li>` : ""}</ul>
           <p class="sm bd-fils" title="Nombre de fils de chaque section et couleur dans les gaines de la boîte">Fils : ${fils.wires.map((w) => `${w.n} × ${fr(w.section, 1)} ${chip({ color: w.color, section: w.section }).replace(/ [\d,]+<\/span>$/, "</span>")}`).join(" · ")}${fils.cables.length ? ` · câbles : ${fils.cables.map((c) => `${c.n} × ${esc(c.cable)}`).join(", ")}` : ""}</p>
+          ${(() => { const B = [...new Set(box.gaines.filter((g) => g.kind === "alim").flatMap((g) => g.wires.map((w) => w.bague)).filter(Boolean))]; return B.length ? `<p class="sm" title="Bagues numérotées à poser sur les fils de l'alimentation (n° du circuit au tableau, T1… = télérupteur)">Bagues sur l'alimentation : ${B.map((b) => `<span class="bague">${esc(b)}</span>`).join(" ")}</p>` : ""; })()}
           <h3>3. Raccorder dans l'ordre</h3>
           <p class="mut sm">Terres, neutres, phases, puis retours lampe et navettes. Pour chaque numéro : dans chaque gaine indiquée, prendre le fil de la couleur indiquée, le dénuder et l'enfoncer dans le connecteur. Cocher au fur et à mesure.</p>
         </div>
       </div>
       <table class="gt bd-steps"><thead><tr><th></th><th>N°</th><th>Raccordement</th><th>Fils à prendre (gaine · couleur · appareil)</th><th>Connecteur</th></tr></thead><tbody>
         ${steps.map((s) => `<tr class="${ok.has(s.n) ? "done" : ""}"><td><input type="checkbox" data-n="${s.n}" ${ok.has(s.n) ? "checked" : ""} title="Cocher quand c'est fait"></td><td class="c"><b>${s.n}</b></td><td>${esc(s.label)}</td>
-          <td>${s.wires.map((w) => `<div><b>${esc(w.gaine)}</b> ${chip(w)} <span class="mut">${esc(FN_SHORT[w.fn] || w.fn)} · ${esc(w.label)}${w.room ? " · " + esc(w.room) : ""}</span></div>`).join("")}</td>
+          <td>${s.wires.map((w) => `<div><b>${esc(w.gaine)}</b> ${w.core && w.core !== w.color ? `<span class="wchip"><i style="background:${wireCss(w.core)}"></i>${esc(w.core)}</span> repéré ` : ""}${chip(w)}${w.bague ? ` <span class="bague" title="Bague à poser sur ce fil">bague ${esc(w.bague)}</span>` : ""} <span class="mut">${esc(FN_SHORT[w.fn] || w.fn)} · ${esc(w.label)}${w.room ? " · " + esc(w.room) : ""}</span></div>`).join("")}</td>
           <td>${s.wires.length} fils → ${s.conn.list.length ? s.conn.list.map((k) => `<b>${k} entrées</b>`).join(" + ") + (s.conn.ponts ? ` <span class="mut">(+ ${s.conn.ponts} pont${s.conn.ponts > 1 ? "s" : ""})</span>` : "") : `<span class="warn">fil seul</span>`}</td></tr>`).join("")}
       </tbody></table>
       <h3>4. Contrôle final</h3>

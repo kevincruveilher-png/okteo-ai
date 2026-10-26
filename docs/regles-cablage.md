@@ -85,3 +85,37 @@ avec une valeur de base modifiable.
 - Bande préférée : `docs/exemples/bande_preferee_Kevin.png` (fils séparés, bornes numérotées, retours / navettes
   tracés à l'intérieur, calque par circuit).
 - Noms : boîtes LI01, LI02… ; gaines LI01.04.
+
+## Règles KiTéOHM (v38) — Kévin, 26/10/2026 (boîte LI05 refaite ensemble)
+
+- **Terre** : une seule par boîte, dans l'alimentation ; en 2,5 dès qu'une ligne de la boîte est en 2,5.
+- **Prises ordinaires** : **1,5 mm², gris (phase) / bleu foncé (neutre)**, toujours ces couleurs ; toutes les prises
+  de la boîte sur **un seul circuit** ; au-delà de la norme (8 prises, 16 A), un circuit de plus (mêmes couleurs).
+- **Prises de cuisine** : **2,5 mm², rouge / bleu / vert-jaune**, sur leur circuit (6 max, 20 A).
+- **Éclairage** : **1,5 mm², rouge / bleu** ; phase toujours rouge, même pour un 2e circuit d'éclairage.
+- Rouge en 1,5 et rouge en 2,5 : le câbleur les distingue à la section.
+- **Bagues** : n° unique sans « C » (n° du circuit : 1, 2, 3…), **T1, T2…** pour le télérupteur ; posées sur la paire
+  de fils du circuit **dans la gaine d'alimentation** ; sur le schéma : une accolade sur les fils concernés.
+- **Ronde des fils** (retours lampe, navettes, commandes de télérupteur — une seule ronde) : **orange, violet, noir,
+  marron, ivoire**, jamais de gris (prises) ; chaque liaison prend la couleur suivante ; navettes : deux fils de même
+  couleur ; quand il n'y a plus le choix, on recommence ; la ronde repart à orange dans chaque boîte.
+- **Harmonisation entre boîtes** (2e critère) : même ordre dans toutes les boîtes, pour fabriquer les mêmes gaines en
+  série (ex. un allumage simple : retour orange dans toutes les boîtes).
+- **Interrupteur** : phase + retour ; deux interrupteurs au même endroit : phase commune (on évite deux circuits au même
+  endroit). Interrupteur à voyant (neutre) : plus tard.
+- **Câbles** (stock : 3G1,5, 3G2,5, 3x1,5, 4G1,5, 4G2,5, 5G1,5, 5G2,5) : choisis selon le nombre de fils, quitte à isoler
+  un fil ; 4G sans neutre, 5G avec ; prise extérieure en 3G1,5 par défaut (à changer par une règle pavillonneur ou par
+  l'opérateur) ; dans la boîte, chaque âme est repérée à la couleur de sa fonction (ex. marron repéré orange).
+  Interrupteur extérieur (pas de neutre) : 4G avec un fil isolé par défaut, 3G si le réglage autorise le bleu.
+- **Commande et lumières** toujours dans la même boîte.
+
+## Pistes décidées (après la v38)
+
+- **v39 — trois modes de pieuvre + comparatif** pour choisir : *proximité* (le moins de cuivre, une pièce peut être
+  partagée entre plusieurs boîtes), *équilibrée* (boîtes réparties régulièrement, surfaces et départs à peu près égaux :
+  « une pieuvre qui plaît à l'œil », ce que fait le bureau d'études ; pas de zones dessinées), *par pièce*.
+- **v40 — packs** : « ajouter un pack » = appareillage type d'une pièce (ex. chambre : 3 prises, 1 point lumineux
+  commandé à l'entrée, RJ45 selon la pratique) sans boîte ; « ajouter une pieuvre type » = la boîte de la pièce avec son
+  pack et ses gaines (fabrication en série). Norme : chambre = 3 prises min + 1 point lumineux ; RJ45 : 2 au séjour et 2
+  dans au moins une chambre (T3 et plus).
+- Nouvel appareillage (interrupteur à voyant…) à câbler ensemble ; export SPV.

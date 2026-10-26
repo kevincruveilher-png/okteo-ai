@@ -281,6 +281,20 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 38 (26/10/2026) — livrée : câblage selon les règles KiTéOHM
+- Origine : la bande LI05 d'EVRARD relue avec Kévin (prises en 2,5 rouge/bleu au lieu de 1,5 gris/bleu foncé, retour
+  orphelin sur I17 : allumage coupé entre deux boîtes). Règles complètes dans `docs/regles-cablage.md`.
+- Fait : circuits par boîte (éclairage rouge/bleu, prises 1,5 gris/bleu foncé ≤ 8, cuisine 2,5 rouge/bleu ≤ 6, parts
+  égales au-delà) ; une terre par boîte ; bagues (n° du circuit sans « C », T1…) sur l'alimentation, accolades sur le
+  schéma ; ronde orange/violet/noir/marron/ivoire par boîte, même ordre partout (allumages les plus fréquents du chantier
+  d'abord) ; gaines identiques comptées (×n) ; câbles du stock choisis selon les fils (3G, 4G, 5G… 1,5 / 2,5), âmes
+  repérées, fil en trop isolé, réglage « le bleu peut servir » ; commandes au même endroit sur le même circuit ;
+  allumage jamais coupé (déplacement d'une gaine, « ← Sélection »), alerte rouge sur le plan et « Ramener dans la même
+  boîte ». Anciens réglages enregistrés (2,5 mm² pour les prises…) remplacés automatiquement.
+- Prochaines : v39 trois modes de pieuvre (proximité / équilibrée / par pièce) + comparatif ; v40 packs et pieuvres
+  types ; puis nouvel appareillage (interrupteur à voyant…) et SPV.
+- Tests : 30 + 44 + 110 = 184.
+
 ## Version 37 (26/10/2026) — livrée : symboles, filtre de vue, boîtes avec points d'accroche
 - Demandes de Kévin : symboles carrés, colorés eux-mêmes par leur circuit ; filtre rapide de la vue ; boîtes qui ne
   changent pas de taille au zoom ; points d'accroche par face (réglage) pour que les gaines ne se croisent pas ;

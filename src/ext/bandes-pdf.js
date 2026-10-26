@@ -1,7 +1,7 @@
 // Impression des schémas de boîte (v33) : une feuille A4 par boîte (schéma + orientation + matériel), puis la liste
 // des raccordements à cocher (suite sur d'autres feuilles si besoin). jsPDF, unités mm ; texte en WinAnsi seulement
 // (pas de flèches ni d'émojis).
-import { schemaSVG, FN_SHORT } from "../cablage/schema.js";
+import { schemaSVG, FN_SHORT, wireName } from "../cablage/schema.js";
 import { wireSolid } from "./cablage-data.js";
 
 let lib = null;
@@ -51,6 +51,8 @@ export async function buildBandsPdf(pages, { chantier = "", numero = "" } = {}) 
     const matT = doc.splitTextToSize(win(mat || "-"), W - 2 * M - 4);
     doc.text(matT, M + 2, y + 5.5);
     y += (matT.length - 1) * 4.4;
+    const bg = [...new Set(box.gaines.filter((g) => g.kind === "alim").flatMap((g) => g.wires.map((w) => w.bague)).filter(Boolean))];
+    if (bg.length) { doc.text(win("Bagues sur l'alimentation : " + bg.join(" · ")), M + 2, y + 11); y += 5; }
     const fl = fils ? "Fils : " + fils.wires.map((w) => `${w.n} x ${fr(w.section, 1)} ${w.color}`).join(" · ") + (fils.cables.length ? " · câbles : " + fils.cables.map((c) => `${c.n} x ${c.cable}`).join(", ") : "") : "";
     const flT = doc.splitTextToSize(win(fl), W - 2 * M - 4);
     if (fl) doc.text(flT, M + 2, y + 11);
@@ -64,7 +66,7 @@ export async function buildBandsPdf(pages, { chantier = "", numero = "" } = {}) 
     doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.text(win(`Boîte ${box.n} : raccordements à faire dans l'ordre`), M, 16);
     y = 24;
     for (const s of steps) {
-      const lines = s.wires.map((w) => win(`${w.gaine}  ${w.color} ${fr(w.section, 1)} mm²  (${FN_SHORT[w.fn] || w.fn} · ${w.label}${w.room ? ", " + w.room : ""})`));
+      const lines = s.wires.map((w) => win(`${w.gaine}  ${wireName(w)} ${fr(w.section, 1)} mm²${w.bague ? "  [bague " + w.bague + "]" : ""}  (${FN_SHORT[w.fn] || w.fn} · ${w.label}${w.room ? ", " + w.room : ""})`));
       const conn = s.conn.list.length ? s.conn.list.map((k) => `${k} entrées`).join(" + ") + (s.conn.ponts ? ` (relier par ${s.conn.ponts} pont${s.conn.ponts > 1 ? "s" : ""})` : "") : "fil seul : vérifier";
       const need = 7 + lines.length * 4.3 + 3;
       if (y + need > 285) { doc.addPage(); y = 16; }

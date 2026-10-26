@@ -358,3 +358,5 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .bands .bd-calq{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-bottom:6px;font-size:12.5px}
 .bands .bd-calq button{padding:2px 8px}
 .bands .bd-svg svg [data-c]{cursor:pointer;transition:opacity .15s}
+
+.bague{display:inline-block;border:1.5px solid var(--fg);border-radius:9px;padding:0 6px;font:700 11px var(--fm);line-height:15px}
