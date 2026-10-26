@@ -368,3 +368,19 @@ Pistes : retours de Kévin sur les schémas (essai avec un câbleur débutant), 
 2. Étages, pièces en L, import + mise à l'échelle d'un fond.
 3. Câblage (étape 2) : calcul des boîtes (max gaines réglable, économie de cuivre, descentes + marge) et bandes de câblage ; règles métier demandées à Kévin.
 4. Lecture du plan par IA (format d'import commun), puis export SPV pour Counter. L'assistant pourra ensuite poser des appareils lui-même (avec validation).
+
+## À faire — prochaine mise à jour (notes du 26/10/2026, soir)
+
+- **Bandeau d'aide près de l'objet** : corrigé (commit 614836a, déjà poussé) ; `npm run check` reste à lancer.
+- **Panneau de droite** : il est trop large. Propriétés, Câblage, Packs, Étapes passent dans le bandeau supérieur, groupe « Panneaux ».
+- **Bandeau supérieur** : trois groupes séparés par un titre court : Vues (Bâti, Implantation bâtie, Implantation appareils, Câblage), Actions (outils de dessin et de modification), Panneaux.
+- **Contenu des panneaux** : une zone étroite qui s'ouvre sous le bandeau, avec seulement l'onglet ouvert, et se ferme en recliquant l'onglet.
+- **Assistant** : encart fermé en bas à droite, agrandi au clic, réduit par la croix ; il ne recouvre le dessin que lorsqu'il est agrandi.
+- **Impression** (demandé par Kévin) :
+  - ajouter les boîtes (faces A–D, numéros de gaine, couleurs des circuits) ;
+  - ajouter les gaines avec leurs points intermédiaires ;
+  - ajouter les liaisons en forme courbe, comme à l'écran ;
+  - imprimer selon le filtre de vues actif (Bâti, Implantation, Câblage) ;
+  - une case par calque dans la fenêtre d'impression ;
+  - vérifier le rendu sur le PDF produit, comme pour l'échelle.
+- **Règle de travail** : ne pas pousser avant la mise à jour ; committer seulement quand Kévin le demande.
