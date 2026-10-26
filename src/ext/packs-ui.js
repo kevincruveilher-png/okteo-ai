@@ -9,6 +9,7 @@ import { circuitsByBox } from "../cablage/circuits.js";
 import { boxName } from "../cablage/boites.js";
 import { getCab } from "../cablage/settings.js";
 import { esc } from "./util.js";
+import { pref } from "../prefs.js";
 import { pointInPoly } from "../walls/rooms.js";
 
 const KEY = "okteo.packs.v1";
@@ -22,7 +23,7 @@ const DIRECT = new Set(["RJ45", "PC20", "SC", "TAB", "VMC"]);
 const plural = (n, w) => `${n} ${w}${n > 1 && !/s$/.test(w) ? "s" : ""}`;
 
 export function createPacksPane({ api, panel }) {
-  const el = panel.register({ id: "packs", label: "Packs", icon: "▦" });
+  const el = panel.register({ id: "packs", label: "Packs", icon: "▦", tip: "Appareillage type de chaque pièce : compléter une pièce, tout le niveau, pieuvre type" });
   let editing = false;
   const choice = new Map();       // pièce → pack choisi à la main (sinon : reconnu d'après le nom)
 
@@ -99,7 +100,7 @@ export function createPacksPane({ api, panel }) {
     }
     const L = rooms(), packs = getPacks();
     const rows = L.map((R) => `<div class="cb-row pk-room" data-k="${esc(R.key)}"><div class="cb-main">
-      <div><b>${esc(R.room.name)}</b> <span class="mut sm">${(R.room.area || 0).toFixed(1).replace(".", ",")} m² · ${plural(R.apps.length, "appareil")}</span></div>
+      <div><b>${esc(R.room.name)}</b> <span class="mut sm">${pref("surfaces") ? (R.room.area || 0).toFixed(1).replace(".", ",") + " m² · " : ""}${plural(R.apps.length, "appareil")}</span></div>
       <div class="sm"><select class="pk-pick" title="Pack de cette pièce (reconnu d'après son nom)"><option value="">— aucun pack —</option>${packs.map((p) => `<option value="${esc(p.id)}" ${R.pack && R.pack.id === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select>
         ${R.pack ? (R.need.length ? `<span class="warn">manque : ${R.need.map((x) => plural(x.n, NAMES[x.t] || x.t)).join(", ")}</span>` : `<span class="ok">✓ complet</span>`) : ""}</div>
       <div class="cb-ctl"><button data-a="see" title="Montrer la pièce sur le plan">Voir</button><button data-a="fill" ${R.pack && R.need.length ? "" : "disabled"} title="Poser ce qui manque : commande à côté de la porte, lumière au centre, prises réparties sur les murs (loin des portes, fenêtres et angles), RJ45 à côté d'une prise">Compléter</button><button data-a="pieuvre" ${R.pack ? "" : "disabled"} title="Pieuvre type : compléter le pack, puis une boîte verrouillée au centre de la pièce avec tous ses appareils (hors lignes directes) ; les circuits suivent">Pieuvre type</button></div></div></div>`).join("");
@@ -120,7 +121,7 @@ export function createPacksPane({ api, panel }) {
     });
   }
   panel.onChange((s) => { if (s.pane === "packs" && !s.collapsed) render(); });
-  ["okteo:saved", "okteo:level"].forEach((ev) => document.addEventListener(ev, () => { if (panel.state.pane === "packs" && !editing) render(); }));
+  ["okteo:saved", "okteo:level", "okteo:prefs"].forEach((ev) => document.addEventListener(ev, () => { if (panel.state.pane === "packs" && !editing) render(); }));
   document.addEventListener("okteo:packs-all", completeAll);
   render();
   return { render, completeAll, completeOne, pieuvre, rooms };

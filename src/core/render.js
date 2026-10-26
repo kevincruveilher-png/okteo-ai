@@ -6,6 +6,7 @@ import { Placer, roomCandidates, textBox } from "../place.js";
 import { TYPES, VB, dist, epOf, layers, nodeById, pmNow, segById, segDir, segLen, state, symView } from "./model.js";
 import { V2W, W2V, ensureReps, pxPerVB, repMap, syncVB } from "./view.js";
 import { followWalls, gaineCtrl, linkCtrl, linkRole, openHandles, roomArea, roomPoly } from "./attach.js";
+import { pref } from "../prefs.js";
 import { bbox, currentGroup, groupPoints, isSel, multi } from "./groups.js";
 import { placeHud } from "./hud.js";
 import { allLinks, belowData, crossLinks } from "./levels.js";
@@ -406,17 +407,18 @@ export function draw() {
       x1: a.x + R,
       y1: a.y + R
     }));
-    // 1. noms et surfaces des pièces (toujours affichés ; déplacés dans la pièce s'ils gênent)
+    // 1. noms des pièces, et leur surface si Paramètres → Affichage le demande (toujours affichés ; déplacés dans la pièce s'ils gênent)
     if (layers.pieces.on) {
       const F1 = 13,
-        F2 = 11;
+        showA = pref("surfaces"),
+        F2 = showA ? 11 : 0;
       state.rooms.slice().sort((p, q) => roomArea(q) - roomArea(p)).forEach(r => {
         const P = roomPoly(r),
           lp = r.poly ? labelPoint(r.poly) : {
             x: (r.x0 + r.x1) / 2,
             y: (r.y0 + r.y1) / 2
           },
-          ar = roomArea(r).toFixed(1) + " m²";
+          ar = showA ? roomArea(r).toFixed(1).replace(".", ",") + " m²" : "";
         const w = Math.max(r.name.length * 0.55 * F1, ar.length * 0.6 * F2) * pm,
           hh = (F1 + F2 + 3) * pm;
         const bb = {
@@ -436,7 +438,7 @@ export function draw() {
         const got = PL.first(cands.filter(inPoly)) || PL.first(cands) || PL.add(box(lp));
         const cx = (got.x0 + got.x1) / 2,
           cy = (got.y0 + got.y1) / 2;
-        lb += txt(cx, cy - (F2 + 3) * pm / 2, r.name, F1, "var(--fg)", "var(--ff)", ' font-weight="600"') + txt(cx, cy + (F1 + 3) * pm / 2, ar, F2, "var(--mut)", "var(--fm)");
+        lb += showA ? txt(cx, cy - (F2 + 3) * pm / 2, r.name, F1, "var(--fg)", "var(--ff)", ' font-weight="600"') + txt(cx, cy + (F1 + 3) * pm / 2, ar, F2, "var(--mut)", "var(--fm)") : txt(cx, cy, r.name, F1, "var(--fg)", "var(--ff)", ' font-weight="600"');
       });
     }
     // 2. cotes libres (posées par l'utilisateur : toujours affichées)
@@ -606,7 +608,7 @@ export function draw() {
     let pv = "";
     (P.rooms || []).forEach(r => {
       const lp = labelPoint(r.poly);
-      pv += `<polygon points="${r.poly.map(p => p.x + "," + p.y).join(" ")}" fill="var(--accent2)" fill-opacity="0.16" stroke="var(--accent2)" stroke-width="0.03" stroke-dasharray="0.15 0.1"/>` + `<text x="${lp.x}" y="${lp.y}" text-anchor="middle" fill="var(--accent2)" font-size="0.42" font-weight="700" font-family="var(--ff)">${r.name}</text><text x="${lp.x}" y="${lp.y + 0.45}" text-anchor="middle" fill="var(--accent2)" font-size="0.32" font-family="var(--fm)">${r.area.toFixed(1)} m²</text>`;
+      pv += `<polygon points="${r.poly.map(p => p.x + "," + p.y).join(" ")}" fill="var(--accent2)" fill-opacity="0.16" stroke="var(--accent2)" stroke-width="0.03" stroke-dasharray="0.15 0.1"/>` + `<text x="${lp.x}" y="${lp.y}" text-anchor="middle" fill="var(--accent2)" font-size="0.42" font-weight="700" font-family="var(--ff)">${r.name}</text>${pref("surfaces") ? `<text x="${lp.x}" y="${lp.y + 0.45}" text-anchor="middle" fill="var(--accent2)" font-size="0.32" font-family="var(--fm)">${r.area.toFixed(1).replace(".", ",")} m²</text>` : ""}`;
     });
     (P.walls || []).forEach(w => {
       const a = P.nodes[w.a],

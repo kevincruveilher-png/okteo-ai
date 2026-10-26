@@ -44,9 +44,12 @@
     <button id="btn-print" title="Plan imprimable en PDF, à l'échelle, avec cartouche et nomenclature (Ctrl+P)">🖨 Imprimer</button>
     <div class="sep"></div>
     <button id="btn-palette" title="Toutes les fonctions, avec recherche (Ctrl+K)">⌕ Fonctions</button>
-    <button id="btn-assistant" class="btn-ai" title="Ouvrir l'assistant IA (touche A)">✦ Assistant</button>
   </div>
-  <div class="top2"><div class="tool" id="tools"></div><div class="vfilter" id="vfilter" role="group" aria-label="Filtre de la vue"></div></div>
+  <div class="top2">
+    <div class="grp grp-act" title="Actions : dessiner le bâtiment (1re barre) et poser l'appareillage (2e barre)"><span class="glab">Actions</span><div class="tool" id="tools"></div></div>
+    <div class="grp grp-view"><span class="glab">Vues</span><div class="vfilter" id="vfilter" role="group" aria-label="Filtre de la vue"></div></div>
+    <div class="grp grp-pan"><span class="glab">Panneaux</span><div class="panes" id="panes" role="group" aria-label="Panneaux de droite"></div></div>
+  </div>
   <div class="main">
     <nav class="tabs" id="tabs"></nav>
     <div class="stage">
@@ -54,6 +57,7 @@
       <div class="hud" id="hud" hidden></div>
       <div class="readout" id="readout" hidden></div>
       <div class="hint" id="hint"></div>
+      <div class="as-dock" id="as-dock" aria-label="Assistant"></div>
       <div class="zoomw"><button id="zout">−</button><button id="zfit">Ajuster</button><button id="zin">+</button></div>
     </div>
     <section class="params" id="params" hidden></section>

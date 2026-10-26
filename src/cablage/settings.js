@@ -66,31 +66,37 @@ export function setCab(patch) {
 }
 export function resetCab() { try { localStorage.removeItem(KEY); } catch { /* */ } document.dispatchEvent(new CustomEvent("okteo:cab-settings")); return getCab(); }
 
-// fiche des réglages affichée dans Paramètres : [clé, libellé, unité, type, options]
+// fiche des réglages affichée dans Paramètres (v42 : groupes dans l'ordre du travail, avec une aide) :
+// [titre du groupe, [[clé, libellé, unité, type]…], aide]
 export const CAB_FIELDS = [
-  ["Boîtes", [["departsMax", "Départs par boîte (toutes faces)", "gaines", "int"], ["departsFace", "Départs par face (A, B, C, D)", "gaines", "int"],
-    ["bornes", "Connecteurs rapides disponibles (nombre d'entrées, séparés par des virgules)", "", "txt"],
-    ["piecesMinDeparts", "Pieuvre par pièce : gaines d'appareils minimum pour qu'une pièce ait sa boîte (sinon elle rejoint la voisine)", "départs", "int"]]],
-  ["Longueurs des gaines", [["hsp", "Hauteur sous plafond", "m", "num"], ["traversee", "Traversée plancher / isolation", "m", "num"],
-    ["margeBoite", "Surlongueur côté boîte", "m", "num"], ["margeApp", "Surlongueur côté appareil", "m", "num"],
-    ["majoration", "Tracé dans les combles (ligne droite arrondie)", "+ %", "num"], ["arrondi", "Arrondir la longueur au … supérieur", "m", "num"],
-    ["hTableau", "Hauteur du haut du tableau", "m", "num"]]],
-  ["Gaines", [["remplissage", "Remplissage maximum de la gaine", "%", "num"]]],
   ["Circuits (NF C 15-100)", [["maxPoints", "Points d'éclairage par circuit", "max", "int"], ["maxPrises", "Prises 16 A par circuit", "max", "int"],
     ["maxPrisesCuisine", "Prises de cuisine par circuit", "max", "int"], ["motsCuisine", "Pièces « cuisine » (mots du nom, séparés par des virgules)", "", "txt"],
+    ["circuitsParBoite", "Les circuits suivent les boîtes (chaque boîte : prises, cuisine, éclairage)", "", "bool"],
     ["secEclairage", "Section éclairage", "mm²", "sec"], ["protEclairage", "Protection éclairage", "A", "prot"],
     ["secPrises", "Section prises", "mm²", "sec"], ["protPrises", "Protection prises", "A", "prot"],
     ["secCuisine", "Section prises de cuisine", "mm²", "sec"], ["protCuisine", "Protection prises de cuisine", "A", "prot"],
     ["secSpecialise", "Section circuits spécialisés", "mm²", "sec"], ["protSpecialise", "Protection circuits spécialisés", "A", "prot"],
-    ["scSpecialise", "Une sortie de câble = un circuit spécialisé", "", "bool"], ["vmcCablee", "« VMC » = groupe VMC à alimenter (sinon : bouche, pas de câble)", "", "bool"],
-    ["circuitsParBoite", "Les circuits suivent les boîtes (chaque boîte : prises, cuisine, éclairage)", "", "bool"]]],
-  ["Couleurs des fils", [["couleursPrises", "Prises : phase/neutre", "", "txt"], ["couleursEclairage", "Éclairage : phase/neutre", "", "txt"],
+    ["scSpecialise", "Une sortie de câble = un circuit spécialisé", "", "bool"], ["vmcCablee", "« VMC » = groupe VMC à alimenter (sinon : bouche, pas de câble)", "", "bool"]],
+    "Nombre d'appareils par circuit, sections et protections : servent à la répartition en circuits (panneau Câblage)."],
+  ["Couleurs des fils", [["couleursEclairage", "Éclairage : phase/neutre", "", "txt"], ["couleursPrises", "Prises : phase/neutre", "", "txt"],
     ["couleursCuisine", "Prises de cuisine : phase/neutre", "", "txt"], ["couleursSpecialise", "Lignes directes : phase/neutre", "", "txt"], ["cTerre", "Terre", "", "txt"],
     ["couleursCommande", "Ronde des fils : retours lampe, navettes, commandes de télérupteur (dans l'ordre)", "", "txt"],
-    ["bagues", "Bagues numérotées sur l'alimentation (n° du circuit, T1… pour le télérupteur)", "", "bool"]]],
-  ["Gaines partagées et extérieur", [["memeEndroit", "Appareils au même endroit (une seule gaine) : distance maximum", "m", "num"],
+    ["bagues", "Bagues numérotées sur l'alimentation (n° du circuit, T1… pour le télérupteur)", "", "bool"]],
+    "Couleurs écrites sur les bandes et les schémas de boîte (règles KiTéOHM)."],
+  ["Boîtes", [["departsMax", "Départs par boîte (toutes faces)", "gaines", "int"], ["departsFace", "Départs par face (A, B, C, D)", "gaines", "int"],
+    ["bornes", "Connecteurs rapides disponibles (nombre d'entrées, séparés par des virgules)", "", "txt"],
+    ["piecesMinDeparts", "Pieuvre par pièce : gaines d'appareils minimum pour qu'une pièce ait sa boîte (sinon elle rejoint la voisine)", "départs", "int"]],
+    "Capacité d'une boîte et connecteurs utilisés pour les raccordements."],
+  ["Gaines et câbles", [["remplissage", "Remplissage maximum de la gaine", "%", "num"],
+    ["memeEndroit", "Appareils au même endroit (une seule gaine) : distance maximum", "m", "num"],
     ["cableExt", "Appareil à l'extérieur : câble dans la gaine", "", "bool"], ["cablesStock", "Câbles en stock (le plus petit qui convient est choisi)", "", "txt"],
-    ["cableBleuLibre", "Câble sans neutre : le bleu peut servir de phase ou de retour (sinon câble plus gros, fil en trop isolé)", "", "bool"]]],
+    ["cableBleuLibre", "Câble sans neutre : le bleu peut servir de phase ou de retour (sinon câble plus gros, fil en trop isolé)", "", "bool"]],
+    "Diamètre des gaines, gaines partagées et câbles pour l'extérieur."],
+  ["Longueurs des gaines", [["hsp", "Hauteur sous plafond", "m", "num"], ["traversee", "Traversée plancher / isolation", "m", "num"],
+    ["margeBoite", "Surlongueur côté boîte", "m", "num"], ["margeApp", "Surlongueur côté appareil", "m", "num"],
+    ["majoration", "Tracé dans les combles (ligne droite arrondie)", "+ %", "num"], ["arrondi", "Arrondir la longueur au … supérieur", "m", "num"],
+    ["hTableau", "Hauteur du haut du tableau", "m", "num"]],
+    "Longueur d'une gaine = tracé dans les combles + descentes + surlongueurs, arrondie."],
 ];
 export const SECTIONS = [1.5, 2.5, 4, 6, 10];
 export const PROTS = [2, 10, 16, 20, 25, 32, 40];

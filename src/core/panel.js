@@ -6,6 +6,7 @@ import { markDirty, save, snapshot } from "./persist.js";
 import { repMap } from "./view.js";
 import { draw } from "./render.js";
 import { reattach, removeSeg, roomArea } from "./attach.js";
+import { pref } from "../prefs.js";
 import { currentGroup, deleteGroup, duplicateGroup, groupCount, multi, resizeRoom, transformGroup } from "./groups.js";
 import { posOnWall, wallMeasure } from "./interact.js";
 import { applyCalib, applyRatio, buildTools, hintFor, setHint } from "./controls.js";
@@ -273,7 +274,7 @@ export function showSide() {
      <div class="prop"><div class="field full"><label>Nom</label><input id="rn" type="text" value="${r.name.replace(/"/g, '&quot;')}"></div>
       ${r.cycle ? "" : `<div class="field"><label>Largeur <span class="u">m</span></label><input id="rw" type="number" step="0.01" value="${w.toFixed(2)}"></div>
       <div class="field"><label>Profondeur <span class="u">m</span></label><input id="rh" type="number" step="0.01" value="${hh.toFixed(2)}"></div>`}</div>
-     <div class="kv"><span>${r.cycle ? "Surface habitable" : "Surface"}</span><span class="num">${roomArea(r).toFixed(2)} m²</span></div>
+     ${pref("surfaces") ? `<div class="kv"><span>${r.cycle ? "Surface habitable" : "Surface"}</span><span class="num">${roomArea(r).toFixed(2).replace(".", ",")} m²</span></div>` : ""}
      ${r.cycle ? `<div class="kv"><span>Murs du contour</span><span class="num">${r.cycle.length}</span></div>` : ""}
      ${r.open ? `<p class="note warn">Un mur de son contour a été supprimé : la pièce n'est plus fermée (forme figée). Relancez « Détecter les pièces ».</p>` : ""}
      ${r.also && r.also.length ? `<p class="note warn">Le plan indique aussi ici : <b>${r.also.join(", ")}</b>. Un mur manque peut-être pour les séparer.</p>` : ""}
@@ -469,7 +470,7 @@ export function showSide() {
   state.app.forEach(a => counts[a.t] = (counts[a.t] || 0) + 1);
   const totA = state.rooms.reduce((s, r) => s + roomArea(r), 0);
   b.innerHTML = `<h3>Chantier</h3>
-    <div class="kv"><span>Pièces</span><span class="num">${state.rooms.length}${totA ? ` · ${totA.toFixed(1)} m²` : ""}</span></div>
+    <div class="kv"><span>Pièces</span><span class="num">${state.rooms.length}${totA && pref("surfaces") ? ` · ${totA.toFixed(1).replace(".", ",")} m²` : ""}</span></div>
     <div class="kv"><span>Murs</span><span class="num">${state.segs.length}</span></div>
     <div class="kv"><span>Ouvertures</span><span class="num">${state.openings.length}</span></div>
     <div class="kv"><span>Appareils</span><span class="num">${state.app.length}</span></div>

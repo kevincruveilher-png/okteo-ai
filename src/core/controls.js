@@ -232,6 +232,8 @@ export function setTab(t) {
 
 // initialisation (étape 6 du démarrage)
 export function init6() {
+// préférences d'affichage (Paramètres → Affichage, v42) : surfaces des pièces…
+document.addEventListener("okteo:prefs", () => { draw(); showSide(); });
 // ---------- contrôles ----------
 document.getElementById("bg").addEventListener("input", e => {
   K.bgLevel = +e.target.value / 100;

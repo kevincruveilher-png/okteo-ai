@@ -281,6 +281,26 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Versions 41 et 42 (26/10/2026) — livrées ensemble : écran en encarts, assistant en bas à droite, Paramètres rangés
+- v41 — bandeau du haut en trois encarts titrés : **Actions** (barres Implantation bâti / appareils), **Vues** (Bâti,
+  Implantation, Câblage + un bouton par calque), **Panneaux** (Propriétés, Câblage, Packs, Étapes). Un clic ouvre le
+  panneau à droite, un 2e clic sur le même bouton (ou la croix ✕ de son en-tête) le ferme : le plan prend toute la
+  largeur. Panneau plus étroit par défaut (280 px, toujours élargissable en tirant son bord).
+- v41 — l'assistant quitte le panneau : encart réduit en bas à droite du plan (« ✦ Assistant A »), agrandi au clic
+  (400 × 560 px), réduit par « — » ou Échap ; touche A pour l'ouvrir ; état gardé sur ce PC. Plus de bouton
+  « Assistant » dans la barre du haut. Les boutons de zoom se décalent quand il est ouvert.
+- v41 — correctif du bandeau près de l'objet (restait affiché après un clic dans le vide ou sur sa croix : la règle CSS
+  `.hud{display:flex}` écrasait `hidden`).
+- v42 — Paramètres : sommaire à gauche, une section par thème (Affichage, Assistant et relevé IA, Câblage, Packs) ;
+  Câblage en 5 groupes avec une aide chacun (Circuits, Couleurs des fils, Boîtes, Gaines et câbles, Longueurs des
+  gaines) ; champ « Chercher un réglage » (ex. « couleur » ne garde que les couleurs des fils) ; bouton qui ouvre le
+  panneau Packs.
+- v42 — surfaces des pièces (m²) masquées partout par défaut : plan, Propriétés, relevé des pièces, panneau Packs,
+  impression (étiquettes, nomenclature, bandeau). Réglage « Afficher la surface des pièces » dans Paramètres →
+  Affichage (préférence de ce PC, `src/prefs.js`). La surface reste calculée (prises de la norme au séjour).
+- Visite guidée : 21 étapes (encarts Actions et Panneaux, assistant en bas à droite).
+- Tests : 30 + 48 + 116 = 194.
+
 ## Version 40 (26/10/2026) — livrée : packs et pieuvres types
 - Onglet « Packs » (panneau de droite) : chaque pièce du niveau, son pack reconnu d'après son nom (modifiable), ce qui
   manque ; « Compléter », « Équiper toutes les pièces », « Pieuvre type » (pack + boîte verrouillée au centre de la pièce
@@ -371,7 +391,7 @@ Pistes : retours de Kévin sur les schémas (essai avec un câbleur débutant), 
 
 ## À faire — prochaine mise à jour (notes du 26/10/2026, soir)
 
-- **Bandeau d'aide près de l'objet** : corrigé (commit 614836a, déjà poussé) ; `npm run check` reste à lancer.
+- **Bandeau d'aide près de l'objet** : corrigé (commit 614836a) ; vérifié avec la v41. ✓
 - **Panneau de droite** : il est trop large. Propriétés, Câblage, Packs, Étapes passent dans le bandeau supérieur, groupe « Panneaux ».
 - **Bandeau supérieur** : trois groupes séparés par un titre court : Vues (Bâti, Implantation bâtie, Implantation appareils, Câblage), Actions (outils de dessin et de modification), Panneaux.
 - **Contenu des panneaux** : une zone étroite qui s'ouvre sous le bandeau, avec seulement l'onglet ouvert, et se ferme en recliquant l'onglet.

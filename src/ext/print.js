@@ -1,4 +1,5 @@
 import { Placer, roomCandidates } from "../place.js";
+import { pref } from "../prefs.js";
 // Sortie PDF imprimable du plan (vectorielle, à l'échelle exacte) : page 1 = plan + légende + échelle graphique
 // + cartouche ; page 2 = nomenclature (appareils par pièce, surfaces) et liste des appareils.
 // Unités jsPDF : millimètres. Échelle 1:N → 1 m réel = 1000/N mm sur le papier.
@@ -48,7 +49,7 @@ async function toDataURL(url) {
 
 // geoIn : une géométrie (exportGeometry) ou une liste (un niveau par page, même format et même échelle)
 export async function buildPlanPdf(geoIn, opts = {}) {
-  const o0 = { fond: false, cotes: true, reperes: true, liaisons: true, nomenclature: true, date: new Date(), ...opts };
+  const o0 = { fond: false, cotes: true, reperes: true, liaisons: true, nomenclature: true, surfaces: !!pref("surfaces"), date: new Date(), ...opts };
   const geos = Array.isArray(geoIn) ? geoIn : [geoIn];
   // mise en page commune : calculée sur l'emprise de tous les niveaux réunis
   const merged = { walls: geos.flatMap((g) => g.walls), apps: geos.flatMap((g) => g.apps), rooms: geos.flatMap((g) => g.rooms), fond: geos[0].fond };
@@ -81,7 +82,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const head = () => {
       doc.setFillColor(30, 45, 60); doc.rect(MARGIN, y - 4.5, Lay.W - 2 * MARGIN, 6.5, "F");
       doc.setTextColor(255); doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
-      doc.text("Pièce", colX[0] + 2, y); doc.text("Surface", colX[1] + 14, y, { align: "right" });
+      doc.text("Pièce", colX[0] + 2, y); if (o.surfaces) doc.text("Surface", colX[1] + 14, y, { align: "right" });
       COLS.forEach((t, i) => doc.text(COLNAME[t], colX[2] + i * cw + cw / 2, y, { align: "center" }));
       doc.text("Total", colX[2] + COLS.length * cw + 8, y, { align: "center" });
       doc.setTextColor(0); y += 6.5;
@@ -92,13 +93,13 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       if (y > Lay.H - MARGIN - 6) { doc.addPage(Lay.paper.toLowerCase(), Lay.W > Lay.H ? "landscape" : "portrait"); y = MARGIN + 6; head(); }
       if (ri % 2) { doc.setFillColor(244, 247, 250); doc.rect(MARGIN, y - 4.3, Lay.W - 2 * MARGIN, 6, "F"); }
       doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-      doc.text(nm, colX[0] + 2, y); doc.text(room ? `${fr(room.area, 1)} m²` : "", colX[1] + 14, y, { align: "right" });
+      doc.text(nm, colX[0] + 2, y); if (o.surfaces) doc.text(room ? `${fr(room.area, 1)} m²` : "", colX[1] + 14, y, { align: "right" });
       COLS.forEach((t, i) => { const n = apps.filter((a) => a.t === t).length; tot[t] += n; if (n) doc.text(String(n), colX[2] + i * cw + cw / 2, y, { align: "center" }); });
       doc.setFont("helvetica", "bold"); doc.text(String(apps.length), colX[2] + COLS.length * cw + 8, y, { align: "center" });
       y += 6;
     });
     doc.setDrawColor(0); doc.setLineWidth(0.3); doc.line(MARGIN, y - 4.3, Lay.W - MARGIN, y - 4.3);
-    doc.setFont("helvetica", "bold"); doc.text("TOTAL", colX[0] + 2, y); doc.text(`${fr(totA, 1)} m²`, colX[1] + 14, y, { align: "right" });
+    doc.setFont("helvetica", "bold"); doc.text("TOTAL", colX[0] + 2, y); if (o.surfaces) doc.text(`${fr(totA, 1)} m²`, colX[1] + 14, y, { align: "right" });
     COLS.forEach((t, i) => doc.text(String(tot[t]), colX[2] + i * cw + cw / 2, y, { align: "center" }));
     doc.text(String(allApps.length), colX[2] + COLS.length * cw + 8, y, { align: "center" });
     y += 12;
@@ -182,7 +183,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const inPoly = (x, y, P) => { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) c = !c; } return c; };
     const S1 = Math.max(6, Math.min(11, 0.5 * f * 2.83)), S2 = Math.max(5, Math.min(8, 0.34 * f * 2.83));
     const roomLabels = geo.rooms.slice().sort((p, q) => q.area - p.area).map((r) => {
-      const surf = `${fr(r.area, 1)} m²`, w = Math.max(tw(r.name, S1, true), tw(surf, S2)) + 1, h = (S1 + S2) * MM + 1.4;
+      const surf = o.surfaces ? `${fr(r.area, 1)} m²` : "", w = Math.max(tw(r.name, S1, true), surf ? tw(surf, S2) : 0) + 1, h = (S1 + (surf ? S2 : 0)) * MM + 1.4;
       const P = r.poly, bb = { x0: Math.min(...P.map((p) => p.x)), y0: Math.min(...P.map((p) => p.y)), x1: Math.max(...P.map((p) => p.x)), y1: Math.max(...P.map((p) => p.y)) };
       const c = roomCandidates(r.label, bb, (x, y) => inPoly(x, y, P), Math.max(0.2, 4 / f)).slice(0, 80)
         .map((q) => ({ q, b: boxAt(X(q.x), Y(q.y), w, h) }));
@@ -233,7 +234,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     doc.setTextColor(30, 30, 30);
     roomLabels.forEach(({ r, surf, x, y, h }) => {
       doc.setFont("helvetica", "bold"); doc.setFontSize(S1); doc.text(r.name, x, y - h / 2 + S1 * MM, { align: "center", baseline: "bottom" });
-      doc.setFont("helvetica", "normal"); doc.setFontSize(S2); doc.text(surf, x, y + h / 2, { align: "center", baseline: "bottom" });
+      if (surf) { doc.setFont("helvetica", "normal"); doc.setFontSize(S2); doc.text(surf, x, y + h / 2, { align: "center", baseline: "bottom" }); }
     });
     // liaisons commande → lumière
     if (o.liaisons && geo.links.length) {
@@ -301,7 +302,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     });
     const totA = geo.rooms.reduce((s, r) => s + r.area, 0);
     doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(90);
-    doc.text(`${geo.rooms.length} pièces · ${fr(totA, 1)} m² habitables · ${geo.apps.length} appareils`, MARGIN + 3, by + bh - 2.5);
+    doc.text(`${geo.rooms.length} pièces${o.surfaces ? ` · ${fr(totA, 1)} m² habitables` : ""} · ${geo.apps.length} appareils`, MARGIN + 3, by + bh - 2.5);
     if (!Lay.fits) { doc.setTextColor(200, 40, 40); doc.setFontSize(7); doc.text("Attention : le plan dépasse du cadre à cette échelle.", area.x + 2, area.y + 4); }
   }
 

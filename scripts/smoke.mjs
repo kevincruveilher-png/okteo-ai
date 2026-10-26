@@ -89,7 +89,7 @@ try {
 
   console.log("Premiers pas (v27)");
   await check("première ouverture : invitation à la visite guidée (non bloquante)", async () => page.isVisible(".tour-invite"));
-  await check("visite guidée : 19 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
+  await check("visite guidée : 21 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
     await page.click("#ti-go");
     const s1 = await page.textContent(".tour-bub .tour-n");
     await page.keyboard.press("ArrowRight");
@@ -97,12 +97,12 @@ try {
       return !document.querySelector(".tour-ring").hidden && r.left <= t.left && r.right >= t.right && r.top <= t.top && r.bottom >= t.bottom; });
     await page.keyboard.press("ArrowLeft");
     const back = await page.textContent(".tour-bub .tour-n");
-    for (let k = 0; k < 19; k++) await page.click("#tour-next");
+    for (let k = 0; k < 21; k++) await page.click("#tour-next");
     const done = await ev(() => document.querySelector(".tour-bub").hidden && okteoExt.panel.state.pane === "steps" && !!document.querySelector(".steps ol li"));
     await ev(() => okteoExt.panel.show("props"));
     await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);
     const again = await page.isVisible(".tour-invite");
-    if (!(s1 === "1 / 19" && lit && back === "1 / 19" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
+    if (!(s1 === "1 / 21" && lit && back === "1 / 21" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
     return true;
   });
 
@@ -335,6 +335,7 @@ try {
   });
   await page.click('#tabs button[data-tab="plan"]');
 
+  await ev(() => okteoExt.panel.close("assistant")); // l'encart agrandi couvrirait le bas droit du plan
   console.log("Chantiers");
   const nbCh = () => ev(() => JSON.parse(localStorage.getItem("okteo.chantiers.v1")).length);
   const reopened = async () => { await page.waitForFunction(() => window.okteo && window.okteoExt); };
@@ -476,6 +477,37 @@ try {
     const r = okteo.state.rooms.find((x) => x.name === "Chambre 1"), p = okteo.roomPoly(r), c = p.reduce((m, q) => ({ x: m.x + q.x / p.length, y: m.y + q.y / p.length }), { x: 0, y: 0 });
     return okteo.roomAt(c.x, c.y)?.name === "Chambre 1";
   }));
+
+  console.log("Surfaces des pièces (v42)");
+  await check("surfaces masquées par défaut (plan, Propriétés) ; Paramètres → Affichage les remet, puis les retire", async () => {
+    await page.click('#tabs button[data-tab="plan"]');
+    const m2 = () => ev(() => (document.querySelector("#sv g.labels")?.textContent || "").includes("m²"));
+    const off = !(await m2());
+    await ev(() => { const r = okteo.state.rooms.find((x) => x.name === "Chambre 1"); okteo.select([r.id]); okteoExt.panel.show("props"); });
+    const propOff = !(await page.textContent("#sidebody")).includes("m²");
+    await ev(() => okteo.select([]));
+    await page.click('#tabs button[data-tab="params"]');
+    await page.check('[data-pref="surfaces"]');
+    await page.click('#tabs button[data-tab="plan"]');
+    const on = await m2();
+    await page.click('#tabs button[data-tab="params"]');
+    await page.uncheck('[data-pref="surfaces"]');
+    await page.click('#tabs button[data-tab="plan"]');
+    const off2 = !(await m2());
+    if (!(off && propOff && on && off2)) throw new Error(JSON.stringify({ off, propOff, on, off2 }));
+    return true;
+  });
+  await check("Paramètres : sommaire, sections Affichage / IA / Câblage / Packs, recherche « couleur »", async () => {
+    await page.click('#tabs button[data-tab="params"]');
+    const secs = await ev(() => [...document.querySelectorAll("#params .pset-sec h3")].map((h) => h.textContent).join("|"));
+    await page.fill(".pset-find", "couleur");
+    const r = await ev(() => ({ rows: [...document.querySelectorAll("#params .cab-row")].filter((x) => !x.hidden && x.offsetParent).length, ia: document.querySelector("#ps-ia").hidden, grp: [...document.querySelectorAll("#params .pset-grp")].filter((g) => !g.hidden).map((g) => g.querySelector("h4").textContent).join("|") }));
+    await page.fill(".pset-find", "");
+    const back = await ev(() => !document.querySelector("#ps-ia").hidden);
+    await page.click('#tabs button[data-tab="plan"]');
+    if (!(secs === "Affichage|Assistant et relevé IA|Câblage|Packs" && r.rows >= 6 && r.ia && r.grp === "Couleurs des fils" && back)) throw new Error(JSON.stringify({ secs, r, back }));
+    return true;
+  });
 
   console.log("Relevé des appareils");
   await check("après les pièces, les appareils du PDF sont proposés (aperçu, rien d'ajouté)", async () => {
@@ -1339,11 +1371,38 @@ try {
     const w1 = (await page.locator("#side").boundingBox()).width;
     return w1 > w0 + 100;
   });
-  await check("panneau repliable puis dépliable", async () => {
+  await check("panneau fermé par sa croix, rouvert par son bouton du bandeau, refermé par un 2e clic (v41)", async () => {
+    await ev(() => okteoExt.panel.show("props"));
     await page.click("#side-head .col");
-    const w = (await page.locator("#side").boundingBox()).width;
-    await page.click("#side-head .col");
-    return w < 50;
+    const shut = !(await page.isVisible("#side"));
+    await page.click('#panes button[data-pane="cablage"]');
+    const open = (await page.isVisible("#side")) && (await page.textContent("#side-head .ttl")) === "Câblage" && (await ev(() => document.querySelector('#panes button[data-pane="cablage"]').classList.contains("on")));
+    await page.click('#panes button[data-pane="cablage"]');
+    const shut2 = !(await page.isVisible("#side"));
+    await page.click('#panes button[data-pane="props"]');
+    return shut && open && shut2 && (await page.isVisible("#sidebody"));
+  });
+  console.log("Bandeau en encarts, assistant en bas à droite (v41)");
+  await check("bandeau : encarts Actions, Vues, Panneaux (Propriétés, Câblage, Packs, Étapes), sans bouton Assistant en haut", async () => ev(() => {
+    const labs = [...document.querySelectorAll(".top2 .grp .glab")].map((x) => x.textContent).join("|");
+    const panes = [...document.querySelectorAll("#panes button[data-pane]")].map((b) => b.dataset.pane).join("|");
+    const inGrp = !!document.querySelector(".grp-act #tools .trow.bati") && !!document.querySelector(".grp-view #vfilter [data-vp]");
+    return labs === "Actions|Vues|Panneaux" && panes === "props|cablage|packs|steps" && inGrp && !document.getElementById("btn-assistant") && !document.querySelector('#side-head [data-pane="assistant"]');
+  }));
+  await check("assistant : encart réduit en bas à droite, agrandi au clic, réduit par « — » et par Échap", async () => {
+    await ev(() => okteoExt.panel.close("assistant"));
+    const pill = await page.locator("#as-dock .dk-pill").boundingBox(), st = await page.locator(".stage").boundingBox();
+    const corner = pill && pill.x + pill.width > st.x + st.width - 30 && pill.y + pill.height > st.y + st.height - 30 && !(await page.isVisible(".as-in textarea"));
+    await page.click("#as-dock .dk-pill");
+    const big = await page.locator("#as-dock .dk-card").boundingBox();
+    const open = (await page.isVisible(".as-in textarea")) && big.width > 300 && big.height > 300;
+    await page.click("#as-dock .dk-min");
+    const shut = !(await page.isVisible(".as-in textarea"));
+    await page.keyboard.press("a"); await page.waitForSelector(".as-in textarea", { state: "visible", timeout: 3000 });
+    await page.focus(".as-in textarea"); await page.keyboard.press("Escape");
+    const esc = !(await page.isVisible(".as-in textarea"));
+    if (!(corner && open && shut && esc)) throw new Error(JSON.stringify({ corner, open, shut, esc }));
+    return true;
   });
   await page.screenshot({ path: process.env.OKTEO_SHOT || "scripts/derniere-capture.png" });
 } finally {

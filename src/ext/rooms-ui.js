@@ -3,6 +3,7 @@
 import { findRooms, nameRooms, labelPoint, pointInPoly, findLimits, addLimit } from "../walls/rooms.js";
 import { chantierLabels } from "./pdf-page.js";
 import { esc } from "./util.js";
+import { pref } from "../prefs.js";
 
 const m2 = (v) => v.toFixed(1).replace(".", ",") + " m²";
 
@@ -46,9 +47,9 @@ export function createRoomsTool({ api }) {
     const total = res.rooms.reduce((s, r) => s + r.area, 0);
     const warn = res.rooms.filter((r) => r.also.length);
     show(`
-      <p class="wbig"><b>${res.rooms.length}</b> pièces · <b>${m2(total)}</b> habitables</p>
+      <p class="wbig"><b>${res.rooms.length}</b> pièces${pref("surfaces") ? ` · <b>${m2(total)}</b> habitables` : ""}</p>
       <p class="mut">${res.nLabels ? `Noms lus sur le plan : ${res.nLabels}.` : "Aucun nom lu sur le plan : les pièces sans nom s'appellent « Pièce 1, 2… » (renommez-les dans leur menu)."}</p>
-      <div class="wlist">${res.rooms.map((r) => `<div><span>${esc(r.name)}${r.also.length ? ` <em title="Le plan indique aussi : ${esc(r.also.join(", "))}">⚠</em>` : ""}</span><b class="num">${m2(r.area)}</b></div>`).join("")}</div>
+      <div class="wlist">${res.rooms.map((r) => `<div><span>${esc(r.name)}${r.also.length ? ` <em title="Le plan indique aussi : ${esc(r.also.join(", "))}">⚠</em>` : ""}</span>${pref("surfaces") ? `<b class="num">${m2(r.area)}</b>` : ""}</div>`).join("")}</div>
       ${res.limits.length ? `<label class="wck" title="Trait en pointillés qui sépare deux pièces sans mur ; il se supprime ou se transforme en mur dans son menu."><input type="checkbox" id="r-lim" ${useLimits ? "checked" : ""}> Séparer les pièces ouvertes : ${res.limits.map((l) => esc(l.names.join(" / "))).join(", ")} (limite en pointillés, sans mur)</label>` : ""}
       ${warn.length ? `<p class="warn sm">⚠ ${warn.map((r) => `« ${esc(r.name)} » contient aussi ${esc(r.also.join(", "))}`).join(" ; ")} : un mur manque sans doute pour les séparer.</p>` : ""}
       ${api.ch.fond && api.ch.fond.src === "idb" && api.ch.fond.page ? `<label class="wck"><input type="checkbox" id="r-dev" ${devicesAfter ? "checked" : ""}> Relever ensuite les appareils du plan</label>` : ""}

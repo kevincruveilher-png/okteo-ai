@@ -218,13 +218,23 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   RJ45 à côté d'une prise, liaisons). `src/ext/packs-ui.js` : onglet « Packs » (`okteoExt.packs.rooms/completeAll/
   completeOne/pieuvre`), packs dans localStorage `okteo.packs.v1`, éditeur ; pieuvre type = compléter + boîte verrouillée
   `{pack}` au centre de la pièce + circuits (`api.batch`). `importDevices` : liaison vers un id existant, renvoie `ids`.
+- v41 : bandeau `.top2` en trois encarts `.grp` (`.glab` = titre) : `.grp-act` (#tools), `.grp-view` (#vfilter), `.grp-pan`
+  (#panes = boutons des panneaux, rendus par `ext/panel.js`). `createSidePanel` (clé `okteo.side.v2`, 280 px) : `show`,
+  `toggle` (2e clic = fermer), `close(id)`, `isOpen`, `state.open` ; panneau fermé = `.side.collapsed{display:none}` ;
+  `#side-head` = titre + croix `.col`. Assistant = `register({..., dock:true})` → encart `#as-dock` dans `.stage`
+  (`.dk-pill` réduit, `.dk-card` agrandi, `.dk-min`, Échap) ; plus de `#btn-assistant`. Un encart agrandi couvre le bas
+  droit du plan : les tests qui cliquent sur le plan le ferment d'abord (`okteoExt.panel.close("assistant")`).
+- v42 : `src/prefs.js` (partagé cœur + extensions : `getPrefs`, `pref(k)`, `setPref` → `okteo:prefs`, localStorage
+  `okteo.prefs.v1`) ; `surfaces` (faux par défaut) masque les m² dans render.js (étiquettes, aperçu), panel.js, rooms-ui,
+  packs-ui et print.js (option `surfaces`). Paramètres : `mountParams(el, {…, openPacks})`, sections `.pset-sec`
+  (#ps-aff, #ps-ia, #cab-set, #ps-packs), sommaire `.pset-nav`, recherche `.pset-find` ; `CAB_FIELDS` = [titre, lignes, aide].
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (48 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (112 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (48 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (116 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

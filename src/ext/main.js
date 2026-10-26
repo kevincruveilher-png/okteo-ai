@@ -60,13 +60,13 @@ function start() {
   const getCatalog = () => catalog;
 
   palette = createPalette({ getCatalog, onAsk: (t) => { panel.show("assistant"); if (t.trim()) assistant.ask(t); else assistant.focus(); } });
-  const asEl = panel.register({ id: "assistant", label: "Assistant", icon: "✦" });
+  const asEl = panel.register({ id: "assistant", label: "Assistant", icon: "✦", dock: true });
   assistant = createAssistant(asEl, { api, getCatalog, openParams: () => api.setTab("params") });
 
   // ---------- pages pleine largeur (remplacent la zone de dessin quand leur onglet est actif) ----------
   const stage = document.querySelector(".stage");
   const pages = {
-    params: { el: document.getElementById("params"), mount: (el) => mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels }), ui: null },
+    params: { el: document.getElementById("params"), mount: (el) => mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, openPacks: () => { api.setTab("plan"); panel.show("packs"); } }), ui: null },
     chantiers: { el: document.getElementById("chantiers"), mount: (el) => mountChantiers(el, { api }), ui: null },
     boites: { el: document.getElementById("boites"), mount: (el) => mountBoxesPage(el, { api }), ui: null },
     lignes: { el: document.getElementById("lignes"), mount: (el) => mountDirectPage(el, { api }), ui: null },
@@ -110,7 +110,6 @@ function start() {
   document.getElementById("rv-ai").onclick = relev(() => aiReleve.open());
   hooks.openReleve = () => setRelev(true);
   document.getElementById("btn-print").onclick = () => printer.open();
-  document.getElementById("btn-assistant").onclick = () => { panel.toggle("assistant"); if (panel.state.pane === "assistant" && !panel.state.collapsed) assistant.focus(); };
 
   // ---------- raccourcis ----------
   document.addEventListener("keydown", (e) => {

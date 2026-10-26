@@ -8,15 +8,15 @@ Décidée avec Kévin le 26/10/2026. Détail des échanges : `docs/journal.md` (
 - Chaque nouvelle fonction : entrée dans `src/ext/catalog.js`, étape dans la visite guidée si c'est une nouvelle zone de l'écran, test dans `scripts/smoke.mjs` (et `scripts/cablage.test.mjs` pour le moteur).
 - Kévin est débutant sur l'interface : infobulles, raccourcis affichés, le moins de clics possible. Les fonctions de câblage restent des options, jamais automatiques.
 
-## 41 — Mise en page de l'écran
+## 41 — Mise en page de l'écran — FAIT (livrée avec la 42, 26/10/2026)
 - Bandeau du haut en trois groupes avec un titre court : **Vues** (Bâti, Implantation bâtie, Implantation appareils, Câblage), **Actions** (outils de dessin et de modification), **Panneaux** (Propriétés, Câblage, Packs, Étapes).
 - Le contenu d'un panneau s'ouvre dans une zone plus étroite sous le bandeau et se ferme en recliquant l'onglet.
 - L'assistant : petit encart fermé en bas à droite, agrandi au clic, réduit par la croix ; il ne recouvre le dessin que lorsqu'il est agrandi.
 - Fait avant le reste parce que les boutons des mises à jour suivantes (compteur, Pack, Essai) s'y rangent.
-- Déjà corrigé (commit `614836a`, poussé) : le bandeau d'aide près de l'objet restait affiché (`.hud[hidden]`) ; `npm run check` reste à lancer.
+- Corrigé : le bandeau d'aide près de l'objet restait affiché (`.hud[hidden]`).
 
-## 42 — Paramètres et surfaces des pièces
-- Paramètres regroupés en sections avec titre et courte aide : **Affichage** (surfaces, calques par défaut), **Relevé IA** (clés, modèles), **Câblage** (circuits, gaines, boîtes, câbles), **Packs** (renvoi vers l'onglet Packs). À valider avec Kévin avant de coder.
+## 42 — Paramètres et surfaces des pièces — FAIT (26/10/2026)
+- Paramètres regroupés en sections avec titre et courte aide : **Affichage** (surfaces), **Assistant et relevé IA** (clés, modèles), **Câblage** (circuits, couleurs, boîtes, gaines et câbles, longueurs), **Packs** (renvoi vers le panneau Packs) ; sommaire et recherche.
 - Les m² des pièces disparaissent partout (libellé écran et impression, nomenclature, liste des Packs, liste de détection, total « m² habitables »). Réglage « Afficher les surfaces des pièces », désactivé par défaut. La surface reste calculée (nombre de prises de la norme pour le séjour).
 
 ## 43 — Contrôle des appareils seuls

@@ -15,7 +15,7 @@ const KIND = { eclairage: "Éclairage", prises: "Prises", cuisine: "Prises cuisi
 const LIGHT = new Set(["LUM", "SPOT", "APP"]);
 
 export function createCablagePane({ api, panel }) {
-  const el = panel.register({ id: "cablage", label: "Câblage", icon: "⚡" });
+  const el = panel.register({ id: "cablage", label: "Câblage", icon: "⚡", tip: "Circuits, boîtes et gaines : répartition, placement, réglages" });
   let ask = null, renaming = null, askBox = false;
   const fr = (v) => String(v).replace(".", ",");
 

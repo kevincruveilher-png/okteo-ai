@@ -1,9 +1,17 @@
-// Paramètres (onglet « Paramètres ») : clés IA, fournisseur, modèles.
+// Paramètres (onglet « Paramètres »), v42 : sommaire à gauche et une section par thème —
+// Affichage (préférences de ce PC), Assistant et relevé IA (clés, fournisseur, modèles), Câblage (règles de la pieuvre),
+// Packs (renvoi vers le panneau Packs) ; champ « Chercher un réglage ».
 // Les clés sont rangées dans le navigateur de CE PC (localStorage), jamais dans le chantier ni dans l'export.
 // Une clé placée dans le fichier .env du projet est aussi acceptée (le serveur local l'ajoute lui-même).
 
 import { CAB_DEFAULTS, CAB_FIELDS, PROTS, SECTIONS, getCab, resetCab, setCab } from "../cablage/settings.js";
 import { esc, store, storeSet } from "./util.js";
+import { getPrefs, setPref, PREFS_DEFAULTS } from "../prefs.js";
+
+// préférences d'affichage : [clé, libellé, aide]
+const PREF_FIELDS = [
+  ["surfaces", "Afficher la surface des pièces (m²)", "Sur le plan, dans les panneaux, au relevé des pièces et à l'impression. La surface reste calculée (nombre de prises de la norme pour le séjour)."],
+];
 
 const KEY = "okteo.settings.v1";
 const DEF = { provider: "", keys: { anthropic: "", nvidia: "" }, models: { anthropic: "", nvidia: "" } };
@@ -28,7 +36,7 @@ export const settings = {
 };
 
 // ---------- page Paramètres ----------
-export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels }) {
+export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, openPacks }) {
   const card = (p) => {
     const P = PROVIDERS[p], s = settings.get();
     const env = envKeys[p] ? `<span class="okk">clé trouvée dans .env</span>` : "";
@@ -55,26 +63,47 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
     box.querySelectorAll('input[name="prov"]').forEach((r) => (r.onchange = () => settings.set({ provider: r.value })));
   }
 
+  const SECS = () => [
+    ["ps-aff", "Affichage"], ["ps-ia", "Assistant et relevé IA"],
+    ["cab-set", "Câblage"], ...CAB_FIELDS.map(([g], i) => ["ps-cab-" + i, g, true]), ["ps-packs", "Packs"],
+  ];
+  function prefHTML() {
+    const v = getPrefs();
+    return `<h3>Affichage</h3>
+      <p class="mut">Préférences de ce PC, pour tous les chantiers. Cotes, repères, fond, taille des symboles et thème : menu <b>Affichage</b> en haut de l'écran.</p>
+      <div class="pset-rows">${PREF_FIELDS.map(([k, label, help]) => `<label class="cab-row pref-row${v[k] !== PREFS_DEFAULTS[k] ? " chg" : ""}" title="${esc(help)}"><span>${esc(label)}<small class="mut">${esc(help)}</small></span><span class="cab-ctl"><input type="checkbox" data-pref="${k}" ${v[k] ? "checked" : ""}></span></label>`).join("")}</div>`;
+  }
+
   function render() {
-    el.innerHTML = `<div class="params-in">
-      <h2>Paramètres</h2>
-      <section>
-        <h3>Intelligence artificielle</h3>
-        <p class="mut">Une seule clé suffit. Elle sert à l'assistant (panneau de droite) et à l'analyse du plan.
+    const q = el.querySelector(".pset-find")?.value || ""; // la recherche en cours survit à un nouvel affichage
+    el.innerHTML = `<div class="params-in pset">
+      <div class="pset-head"><h2>Paramètres</h2><input type="search" class="pset-find" placeholder="Chercher un réglage… (ex. couleur, prise, gaine)" aria-label="Chercher un réglage"></div>
+      <div class="pset-wrap">
+        <nav class="pset-nav" aria-label="Sommaire des paramètres">${SECS().map(([id, t, sub]) => `<a href="#${id}" data-to="${id}" class="${sub ? "sub" : ""}">${esc(t)}</a>`).join("")}</nav>
+        <div class="pset-body">
+      <section class="pset-sec" id="ps-aff">${prefHTML()}</section>
+      <section class="pset-sec" id="ps-ia">
+        <h3>Assistant et relevé IA</h3>
+        <p class="mut">Une seule clé suffit. Elle sert à l'assistant (encart en bas à droite du plan), à l'analyse du plan et au relevé par l'IA.
         La clé reste sur ce PC ; elle passe par le serveur local lancé avec <code>npm run dev</code>, puis directement chez le fournisseur.</p>
         ${!envKeys.checked || envKeys.online ? "" : `<p class="warn">Serveur local introuvable : lancez le logiciel avec <code>npm run dev</code> (l'IA ne marche pas en ouvrant le fichier directement).</p>`}
         <div class="pcards">${card("anthropic")}${card("nvidia")}</div>
-        <h3 style="margin-top:18px">Fournisseur utilisé par l'assistant</h3>
+        <h4>Fournisseur utilisé par l'assistant</h4>
         <div class="prov">${provHTML()}</div>
         <p class="mut">Conseil : Claude pour l'analyse du plan (meilleure lecture des images). NVIDIA : Nemotron 3.5 Super VL par défaut (gratuit dans la limite des crédits, voit le plan). Si NVIDIA retire un modèle, Oktéo en choisit un autre tout seul. Un modèle sans « VL » ou « vision » ne lit que la liste des objets, pas l'image.</p>
       </section>
-      <section class="cab-set" id="cab-set">${cabHTML()}</section>
-      <section class="later">
-        <h3>À venir</h3>
-        <p class="mut">Règles par pavillonneur · Calcul des boîtes et des gaines (utilise les réglages ci-dessus).</p>
+      <section class="pset-sec cab-set" id="cab-set">${cabHTML()}</section>
+      <section class="pset-sec" id="ps-packs">
+        <h3>Packs</h3>
+        <p class="mut">L'appareillage type de chaque pièce (chambre, séjour, cuisine…) se règle dans le panneau <b>Packs</b>, bouton « Modifier les packs… ». Communs à tous les chantiers de ce PC.</p>
+        <button class="ps-open-packs">▦ Ouvrir le panneau Packs</button>
       </section>
+      <p class="pset-none mut" hidden>Aucun réglage ne correspond à cette recherche.</p>
+        </div>
+      </div>
     </div>`;
     wire();
+    if (q) { el.querySelector(".pset-find").value = q; find(q); }
   }
 
   // ---------- réglages du câblage ----------
@@ -89,10 +118,9 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
       else ctl = `<input data-cab="${k}" ${type === "txt" ? "" : `type="number" step="${type === "int" ? 1 : "any"}" min="0"`} value="${esc(String(val))}">`;
       return `<label class="cab-row${changed}" title="Valeur de base : ${esc(String(d).replace(".", ","))} ${esc(unit)}"><span>${esc(label)}</span><span class="cab-ctl">${ctl}<span class="mut">${esc(unit)}</span></span></label>`;
     };
-    return `<h3>Câblage (pieuvre)</h3>
-      <p class="mut">Valeurs de base décidées avec le bureau d'études ; elles servent à la répartition des circuits (onglet Câblage du panneau de droite) et, bientôt, au calcul des boîtes et des gaines. Une valeur modifiée est surlignée ; l'infobulle donne la valeur de base.</p>
-      <div class="cab-grid">${CAB_FIELDS.map(([g, rows]) => `<fieldset><legend>${esc(g)}</legend>${rows.map(input).join("")}</fieldset>`).join("")}</div>
-      <button id="cab-reset" title="Remettre toutes les valeurs de base">Valeurs de base</button>`;
+    return `<div class="pset-h"><h3>Câblage</h3><button id="cab-reset" title="Remettre toutes les valeurs de base du câblage">Valeurs de base</button></div>
+      <p class="mut">Règles de la pieuvre décidées avec le bureau d'études : circuits, couleurs, boîtes, gaines. Une valeur modifiée est surlignée ; l'infobulle donne la valeur de base.</p>
+      ${CAB_FIELDS.map(([g, rows, help], i) => `<div class="pset-grp" id="ps-cab-${i}"><h4>${esc(g)}</h4>${help ? `<p class="mut sm">${esc(help)}</p>` : ""}<div class="pset-rows">${rows.map(input).join("")}</div></div>`).join("")}`;
   }
   function wireCab() {
     const box = el.querySelector("#cab-set"); if (!box) return;
@@ -105,8 +133,30 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
     box.querySelector("#cab-reset").onclick = () => { resetCab(); box.innerHTML = cabHTML(); wireCab(); };
   }
 
+  // recherche : garde les lignes dont le libellé contient tous les mots tapés ; masque les groupes vides
+  const norm = (t) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  function find(q) {
+    const words = norm(q).split(/\s+/).filter(Boolean), hit = (t) => words.every((w) => norm(t).includes(w));
+    let any = false;
+    el.querySelectorAll(".pset-sec").forEach((sec) => {
+      const rows = [...sec.querySelectorAll(".cab-row")];
+      let n = 0;
+      if (rows.length) {
+        rows.forEach((r) => { const ok = !words.length || hit(r.textContent + " " + (r.title || "") + " " + (r.closest(".pset-grp")?.querySelector("h4")?.textContent || "")); r.hidden = !ok; if (ok) n++; });
+        sec.querySelectorAll(".pset-grp").forEach((g) => { g.hidden = !g.querySelector(".cab-row:not([hidden])"); });
+      } else n = !words.length || hit(sec.textContent) ? 1 : 0;
+      sec.hidden = !n; if (n) any = true;
+    });
+    el.querySelector(".pset-none").hidden = any;
+  }
+
   function wire() {
     wireCab();
+    el.querySelectorAll("[data-pref]").forEach((c) => (c.onchange = () => { setPref(c.dataset.pref, c.checked); c.closest(".cab-row").classList.toggle("chg", c.checked !== PREFS_DEFAULTS[c.dataset.pref]); }));
+    const fi = el.querySelector(".pset-find");
+    fi.oninput = () => find(fi.value);
+    el.querySelectorAll(".pset-nav a").forEach((a) => (a.onclick = (e) => { e.preventDefault(); if (fi.value) { fi.value = ""; find(""); } el.querySelector("#" + a.dataset.to)?.scrollIntoView({ behavior: "smooth", block: "start" }); }));
+    el.querySelector(".ps-open-packs").onclick = () => openPacks && openPacks();
     el.querySelectorAll(".pcard").forEach((c) => {
       const p = c.dataset.p, k = c.querySelector(".k"), m = c.querySelector(".m"), res = c.querySelector(".tres");
       k.onchange = () => { const s = settings.get(); settings.set({ keys: { ...s.keys, [p]: k.value.trim() }, provider: s.provider || p }); refreshProv(); };
