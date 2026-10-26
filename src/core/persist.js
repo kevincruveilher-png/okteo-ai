@@ -48,6 +48,10 @@ export function applyPack(s) {
     circuits: [],
     boxes: []
   };
+  // anciens noms de boîte B1, B2… → format KiTéOHM LI01, LI02…
+  (K.CAB.boxes || []).forEach(b => {
+    if (/^B\d+$/.test(b.n)) b.n = "LI" + String(+b.n.slice(1)).padStart(2, "0");
+  });
   // liste des niveaux (noms, ordre) reprise de l'historique ; le fond de chaque niveau reste celui enregistré
   if (Array.isArray(o.levels) && o.levels.length) {
     const now = levelsNow(),

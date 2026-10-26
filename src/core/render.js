@@ -5,7 +5,7 @@ import { labelPoint, pointInPoly } from "../walls/rooms.js";
 import { Placer, roomCandidates, textBox } from "../place.js";
 import { TYPES, VB, dist, epOf, layers, nodeById, pmNow, segById, segDir, segLen, state, symView } from "./model.js";
 import { V2W, W2V, ensureReps, pxPerVB, repMap, syncVB } from "./view.js";
-import { followWalls, linkCtrl, linkRole, openHandles, roomArea, roomPoly } from "./attach.js";
+import { followWalls, gaineCtrl, linkCtrl, linkRole, openHandles, roomArea, roomPoly } from "./attach.js";
 import { bbox, currentGroup, groupPoints, isSel, multi } from "./groups.js";
 import { placeHud } from "./hud.js";
 import { allLinks, belowData, crossLinks } from "./levels.js";
@@ -279,14 +279,20 @@ export function draw() {
       const on = K.boxSel === b.id,
         R = b.routes || {};
       // gaine = ligne brisée boîte → points de passage → appareil (ligne droite tant qu'on ne l'a pas modifiée)
-      const poly = (key, t) => [b, ...(R[key] || []), t].map(p => p.x + "," + p.y).join(" ");
+      // gaine : arc de la boîte à l'appareil (comme sur les plans KiTéOHM) ; tracée à la main : ligne brisée
+      const gpath = (key, t) => {
+        const pts = R[key];
+        if (pts && pts.length) return "M" + [b, ...pts, t].map(p => p.x + " " + p.y).join(" L ");
+        const q = gaineCtrl(b, t);
+        return `M${b.x} ${b.y} Q ${q.x} ${q.y} ${t.x} ${t.y}`;
+      };
       b.apps.forEach(id => {
         const a = byId[id];
         if (!a) return;
         const c = cm[id];
-        bl += `<polyline class="gaine" data-b="${b.id}" data-k="${id}" points="${poly(id, a)}" fill="none" stroke="${c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" opacity="${on ? 0.9 : 0.55}"/>`;
+        bl += `<path class="gaine" data-b="${b.id}" data-k="${id}" d="${gpath(id, a)}" fill="none" stroke="${c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" opacity="${on ? 0.9 : 0.55}"/>`;
       });
-      if (tab) bl += `<polyline class="gaine alim" data-b="${b.id}" data-k="tab" points="${poly("tab", tab)}" fill="none" stroke="var(--fg)" stroke-width="${1.2 * pm}" stroke-dasharray="${6 * pm} ${4 * pm}" opacity="0.45"/>`;
+      if (tab) bl += `<path class="gaine alim" data-b="${b.id}" data-k="tab" d="${gpath("tab", tab)}" fill="none" stroke="var(--fg)" stroke-width="${1.2 * pm}" stroke-dasharray="${6 * pm} ${4 * pm}" opacity="0.45"/>`;
       for (const pts of Object.values(R)) pts.forEach(p => {
         wp += `<circle class="wp" cx="${p.x}" cy="${p.y}" r="${(on ? 4 : 3) * pm}" fill="var(--panel)" stroke="${on ? "var(--sel)" : "var(--fg)"}" stroke-width="${1.4 * pm}"/>`;
       });
@@ -301,6 +307,12 @@ export function draw() {
         `<path d="${b.locked ? "M-3 -2V-4.5a3 3 0 0 1 6 0V-2" : "M-3 -2V-4.5a3 3 0 0 1 6 0"}" fill="none" stroke="${b.locked ? "var(--accent2)" : "var(--mut)"}" stroke-width="1.3"/></g></g>`;
     });
     bx += wp;
+    // bouts des gaines côté boîte (boîte choisie) : une poignée à tirer vers une autre boîte
+    const sb = K.boxSel && K.CAB.boxes.find(b => b.id === K.boxSel && b.lv === K.LV.cur);
+    if (sb) gaineEnds(sb).forEach(e => {
+      bx += `<circle class="gend" cx="${e.x}" cy="${e.y}" r="${4.5 * pm}" fill="var(--sel)" stroke="var(--panel)" stroke-width="${1.2 * pm}"><title>Tirer vers une autre boîte pour y raccorder cette gaine</title></circle>`;
+    });
+    if (K.endDrag) bx += `<line x1="${K.endDrag.x}" y1="${K.endDrag.y}" x2="${K.endDrag.ax}" y2="${K.endDrag.ay}" stroke="var(--sel)" stroke-width="${2 * pm}" stroke-dasharray="${5 * pm} ${3 * pm}"/><circle cx="${K.endDrag.x}" cy="${K.endDrag.y}" r="${5 * pm}" fill="var(--sel)"/>`;
     h += `<g class="boxlinks">${bl}</g>`;
     K.__boxLayer = bx;
   } else K.__boxLayer = "";
@@ -620,6 +632,25 @@ export function circuitMap() {
 }
 
 // boîte sous le point (monde), niveau ouvert
+// bout de chaque gaine côté boîte : à 22 px du centre, dans la direction de la gaine (1er point de passage ou appareil)
+export function gaineEnds(b, pm = pmNow()) {
+  const byId = Object.fromEntries(state.app.map(a => [a.id, a])), R = b.routes || {}, out = [];
+  for (const id of b.apps) {
+    const a = byId[id];
+    if (!a) continue;
+    const t = (R[id] || [])[0] || gaineCtrl(b, a), L = dist(b.x, b.y, t.x, t.y) || 1;
+    out.push({ id, x: b.x + (t.x - b.x) / L * 22 * pm, y: b.y + (t.y - b.y) / L * 22 * pm, ax: a.x, ay: a.y });
+  }
+  return out;
+}
+export function hitGaineEnd(wx, wy) {
+  if (!K.showCirc || !K.boxSel) return null;
+  const b = (K.CAB.boxes || []).find(x => x.id === K.boxSel && x.lv === K.LV.cur);
+  if (!b) return null;
+  const pm = pmNow();
+  const e = gaineEnds(b, pm).map(e => ({ ...e, d: dist(wx, wy, e.x, e.y) })).filter(e => e.d <= 7 * pm).sort((p, q) => p.d - q.d)[0];
+  return e ? { box: b, ...e } : null;
+}
 // position du cadenas d'une boîte (coin haut droit)
 export function lockPos(b, pm = pmNow()) {
   return { x: b.x + 14 * pm, y: b.y - 13 * pm };
@@ -644,6 +675,17 @@ export function hitRoute(wx, wy) {
         if (d <= 7 * pm && (!best || best.wp == null || d < best.d)) best = { box: b, key, wp: i - 1, d };
       }
       if (best && best.wp != null) continue;
+      // gaine sans point de passage : on teste l'arc dessiné
+      if (pts.length === 2) {
+        const T = pts[1], q = gaineCtrl(b, T);
+        for (let s = 1; s < 40; s++) {
+          const t = s / 40, u = 1 - t;
+          const px = u * u * b.x + 2 * u * t * q.x + t * t * T.x, py = u * u * b.y + 2 * u * t * q.y + t * t * T.y;
+          const d = dist(wx, wy, px, py);
+          if (d <= 5 * pm && dist(wx, wy, b.x, b.y) > 14 * pm && dist(wx, wy, T.x, T.y) > 8 * pm && (!best || (best.wp == null && d < best.d))) best = { box: b, key, seg: 0, d };
+        }
+        continue;
+      }
       for (let i = 0; i + 1 < pts.length; i++) {
         const A = pts[i], B = pts[i + 1], L = dist(A.x, A.y, B.x, B.y) || 1e-9;
         const t = ((wx - A.x) * (B.x - A.x) + (wy - A.y) * (B.y - A.y)) / (L * L);

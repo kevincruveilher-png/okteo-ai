@@ -7,7 +7,8 @@
 import { computeCircuits, checkCircuits } from "../cablage/circuits.js";
 import { getCab, SECTIONS, PROTS } from "../cablage/settings.js";
 import { esc } from "./util.js";
-import { wiringNow, autoBoxes, fr } from "./cablage-data.js";
+import { wiringNow, autoBoxes, removeBoxPlan, fr } from "./cablage-data.js";
+import { buildUnits } from "../cablage/boites.js";
 
 const KIND = { eclairage: "Éclairage", prises: "Prises", specialise: "Spécialisé", comm: "Communication" };
 const LIGHT = new Set(["LUM", "SPOT", "APP"]);
@@ -97,20 +98,55 @@ export function createCablagePane({ api, panel }) {
       return `<div class="cb-row bx-row${over ? " over" : ""}${api.boxSel === b.id ? " sel" : ""}" data-b="${b.id}"><button class="bx-lock${src.locked ? " on" : ""}" data-a="lock" title="${src.locked ? "Verrouillée : ne bouge pas quand on recalcule les boîtes. Clic pour déverrouiller." : "Clic pour verrouiller : la boîte ne bougera plus quand on recalcule les boîtes."}">${src.locked ? "🔒" : "🔓"}</button><div class="cb-main">
         <div><b>${esc(b.n)}</b> <span class="mut sm">${esc(lvName.get(b.lv) || b.lv)} · ${b.gaines.length} / ${getCab().departsMax} départs · ${f}</span></div>
         <div class="mut sm">circuits ${esc(b.circuits.join(", "))} · ${fr(b.cuivre)} m de fil${src.manual ? " · déplacée à la main" : ""}${nR ? ` · ${nR} gaine${nR > 1 ? "s" : ""} tracée${nR > 1 ? "s" : ""} à la main` : ""}</div>
-        <div class="cb-ctl"><button data-a="see" title="Montrer la boîte sur le plan">Voir</button><button data-a="take" title="Raccorder à cette boîte les appareils sélectionnés sur le plan">← Sélection</button><button data-a="list" title="Ses gaines et ses fils (onglet Boîtes)">Gaines</button>${nR ? `<button data-a="straight" title="Supprimer les points de passage : toutes les gaines de cette boîte reprennent la ligne droite">Remettre en ligne droite</button>` : ""}</div></div></div>`;
+        <div class="cb-ctl"><button data-a="see" title="Montrer la boîte sur le plan">Voir</button><button data-a="take" title="Raccorder à cette boîte les appareils sélectionnés sur le plan">← Sélection</button><button data-a="list" title="Ses gaines et ses fils (onglet Boîtes)">Gaines</button><button data-a="del" title="Supprimer la boîte : ses appareils vont dans la boîte la plus proche (Ctrl+Z pour annuler). Sur le plan : cliquer la boîte puis Suppr.">🗑</button>${nR ? `<button data-a="straight" title="Supprimer les points de passage : toutes les gaines de cette boîte reprennent la ligne droite">Remettre en ligne droite</button>` : ""}</div></div></div>`;
     }).join("");
     const issues = W.issues.filter((x) => !/^Pas de tableau/.test(x)).map((x) => `<p class="warn sm">⚠ ${esc(x)}</p>`).join("");
     return `${head}${tabWarn}<p class="sm"><b>${W.totals.boites}</b> boîtes · <b>${W.totals.gaines}</b> gaines · <b>${fr(W.totals.gaine)}</b> m de gaine · <b>${fr(W.totals.cuivre)}</b> m de fil</p>
       ${issues}<div class="cb-list">${rows}</div>
       ${askBox ? `<div class="cb-ask bx-ask"><b>Quelles boîtes recalculer ?</b> <span class="mut sm">Les boîtes décochées gardent leur place, leurs appareils et leurs tracés.</span>
           ${B.map((b) => `<label class="wck"><input type="checkbox" class="bx-redo" value="${b.id}" ${b.locked ? "" : "checked"}> ${esc(b.n)}${b.locked ? ` <span class="mut sm">🔒 verrouillée</span>` : ""}</label>`).join("")}
+          <label class="wck" title="Vide = le logiciel choisit le nombre qui économise le plus de cuivre">Nombre de boîtes en tout : <input id="bx-count" type="number" min="1" max="40" step="1" placeholder="auto" style="width:64px"></label>
           <div><button class="on" id="bx-yes">Recalculer les boîtes cochées</button><button id="bx-no">Annuler</button></div></div>`
         : `<button id="bx-auto" title="Recalculer l'emplacement des boîtes : vous choisissez lesquelles (les verrouillées restent en place). Ctrl+Z pour revenir.">Replacer les boîtes automatiquement…</button>`}
       <p class="mut sm">Sur le plan : glisser une boîte pour la déplacer ; tirer une gaine pour lui donner un point de passage (Maj : tronçon droit, double-clic sur un point : le supprimer). Une boîte déplacée ou retracée se verrouille 🔒 toute seule. Onglets « Boîtes » et « Lignes directes » (à gauche) : le détail des gaines et des fils.</p>`;
   }
-  function placeAuto(keepIds = []) {
+  function deleteBox(id) {
+    const r = removeBoxPlan(api, id);
+    if (!r) return;
+    api.boxSel = null;
+    api.setBoxes(r.boxes);
+    const mv = Object.entries(r.moved).map(([n, k]) => `${k} vers ${n}`).join(", ");
+    api.setHint(`${r.name} supprimée${mv ? " : appareils " + mv : ""}${r.orphan ? ` ; ${r.orphan} appareil${r.orphan > 1 ? "s" : ""} sans boîte (aucune autre boîte sur ce niveau)` : ""}. Ctrl+Z pour annuler.`);
+  }
+  document.addEventListener("okteo:box-delete", (e) => deleteBox(e.detail.id));
+  // bout de gaine tiré sur une autre boîte : l'appareil (avec ceux au même endroit et son allumage) change de boîte ;
+  // un circuit qui n'arrivait pas dans la nouvelle boîte est ajouté à sa gaine d'alimentation ; alerte si la boîte déborde
+  function moveGaine({ from, to, id }) {
+    const B = api.cab.boxes || [], src = B.find((b) => b.id === from), dst = B.find((b) => b.id === to);
+    if (!src || !dst) return;
+    const items = api.allApps(), by = new Map(items.map((a) => [a.id, a])), a0 = by.get(id), near = getCab().memeEndroit ?? 0.3;
+    if (!a0) return;
+    const ids = new Set(src.apps.filter((k) => { const a = by.get(k); return a && a.lv === a0.lv && Math.hypot(a.x - a0.x, a.y - a0.y) <= near + 1e-9; }));
+    const units = buildUnits(items, api.allLinks(), api.cab.circuits || []);
+    for (let grew = true; grew;) {
+      grew = false;
+      for (const u of units) if (u.ids.some((k) => ids.has(k))) u.ids.forEach((k) => { if (src.apps.includes(k) && !ids.has(k)) { ids.add(k); grew = true; } });
+    }
+    const before = (wiringNow(api).boxes.find((b) => b.id === to) || {}).circuits || [];
+    api.setBoxes(B.map((b) => (b.id === from ? { ...b, apps: b.apps.filter((k) => !ids.has(k)), locked: true } : b.id === to ? { ...b, apps: [...new Set([...b.apps, ...ids])], locked: true } : b)));
+    const W = wiringNow(api), tb = W.boxes.find((b) => b.id === to) || { circuits: [], n: dst.n };
+    const added = tb.circuits.filter((c) => !before.includes(c));
+    const warn = W.issues.filter((x) => x.startsWith(tb.n + " ") || x.startsWith(tb.n + " :"));
+    const names = [...ids].map((k) => (by.get(k) || {}).rep).filter(Boolean);
+    api.setHint(`${names.join(", ")} raccordé${names.length > 1 ? "s" : ""} à ${tb.n}${ids.size > 1 ? " (même endroit ou même allumage)" : ""}`
+      + (added.length ? ` · ${added.join(", ")} ajouté${added.length > 1 ? "s" : ""} à l'alimentation de ${tb.n}` : "")
+      + (warn.length ? ` · ⚠ ${warn.map((x) => x.replace(tb.n + " : ", "")).join(" ; ")}` : "") + " · Ctrl+Z pour annuler.");
+    render();
+  }
+  document.addEventListener("okteo:gaine-move", (e) => moveGaine(e.detail));
+  function placeAuto(keepIds = [], count = 0) {
     if (!(api.cab.circuits || []).length) { api.setHint("Répartissez d'abord les appareils en circuits."); return; }
-    const r = autoBoxes(api, keepIds);
+    const r = autoBoxes(api, keepIds, count);
     api.setBoxes(r.boxes); api.showCircuits = true;
     const kept = keepIds.length ? ` (${keepIds.length} gardée${keepIds.length > 1 ? "s" : ""} telle${keepIds.length > 1 ? "s" : ""} quelle${keepIds.length > 1 ? "s" : ""})` : "";
     api.setHint(`${r.boxes.length} boîtes${kept}, placées pour économiser le cuivre${r.issues.length ? " — " + r.issues.join(" ; ") : ""}. Glissez une boîte pour la déplacer ; Ctrl+Z pour annuler.`);
@@ -120,7 +156,8 @@ export function createCablagePane({ api, panel }) {
     const a = $("#bx-auto"); if (a) a.onclick = () => { if ((api.cab.boxes || []).length) { askBox = true; render(); } else placeAuto(); };
     const y = $("#bx-yes"); if (y) y.onclick = () => {
       const keep = [...el.querySelectorAll(".bx-redo")].filter((c) => !c.checked).map((c) => c.value);
-      askBox = false; placeAuto(keep);
+      const count = +($("#bx-count") || {}).value || 0;
+      askBox = false; placeAuto(keep, count);
     };
     const n = $("#bx-no"); if (n) n.onclick = () => { askBox = false; render(); };
     const t = $("#bx-tab"); if (t) t.onclick = () => { api.setTool("TAB"); api.setHint("Cliquez sur le plan à l'emplacement du tableau (TD)."); };
@@ -131,6 +168,7 @@ export function createCablagePane({ api, panel }) {
         const ids = selectedApps(); if (!ids.length) { api.setHint("Sélectionnez d'abord des appareils sur le plan, puis « ← Sélection » sur la boîte."); return; }
         api.setBoxes(api.cab.boxes.map((x) => ({ ...x, apps: x.id === id ? [...new Set([...x.apps, ...ids])] : x.apps.filter((k) => !ids.includes(k)) })));
       };
+      r.querySelector('[data-a="del"]').onclick = () => deleteBox(id);
       r.querySelector('[data-a="lock"]').onclick = () => api.setBoxes(api.cab.boxes.map((x) => (x.id === id ? { ...x, locked: !x.locked } : x)));
       const st = r.querySelector('[data-a="straight"]');
       if (st) st.onclick = () => { api.setBoxes(api.cab.boxes.map((x) => { if (x.id !== id) return x; const { routes, ...rest } = x; return rest; })); api.setHint("Gaines remises en ligne droite (Ctrl+Z pour annuler)."); };

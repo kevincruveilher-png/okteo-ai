@@ -369,6 +369,16 @@ try {
     if (!/réglée automatiquement/.test(t) || r.cal !== true || !(Math.abs(r.f - 1) < 0.015)) throw new Error(JSON.stringify({ t, r }));
     return true;
   });
+  await check("échelle saisie « 1 / 50 » : fond = largeur de la feuille × 50 ; les cotes signalent qu'EVRARD est un A3 réduit en A4 (√2)", async () => {
+    await page.waitForSelector("#cr-N");
+    await page.fill("#cr-N", "50"); await page.click("#cr-ok");
+    await page.waitForFunction(() => /échelle fausse/.test(document.getElementById("hint").textContent), null, { timeout: 15000 });
+    const r = await ev(async () => { const m = await import("/src/ext/pdf-page.js"); const s = await m.chantierScaleCheck(okteo); return { cal: okteo.ch.fond.calibre, pw: okteo.ch.fond.paperW, w: okteo.BG.w, f: s && s.facteur }; });
+    await page.keyboard.press("Escape");
+    await ev(() => okteo.startCalib());
+    if (!(r.cal && Math.abs(r.w - r.pw * 50) < 0.01 && Math.abs(r.f - Math.SQRT2) < 0.03)) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("mise à l'échelle 2 points : la cote mesure exactement 10,00 m", async () => {
     const box = await page.locator("#sv").boundingBox();
     const w0 = await ev(() => okteo.BG.w);
@@ -870,14 +880,15 @@ try {
       for (const b of okteo.cab.boxes.filter((x) => x.lv === okteo.level.id)) for (const id of b.apps) {
         const a = by[id]; if (!a) continue;
         const d = Math.hypot(a.x - b.x, a.y - b.y); if (d < 2.5) continue;
-        const p = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        // milieu de l'arc dessiné (même calcul que gaineCtrl : décalage de 15 % de la longueur)
+        const arc = (o, c, t) => { const qx = (o.x + c.x) / 2 - (c.y - o.y) * 0.15, qy = (o.y + c.y) / 2 + (c.x - o.x) * 0.15, u = 1 - t; return { x: u * u * o.x + 2 * u * t * qx + t * t * c.x, y: u * u * o.y + 2 * u * t * qy + t * t * c.y }; };
+        const p = arc(b, a, 0.5);
         if (A.some((o) => Math.hypot(o.x - p.x, o.y - p.y) < 0.6) || okteo.cab.boxes.some((o) => Math.hypot(o.x - p.x, o.y - p.y) < 0.8)) continue;
         // pas d'autre gaine tout près de ce point
         const near = okteo.cab.boxes.some((o) => o.apps.some((k) => { if (k === id && o.id === b.id) return false; const c = by[k]; if (!c) return false;
-          const L = Math.hypot(c.x - o.x, c.y - o.y) || 1, u = ((p.x - o.x) * (c.x - o.x) + (p.y - o.y) * (c.y - o.y)) / (L * L); if (u < 0 || u > 1) return false;
-          return Math.hypot(o.x + (c.x - o.x) * u - p.x, o.y + (c.y - o.y) * u - p.y) < 0.25; }));
+          for (let i = 1; i < 30; i++) { const q = arc(o, c, i / 30); if (Math.hypot(q.x - p.x, q.y - p.y) < 0.3) return true; } return false; }));
         if (near) continue;
-        const g = W.boxes.find((x) => x.id === b.id).gaines.find((x) => x.appId === id);
+        const g = W.boxes.find((x) => x.id === b.id).gaines.find((x) => x.appIds && x.appIds.includes(id));
         return { box: b.id, id, p: okteo.toClient(p.x, p.y), len: g.length };
       }
       return null;
@@ -887,8 +898,8 @@ try {
     const hint = await page.textContent("#hint");
     await page.mouse.up();
     const r1 = await ev(async ({ box, id }) => { const m = await import("/src/ext/cablage-data.js"), b = okteo.cab.boxes.find((x) => x.id === box);
-      const g = m.wiringNow(okteo).boxes.find((x) => x.id === box).gaines.find((x) => x.appId === id);
-      return { wp: (b.routes && b.routes[id] || []).length, locked: !!b.locked, len: g.length, routed: g.routed, q: b.routes[id][0], bx: b.x, by: b.y, poly: !!document.querySelector(`#sv polyline.gaine[data-k="${id}"]`) }; }, t);
+      const g = m.wiringNow(okteo).boxes.find((x) => x.id === box).gaines.find((x) => x.appIds && x.appIds.includes(id));
+      return { wp: (b.routes && b.routes[id] || []).length, locked: !!b.locked, len: g.length, routed: g.routed, q: b.routes[id][0], bx: b.x, by: b.y, poly: !!document.querySelector(`#sv path.gaine[data-k="${id}"]`) }; }, t);
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/gaine-trace.png" });
     // Maj : le point se met dans l'axe de la boîte
     const wpScr = await ev(({ q }) => okteo.toClient(q.x, q.y), r1);
@@ -923,16 +934,82 @@ try {
     if (!ok) throw new Error(JSON.stringify({ locked, unchecked, lockedIds, same: before === after, n }));
     return true;
   });
+  console.log("Boîtes à la main, fenêtre de réglage (v35)");
+  await check("la fenêtre de réglage d'un appareil se ferme quand on saisit une boîte, et par sa croix", async () => {
+    await page.click('#tabs button[data-tab="plan"]');
+    await ev(() => { okteo.setTool("sel"); okteo.showCircuits = true; okteo.fit(); });
+    const t = await ev(() => { const a = okteo.state.app.find((x) => x.t === "PC16"), b = okteo.cab.boxes.find((x) => x.lv === okteo.level.id); return { a: okteo.toClient(a.x, a.y), b: okteo.toClient(b.x, b.y) }; });
+    const vis = () => ev(() => !document.getElementById("hud").hidden);
+    await page.mouse.click(t.a.x, t.a.y); const v1 = await vis();
+    await page.mouse.click(t.b.x, t.b.y); const v2 = await vis();
+    await page.mouse.click(t.a.x, t.a.y); await page.click('#hud [data-h="close"]'); const v3 = await vis();
+    if (!(v1 && !v2 && !v3)) throw new Error(JSON.stringify({ v1, v2, v3 }));
+    return true;
+  });
+  await check("bout de gaine tiré sur une autre boîte : l'appareil (et son allumage) y est raccordé, alimentation complétée, Ctrl+Z", async () => {
+    const t = await ev(() => {
+      const B = okteo.cab.boxes.filter((x) => x.lv === okteo.level.id), by = Object.fromEntries(okteo.state.app.map((a) => [a.id, a]));
+      const src = B[0], dst = B.slice(1).sort((p, q) => Math.hypot(p.x - src.x, p.y - src.y) - Math.hypot(q.x - src.x, q.y - src.y))[0];
+      const id = src.apps.find((k) => by[k] && by[k].t.startsWith("PC"));
+      return { src: src.id, dst: dst.id, id, s: okteo.toClient(src.x, src.y), d: okteo.toClient(dst.x, dst.y) };
+    });
+    await page.mouse.click(t.s.x, t.s.y);                       // choisit la boîte : les bouts de gaine apparaissent
+    const end = await ev(({ src, id }) => { const h = [...document.querySelectorAll("#sv circle.gend")].length; const b = okteo.cab.boxes.find((x) => x.id === src);
+      const a = okteo.state.app.find((x) => x.id === id), L = Math.hypot(a.x - b.x, a.y - b.y); return { h }; }, t);
+    // position du bout (même calcul que gaineEnds : vers le point de contrôle de l'arc, à 22 px)
+    const p0 = await ev(({ src, id }) => { const b = okteo.cab.boxes.find((x) => x.id === src), a = okteo.state.app.find((x) => x.id === id);
+      const L = Math.hypot(a.x - b.x, a.y - b.y) || 1, q = { x: (b.x + a.x) / 2 - (a.y - b.y) * 0.15, y: (b.y + a.y) / 2 + (a.x - b.x) * 0.15 }, Lq = Math.hypot(q.x - b.x, q.y - b.y) || 1;
+      const c = okteo.toClient(b.x, b.y), c2 = okteo.toClient(q.x, q.y), Ls = Math.hypot(c2.x - c.x, c2.y - c.y) || 1; return { x: c.x + (c2.x - c.x) / Ls * 22, y: c.y + (c2.y - c.y) / Ls * 22 }; }, t);
+    await page.mouse.move(p0.x, p0.y); await page.mouse.down(); await page.mouse.move(t.d.x, t.d.y, { steps: 8 }); await page.mouse.up();
+    const r = await ev(({ src, dst, id }) => ({ inDst: okteo.cab.boxes.find((x) => x.id === dst).apps.includes(id), inSrc: okteo.cab.boxes.find((x) => x.id === src).apps.includes(id), hint: document.getElementById("hint").textContent }), t);
+    await page.keyboard.press("Control+z");
+    const back = await ev(({ src, id }) => okteo.cab.boxes.find((x) => x.id === src).apps.includes(id), t);
+    if (!(end.h > 3 && r.inDst && !r.inSrc && /raccordé/.test(r.hint) && back)) throw new Error(JSON.stringify({ end, r, back }));
+    return true;
+  });
+  await check("supprimer une boîte (clic puis Suppr) : ses appareils vont dans les boîtes voisines, aucun appareil perdu, Ctrl+Z", async () => {
+    const t = await ev(() => { const b = okteo.cab.boxes.find((x) => x.lv === okteo.level.id); return { id: b.id, n: okteo.cab.boxes.length, apps: okteo.cab.boxes.flatMap((x) => x.apps).length, p: okteo.toClient(b.x, b.y) }; });
+    await page.mouse.click(t.p.x, t.p.y); await page.keyboard.press("Delete");
+    const r = await ev((id) => ({ n: okteo.cab.boxes.length, apps: okteo.cab.boxes.flatMap((x) => x.apps).length, gone: !okteo.cab.boxes.some((x) => x.id === id), hint: document.getElementById("hint").textContent }), t.id);
+    await page.keyboard.press("Control+z");
+    const back = await ev(() => okteo.cab.boxes.length);
+    if (!(r.n === t.n - 1 && r.apps === t.apps && r.gone && /supprimée/.test(r.hint) && back === t.n)) throw new Error(JSON.stringify({ t, r, back }));
+    return true;
+  });
+  await check("recalcul avec un nombre de boîtes imposé", async () => {
+    await ev(() => okteoExt.panel.show("cablage")); await page.waitForTimeout(150);
+    const n0 = await ev(() => okteo.cab.boxes.length);
+    await page.click("#bx-auto"); await page.waitForSelector("#bx-count");
+    await ev(() => document.querySelectorAll(".bx-redo").forEach((c) => (c.checked = true)));
+    await page.fill("#bx-count", String(n0 + 1)); await page.click("#bx-yes");
+    const n1 = await ev(() => okteo.cab.boxes.length), names = await ev(() => okteo.cab.boxes.map((b) => b.n).join());
+    await page.keyboard.press("Control+z");
+    if (!(n1 === n0 + 1 && /^LI\d\d/.test(names))) throw new Error(JSON.stringify({ n0, n1, names }));
+    return true;
+  });
+  await check("dessin : liaisons en ligne droite, gaines en arc", async () => ev(() => {
+    const lia = [...document.querySelectorAll("#sv path.lia")].slice(0, 5).map((p) => p.getAttribute("d").match(/^M([\d.-]+) ([\d.-]+) Q ([\d.-]+) ([\d.-]+) ([\d.-]+) ([\d.-]+)/)).filter(Boolean);
+    const straight = lia.every((m) => { const [x0, y0, qx, qy, x1, y1] = m.slice(1).map(Number); return Math.abs(qx - (x0 + x1) / 2) < 1e-6 && Math.abs(qy - (y0 + y1) / 2) < 1e-6; });
+    const arcs = [...document.querySelectorAll("#sv path.gaine")].some((p) => / Q /.test(p.getAttribute("d")));
+    return lia.length > 0 && straight && arcs;
+  }));
+
   console.log("Schémas de boîte pour le câbleur (v33)");
   await check("onglet Bandes : boîte carrée (faces A–D, gaines, connecteurs), orientation, matériel, raccordements dans l'ordre à cocher", async () => {
     await page.click('#tabs button[data-tab="bandes"]');
     await page.waitForSelector(".bands .bd-svg svg");
-    const r = await ev(() => ({ picks: document.querySelectorAll(".bands .bd-pick [data-b]").length, boxes: okteo.cab.boxes.length, faces: ["Face A", "Face B", "Face C", "Face D"].every((f) => document.querySelector(".bands .bd-svg").textContent.includes(f)),
+    const r = await ev(() => ({ picks: document.querySelectorAll(".bands .bd-pick [data-b]").length, boxes: okteo.cab.boxes.length, faces: ["A haut", "B droite", "C bas", "D gauche"].every((f) => document.querySelector(".bands .bd-svg").textContent.includes(f)),
       or: [...document.querySelectorAll(".bands .bd-or li")].map((l) => l.textContent), mat: document.querySelectorAll(".bands h3 + ul li").length, rows: [...document.querySelectorAll(".bands .bd-steps tbody tr")].map((t) => t.children[2].textContent),
       wires: document.querySelectorAll(".bands .bd-steps .wchip").length, fils: (document.querySelector(".bands .bd-fils") || {}).textContent || "" }));
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/bandes.png", fullPage: false });
     await page.check(".bands .bd-steps input[data-n='1']");
     const done = await ev(() => document.querySelector(".bands .bd-steps tbody tr").classList.contains("done"));
+    // calque : un circuit choisi, les autres s'estompent
+    await page.click(".bands .bd-calq button[data-cq]:not([data-cq=''])");
+    const calq = await ev(() => { const all = [...document.querySelectorAll(".bands .bd-svg [data-c]")]; return { faded: all.filter((n) => n.style.opacity === "0.1").length, kept: all.filter((n) => n.style.opacity === "").length }; });
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/bandes-calque.png" });
+    await page.click(".bands .bd-calq button[data-cq='']");
+    if (!(calq.faded > 5 && calq.kept > 3)) throw new Error("calque : " + JSON.stringify(calq));
     const ok = r.picks === r.boxes && r.faces && r.or.length === 4 && r.or.every((t) => /côté/.test(t)) && r.mat >= 2 && /^Terres/.test(r.rows[0]) && r.rows.length > 8 && r.wires > 20 && done && /\d+ × 1,5/.test(r.fils);
     if (!ok) throw new Error(JSON.stringify(r).slice(0, 600));
     return true;
@@ -946,7 +1023,7 @@ try {
     const txt = async (i) => (await (await doc.getPage(i)).getTextContent()).items.map((x) => x.str).join(" ");
     const t1 = await txt(1), t2 = await txt(2), n = await ev(() => okteo.cab.boxes.length);
     await page.click('#tabs button[data-tab="plan"]');
-    const ok = doc.numPages >= 2 * n && /Boîte B1/.test(t1) && /Orienter la boîte/.test(t1) && /connecteur/.test(t1) && /raccordements à faire dans l'ordre/.test(t2) && /1\. Terres/.test(t2) && /Contrôle final/.test(await txt(doc.numPages));
+    const ok = doc.numPages >= 2 * n && /Boîte LI01/.test(t1) && /Orienter la boîte/.test(t1) && /connecteur/.test(t1) && /raccordements à faire dans l'ordre/.test(t2) && /1\. Terres/.test(t2) && /Contrôle final/.test(await txt(doc.numPages));
     if (!ok) throw new Error(JSON.stringify({ pages: doc.numPages, n, t1: t1.slice(0, 300), t2: t2.slice(0, 300) }));
     return true;
   });

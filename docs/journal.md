@@ -255,6 +255,16 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
   du tableau à afficher à côté de l'alimentation.
 - Tests : 30 + 37 + 97 = 164.
 
+## Version 35 (26/10/2026) — livrée : boîtes à la main, échelle 1/50, nouvelle bande
+- Remarques de Kévin après essai sur le chantier PASQUIER BLIN : plan scanné (murs non reconnus : le PDF n'a qu'une
+  image) → message clair + échelle 1/50 saisissable ; fenêtre de réglage qui restait affichée (corrigé) ; boîtes
+  impossibles à supprimer (corrigé) ; rattacher une gaine à une autre boîte en tirant son extrémité ; nombre de boîtes
+  imposé ; liaisons droites et gaines en arc ; nouvelle bande d'après son exemple, avec calque par circuit ; noms
+  LI01 / LI01.04.
+- EVRARD est un A3 réduit en A4 : 1/50 saisi donne une échelle fausse de 41 % → l'alerte des cotes le signale.
+- Exemples rangés dans docs/exemples (bande FTZ, bande préférée, plan d'expédition, fichier SPV + format supposé).
+- Tests : 30 + 37 + 103 = 170.
+
 ## PROCHAINE MISE À JOUR : à décider avec Kévin
 Pistes : retours de Kévin sur les schémas (essai avec un câbleur débutant), SPV pour Counter, page « Reprendre le projet ».
 

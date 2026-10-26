@@ -17,6 +17,7 @@ import { createTour } from "./tour.js";
 import { createCablagePane } from "./cablage-ui.js";
 import { mountBoxesPage, mountDirectPage } from "./cablage-pages.js";
 import { createAiReleve } from "./ai-releve.js";
+import { ensurePaperW, chantierScaleCheck } from "./pdf-page.js";
 import { mountBandsPage } from "./cablage-bandes.js";
 
 function start() {
@@ -40,6 +41,16 @@ function start() {
   const printer = createPrintTool({ api });
   const levels = createLevelsBar({ api });
   const aiReleve = createAiReleve({ api, openParams: () => api.setTab("params") });
+  // largeur de feuille des anciens fonds PDF (échelle 1/50) ; plan scanné signalé dès la mise à l'échelle
+  ensurePaperW(api).catch(() => {});
+  document.addEventListener("okteo:fond", () => ensurePaperW(api).catch(() => {}));
+  // après une mise à l'échelle : contrôle par les cotes du plan (ex. 1/50 saisi sur un PDF réduit d'A3 en A4)
+  document.addEventListener("okteo:calibrated", async () => {
+    const s = await chantierScaleCheck(api).catch(() => null);
+    if (!s || s.cotes < 4 || Math.abs(s.facteur - 1) <= 0.03) return;
+    const pct = Math.abs((s.facteur - 1) * 100).toFixed(0);
+    api.setHint(`⚠ Les cotes du plan (${s.cotes}) indiquent une échelle fausse de ${pct} % : le PDF n'est peut-être pas à son format d'origine (A3 imprimé en A4 ?). Menu Relevé → 1. Murs → « Corriger l'échelle », ou réglez-la sur une cote.`);
+  });
   hooks.aiReleve = () => aiReleve.open();
   document.addEventListener("okteo:walls", () => walls.open());
   document.addEventListener("okteo:devices", () => devices.open());

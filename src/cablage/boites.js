@@ -85,20 +85,24 @@ function boxCost(box, units, tab, near) {
 }
 
 // placement pour un niveau : regroupement avec capacité, k boîtes, plusieurs essais ; renvoie [{x, y, units}]
-function placeLevel(units, tab, S, tries = 4) {
+// nom d'une boîte (format KiTéOHM / FTZ) : LI01, LI02…
+export const boxName = (n) => "LI" + String(n).padStart(2, "0");
+export function minBoxes(units, S) { return Math.max(1, Math.ceil(departsOf(units, S) / S.departsMax)); }
+function placeLevel(units, tab, S, tries = 4, kFixed = 0) {
   if (!units.length) return [];
-  const total = departsOf(units, S);
-  const kmin = Math.max(1, Math.ceil(total / S.departsMax));
+  const kmin = minBoxes(units, S);
   let best = null;
-  for (let k = kmin; k <= kmin + tries; k++) {
+  const k0 = kFixed ? Math.max(kmin, kFixed) : kmin, k1 = kFixed ? k0 : kmin + tries;
+  for (let k = k0; k <= k1; k++) {
     for (let seed = 0; seed < 3; seed++) {
       const r = cluster(units, k, tab, S, seed);
       if (!r) continue;
       const cost = r.reduce((s, b) => s + boxCost(b, b.units, tab, S.memeEndroit ?? 0.3), 0) + r.length * 0.5;   // une boîte de plus coûte un peu
       if (!best || cost < best.cost) best = { cost, boxes: r };
     }
-    if (best && k > kmin + 1) break;
+    if (best && (kFixed || k > kmin + 1)) break;
   }
+  if (!best && kFixed) return placeLevel(units, tab, S, tries, 0);   // nombre imposé impossible : on revient au calcul automatique
   return best ? best.boxes : null;
 }
 
@@ -144,7 +148,8 @@ function cluster(units, k, tab, S, seed) {
 // toutes les boîtes du chantier ; tabs : {[niveau]: {x, y}} position du tableau (ou de la trémie qui y mène) par niveau
 // keep = boîtes à garder telles quelles (verrouillées ou non cochées) : elles gardent position, nom, tracés et
 // appareils ; une unité dont un appareil est déjà dans une boîte gardée y va en entier ; le reste est réparti.
-export function placeBoxes(items, links, circuits, tabs, S0, { keep = [] } = {}) {
+// count = nombre total de boîtes voulu (boîtes gardées comprises), 0 = automatique
+export function placeBoxes(items, links, circuits, tabs, S0, { keep = [], count = 0 } = {}) {
   const secOf = new Map(circuits.map((c) => [c.id, c.section || 1.5]));
   const S = { ...S0, alimCount: (ids) => (ids.size ? packAlim([...ids].map((id) => ({ id, section: secOf.get(id) || 1.5 })), S0.remplissage).length : 0) };
   const all = buildUnits(items, links, circuits), exist = new Set(items.map((a) => a.id));
@@ -160,11 +165,24 @@ export function placeBoxes(items, links, circuits, tabs, S0, { keep = [] } = {})
   const out = [...kept], issues = [];
   const usedIds = new Set(kept.map((b) => b.id));
   let n = Math.max(0, ...kept.map((b) => +String(b.n).replace(/\D/g, "") || 0));
+  // nombre imposé : réparti entre les niveaux selon leurs départs, jamais moins que le minimum (18 départs par boîte)
+  const want = {};
+  if (count > 0) {
+    const free = Math.max(0, count - kept.length), dep = Object.fromEntries(levels.map((lv) => [lv, departsOf(units.filter((u) => u.lv === lv), S)]));
+    const tot = Object.values(dep).reduce((s, v) => s + v, 0) || 1;
+    // au moins une boîte par niveau, le reste au prorata des départs (plus forts restes) : la somme fait bien `free`
+    const base = levels.map((lv) => ({ lv, x: Math.max(0, free - levels.length) * dep[lv] / tot }));
+    base.forEach((b) => { want[b.lv] = 1 + Math.floor(b.x); });
+    let left = Math.max(levels.length, free) - levels.reduce((s, lv) => s + want[lv], 0);
+    base.sort((p, q) => (q.x - Math.floor(q.x)) - (p.x - Math.floor(p.x))).forEach((b) => { if (left > 0) { want[b.lv]++; left--; } });
+    const mins = levels.reduce((s, lv) => s + minBoxes(units.filter((u) => u.lv === lv), S), 0);
+    if (free < mins) issues.push(`${count} boîtes demandées : il en faut au moins ${mins + kept.length} pour respecter ${S.departsMax} départs par boîte et ${S.departsFace} par face`);
+  }
   for (const lv of levels) {
     const L = units.filter((u) => u.lv === lv);
-    const r = placeLevel(L, tabs[lv] || null, S);
+    const r = placeLevel(L, tabs[lv] || null, S, 4, want[lv] || 0);
     if (!r) { issues.push(`Niveau ${lv} : impossible de respecter ${S.departsMax} départs par boîte et ${S.departsFace} par face (une unité trop grosse ?)`); continue; }
-    for (const b of r) { do n++; while (usedIds.has("b" + n)); usedIds.add("b" + n); out.push({ id: "b" + n, n: "B" + n, lv, x: +(Math.round(b.x / 0.05) * 0.05).toFixed(2), y: +(Math.round(b.y / 0.05) * 0.05).toFixed(2), apps: b.units.flatMap((u) => u.ids) }); }
+    for (const b of r) { do n++; while (usedIds.has("b" + n)); usedIds.add("b" + n); out.push({ id: "b" + n, n: boxName(n), lv, x: +(Math.round(b.x / 0.05) * 0.05).toFixed(2), y: +(Math.round(b.y / 0.05) * 0.05).toFixed(2), apps: b.units.flatMap((u) => u.ids) }); }
   }
   out.sort((a, b) => (+String(a.n).replace(/\D/g, "") || 0) - (+String(b.n).replace(/\D/g, "") || 0));
   return { boxes: out, issues };

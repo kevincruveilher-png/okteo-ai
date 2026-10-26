@@ -68,7 +68,7 @@ const cost = (boxes) => computeWiring({ items, links, circuits: C, boxes, levels
 const base = W.totals.cuivre;
 const better = P.boxes.some((b, i) => [[0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]].some(([dx, dy]) => cost(P.boxes.map((x, j) => (j === i ? { ...x, x: x.x + dx, y: x.y + dy } : x))) < base - 2));
 check("placement économe : déplacer une boîte de 50 cm n'économise pas de cuivre", !better);
-const one = { id: "x", n: "B1", lv: "rdc", x: items.reduce((s, a) => s + a.x, 0) / items.length, y: items.reduce((s, a) => s + a.y, 0) / items.length, apps: [...boxedIds] };
+const one = { id: "x", n: "LI01", lv: "rdc", x: items.reduce((s, a) => s + a.x, 0) / items.length, y: items.reduce((s, a) => s + a.y, 0) / items.length, apps: [...boxedIds] };
 console.log("    (une seule boîte au centre : " + cost([one]) + " m de cuivre)");
 const g = (t) => W.boxes.flatMap((b) => b.gaines).find((x) => x.appId && x.appIds.length === 1 && byId.get(x.appId).t === t);
 const fns = (x) => x.wires.map((w) => w.fn + "/" + w.color + "/" + w.section).join(" ");
@@ -148,9 +148,11 @@ console.log("Schéma de boîte pour le câbleur (v33)");
   check("chaque fil de chaque gaine apparaît dans une étape ; matériel = un connecteur par raccordement (+ ponts)",
     st.reduce((s, x) => s + x.wires.length, 0) === wired && nConn === st.length + mat.ponts && boxChecks(B, st).every((t) => /un seul fil|sans raccordement/.test(t)), JSON.stringify(mat));
   const svg = schemaSVG(B, st, { sides: { A: "côté Chambre 1" } });
-  check("dessin de la boîte : 4 faces, une gaine dessinée par départ, un connecteur par raccordement, retours tracés",
-    ["Face A", "Face B", "Face C", "Face D"].every((f) => svg.includes(f)) && (svg.match(/<line /g) || []).length === B.gaines.length && (svg.match(/rx="6"/g) || []).length === st.length && svg.includes("côté Chambre 1")
-    && (svg.match(/<path /g) || []).length === st.filter((x) => ["retour", "nav1", "nav2", "cmdTL", "retTL"].includes(x.fn)).reduce((s, x) => s + x.wires.length, 0));
+  const nW = B.gaines.reduce((s, g) => s + g.wires.length, 0), traced = st.filter((x) => ["retour", "nav1", "nav2", "cmdTL", "retTL"].includes(x.fn));
+  check("dessin de la boîte : faces A–D, chaque fil dessiné jusqu'à sa borne numérotée, un point par retour/navette, traits intérieurs",
+    ["A haut", ">A<", ">B<", ">C<", ">D<"].every((f) => svg.includes(f)) && (svg.match(/class="term"/g) || []).length === nW && (svg.match(/class="w"/g) || []).length === nW
+    && (svg.match(/class="node"/g) || []).length === traced.length && (svg.match(/class="lnk"/g) || []).length === traced.reduce((s, x) => s + x.wires.length, 0) && svg.includes("côté Chambre 1")
+    && /data-c="C\d/.test(svg), `${nW} fils, ${traced.length} points`);
 }
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);

@@ -60,6 +60,10 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
   const pairs = parsePairs(S.pairesCircuits || `${S.cPhase}/${S.cNeutre}`), cmdCols = list(S.couleursCommande || `${S.cRetour}, ${S.cNavette1}, ${S.cNavette2}`);
   const col = { phase: pairs[0].phase, neutre: pairs[0].neutre, terre: S.cTerre, retour: cmdCols[0] || S.cRetour, nav1: cmdCols[1] || S.cNavette1, nav2: cmdCols[1] || S.cNavette2, cmdTL: cmdCols[0] || S.cRetour, retTL: cmdCols[0] || S.cRetour };
 
+  // appareils d'un circuit à boîte qui ne sont dans aucune boîte (boîte supprimée, appareil ajouté après le placement)
+  const boxedAll = new Set(boxes.flatMap((b) => b.apps));
+  const loose = circuits.filter((c) => !c.direct && c.kind !== "comm").flatMap((c) => c.apps).filter((id) => byId.has(id) && !boxedAll.has(id));
+  if (boxes.length && loose.length) issues.push(`${loose.length} appareil${loose.length > 1 ? "s" : ""} sans boîte (${loose.slice(0, 6).map((id) => byId.get(id).rep || id).join(", ")}${loose.length > 6 ? "…" : ""}) : « Replacer les boîtes… » ou « ← Sélection » sur une boîte`);
   const outBoxes = boxes.map((b) => {
     const apps = b.apps.map((id) => byId.get(id)).filter(Boolean);
     const inBox = new Set(apps.map((a) => a.id));
@@ -72,7 +76,7 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
     for (const c of circs) {
       const sec = c.section || 1.5, k = bySec.get(sec) || 0; bySec.set(sec, k + 1);
       const p = pairs[k % pairs.length];
-      if (k >= pairs.length) issues.push(`${b.n} : plus de ${pairs.length} circuits en ${String(sec).replace(".", ",")} mm² — couleurs phase/neutre à compléter (Paramètres → Câblage)`);
+      // au-delà des paires définies, les couleurs reprennent depuis le début (les n° de raccordement restent différents)
       keyColor.set("P" + c.id, p.phase); keyColor.set("N" + c.id, p.neutre);
     }
     let ci = 0;
@@ -136,7 +140,7 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
         for (const [fn, key] of role.get(m.id) || []) {
           if (key != null && seen.has(key)) continue;          // fil commun : une seule fois (repiqué sur place)
           if (key != null) seen.add(key);
-          wires.push({ fn, color: colorOf(fn, key), section: sec, net: key });
+          wires.push({ fn, color: colorOf(fn, key), section: sec, net: key, circuit: fn === "terre" ? null : circOf.get(m.id).n });
         }
       }
       let cable = null;
@@ -178,7 +182,7 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
     // numéros de gaine : face A puis B, C, D ; dans une face, dans le sens horaire
     const ang = (g) => Math.atan2(g.p.x - b.x, -(g.p.y - b.y));
     deps.sort((p, q) => FACES.indexOf(p.face) - FACES.indexOf(q.face) || ang(p) - ang(q));
-    deps.forEach((g, i) => { g.no = `${b.n}-${String(i + 1).padStart(2, "0")}`; });
+    deps.forEach((g, i) => { g.no = `${b.n}.${String(i + 1).padStart(2, "0")}`; });
     // n° de raccordement définitifs (dans l'ordre : terres, neutres, phases, retours et navettes…)
     const used = nets.filter((nt) => deps.some((g) => g.wires.some((w) => w.net === nt.key)));
     used.forEach((nt, i) => { nt.n = i + 1; nt.wires = deps.flatMap((g) => g.wires.filter((w) => w.net === nt.key).map((w) => ({ gaine: g.no, label: g.label, fn: w.fn }))); });

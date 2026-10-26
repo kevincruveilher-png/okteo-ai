@@ -67,3 +67,18 @@ export async function autoScale(api) {
   try { api.applyCalib(a, { x: a.x + 1, y: a.y }, s.facteur); } finally { autoScale.busy = false; }
   return { ok: !!api.ch.fond.calibre, auto: true, cotes: s.cotes };
 }
+
+// largeur de la feuille du PDF (m), pour l'échelle 1/N : ajoutée aux anciens chantiers qui ne l'avaient pas
+export async function ensurePaperW(api) {
+  const f = api.ch.fond;
+  if (!f || f.paperW || f.src !== "idb" || !f.page) return;
+  const P = await chantierPage(api).catch(() => null);
+  if (!P || !(P.width > 0)) return;
+  f.paperW = P.width / 72 * 0.0254;
+  CHS.update(api.ch.id, { fond: { ...f } });
+}
+// plan scanné : la page n'a (presque) pas de traits vectoriels
+export async function isScanned(api) {
+  const P = await chantierPage(api).catch(() => null);
+  return !!P && P.segs.length < 30;
+}

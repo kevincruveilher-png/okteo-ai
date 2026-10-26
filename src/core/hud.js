@@ -6,7 +6,7 @@ import { markDirty, snapshot } from "./persist.js";
 import { W2V, repMap } from "./view.js";
 import { draw, sv } from "./render.js";
 import { attach } from "./attach.js";
-import { bbox, clampOpenings, currentGroup, deleteGroup, duplicateGroup, groupCount, groupPoints, multi, openCenter, transformGroup } from "./groups.js";
+import { bbox, clampOpenings, clearSel, currentGroup, deleteGroup, duplicateGroup, groupCount, groupPoints, multi, openCenter, transformGroup } from "./groups.js";
 import { posOnWall, wallMeasure } from "./interact.js";
 import { delSel, showSide } from "./panel.js";
 import { setHint } from "./controls.js";
@@ -247,8 +247,9 @@ export function placeHud() {
     return;
   }
   if (hudEl.contains(document.activeElement) && !hudEl.hidden) return; // ne pas reconstruire pendant une saisie
-  hudEl.innerHTML = html;
+  hudEl.innerHTML = html + `<span class="vsep"></span><button data-h="close" class="mini" title="Fermer (Échap, ou cliquer dans le vide)">✕</button>`;
   wireHud();
+  hudEl.querySelector('[data-h="close"]').onclick = () => { clearSel(); draw(); showSide(); };
   const p = worldToScreen(c.x, c.y);
   if (!p) {
     hudEl.hidden = true;

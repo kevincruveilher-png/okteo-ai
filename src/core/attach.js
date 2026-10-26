@@ -27,8 +27,14 @@ export function hitNode(wx, wy) {
 export function linkRole(t) {
   return t === "INT" || t === "VV" || t === "BP" ? "c" : t === "LUM" || t === "SPOT" || t === "APP" ? "l" : null;
 }
+// liaisons en ligne droite (demande de Kévin, v35) : point de contrôle au milieu
 export function linkCtrl(c, l) {
-  return { x: (c.x + l.x) / 2, y: (c.y + l.y) / 2 - dist(c.x, c.y, l.x, l.y) * 0.18 };
+  return { x: (c.x + l.x) / 2, y: (c.y + l.y) / 2 };
+}
+// gaine sans point de passage : arc (point de contrôle décalé de 15 % de la longueur, toujours du même côté)
+export function gaineCtrl(b, a) {
+  const L = dist(b.x, b.y, a.x, a.y) || 1, k = 0.15;
+  return { x: (b.x + a.x) / 2 - (a.y - b.y) / L * L * k, y: (b.y + a.y) / 2 + (a.x - b.x) / L * L * k };
 }
 export function hitLink(wx, wy) {
   const byId = Object.fromEntries(state.app.map(a => [a.id, a]));

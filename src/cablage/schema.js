@@ -73,78 +73,88 @@ const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").
 const fr = (v, d = 2) => (v == null ? "—" : Number(v).toFixed(d).replace(".", ","));
 const cut = (s, n) => (String(s).length > n ? String(s).slice(0, n - 1) + "…" : String(s));
 
-// Dessin SVG de la boîte (carré de 400 dans un cadre de 1000) ; color(nom) → couleur CSS ; sides = { A: "côté …" }.
+// Dessin SVG de la boîte (v35, d'après la bande que préfère Kévin) : chaque fil dessiné séparément jusqu'à une borne
+// numérotée au bord de la boîte ; à l'intérieur, seuls les retours, navettes et commandes sont tracés (lignes à angle
+// droit vers un point numéroté) ; N / Ph / PE : numéro de borne seulement. Chaque fil porte data-c = ses circuits
+// (pour estomper les autres circuits au clic, comme un calque). color(nom) → couleur CSS ; sides = { A: "côté …" }.
+const FN_TAG = { terre: "PE", neutre: "N", phase: "Ph", retour: "RET", nav1: "N1", nav2: "N2", cmdTL: "CTL", retTL: "RTL" };
+const TRACED = new Set(["retour", "nav1", "nav2", "cmdTL", "retTL"]);
 export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font = "Arial, sans-serif" } = {}) {
-  const X0 = 300, X1 = 700, S = X1 - X0;
-  const FACES = { A: [0, -1], B: [1, 0], C: [0, 1], D: [-1, 0] };
+  const X0 = 250, X1 = 750, S = X1 - X0, LANE = 13, TERM = 16;
+  const circOfG = (g) => g.circuits || String(g.circuit || "").split(",").map((x) => x.trim()).filter(Boolean);
+  const cAttr = (list) => esc([...new Set(list)].join(" "));
   let h = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000" font-family="${font}">`;
   h += `<rect x="0" y="0" width="1000" height="1000" fill="#fff"/>`;
-  h += `<rect x="${X0}" y="${X0}" width="${S}" height="${S}" fill="#fafafa" stroke="#222" stroke-width="4"/>`;
-  // nom des faces + repère d'orientation, à l'intérieur du carré
-  const faceTxt = { A: [500, X0 + 22, 0], B: [X1 - 14, 500, 90], C: [500, X1 - 10, 0], D: [X0 + 14, 500, -90] };
-  for (const [f, [x, y, r]] of Object.entries(faceTxt)) {
-    h += `<text x="${x}" y="${y}" transform="rotate(${r} ${x} ${y})" text-anchor="middle" font-size="15" font-weight="700" fill="#222">Face ${f}${sides[f] ? ` <tspan font-weight="400" font-style="italic" fill="#555">· ${esc(cut(sides[f], 30))}</tspan>` : ""}</text>`;
+  h += `<text x="500" y="22" text-anchor="middle" font-size="13" fill="#555">A haut · B droite · C bas · D gauche — repère du plan${sides.A ? ` · A ${esc(cut(sides.A, 26))}` : ""}</text>`;
+  h += `<rect x="${X0}" y="${X0}" width="${S}" height="${S}" rx="10" fill="#f6f8fa" stroke="#2b3440" stroke-width="3"/>`;
+  // pastilles des faces, à l'intérieur
+  for (const [f, x, y] of [["A", 500, X0 + 24], ["B", X1 - 24, 500], ["C", 500, X1 - 24], ["D", X0 + 24, 500]]) {
+    h += `<rect x="${x - 13}" y="${y - 13}" width="26" height="26" rx="5" fill="#1f2a36"/><text x="${x}" y="${y + 6}" text-anchor="middle" font-size="16" font-weight="700" fill="#fff">${f}</text>`;
+    if (sides[f]) h += `<text x="${x}" y="${f === "C" ? y - 20 : y + 30}" text-anchor="middle" font-size="10" font-style="italic" fill="#667"${f === "B" || f === "D" ? ` transform="rotate(${f === "B" ? 90 : -90} ${x} ${y})"` : ""}>${esc(cut(sides[f], 28))}</text>`;
   }
-  // gaines : réparties sur leur face, un trait vers l'extérieur et l'étiquette au bout
-  const entry = new Map();
-  for (const f of Object.keys(FACES)) {
-    const G = box.gaines.filter((g) => g.face === f), n = G.length;
-    G.forEach((g, i) => {
-      const t = X0 + S * (i + 1) / (n + 1), [dx, dy] = FACES[f];
-      const ex = dx ? (dx > 0 ? X1 : X0) : t, ey = dy ? (dy > 0 ? X1 : X0) : t;
-      entry.set(g.no, { x: ex, y: ey, f });
-      const L = 46, ox = ex + dx * L, oy = ey + dy * L;
-      const w = g.diam >= 20 ? 12 : 9;
-      h += `<line x1="${ex}" y1="${ey}" x2="${ox}" y2="${oy}" stroke="${g.kind === "alim" ? "#222" : "#666"}" stroke-width="${w}" stroke-linecap="butt" opacity="0.85"/>`;
-      // étiquette : vers l'extérieur, tournée pour les faces A et C
-      const lines = [`${g.no}  ·  ${fr(g.length)} m  ·  Ø${g.diam}${g.cable ? "  ·  câble " + g.cable : ""}`, cut(g.label + (g.room ? ` (${g.room})` : ""), 34)];
-      const rot = dy ? -90 : 0, anchor = dx < 0 || dy < 0 ? "end" : "start";
-      const bx = ox + dx * 8, by = oy + dy * 8;
-      h += `<g transform="translate(${bx} ${by}) rotate(${rot})">`;
-      const along = dy ? -dy : 1;   // sens du texte après rotation (toujours vers l'extérieur)
-      const anc = dy ? (dy < 0 ? "start" : "end") : anchor;
-      h += `<text x="0" y="-8" text-anchor="${anc}" font-size="14" font-weight="700" fill="#111">${esc(lines[0])}</text>`;
-      h += `<text x="0" y="8" text-anchor="${anc}" font-size="13" fill="#333">${esc(lines[1])}</text>`;
-      // pastilles des fils : couleur + n° de raccordement
-      const chips = g.wires.map((wi) => ({ c: color(wi.color), n: wi.n, name: wi.color }));
-      const cw = 30, tot = chips.length * cw, start = anc === "end" ? -tot : 0;
-      chips.forEach((c, k) => {
-        const x = start + k * cw;
-        h += `<rect x="${x}" y="16" width="12" height="12" rx="2" fill="${c.c}" stroke="#333" stroke-width="0.8"/>`;
-        if (/jaune/.test(c.name)) h += `<rect x="${x}" y="16" width="6" height="12" fill="${color("vert")}"/>`;
-        h += `<text x="${x + 15}" y="27" font-size="12" font-weight="700" fill="#111">${c.n ?? "–"}</text>`;
+  const term = new Map();          // borne de chaque fil : { x, y, f, nx, ny } (nx, ny = direction vers l'intérieur)
+  const lanes = { A: 0, B: 0, C: 0, D: 0 };
+  for (const f of ["A", "B", "C", "D"]) {
+    const G = box.gaines.filter((g) => g.face === f);
+    const vert = f === "A" || f === "C";
+    // chaque gaine occupe une place proportionnelle à son nombre de fils
+    const tot = G.reduce((s, g) => s + g.wires.length, 0) + G.length * 2.2;
+    const L = Math.min(LANE, (S - 50) / Math.max(1, tot));      // écart entre fils : réduit si la face est chargée
+    let pos = (S - tot * L) / 2 + X0;
+    G.forEach((g) => {
+      const gc = circOfG(g), n = g.wires.length, start = pos + L * 1.1;
+      g.wires.forEach((w, i) => {
+        const t = start + i * L, wc = w.circuit ? [w.circuit] : gc, col = color(w.color);
+        const out = 58;    // longueur du fil dessiné hors de la boîte
+        let x1, y1, x2, y2, tx, ty, nx = 0, ny = 0;
+        if (f === "A") { x1 = x2 = t; y1 = X0 - out; y2 = X0; tx = t; ty = X0 + 2 + TERM / 2; ny = 1; }
+        if (f === "C") { x1 = x2 = t; y1 = X1 + out; y2 = X1; tx = t; ty = X1 - 2 - TERM / 2; ny = -1; }
+        if (f === "B") { y1 = y2 = t; x1 = X1 + out; x2 = X1; tx = X1 - 2 - TERM / 2; ty = t; nx = -1; }
+        if (f === "D") { y1 = y2 = t; x1 = X0 - out; x2 = X0; tx = X0 + 2 + TERM / 2; ty = t; nx = 1; }
+        const sw = w.section >= 2.5 ? 4 : 3;
+        h += `<g class="w" data-c="${cAttr(wc)}" data-n="${w.n ?? ""}"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${sw}"${w.fn === "terre" ? ` stroke-dasharray="7 5"` : ""}/>`;
+        if (/jaune/.test(w.color)) h += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color("vert")}" stroke-width="${sw}" stroke-dasharray="7 5" stroke-dashoffset="7"/>`;
+        // fonction du fil, au bout extérieur
+        const tag = (FN_TAG[w.fn] || w.fn) + (g.kind === "alim" && w.circuit ? " " + w.circuit : "");
+        if (vert) h += `<text x="${x1}" y="${f === "A" ? y1 - 4 : y1 + 4}" transform="rotate(-90 ${x1} ${f === "A" ? y1 - 4 : y1 + 4})" text-anchor="${f === "A" ? "start" : "end"}" font-size="9" fill="#555">${esc(tag)}</text>`;
+        else h += `<text x="${f === "B" ? x1 + 4 : x1 - 4}" y="${y1 + 3}" text-anchor="${f === "B" ? "start" : "end"}" font-size="9" fill="#555">${esc(tag)}</text>`;
+        // borne numérotée au bord intérieur
+        h += `<rect class="term" x="${tx - TERM / 2}" y="${ty - TERM / 2}" width="${TERM}" height="${TERM}" rx="2" fill="#fff" stroke="#333" stroke-width="1"/><text x="${tx}" y="${ty + 4}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#111">${w.n ?? "–"}</text></g>`;
+        term.set(g.no + "|" + i, { x: tx + nx * TERM / 2, y: ty + ny * TERM / 2, f, nx, ny, w, wc });
       });
-      h += `</g>`;
-      void along;
+      // titre de la gaine : n° · face, appareil · pièce, longueur (+ câble)
+      const mid = start + (n - 1) * L / 2;
+      const l1 = `${g.no} · ${f}`, l2 = cut(g.label + (g.room ? ` · ${g.room}` : ""), vert ? 18 : 30), l3 = `${fr(g.length)} m · Ø${g.diam}${g.cable ? " · câble " + g.cable : ""}`;
+      const gAttr = `class="gt" data-c="${cAttr(gc)}"`;
+      // faces A et C : titre tourné (comme sur les bandes FTZ), trois lignes côte à côte
+      if (f === "A" || f === "C") {
+        const y0 = f === "A" ? X0 - 84 : X1 + 84, anc = f === "A" ? "start" : "end";
+        h += `<g ${gAttr} transform="translate(${mid} ${y0}) rotate(-90)"><text x="0" y="-9" text-anchor="${anc}" font-size="11.5" font-weight="700" fill="#111">${esc(l1)}</text><text x="0" y="3" text-anchor="${anc}" font-size="9.5" fill="#333">${esc(cut(g.label + (g.room ? ` · ${g.room}` : ""), 30))}</text><text x="0" y="14" text-anchor="${anc}" font-size="9.5" fill="#b4691f">${esc(l3)}</text></g>`;
+      }
+      if (f === "B") h += `<g ${gAttr}><text x="${X1 + 92}" y="${mid - 9}" font-size="12" font-weight="700" fill="#111">${esc(l1)}</text><text x="${X1 + 92}" y="${mid + 4}" font-size="10" fill="#333">${esc(l2)}</text><text x="${X1 + 92}" y="${mid + 16}" font-size="10" fill="#b4691f">${esc(l3)}</text></g>`;
+      if (f === "D") h += `<g ${gAttr}><text x="${X0 - 92}" y="${mid - 9}" text-anchor="end" font-size="12" font-weight="700" fill="#111">${esc(l1)}</text><text x="${X0 - 92}" y="${mid + 4}" text-anchor="end" font-size="10" fill="#333">${esc(l2)}</text><text x="${X0 - 92}" y="${mid + 16}" text-anchor="end" font-size="10" fill="#b4691f">${esc(l3)}</text></g>`;
+      pos += (n + 2.2) * L;
     });
   }
-  // connecteurs : grille au centre de la boîte, dans l'ordre des étapes
-  const cols = steps.length > 12 ? 4 : 3, rows = Math.max(1, Math.ceil(steps.length / cols));
-  const gx0 = X0 + 40, gy0 = X0 + 40, cw = (S - 80) / cols, ch = Math.min(60, (S - 80) / rows);
-  const pos = new Map();
-  const cells = steps.map((s, i) => {
-    const c = i % cols, r = Math.floor(i / cols), x = gx0 + c * cw + 4, y = gy0 + r * ch + 3, w = cw - 8, hh = ch - 6;
-    pos.set(s.n, { x: x + w / 2, y: y + hh / 2 });
-    return { s, x, y, w, hh };
-  });
-  // retours lampe et navettes : tracés de la gaine au connecteur
-  const traced = new Set(["retour", "nav1", "nav2", "cmdTL", "retTL"]);
-  for (const s of steps) {
-    if (!traced.has(s.fn)) continue;
-    const p = pos.get(s.n);
-    for (const w of s.wires) {
-      const e = entry.get(w.gaine); if (!e || !p) continue;
-      h += `<path d="M${e.x} ${e.y} Q ${(e.x + p.x) / 2 + (e.f === "A" || e.f === "C" ? 0 : 0)} ${(e.y + p.y) / 2} ${p.x} ${p.y}" fill="none" stroke="${color(w.color)}" stroke-width="3" opacity="0.85"${s.fn === "nav2" ? ' stroke-dasharray="8 5"' : ""}/>`;
-    }
+  // retours, navettes, commandes : un point numéroté par raccordement, au centre ; liaisons à angle droit
+  const tr = steps.filter((s) => TRACED.has(s.fn));
+  const cols = Math.max(1, Math.min(4, Math.ceil(Math.sqrt(tr.length)))), rows = Math.max(1, Math.ceil(tr.length / cols));
+  const node = new Map();
+  tr.forEach((s, i) => { const c = i % cols, r = Math.floor(i / cols); node.set(s.n, { x: 500 - (cols - 1) * 45 + c * 90 + (r % 2) * 18, y: 500 - (rows - 1) * 42 + r * 84 }); });
+  let depth = { A: 0, B: 0, C: 0, D: 0 };
+  for (const s of tr) {
+    const P = node.get(s.n), wc = new Set();
+    box.gaines.forEach((g) => g.wires.forEach((w, i) => {
+      if (w.n !== s.n) return;
+      const T = term.get(g.no + "|" + i); if (!T) return;
+      (w.circuit ? [w.circuit] : circOfG(g)).forEach((c) => wc.add(c));
+      const d = 26 + (depth[T.f]++ % 9) * 9;           // chaque fil rentre à sa profondeur : les traits ne se superposent pas
+      const ax = T.x + T.nx * d, ay = T.y + T.ny * d;
+      const path = T.nx ? `M${T.x} ${T.y} H${ax} V${P.y} H${P.x}` : `M${T.x} ${T.y} V${ay} H${P.x} V${P.y}`;
+      h += `<path class="lnk" data-c="${cAttr(w.circuit ? [w.circuit] : circOfG(g))}" data-n="${s.n}" d="${path}" fill="none" stroke="${color(w.color)}" stroke-width="2.4" opacity="0.9"${s.fn === "nav2" ? ' stroke-dasharray="7 4"' : ""}/>`;
+    }));
+    h += `<g class="node" data-c="${cAttr([...wc])}" data-n="${s.n}"><circle cx="${P.x}" cy="${P.y}" r="12" fill="#fff" stroke="#2b3440" stroke-width="1.6"/><text x="${P.x}" y="${P.y + 4}" text-anchor="middle" font-size="11" font-weight="700" fill="#111">${s.n}</text></g>`;
   }
-  // les connecteurs par-dessus les traits
-  cells.forEach(({ s, x, y, w, hh }) => {
-    const col = color(s.wires[0] ? s.wires[0].color : "gris");
-    h += `<rect x="${x}" y="${y}" width="${w}" height="${hh}" rx="6" fill="#fff" stroke="${col}" stroke-width="3"/>`;
-    h += `<text x="${x + 7}" y="${y + 24}" font-size="22" font-weight="700" fill="#111">${s.n}</text>`;
-    h += `<text x="${x + (s.n > 9 ? 36 : 26)}" y="${y + 18}" font-size="13" font-weight="700" fill="#222">${esc(cut(shortLabel(s.label), s.n > 9 ? 10 : 12))}</text>`;
-    if (hh > 34) h += `<text x="${x + (s.n > 9 ? 36 : 26)}" y="${y + 35}" font-size="12" fill="#555">${s.wires.length} fils · ${s.conn.list.length ? s.conn.list.map((k) => k + " e.").join("+") : "seul"}</text>`;
-  });
-  h += `<text x="500" y="985" text-anchor="middle" font-size="13" fill="#555">Trait épais = gaine (n° · longueur · diamètre) ; pastille = couleur du fil + n° de raccordement. Retours lampe et navettes tracés en couleur (navette 2 en pointillés).</text>`;
+  h += `<text x="500" y="985" text-anchor="middle" font-size="12" fill="#555">Bornes = n° de raccordement · tracés à l'intérieur : retours lampe, navettes (N2 en pointillés) et commandes · N / Ph / PE : n° seulement, sans trait.</text>`;
   return h + `</svg>`;
 }

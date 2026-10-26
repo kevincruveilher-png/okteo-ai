@@ -19,7 +19,7 @@ export function boxSheets(api) {
 }
 
 export function mountBandsPage(el, { api }) {
-  let cur = null, busy = false;
+  let cur = null, busy = false, focusC = null;   // focusC : circuit mis en avant (les autres s'estompent)
   const done = new Map();          // cases cochées à l'écran (par boîte), le temps de la session
   const chip = (w) => `<span class="wchip"><i style="background:${wireCss(w.color)}"></i>${esc(w.color)} ${fr(w.section, 1)}</span>`;
 
@@ -57,7 +57,8 @@ export function mountBandsPage(el, { api }) {
         <span class="grow"></span><button id="bd-one" title="Une feuille A4 : schéma, orientation, matériel, puis les raccordements à cocher">🖨 Imprimer ${esc(box.n)}</button><button id="bd-all" title="Toutes les boîtes, une feuille chacune">🖨 Imprimer toutes les boîtes</button><span id="bd-st" class="mut sm"></span></div>
       <p class="mut sm">${esc(S.level)}${sides.under ? ` · au-dessus de : ${esc(sides.under)}` : ""} · ${box.gaines.length} gaines · ${steps.length} raccordements · ${fr(box.cuivre)} m de fil</p>
       <div class="bd-grid">
-        <div class="bd-svg">${svg}</div>
+        <div class="bd-svgw"><div class="bd-calq" title="Cliquez un circuit (ou un fil du schéma) : les autres s'estompent, comme un calque">Circuits : <button data-cq="" class="${focusC ? "" : "on"}">Tous</button>${box.circuits.map((c) => `<button data-cq="${esc(c)}" class="${focusC === c ? "on" : ""}">${esc(c)}</button>`).join("")}</div>
+        <div class="bd-svg">${svg}</div></div>
         <div class="bd-side">
           <h3>1. Orienter la boîte</h3>
           <ul class="bd-or">${["A", "B", "C", "D"].map((f, i) => `<li><b>Face ${f}</b> <span class="mut">(${["haut", "droite", "bas", "gauche"][i]} du plan)</span> : ${esc(sides[f] || "—")}</li>`).join("")}</ul>
@@ -77,7 +78,20 @@ export function mountBandsPage(el, { api }) {
       <ul class="bd-ctl"><li>Chaque gaine : tous ses fils sont dans un connecteur (aucun fil libre).</li><li>Chaque connecteur : le nombre de fils indiqué, enfoncés jusqu'au bout (tirer légèrement pour vérifier).</li></ul>
       ${checks.length ? checks.map((c) => `<p class="warn sm">⚠ ${esc(c)}</p>`).join("") : `<p class="ok sm">✓ Chaque fil de chaque gaine a son raccordement, et chaque raccordement a au moins deux fils.</p>`}
     </div>`;
-    el.querySelectorAll("[data-b]").forEach((b) => (b.onclick = () => { cur = b.dataset.b; render(); }));
+    el.querySelectorAll("[data-b]").forEach((b) => (b.onclick = () => { cur = b.dataset.b; focusC = null; render(); }));
+    // calque par circuit : boutons au-dessus du schéma, ou clic sur un fil / un point du schéma
+    const sv = el.querySelector(".bd-svg svg");
+    const applyFocus = () => {
+      sv.querySelectorAll("[data-c]").forEach((n) => { const cs = n.getAttribute("data-c").split(" ").filter(Boolean); n.style.opacity = !focusC || !cs.length || cs.includes(focusC) ? "" : "0.1"; });
+      el.querySelectorAll("[data-cq]").forEach((b) => b.classList.toggle("on", (b.dataset.cq || null) === focusC));
+    };
+    el.querySelectorAll("[data-cq]").forEach((b) => (b.onclick = () => { focusC = b.dataset.cq || null; applyFocus(); }));
+    sv.addEventListener("click", (e) => {
+      const n = e.target.closest("[data-c]"); if (!n) { focusC = null; applyFocus(); return; }
+      const cs = n.getAttribute("data-c").split(" ").filter(Boolean);
+      focusC = cs.length && focusC !== cs[0] ? cs[0] : null; applyFocus();
+    });
+    applyFocus();
     el.querySelectorAll("input[data-n]").forEach((c) => (c.onchange = () => { const s = done.get(box.id) || new Set(); c.checked ? s.add(+c.dataset.n) : s.delete(+c.dataset.n); done.set(box.id, s); c.closest("tr").classList.toggle("done", c.checked); }));
     el.querySelector("#bd-one").onclick = () => print([S]);
     el.querySelector("#bd-all").onclick = () => print(sheets);

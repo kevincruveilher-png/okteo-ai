@@ -256,6 +256,7 @@ K.CAB = {
 K.showCirc = false;
 K.boxDrag = null;
 K.routeDrag = null;
+K.endDrag = null; // bout de gaine tiré vers une autre boîte ({from, id, x, y, ax, ay})
 K.wpClick = null; // dernier clic sur un point de passage (double-clic maison) // point de passage de gaine en cours de déplacement ({id, key, i, snap})
 K.linkHot = null; // liaison choisie avec l'outil Liaison ({c, l})
 K.linkLight = null; // lumière cliquée avec l'outil Liaison (ses commandes ressortent)

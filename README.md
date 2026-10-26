@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v34** (26/10/2026) : couleurs par circuit, gaines partagées (même endroit), câble pour l'extérieur.
+Version du prototype : **v35** (26/10/2026) : boîtes à la main (supprimer, nombre imposé, gaine tirée vers une autre boîte), échelle 1/50, nouvelle bande.
 
 **Version en ligne (sans rien installer) : https://kevincruveilher-png.github.io/okteo-ai/**
 Les chantiers restent dans le navigateur de chaque ordinateur (fichier `.okteo` pour les transporter). En ligne, l'IA marche avec une clé Claude ; NVIDIA seulement en version locale.
@@ -43,7 +43,7 @@ GitHub Pages doit être réglé sur cette branche).
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 164 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 170 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -58,6 +58,28 @@ Ouvre le logiciel dans un navigateur invisible et fait 164 vérifications (dessi
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Boîtes à la main, échelle 1/50, nouvelle bande (v35)
+
+- **Fenêtre de réglage** d'un objet : se ferme quand on saisit une boîte, une gaine, en cliquant dans le vide, par Échap
+  ou par sa croix ✕.
+- **Supprimer une boîte** : la cliquer sur le plan puis Suppr, ou 🗑 dans la liste (onglet Câblage). Ses appareils vont
+  dans la boîte la plus proche (allumages entiers). Ctrl+Z annule.
+- **Changer une gaine de boîte** : cliquer la boîte ; un rond apparaît au bout de chacune de ses gaines ; le tirer sur
+  une autre boîte. L'appareil part avec ceux au même endroit et son allumage ; si son circuit n'arrivait pas dans la
+  nouvelle boîte, il est ajouté à sa gaine d'alimentation ; alerte si la boîte dépasse 18 départs / 6 par face.
+- **Nombre de boîtes imposé** : « Replacer les boîtes automatiquement… » → « Nombre de boîtes en tout ».
+- Boîtes nommées **LI01, LI02…**, gaines **LI01.04** (format KiTéOHM / FTZ ; les anciens noms B1… sont convertis).
+- **Dessin** : liaisons en ligne droite, gaines en arc de la boîte à l'appareil (comme le plan d'expédition KiTéOHM).
+- **Échelle 1/50** : outil Échelle → « 1 / 50 » (fond PDF au format d'origine) ; les cotes du plan contrôlent le
+  résultat (alerte si le PDF a été réduit, ex. A3 imprimé en A4).
+- **Plan scanné** (le PDF ne contient qu'une image) : message clair, proposition du relevé par l'IA ou du tracé à la main.
+- **Nouvelle bande** (onglet Bandes, d'après l'exemple préféré de Kévin) : chaque fil dessiné jusqu'à sa borne
+  numérotée au bord de la boîte, avec sa fonction (N, Ph, PE, RET, N1, N2) ; à l'intérieur, seuls les retours,
+  navettes et commandes sont tracés, à angle droit, vers un point numéroté ; titres de gaine « LI01.04 · A »,
+  appareil · pièce, longueur ; circuits de l'alimentation écrits sur chaque fil (« Ph C1 »). **Calque** : clic sur un
+  circuit (bouton ou fil) → les autres s'estompent.
+- Exemples de Kévin rangés dans `docs/exemples/` (bande FTZ, bande préférée, plan d'expédition, fichier SPV).
 
 ## Couleurs par circuit, gaines partagées, extérieur (v34)
 

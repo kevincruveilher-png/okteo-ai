@@ -8,7 +8,7 @@ import { draw } from "./render.js";
 import { reattach, removeSeg, roomArea } from "./attach.js";
 import { currentGroup, deleteGroup, duplicateGroup, groupCount, multi, resizeRoom, transformGroup } from "./groups.js";
 import { posOnWall, wallMeasure } from "./interact.js";
-import { applyCalib, buildTools, hintFor, setHint } from "./controls.js";
+import { applyCalib, applyRatio, buildTools, hintFor, setHint } from "./controls.js";
 
 // ---------- panneau ----------
 export function layerPanel() {
@@ -54,6 +54,22 @@ export function showSide() {
       draw();
       showSide();
     };
+    return;
+  }
+  // outil Échelle, avant les deux points : on peut aussi saisir l'échelle écrite dans le cartouche (1/50…)
+  if (K.tool === "calib" && !(K.sel && K.sel.kind === "calibAsk")) {
+    const pw = CH.fond && CH.fond.paperW;
+    b.innerHTML = `<h3>Mise à l'échelle du fond</h3>
+      <p class="note" style="margin-top:0"><b>Soit</b> cliquez sur le plan les deux bouts d'une cote connue (la plus longue possible), puis tapez sa longueur.</p>
+      ${pw ? `<p class="note"><b>Soit</b> tapez l'échelle écrite dans le cartouche du plan (le PDF doit être au format d'origine, ici une feuille de ${Math.round(pw * 1000)} mm de large) :</p>
+      <div style="display:flex;gap:6px;align-items:center"><span>1 /</span><input id="cr-N" type="number" min="1" step="1" value="50" style="width:80px" title="Échelle du plan, ex. 50 pour 1/50"><button id="cr-ok" class="on" title="Met le fond à l'échelle 1/N">Appliquer</button></div>`
+      : `<p class="note">Ce fond est une image : l'échelle ne peut se régler que sur une cote (deux points).</p>`}`;
+    const ok = b.querySelector("#cr-ok");
+    if (ok) {
+      const go = () => { const N = +String(b.querySelector("#cr-N").value).replace(",", "."); if (N > 0) applyRatio(N); };
+      ok.onclick = go;
+      b.querySelector("#cr-N").onkeydown = e => { if (e.key === "Enter") go(); };
+    }
     return;
   }
   if (K.sel && K.sel.kind === "calibAsk" && K.calib && K.calib.b) {

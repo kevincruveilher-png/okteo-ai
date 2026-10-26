@@ -11,7 +11,7 @@ import { bbox, clampOpenings, clearSel, duplicateGroup, multi, normalizeSel, ope
 import { wallMeasure } from "./interact.js";
 import { worldToScreen } from "./hud.js";
 import { delSel, showSide } from "./panel.js";
-import { applyCalib, buildTools, hintFor, resetTransient, setHint, setTab } from "./controls.js";
+import { applyCalib, applyRatio, buildTools, hintFor, resetTransient, setHint, setTab } from "./controls.js";
 import { addLevel, allLinks, levelFondInfo, levelName, loadFondImage, okteoGeo, removeLevel, renameLevel, switchLevel, withLevel } from "./levels.js";
 import { CIRC_COLORS } from "./render.js";
 
@@ -221,6 +221,10 @@ window.okteo = {
     setHint(hintFor("calib"));
     draw();
     showSide();
+    document.dispatchEvent(new CustomEvent("okteo:ask"));   // panneau Propriétés : saisie de l'échelle (1/50) visible
+  },
+  applyScaleRatio(N) {
+    return applyRatio(N);
   },
   applyCalib(a, b, L) {
     K.calib = {

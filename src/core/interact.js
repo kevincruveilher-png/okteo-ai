@@ -4,7 +4,7 @@ import { K } from "./k.js";
 import { TYPES, cornerHalf, dist, epOf, layers, node, nodeById, segById, segDir, segLen, state, uidA, uidD, uidO, uidR, uidS } from "./model.js";
 import { markDirty, save, snapshot } from "./persist.js";
 import { applyOrtho, evWorld, pxPerVB, repMap, snapWorld, tolM } from "./view.js";
-import { draw, hitBox, hitLock, hitRoute, sv } from "./render.js";
+import { draw, hitBox, hitGaineEnd, hitLock, hitRoute, sv } from "./render.js";
 import { attach, hitApp, hitLink, linkRole, hitNode, hitOpen, hitOpenHandle, hitSeg, projOnSeg, segDistPt, snapAlign, snapToWall, wallMounted } from "./attach.js";
 import { clampOpenings, clearSel, currentGroup, isSel, marqueeSelect, mk, moveGroup, multi, normalizeSel, roomAt, setSingle, startGroupDrag, toggleMulti } from "./groups.js";
 import { showSide } from "./panel.js";
@@ -189,6 +189,15 @@ export function placeApp(t, p) {
 }
 
 export function endPtr() {
+  if (K.endDrag) {
+    const E = K.endDrag,
+      t = hitBox(E.x, E.y);
+    K.endDrag = null;
+    draw();
+    if (t && t.id !== E.from) document.dispatchEvent(new CustomEvent("okteo:gaine-move", { detail: { from: E.from, to: t.id, id: E.id } }));
+    else setHint("Gaine non déplacée : relâchez-la sur une autre boîte.");
+    return;
+  }
   if (K.routeDrag) {
     const moved = K.routeDrag.snap;
     K.routeDrag = null;
@@ -315,7 +324,18 @@ sv.addEventListener("pointerdown", e => {
   // boîte de pieuvre : on la saisit pour la déplacer (outil Sélection, couleurs des circuits affichées)
   if (K.tool === "sel" && !K.testMode) {
     // cadenas : verrouiller / déverrouiller la boîte
+    // bout d'une gaine de la boîte choisie : on le tire vers une autre boîte
+    const ge = hitGaineEnd(wx, wy);
+    if (ge) {
+      clearSel();
+      K.endDrag = { from: ge.box.id, id: ge.id, x: ge.x, y: ge.y, ax: ge.ax, ay: ge.ay };
+      draw();
+      setHint("Relâchez sur la boîte qui doit recevoir cette gaine (Échap pour annuler).");
+      return;
+    }
     const lk = hitLock(wx, wy);
+    // saisir une boîte, son cadenas ou une gaine désélectionne l'objet en cours (sinon sa fenêtre de réglage restait)
+    if (lk || hitBox(wx, wy) || (!hitApp(wx, wy) && hitRoute(wx, wy))) clearSel();
     if (lk) {
       snapshot();
       lk.locked = !lk.locked;
@@ -709,6 +729,14 @@ sv.addEventListener("pointermove", e => {
     const k = pxPerVB();
     K.view.cx = K.pan.cx - (e.clientX - K.pan.x) / k / K.view.scale;
     K.view.cy = K.pan.cy - (e.clientY - K.pan.y) / k / K.view.scale;
+    draw();
+    return;
+  }
+  if (K.endDrag) {
+    K.endDrag.x = wx;
+    K.endDrag.y = wy;
+    const t = hitBox(wx, wy);
+    setHint(t && t.id !== K.endDrag.from ? `Relâcher pour raccorder la gaine à ${t.n}.` : "Relâchez sur la boîte qui doit recevoir cette gaine (Échap pour annuler).");
     draw();
     return;
   }

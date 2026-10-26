@@ -1,6 +1,6 @@
 // Données de câblage calculées à partir du dessin (partagées par l'onglet Câblage et les pages Boîtes / Lignes directes).
 import { getCab } from "../cablage/settings.js";
-import { placeBoxes } from "../cablage/boites.js";
+import { placeBoxes, buildUnits } from "../cablage/boites.js";
 import { computeWiring } from "../cablage/gaines.js";
 import { pointInPoly } from "../walls/rooms.js";
 
@@ -25,12 +25,12 @@ export function wiringNow(api) {
 
 // placement automatique des boîtes (tous niveaux) ; le tableau (ou, sur un autre niveau, sa projection) attire les boîtes
 // keepIds : boîtes gardées telles quelles (verrouillées ou décochées au recalcul)
-export function autoBoxes(api, keepIds = []) {
+export function autoBoxes(api, keepIds = [], count = 0) {
   const S = getCab(), items = api.allApps(), links = api.allLinks();
   const tab = items.find((a) => a.t === "TAB");
   const tabs = {}; api.levels.forEach((l) => { if (tab) tabs[l.id] = { x: tab.x, y: tab.y }; });
   const keep = (api.cab.boxes || []).filter((b) => keepIds.includes(b.id));
-  return placeBoxes(items, links, api.cab.circuits || [], tabs, S, { keep });
+  return placeBoxes(items, links, api.cab.circuits || [], tabs, S, { keep, count });
 }
 
 // couleur d'affichage d'un fil d'après son nom (réglages « Couleurs des fils »)
@@ -63,4 +63,23 @@ export function facesSides(box, geo, pointInPoly) {
     out[f] = txt || (under ? "côté " + under.name : "");
   }
   return out;
+}
+
+// supprimer une boîte : chaque allumage (ou appareil seul) qu'elle desservait part dans la boîte la plus proche du même
+// niveau ; sans autre boîte sur ce niveau, ses appareils restent sans boîte (alerte dans la liste)
+export function removeBoxPlan(api, id) {
+  const B = api.cab.boxes || [], box = B.find((b) => b.id === id);
+  if (!box) return null;
+  const inBox = new Set(box.apps), rest = B.filter((b) => b.id !== id).map((b) => ({ ...b, apps: [...b.apps] }));
+  const units = buildUnits(api.allApps(), api.allLinks(), api.cab.circuits || []), moved = {};
+  let orphan = 0;
+  for (const u of units) {
+    const ids = u.ids.filter((i) => inBox.has(i));
+    if (!ids.length) continue;
+    const cand = rest.filter((b) => b.lv === u.lv).sort((p, q) => Math.hypot(p.x - u.x, p.y - u.y) - Math.hypot(q.x - u.x, q.y - u.y))[0];
+    if (!cand) { orphan += ids.length; continue; }
+    ids.forEach((i) => { if (!cand.apps.includes(i)) cand.apps.push(i); });
+    moved[cand.n] = (moved[cand.n] || 0) + ids.length;
+  }
+  return { boxes: rest, moved, orphan, name: box.n };
 }

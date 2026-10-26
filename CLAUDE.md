@@ -172,13 +172,24 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `cableExt` + `cableColors` (appareil `ext` → `g.cable` « 3G1,5 »). `markExterior(api, items)` (cablage-data.js :
   aucune pièce sur l'appareil ni à 12 cm autour). Placement : `spotPts` (un point par endroit). schema.js `boxWires`
   (fils par section/couleur). Couleurs CSS en plus : bleu foncé, ivoire.
+- v35 : HUD : `clearSel()` quand on saisit boîte / cadenas / gaine, bouton ✕ (`data-h="close"`). Boîte : Suppr si
+  `K.boxSel` sans sélection → `okteo:box-delete` → `removeBoxPlan` (cablage-data.js, allumages vers la boîte la plus
+  proche). Bout de gaine : `gaineEnds`/`hitGaineEnd` (render.js, boîte choisie), `K.endDrag` → `okteo:gaine-move` →
+  `moveGaine` (cablage-ui.js : même endroit + allumage, boîtes verrouillées, circuits ajoutés à l'alimentation,
+  alertes de la boîte). `placeBoxes(..., {count})` (réparti par niveau, plus forts restes), `boxName` = LI01 ;
+  n° de gaine `LI01.04` ; anciens noms convertis dans `applyPack`. Liaisons droites (`linkCtrl` = milieu), gaines en
+  arc (`gaineCtrl`, `path.gaine`, hit-test sur l'arc). Échelle : `meta.fond.paperW` (m, feuille du PDF),
+  `applyRatio(N)` / `okteo.applyScaleRatio(N)`, panneau de l'outil Échelle (`#cr-N`), `ensurePaperW`, `isScanned`
+  (pdf-page.js), contrôle par les cotes sur `okteo:calibrated` (main.js). Schéma : nouveau `schemaSVG` (fils `g.w`,
+  bornes `.term`, points `.node`, liaisons `.lnk`, attribut `data-c` = circuits) ; calque dans cablage-bandes.js.
+  Fils d'appareil : `wires[].circuit`. Exemples de Kévin : `docs/exemples/` (format SPV supposé dans LISEZMOI.md).
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (37 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (97 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (37 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (103 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

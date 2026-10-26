@@ -2,7 +2,7 @@
 // permet d'ajuster l'épaisseur min/max, puis ajoute les murs au dessin (un seul Ctrl+Z pour tout annuler).
 import * as CHS from "../chantiers.js";
 import { detectWalls } from "../walls/detect.js";
-import { autoScale, chantierPage, chantierScaleCheck, pageMap } from "./pdf-page.js";
+import { autoScale, chantierPage, chantierScaleCheck, pageMap, ensurePaperW, isScanned } from "./pdf-page.js";
 import { esc } from "./util.js";
 
 export function createWallsTool({ api }) {
@@ -73,9 +73,12 @@ export function createWallsTool({ api }) {
     if (!pdf) return message("Le fond de ce chantier n'est pas un PDF (c'est une image) : le relevé automatique lit les traits du PDF d'origine. Remplacez le fond par le PDF du plan (Chantiers → Changer le fond).", [{ label: "Ouvrir Chantiers", run: () => api.setTab("chantiers") }]);
     busy = true; show(`<p>Lecture des traits du PDF…</p>`);
     try {
+      // plan scanné (une image dans le PDF) : rien à lire
+      if (await isScanned(api)) { busy = false; return message("Ce plan est <b>scanné</b> : le PDF ne contient qu'une image, sans traits à lire. Utilisez <b>« ✦ Relevé par l'IA »</b> (menu Relevé) ou dessinez les murs avec les outils <b>Pièce</b> et <b>Mur</b>.", [{ label: "Relevé par l'IA", run: () => document.getElementById("rv-ai")?.click() }, { label: "Dessiner (outil Pièce)", run: () => api.setTool("piece") }, { label: "Fermer", run: () => {} }]); }
+      await ensurePaperW(api);
       // pas encore d'échelle : on la déduit des cotes du plan ; sinon on la demande
       auto = await autoScale(api);
-      if (!auto.ok) { busy = false; return message("Le logiciel n'a pas réussi à lire assez de cotes sur le plan pour régler l'échelle tout seul. Réglez-la à la main : cliquez les deux bouts d'une cote connue, puis tapez sa longueur.", [{ label: "Régler l'échelle", run: () => api.startCalib() }, { label: "Plus tard", run: () => {} }]); }
+      if (!auto.ok) { busy = false; return message("Le logiciel n'a pas réussi à lire assez de cotes sur le plan pour régler l'échelle tout seul. Tapez l'échelle du cartouche (1/50…) ou cliquez les deux bouts d'une cote connue.", [{ label: "Régler l'échelle (1/50 ou une cote)", run: () => api.startCalib() }, { label: "Plus tard", run: () => {} }]); }
       page = await chantierPage(api);
       scale = await chantierScaleCheck(api).catch(() => null);
       compute();
@@ -90,6 +93,7 @@ export function createWallsTool({ api }) {
   document.addEventListener("okteo:calibrated", async () => {
     if (autoScale.busy || busy || api.state.segs.length) return;
     const pdf = await CHS.getFile(CHS.pdfKey(api.ch)).catch(() => null);
+    if (pdf && await isScanned(api)) return;
     if (pdf) message("Échelle réglée. Voulez-vous relever automatiquement les murs du plan ?", [{ label: "Relever les murs", run: open }, { label: "Plus tard", run: () => {} }]);
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !card.hidden) close(); });

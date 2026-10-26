@@ -59,6 +59,20 @@ export function buildTools() {
   });
 }
 
+// échelle du plan saisie (1/50, 1/100…) : possible pour un fond PDF dont on connaît la largeur de la feuille (paperW, m)
+export function applyRatio(N) {
+  const pw = CH.fond && CH.fond.paperW;
+  if (!(pw > 0) || !(N > 0) || !(K.BG.w > 0)) return false;
+  K.calib = {
+    a: { x: K.BG.x, y: K.BG.y },
+    b: { x: K.BG.x + 1, y: K.BG.y },
+    cur: null
+  };
+  const ok = applyCalib(pw * N / K.BG.w);
+  if (ok) setHint(`Échelle 1/${N} appliquée (feuille de ${Math.round(pw * 1000)} mm de large). Vérifiez avec l'outil Cote sur une dimension connue.`);
+  return ok;
+}
+
 export function applyCalib(L) {
   if (!K.calib || !K.calib.b) return false;
   const a = K.calib.a,
@@ -106,6 +120,7 @@ export function resetTransient() {
   K.seriesMode = null;
   K.seriesPrev = null;
   K.ghost = null;
+  K.endDrag = null;
   K.linkHot = null;
   K.linkLight = null;
   hideReadout();
@@ -350,6 +365,12 @@ document.addEventListener("keydown", e => {
     showSide();
     return;
   }
+  // boîte de pieuvre choisie sur le plan (sans autre sélection) : Suppr la supprime (traitée par l'onglet Câblage)
+  if ((e.key === "Delete" || e.key === "Backspace") && K.showCirc && K.boxSel && !K.sel && multi.size <= 1) {
+    e.preventDefault();
+    document.dispatchEvent(new CustomEvent("okteo:box-delete", { detail: { id: K.boxSel } }));
+    return;
+  }
   if ((e.key === "Delete" || e.key === "Backspace") && K.tool === "lien" && K.linkHot) {
     e.preventDefault();
     const i = state.lia.findIndex(x => x.c === K.linkHot.c && x.l === K.linkHot.l);
@@ -508,6 +529,7 @@ if (CH.fond && !CH.fond.calibre) {
   K.tool = "calib";
   buildTools();
   setHint("Nouveau fond : " + hintFor("calib"));
+  showSide();
 }
 addEventListener("resize", draw);
 // la zone de dessin change de taille quand le panneau de droite s'ouvre, se ferme ou s'élargit

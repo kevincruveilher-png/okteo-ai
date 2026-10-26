@@ -73,3 +73,15 @@ avec une valeur de base modifiable.
 - **Câble** : pour les appareils **à l'extérieur**.
 - Les n° encadrés à côté de l'alimentation (5, 6, 7 sur FTZ) = n° de circuit au tableau ; « Ouverture vers le haut »
   sert à orienter la boîte. Liste des fils par couleur et section : reprise sur le schéma.
+
+## Boîtes à la main (v35) — Kévin, 26/10/2026
+
+- 3e circuit de même section dans une boîte : les couleurs reprennent (rouge/bleu…), les n° de raccordement restent
+  différents (pas d'alerte).
+- N° de circuit du tableau affichés à côté de l'alimentation (fils « Ph C1 », « N C1 »…).
+- Kévin veut pouvoir supprimer une boîte, imposer le nombre de boîtes, rattacher une gaine à une autre boîte (en
+  tirant son extrémité) ; quand un circuit arrive dans une nouvelle boîte, l'ajouter à la gaine d'alimentation.
+- Plan : liaisons en ligne droite, gaines en arc (plan d'expédition KiTéOHM).
+- Bande préférée : `docs/exemples/bande_preferee_Kevin.png` (fils séparés, bornes numérotées, retours / navettes
+  tracés à l'intérieur, calque par circuit).
+- Noms : boîtes LI01, LI02… ; gaines LI01.04.

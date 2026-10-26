@@ -18,7 +18,7 @@ async function storeFond(meta, file, pdfDoc, pageNo) {
   else { r = await loadImage(file); await CHS.delFile(CHS.pdfKey(meta)).catch(() => {}); }
   await CHS.putFile(CHS.fondKey(meta), r.blob);
   const w = r.provisionalW, h = w * r.pxH / r.pxW;
-  return { src: "idb", name: file.name + (pdfDoc ? ` (page ${pageNo})` : ""), page: pdfDoc ? pageNo : null, pxW: r.pxW, pxH: r.pxH, x: 0, y: 0, w, h, calibre: false };
+  return { src: "idb", name: file.name + (pdfDoc ? ` (page ${pageNo})` : ""), page: pdfDoc ? pageNo : null, pxW: r.pxW, pxH: r.pxH, x: 0, y: 0, w, h, calibre: false, paperW: pdfDoc ? r.provisionalW / 50 : null };
 }
 
 export function mountChantiers(el, { api }) {
