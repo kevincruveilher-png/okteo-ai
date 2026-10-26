@@ -55,13 +55,12 @@ avec une valeur de base modifiable.
 ## Schéma de boîte (v33) — précisions de Kévin (26/10/2026)
 
 - Les gaines arrivent **déjà repérées** au câbleur : pas d'étiquettes à imprimer.
-- Raccordements par **connecteurs rapides** (fil dénudé enfoncé) de 2, 3, 5… jusqu'à 12 entrées (réglage « Connecteurs
-  rapides disponibles », par défaut 2, 3, 5, 8, 12 — à corriger dans Paramètres si les tailles diffèrent) ; au-delà de
-  12 fils : deux connecteurs reliés par un pont.
+- Raccordements par **connecteurs rapides** (fil dénudé enfoncé) de **2, 3, 4, 5, 6, 8, 10 et 12 entrées** (réglage
+  « Connecteurs rapides disponibles ») ; au-delà de 12 fils : deux connecteurs reliés par un pont.
 - **Ordre de câblage** : terres, neutres circuit par circuit, phases, puis retours lampe et navettes ; les n° de
   raccordement suivent cet ordre.
 - Le document est conçu pour un câbleur débutant : orientation de la boîte (pièce de chaque côté), matériel, étapes à
   cocher, contrôle final. À valider en le faisant utiliser par un débutant.
 - **Alimentation d'une boîte** (26/10/2026) : **une seule gaine** depuis le tableau pour tous les circuits de la boîte —
-  phase + neutre de chaque circuit (et fils de télérupteur s'il y en a), **une seule terre** (à la plus grosse section) ;
-  dès que la gaine passerait en **Ø25**, on la divise en deux gaines (chacune avec sa terre).
+  phase + neutre de chaque circuit et **fils de télérupteur** s'il y en a, **une seule terre** (à la plus grosse section) ;
+  dès que la gaine passerait en **Ø25**, on la divise en deux gaines — **toujours une seule terre**, dans la 1re gaine.

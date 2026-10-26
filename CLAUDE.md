@@ -162,8 +162,8 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `boxSteps` (une étape par n°), `boxMaterial`, `boxChecks`, `shortLabel`, `schemaSVG(box, steps, {color, sides})`) ;
   n° de raccordement dans l'ordre de câblage (gaines.js : terres, neutres, phases, retours/navettes).
   Alimentation : `packAlim` (gaine.js) = une gaine pour tous les circuits de la boîte, une terre, coupée avant Ø25 ;
-  gaine `alim:<i>` avec `circuits` [noms] et `wires[].circuit` ; `placeBoxes` compte ces gaines (`S.alimCount`). Réglage `bornes`
-  (« 2,3,5,8,12 »). Interface : `src/ext/cablage-bandes.js` (onglet `bandes`, `boxSheets(api)`, `facesSides` dans
+  gaine `alim:<i>` avec `circuits` [noms] et `wires[].circuit` ; une seule terre par boîte (1re gaine) ; `placeBoxes` compte ces gaines (`S.alimCount`). Réglage `bornes`
+  (« 2,3,4,5,6,8,10,12 », les connecteurs de KiTéOHM). Interface : `src/ext/cablage-bandes.js` (onglet `bandes`, `boxSheets(api)`, `facesSides` dans
   cablage-data.js = pièce de chaque côté, `wireSolid`) + `src/ext/bandes-pdf.js` (jsPDF A4, schéma en JPEG — un PNG
   ferait un PDF énorme —, texte WinAnsi via `win()`). `okteoExt.pages.bandes.ui.last` = dernier PDF (tests).
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
@@ -172,7 +172,7 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (32 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (96 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (33 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (96 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

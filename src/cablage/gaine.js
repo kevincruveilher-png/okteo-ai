@@ -23,13 +23,15 @@ export function tauxRemplissage(fils, nom) { const g = GAINES.find((x) => x[0] =
 
 // Gaines d'alimentation d'une boîte (règle de Kévin, v33) : UNE gaine pour tous les circuits de la boîte — phase + neutre
 // de chaque circuit, une seule terre (à la plus grosse section) ; on passe à une 2e gaine dès qu'il faudrait un Ø25.
+// La terre n'est que dans la 1re gaine (une seule terre par boîte, même divisée).
 // circs = [{ id, section, extra: nombre de fils en plus (télérupteur) }] → groupes de circuits, un par gaine
 export function packAlim(circs, remplissage = 40, maxDiam = 25) {
-  const secs = (g) => [...g.flatMap((c) => Array(2 + (c.extra || 0)).fill(c.section || 1.5)), Math.max(...g.map((c) => c.section || 1.5))];
+  const maxSec = Math.max(1.5, ...circs.map((c) => c.section || 1.5));
+  const secs = (g, withT) => [...g.flatMap((c) => Array(2 + (c.extra || 0)).fill(c.section || 1.5)), ...(withT ? [maxSec] : [])];
   const groups = [];
   let cur = [];
   for (const c of circs) {
-    if (cur.length && gaineFor(secs([...cur, c]), remplissage) >= maxDiam) { groups.push(cur); cur = []; }
+    if (cur.length && gaineFor(secs([...cur, c], !groups.length), remplissage) >= maxDiam) { groups.push(cur); cur = []; }
     cur.push(c);
   }
   if (cur.length) groups.push(cur);

@@ -100,7 +100,8 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
       // la face est celle par où la gaine sort : vers son 1er point de passage s'il y en a un
       deps.push({ id: a.id, kind: "app", p: route ? route[0] : a, app: a, routed: !!route, label: `${NAMES[a.t] || a.t} ${a.rep || ""}`.trim(), room: a.room, circuit: c.n, wires, length: len });
     }
-    // alimentation depuis le tableau : une seule gaine (phase + neutre de chaque circuit, une terre), deux si Ø25
+    // alimentation depuis le tableau : une seule gaine (phase + neutre de chaque circuit, télérupteur, une terre) ;
+    // divisée si elle passait en Ø25, la terre restant dans la 1re
     const alimG = packAlim(circs.map((c) => ({ ...c, section: c.section || 1.5, extra: (tl.get(c.id) || []).length })), S.remplissage);
     alimG.forEach((G, gi) => {
       const wires = [];
@@ -108,7 +109,8 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
         const sec = c.section || 1.5;
         [["phase", "P" + c.id], ["neutre", "N" + c.id], ...(tl.get(c.id) || [])].forEach(([fn, key]) => wires.push({ fn, color: col[fn], section: sec, net: key, circuit: c.n }));
       }
-      wires.push({ fn: "terre", color: col.terre, section: Math.max(...G.map((c) => c.section || 1.5)), net: "T" });
+      // une seule terre par boîte : dans la 1re gaine d'alimentation, à la plus grosse section de la boîte
+      if (gi === 0) wires.push({ fn: "terre", color: col.terre, section: Math.max(...circs.map((c) => c.section || 1.5)), net: "T" });
       const route = (b.routes || {}).tab || null;
       const len = tab ? gaineLength({ horiz: viaLen(b, route, tab), downA: S.traversee + Math.max(0, S.hsp - hTab), levels: Math.abs(lvIdx(tab.lv) - lvB) }, S) : null;
       const names = G.map((c) => c.n);

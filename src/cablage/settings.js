@@ -4,7 +4,7 @@ export const CAB_DEFAULTS = {
   // boîtes
   departsMax: 18,          // gaines par boîte, toutes faces confondues
   departsFace: 6,          // gaines par face (A, B, C, D)
-  bornes: "2,3,5,8,12",    // connecteurs rapides disponibles (nombre d'entrées), pour le schéma de boîte
+  bornes: "2,3,4,5,6,8,10,12",    // connecteurs rapides disponibles (nombre d'entrées), pour le schéma de boîte
   // longueurs
   hsp: 2.5,                // hauteur sous plafond (m)
   traversee: 0.3,          // plancher / isolation à traverser entre la boîte et le haut du mur (m)

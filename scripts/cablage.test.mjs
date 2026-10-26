@@ -78,10 +78,10 @@ const allNets = W.boxes.flatMap((b) => b.nets.map((n) => ({ ...n, box: b })));
 check("n° 1 de chaque boîte = toutes les terres ensemble", W.boxes.every((b) => b.nets[0].fn === "terre" && b.nets[0].wires.length === b.gaines.filter((x) => x.wires.some((w) => w.fn === "terre")).length));
 check("chaque raccordement réunit au moins 2 fils (rien ne reste en l'air)", allNets.every((n) => n.wires.length >= 2), allNets.filter((n) => n.wires.length < 2).map((n) => n.box.n + " " + n.label).join(", "));
 console.log("    alimentations :", W.boxes.map((b) => b.n + " " + b.gaines.filter((x) => x.kind === "alim").map((x) => `${x.circuit} Ø${x.diam} ${x.wires.length} fils`).join(" | ")).join(" · "));
-check("alimentation : une seule gaine par boîte (phase + neutre de chaque circuit, une terre), deux seulement si elle passait en Ø25",
+check("alimentation : une seule gaine par boîte (phase + neutre de chaque circuit, une seule terre), divisée seulement si elle passait en Ø25 (terre dans la 1re)",
   W.boxes.every((b) => { const A = b.gaines.filter((x) => x.kind === "alim");
     return b.circuits.every((cn) => A.some((x) => x.circuits.includes(cn) && x.wires.some((w) => w.fn === "phase" && w.circuit === cn) && x.wires.some((w) => w.fn === "neutre" && w.circuit === cn)))
-      && A.every((x) => x.wires.filter((w) => w.fn === "terre").length === 1 && x.diam < 25) && (A.length === 1 || A.length === Math.ceil(A.length)); }),
+      && A.reduce((s, x) => s + x.wires.filter((w) => w.fn === "terre").length, 0) === 1 && A[0].wires.some((w) => w.fn === "terre") && A.every((x) => x.diam < 25); }),
   W.boxes.map((b) => b.gaines.filter((x) => x.kind === "alim").map((x) => `${x.circuit} Ø${x.diam} (${x.wires.length} fils)`).join(" | ")).join(" ; "));
 check("lignes directes : prises spécialisées, sorties de câble et RJ45 (tableau → appareil)", W.direct.length === T("PC20").length + T("SC").length + T("RJ45").length && W.direct.every((x) => x.length > 2));
 
@@ -105,6 +105,9 @@ console.log("Tracé des gaines et boîtes gardées (v32)");
 console.log("Schéma de boîte pour le câbleur (v33)");
 {
   const Z = parseSizes("2, 3,5 ;8,12");
+  const Zk = parseSizes(S.bornes);
+  check("connecteurs de KiTéOHM par défaut : 2, 3, 4, 5, 6, 8, 10, 12 ; 7 fils → 8 entrées, 9 → 10, 20 → 12 + 10 avec un pont",
+    Zk.join() === "2,3,4,5,6,8,10,12" && connectorsFor(7, Zk).list.join() === "8" && connectorsFor(9, Zk).list.join() === "10" && JSON.stringify(connectorsFor(20, Zk)) === '{"list":[12,10],"ponts":1}', Zk.join());
   const c = (n) => JSON.stringify(connectorsFor(n, Z));
   check("connecteurs : 2 fils → 2 entrées, 4 → 5, 12 → 12, 13 → 12 + 3 avec un pont, 20 → 12 + 12 avec un pont",
     c(2) === '{"list":[2],"ponts":0}' && c(4) === '{"list":[5],"ponts":0}' && c(12) === '{"list":[12],"ponts":0}' && c(13) === '{"list":[12,3],"ponts":1}' && c(20) === '{"list":[12,12],"ponts":1}', [2, 4, 12, 13, 20].map(c).join(" "));
