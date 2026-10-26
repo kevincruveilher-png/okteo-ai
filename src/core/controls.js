@@ -2,7 +2,7 @@
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
 import { K } from "./k.js";
 import * as CHS from "../chantiers.js";
-import { CH, PAL, TYPES, dist, node, nodeById, redo, state, uidS, undo } from "./model.js";
+import { CH, PAL, TYPES, dist, layers, node, nodeById, redo, state, uidS, undo } from "./model.js";
 import { applyPack, load, markDirty, packState, paintStatus, save, snapshot } from "./persist.js";
 import { applyOrtho, fit, repMap } from "./view.js";
 import { draw, glyph } from "./render.js";
@@ -24,18 +24,23 @@ export const TI = {
   cote: '<path d="M2 9h14M2 6v6M16 6v6M5 9l-2 0M13 9h2"/>',
   pan: '<path d="M6 15c-2-2-3-5-3-7M6 15h6l2-5V5M9 9V3M12 9V4M6 9V5"/>',
   lien: '<path d="M3 13C6 3 12 3 15 13" stroke-dasharray="2 1.6"/>',
+  calib: '<path d="M2 12l10-10 4 4-10 10z"/><path d="M5 9l1.5 1.5M7.5 6.5l1.5 1.5M10 4l1.5 1.5"/>',
   __test: '<path d="M5 3l10 6-10 6z"/>'
 };
 
 export const icon = k => `<svg class="ti" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">${TI[k] || ""}</svg>`;
 
+// deux barres (v37) : « Implantation bâti » (murs, pièces, ouvertures, cotes, échelle) et « Implantation appareils »
+// (symboles, liaisons, test) ; à droite, le filtre rapide de la vue
 export function buildTools() {
   const t = document.getElementById("tools");
-  const base = [["sel", "Sélection"], ["piece", "Pièce"], ["mur", "Mur"], ["porte", "Porte"], ["fenetre", "Fenêtre"], ["offset", "Cloison"], ["cote", "Cote"], ["pan", "Main"], ["lien", "Liaison"]];
-  let h = base.map(([k, n]) => `<button data-tool="${k}" class="tb ${K.tool === k ? 'on' : ''}">${icon(k)}<span class="tl">${n}</span></button>`).join("");
-  h += `<button data-tool="__test" class="tb ${K.testMode ? 'on' : ''}">${icon("__test")}<span class="tl">Test</span></button><span class="sep"></span>`;
+  const btn = (k, n, tip) => `<button data-tool="${k}" class="tb ${K.tool === k ? 'on' : ''}" title="${tip}">${icon(k)}<span class="tl">${n}</span></button>`;
+  const bati = [["sel", "Sélection", "Sélection (V) : cliquer, glisser un cadre, déplacer"], ["piece", "Pièce", "Pièce (E) : un rectangle de murs"], ["mur", "Mur", "Mur (B) : murs enchaînés"], ["porte", "Porte", "Porte : cliquer sur un mur"], ["fenetre", "Fenêtre", "Fenêtre : cliquer sur un mur"], ["offset", "Cloison", "Cloison parallèle à un mur"], ["cote", "Cote", "Cote : deux points"], ["calib", "Échelle", "Échelle du plan : deux points d'une cote connue, ou 1/50"], ["pan", "Main", "Main : déplacer la vue"]];
+  let h = `<div class="trow bati" role="toolbar" aria-label="Implantation bâti"><span class="tlab" title="Outils pour dessiner le bâtiment">Implantation<b>bâti</b></span>` + bati.map(([k, n, tip]) => btn(k, n, tip)).join("") + `</div>`;
+  h += `<div class="trow appa" role="toolbar" aria-label="Implantation appareils"><span class="tlab" title="Outils pour poser l'appareillage et ses liaisons">Implantation<b>appareils</b></span>` + btn("lien", "Liaison", "Liaison : une commande puis ses lumières") +
+    `<button data-tool="__test" class="tb ${K.testMode ? 'on' : ''}" title="Test : cliquer une commande allume ses lumières">${icon("__test")}<span class="tl">Test</span></button><span class="sep"></span>`;
   // appareils : le symbole tel qu'il est dessiné sur le plan (nom complet dans l'infobulle)
-  h += `<span class="palette" role="group" aria-label="Appareils">` + PAL.map(k => `<button data-tool="${k}" class="pb ${K.tool === k ? 'on' : ''}" title="${TYPES[k].n}" aria-label="${TYPES[k].n}"><svg class="ticon" viewBox="-1.25 -1.35 2.5 2.7" aria-hidden="true">${glyph(k)}</svg></button>`).join("") + `</span>`;
+  h += `<span class="palette" role="group" aria-label="Appareils">` + PAL.map(k => `<button data-tool="${k}" class="pb ${K.tool === k ? 'on' : ''}" title="${TYPES[k].n}" aria-label="${TYPES[k].n}"><svg class="ticon" viewBox="-1.25 -1.35 2.5 2.7" aria-hidden="true">${glyph(k)}</svg></button>`).join("") + `</span></div>`;
   t.innerHTML = h;
   t.querySelectorAll("button").forEach(btn => btn.onclick = () => {
     const v = btn.dataset.tool;
@@ -56,8 +61,64 @@ export function buildTools() {
     setHint(hintFor(v));
     draw();
     showSide();
+    if (v === "calib") document.dispatchEvent(new CustomEvent("okteo:ask"));
   });
+  buildFilter();
 }
+
+// ---------- filtre rapide de la vue (v37) ----------
+export const VIEW_KEYS = [["fond", "Fond", "Fond de plan (PDF ou image)"], ["murs", "Murs", "Murs, portes et fenêtres"], ["pieces", "Pièces", "Pièces : couleur, nom et surface"],
+  ["appareils", "Appareils", "Symboles de l'appareillage et repères"], ["liaisons", "Liaisons", "Traits commande → lumière"], ["boites", "Boîtes", "Boîtes de pieuvre et leurs points d'accroche"],
+  ["gaines", "Gaines", "Gaines boîte → appareils et alimentation"], ["cotes", "Cotes", "Cotes et longueurs des murs"], ["grille", "Quadrillage", "Quadrillage : 5 cm à 1 m selon le zoom, trait marqué tous les mètres"]];
+export const VIEW_PRESETS = {
+  bati: { name: "Bâti", key: "1", tip: "Le bâtiment seul : fond, murs, pièces, cotes, quadrillage", on: ["fond", "murs", "pieces", "cotes", "grille"], circ: false },
+  impl: { name: "Implantation", key: "2", tip: "Le bâtiment et l'appareillage : appareils, liaisons, cotes", on: ["fond", "murs", "pieces", "appareils", "liaisons", "cotes"], circ: false },
+  cab: { name: "Câblage", key: "3", tip: "Les circuits (couleur des symboles), les boîtes et leurs gaines", on: ["murs", "pieces", "appareils", "boites", "gaines"], circ: true }
+};
+const viewOn = k => (k === "murs" ? layers.murs.on && layers.ouvertures.on : layers[k].on);
+function setView(k, v) {
+  layers[k].on = v;
+  if (k === "murs") layers.ouvertures.on = v;
+}
+export function viewPreset(id) {
+  const P = VIEW_PRESETS[id];
+  if (!P) return false;
+  VIEW_KEYS.forEach(([k]) => setView(k, P.on.includes(k)));
+  K.showCirc = P.circ;
+  save();
+  draw();
+  buildFilter();
+  showSide();
+  setHint(`Vue « ${P.name} » : ${P.tip.toLowerCase()}.`);
+  return true;
+}
+export function toggleView(k, v) {
+  if (!layers[k]) return false;
+  setView(k, v == null ? !viewOn(k) : !!v);
+  // boîtes et gaines n'existent qu'avec l'affichage des circuits
+  if ((k === "boites" || k === "gaines") && layers[k].on) K.showCirc = true;
+  save();
+  draw();
+  buildFilter();
+  showSide();
+  return true;
+}
+export function buildFilter() {
+  const f = document.getElementById("vfilter");
+  if (!f) return;
+  const cur = Object.entries(VIEW_PRESETS).find(([, P]) => VIEW_KEYS.every(([k]) => viewOn(k) === P.on.includes(k)) && !!K.showCirc === P.circ);
+  f.innerHTML = `<div class="vrow"><span class="tlab">Vue</span>` + Object.entries(VIEW_PRESETS).map(([id, P]) => `<button data-vp="${id}" class="vp ${cur && cur[0] === id ? "on" : ""}" title="${P.tip} (Alt+${P.key})">${P.name}<kbd>Alt+${P.key}</kbd></button>`).join("") + `</div>` +
+    `<div class="vrow chips">` + VIEW_KEYS.map(([k, n, tip]) => `<button data-vk="${k}" class="vk ${viewOn(k) && (k !== "boites" && k !== "gaines" || K.showCirc) ? "on" : ""}" aria-pressed="${viewOn(k)}" title="${tip} : afficher / masquer">${n}</button>`).join("") + `</div>`;
+  f.querySelectorAll("[data-vp]").forEach(b => (b.onclick = () => viewPreset(b.dataset.vp)));
+  f.querySelectorAll("[data-vk]").forEach(b => (b.onclick = () => toggleView(b.dataset.vk, !(viewOn(b.dataset.vk) && (b.dataset.vk !== "boites" && b.dataset.vk !== "gaines" || K.showCirc)))));
+}
+document.addEventListener("keydown", e => {
+  if (!e.altKey || e.ctrlKey || e.metaKey) return;
+  const tg = e.target && e.target.tagName;
+  if (tg === "INPUT" || tg === "TEXTAREA" || tg === "SELECT") return;
+  const id = Object.keys(VIEW_PRESETS).find(k => VIEW_PRESETS[k].key === e.key || "Digit" + VIEW_PRESETS[k].key === e.code);
+  if (id) { e.preventDefault(); viewPreset(id); }
+});
 
 // échelle du plan saisie (1/50, 1/100…) : possible pour un fond PDF dont on connaît la largeur de la feuille (paperW, m)
 export function applyRatio(N) {

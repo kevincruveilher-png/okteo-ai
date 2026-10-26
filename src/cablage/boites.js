@@ -35,6 +35,38 @@ export function assignFaces(box, departs, max) {
   for (const g of L) { const f = g.pref.find((ff) => count[ff] < max); out.set(g.id, f || null); if (f) count[f]++; }
   return out;
 }
+// points d'accroche (v37) : `max` points par face, numérotés dans le sens horaire (A : gauche → droite, B : haut → bas,
+// C : droite → gauche, D : bas → haut). Les gaines d'une face y sont rangées dans l'ordre de leur direction : elles ne se
+// croisent pas. `pins` = choix manuels { clé (id d'appareil ou "tab") : {f, i} } : une gaine épinglée garde sa face et son point.
+// deps = [{id, p, keys}] ; renvoie Map id → {face, slot} (slot null si la face est pleine).
+export function portLayout(box, deps, max, pins = {}) {
+  const out = new Map(), used = { A: new Set(), B: new Set(), C: new Set(), D: new Set() }, count = { A: 0, B: 0, C: 0, D: 0 };
+  const free = [];
+  for (const d of deps) {
+    const pin = (d.keys || [d.id]).map((k) => pins[k]).find((q) => q && FACES.includes(q.f));
+    if (pin && pin.i >= 0 && pin.i < max && !used[pin.f].has(pin.i)) { used[pin.f].add(pin.i); count[pin.f]++; out.set(d.id, { face: pin.f, slot: pin.i }); }
+    else free.push(d);
+  }
+  // faces des autres : la plus proche de leur direction, sans dépasser `max` par face
+  const L = free.map((g) => ({ ...g, pref: facePrefs(box, g.p) })).sort((x, y) => obliq(box, x.p) - obliq(box, y.p));
+  const faceOf = new Map();
+  for (const g of L) { const f = g.pref.find((ff) => count[ff] < max); faceOf.set(g.id, f || null); if (f) count[f]++; }
+  // dans chaque face : points libres répartis régulièrement, dans l'ordre horaire des directions
+  const cw = (f, p) => { let a = Math.atan2(p.x - box.x, -(p.y - box.y)); if (f === "C" && a < 0) a += 2 * Math.PI; return a; };
+  for (const f of FACES) {
+    const G = free.filter((g) => faceOf.get(g.id) === f).sort((x, y) => cw(f, x.p) - cw(f, y.p));
+    const fr = [...Array(max).keys()].filter((i) => !used[f].has(i));
+    G.forEach((g, j) => out.set(g.id, { face: f, slot: fr[Math.min(fr.length - 1, Math.round((j + 0.5) * fr.length / G.length - 0.5))] }));
+  }
+  free.filter((g) => !faceOf.get(g.id)).forEach((g) => out.set(g.id, { face: null, slot: null }));
+  return out;
+}
+// position d'un point d'accroche (boîte de côté S, `max` points par face)
+export function portXY(box, S, max, f, i) {
+  if (!f || i == null) return { x: box.x, y: box.y };
+  const t = (i + 1) / (max + 1) * S - S / 2, h = S / 2;
+  return f === "A" ? { x: box.x + t, y: box.y - h } : f === "B" ? { x: box.x + h, y: box.y + t } : f === "C" ? { x: box.x - t, y: box.y + h } : { x: box.x - h, y: box.y - t };
+}
 function obliq(box, p) { const dx = Math.abs(p.x - box.x), dy = Math.abs(p.y - box.y); return Math.min(dx, dy) / (Math.max(dx, dy) || 1); }
 
 // unités indivisibles : allumages (lumières + commandes liées) et appareils seuls ; uniquement les circuits « à boîte »

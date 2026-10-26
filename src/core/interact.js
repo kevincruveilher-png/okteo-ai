@@ -4,7 +4,7 @@ import { K } from "./k.js";
 import { TYPES, cornerHalf, dist, epOf, layers, node, nodeById, segById, segDir, segLen, state, uidA, uidD, uidO, uidR, uidS } from "./model.js";
 import { markDirty, save, snapshot } from "./persist.js";
 import { applyOrtho, evWorld, pxPerVB, repMap, snapWorld, tolM } from "./view.js";
-import { draw, hitBox, hitGaineEnd, hitLock, hitRoute, sv } from "./render.js";
+import { draw, hitBox, hitGaineEnd, hitLock, hitPort, hitRoute, sv } from "./render.js";
 import { attach, hitApp, hitLink, linkRole, hitNode, hitOpen, hitOpenHandle, hitSeg, projOnSeg, segDistPt, snapAlign, snapToWall, wallMounted } from "./attach.js";
 import { clampOpenings, clearSel, currentGroup, isSel, marqueeSelect, mk, moveGroup, multi, normalizeSel, roomAt, setSingle, startGroupDrag, toggleMulti } from "./groups.js";
 import { showSide } from "./panel.js";
@@ -191,11 +191,34 @@ export function placeApp(t, p) {
 export function endPtr() {
   if (K.endDrag) {
     const E = K.endDrag,
-      t = hitBox(E.x, E.y);
+      P = hitPort(E.x, E.y),
+      t = P ? P.box : hitBox(E.x, E.y);
     K.endDrag = null;
-    draw();
-    if (t && t.id !== E.from) document.dispatchEvent(new CustomEvent("okteo:gaine-move", { detail: { from: E.from, to: t.id, id: E.id } }));
-    else setHint("Gaine non déplacée : relâchez-la sur une autre boîte.");
+    const pin = (b, f, i, keys) => {
+      // un seul choix manuel par point : celui qui l'occupait repasse en automatique
+      const ports = { ...(b.ports || {}) };
+      for (const k of Object.keys(ports)) if (ports[k].f === f && ports[k].i === i) delete ports[k];
+      keys.forEach(k => (ports[k] = { f, i }));
+      b.ports = ports;
+    };
+    if (t && t.id !== E.from) {
+      if (E.id === "tab") { draw(); setHint("L'alimentation reste sur sa boîte : relâchez-la sur un autre point de la même boîte."); return; }
+      document.dispatchEvent(new CustomEvent("okteo:gaine-move", { detail: { from: E.from, to: t.id, id: E.id } }));
+      const src = (K.CAB.boxes || []).find(x => x.id === E.from), dst = (K.CAB.boxes || []).find(x => x.id === t.id);
+      if (src && src.ports) { src.ports = { ...src.ports }; E.keys.forEach(k => delete src.ports[k]); }
+      if (P && dst && E.keys.some(k => dst.apps.includes(k))) { pin(dst, P.f, P.i, E.keys.filter(k => dst.apps.includes(k))); markDirty(); }
+      draw();
+    } else if (t && P) {
+      snapshot();
+      pin(t, P.f, P.i, E.keys);
+      markDirty();
+      draw();
+      document.dispatchEvent(new CustomEvent("okteo:cab"));
+      setHint(`Gaine placée face ${P.f}, point ${P.i + 1}. Les autres gaines de la face se rangent sans se croiser. Ctrl+Z annule.`);
+    } else {
+      draw();
+      setHint("Gaine non déplacée : relâchez-la sur un point d'accroche (même boîte) ou sur une autre boîte.");
+    }
     return;
   }
   if (K.routeDrag) {
@@ -328,9 +351,9 @@ sv.addEventListener("pointerdown", e => {
     const ge = hitGaineEnd(wx, wy);
     if (ge) {
       clearSel();
-      K.endDrag = { from: ge.box.id, id: ge.id, x: ge.x, y: ge.y, ax: ge.ax, ay: ge.ay };
+      K.endDrag = { from: ge.box.id, id: ge.id, keys: ge.keys || [ge.id], x: ge.x, y: ge.y, ax: ge.ax, ay: ge.ay };
       draw();
-      setHint("Relâchez sur la boîte qui doit recevoir cette gaine (Échap pour annuler).");
+      setHint("Relâchez sur un autre point d'accroche de la boîte, ou sur une autre boîte (Échap pour annuler).");
       return;
     }
     const lk = hitLock(wx, wy);
@@ -735,8 +758,9 @@ sv.addEventListener("pointermove", e => {
   if (K.endDrag) {
     K.endDrag.x = wx;
     K.endDrag.y = wy;
-    const t = hitBox(wx, wy);
-    setHint(t && t.id !== K.endDrag.from ? `Relâcher pour raccorder la gaine à ${t.n}.` : "Relâchez sur la boîte qui doit recevoir cette gaine (Échap pour annuler).");
+    const P = hitPort(wx, wy), t = P ? P.box : hitBox(wx, wy);
+    if (P) { K.endDrag.x = P.x; K.endDrag.y = P.y; }
+    setHint(t && t.id !== K.endDrag.from ? `Relâcher pour raccorder la gaine à ${t.n}${P ? `, face ${P.f} point ${P.i + 1}` : ""}.` : P ? `Relâcher : face ${P.f}, point ${P.i + 1}.` : "Relâchez sur un point d'accroche, ou sur une autre boîte (Échap pour annuler).");
     draw();
     return;
   }

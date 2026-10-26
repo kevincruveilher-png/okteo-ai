@@ -241,7 +241,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       geo.links.forEach((l) => line(l.a, l.b));
       doc.setLineDashPattern([], 0);
     }
-    geo.apps.forEach((a) => symbol(doc, a.t, X(a.x), Y(a.y), u));
+    geo.apps.forEach((a) => symbol(doc, a.t, X(a.x), Y(a.y), u, a.rot || 0));
     doc.setTextColor(200, 70, 40);
     repLabels.forEach((L) => {
       if (L.hidden) return;
@@ -309,24 +309,32 @@ export async function buildPlanPdf(geoIn, opts = {}) {
   return { blob, layout: Lay0, pages: doc.getNumberOfPages() };
 }
 
-// symboles normalisés simplifiés (mêmes formes qu'à l'écran) ; u = unité de symbole en mm
-export function symbol(doc, t, x, y, u) {
+// symboles normalisés simplifiés (mêmes formes qu'à l'écran, v37 : carrés sauf les lumières) ; u = unité de symbole en mm ;
+// rot = rotation de l'applique (degrés), côté plat contre le mur
+export function symbol(doc, t, x, y, u, rot = 0) {
   doc.setLineWidth(Math.max(0.12, u * 0.08)); doc.setDrawColor(20, 60, 110); doc.setFillColor(255, 255, 255);
   const txt = (s, white) => { doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(3.5, u * 0.85 * 72 / 25.4)); doc.setTextColor(white ? 255 : 20, white ? 255 : 60, white ? 255 : 110); doc.text(s, x, y + u * 0.05, { align: "center", baseline: "middle" }); };
+  const sq = (r, style = "FD") => doc.roundedRect(x - r * u, y - r * u, 2 * r * u, 2 * r * u, 0.18 * r * u, 0.18 * r * u, style);
+  const tick = () => doc.line(x + 0.4 * u, y - 0.4 * u, x + 0.95 * u, y - 0.95 * u);
   switch (t) {
-    case "PC16": doc.circle(x, y, 0.9 * u, "FD"); txt(SHORT.PC16); break;
-    case "PC20": doc.setFillColor(20, 60, 110); doc.circle(x, y, 0.9 * u, "FD"); txt(SHORT.PC20, true); break;
-    case "RJ45": doc.roundedRect(x - 0.8 * u, y - 0.8 * u, 1.6 * u, 1.6 * u, 0.2 * u, 0.2 * u, "FD"); txt(SHORT.RJ45); break;
-    case "APP": { const r = 0.9 * u; const n = 12, P = []; for (let i = 0; i <= n; i++) { const a = Math.PI + Math.PI * i / n; P.push([x + Math.cos(a) * r, y + 0.25 * u + Math.sin(a) * r]); }
-      doc.lines(P.slice(1).map((p, i) => [p[0] - P[i][0], p[1] - P[i][1]]), P[0][0], P[0][1], [1, 1], "FD", true); doc.line(x - 0.55 * u, y - 0.3 * u, x + 0.55 * u, y + 0.25 * u); doc.line(x + 0.55 * u, y - 0.3 * u, x - 0.55 * u, y + 0.25 * u); break; }
+    case "PC16": sq(0.8); txt(SHORT.PC16); break;
+    case "PC20": doc.setFillColor(20, 60, 110); sq(0.8); txt(SHORT.PC20, true); break;
+    case "RJ45": sq(0.8); txt(SHORT.RJ45); break;
+    case "APP": { const r = 0.9 * u, c = Math.cos(rot * Math.PI / 180), sn = Math.sin(rot * Math.PI / 180);
+      const R = (lx, ly) => [x + lx * c - ly * sn, y + lx * sn + ly * c];
+      const n = 12, P = []; for (let i = 0; i <= n; i++) { const a = Math.PI + Math.PI * i / n; P.push(R(Math.cos(a) * r, 0.25 * u + Math.sin(a) * r)); }
+      doc.lines(P.slice(1).map((p, i) => [p[0] - P[i][0], p[1] - P[i][1]]), P[0][0], P[0][1], [1, 1], "FD", true);
+      const L = (a, b) => doc.line(...R(...a), ...R(...b));
+      L([-0.55 * u, -0.3 * u], [0.55 * u, 0.25 * u]); L([0.55 * u, -0.3 * u], [-0.55 * u, 0.25 * u]); break; }
     case "LUM": doc.circle(x, y, 0.9 * u, "FD"); doc.line(x - 0.6 * u, y - 0.6 * u, x + 0.6 * u, y + 0.6 * u); doc.line(x + 0.6 * u, y - 0.6 * u, x - 0.6 * u, y + 0.6 * u); break;
-    case "SPOT": doc.circle(x, y, 0.6 * u, "FD"); doc.setFillColor(20, 60, 110); doc.circle(x, y, 0.22 * u, "F"); break;
-    case "INT": doc.circle(x, y, 0.55 * u, "FD"); doc.line(x + 0.35 * u, y - 0.35 * u, x + 0.95 * u, y - 0.95 * u); break;
-    case "VV": doc.circle(x, y, 0.55 * u, "FD"); doc.line(x + 0.35 * u, y - 0.35 * u, x + 0.95 * u, y - 0.95 * u); doc.line(x - 0.1 * u, y + 0.3 * u, x + 0.5 * u, y - 0.3 * u); break;
-    case "BP": doc.circle(x, y, 0.55 * u, "FD"); doc.setFillColor(20, 60, 110); doc.circle(x, y, 0.2 * u, "F"); break;
-    case "VMC": doc.roundedRect(x - 0.8 * u, y - 0.8 * u, 1.6 * u, 1.6 * u, 0.3 * u, 0.3 * u, "FD"); txt(SHORT.VMC); break;
-    case "SC": doc.circle(x, y, 0.6 * u, "FD"); doc.line(x - 0.85 * u, y - 0.85 * u, x + 0.85 * u, y + 0.85 * u); doc.line(x + 0.85 * u, y - 0.85 * u, x - 0.85 * u, y + 0.85 * u); break;
+    case "SPOT": { doc.circle(x, y, 0.5 * u, "FD"); doc.setFillColor(20, 60, 110); doc.circle(x, y, 0.2 * u, "F");
+      for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, r0 = (k % 2 ? 0.68 : 0.68) * u, r1 = (k % 2 ? 1.0 : 1.02) * u; doc.line(x + Math.cos(a) * r0, y + Math.sin(a) * r0, x + Math.cos(a) * r1, y + Math.sin(a) * r1); } break; }
+    case "INT": sq(0.55); tick(); break;
+    case "VV": sq(0.55); tick(); doc.line(x - 0.1 * u, y + 0.3 * u, x + 0.5 * u, y - 0.3 * u); break;
+    case "BP": sq(0.55); doc.setFillColor(20, 60, 110); doc.circle(x, y, 0.2 * u, "F"); break;
+    case "VMC": sq(0.8); txt(SHORT.VMC); break;
+    case "SC": sq(0.6); doc.line(x - 0.85 * u, y - 0.85 * u, x + 0.85 * u, y + 0.85 * u); doc.line(x + 0.85 * u, y - 0.85 * u, x - 0.85 * u, y + 0.85 * u); break;
     case "TAB": doc.setFillColor(20, 60, 110); doc.roundedRect(x - u, y - 1.2 * u, 2 * u, 2.4 * u, 0.2 * u, 0.2 * u, "FD"); txt(SHORT.TAB, true); break;
-    default: doc.circle(x, y, 0.8 * u, "FD");
+    default: sq(0.8);
   }
 }

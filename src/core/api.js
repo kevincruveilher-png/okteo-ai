@@ -11,7 +11,7 @@ import { bbox, clampOpenings, clearSel, duplicateGroup, multi, normalizeSel, ope
 import { wallMeasure } from "./interact.js";
 import { worldToScreen } from "./hud.js";
 import { delSel, showSide } from "./panel.js";
-import { applyCalib, applyRatio, buildTools, hintFor, resetTransient, setHint, setTab } from "./controls.js";
+import { VIEW_PRESETS, applyCalib, applyRatio, buildFilter, buildTools, hintFor, resetTransient, setHint, setTab, toggleView, viewPreset } from "./controls.js";
 import { addLevel, allLinks, levelFondInfo, levelName, loadFondImage, okteoGeo, removeLevel, renameLevel, switchLevel, withLevel } from "./levels.js";
 import { CIRC_COLORS } from "./render.js";
 
@@ -179,7 +179,16 @@ window.okteo = {
   set showCircuits(v) {
     K.showCirc = !!v;
     draw();
+    buildFilter();
   },
+  // filtre rapide de la vue (v37) : vues toutes prêtes ("bati", "impl", "cab") et un élément à la fois
+  viewPreset(id) {
+    return viewPreset(id);
+  },
+  toggleView(k, v) {
+    return toggleView(k, v);
+  },
+  viewPresets: VIEW_PRESETS,
   // tous les appareils de tous les niveaux, avec leur pièce et leur repère
   allApps() {
     const one = (lv) => state.app.map(a => ({

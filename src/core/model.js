@@ -55,6 +55,19 @@ export const layers = {
   cotes: {
     on: true,
     lock: false
+  },
+  // v37 : filtre de la vue (boîtes et gaines visibles seulement avec l'affichage des circuits)
+  boites: {
+    on: true,
+    lock: false
+  },
+  gaines: {
+    on: true,
+    lock: false
+  },
+  grille: {
+    on: true,
+    lock: false
   }
 };
 

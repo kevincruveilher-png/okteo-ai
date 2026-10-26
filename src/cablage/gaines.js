@@ -15,7 +15,7 @@
 // Appareils au même endroit (≤ memeEndroit) : une seule gaine, chaque fil commun une seule fois (repiquage).
 // Appareil à l'extérieur : câble nG (marron, noir, gris, bleu, vert/jaune) au lieu de fils.
 import { gaineFor, packAlim } from "./gaine.js";
-import { assignFaces, FACES } from "./boites.js";
+import { FACES, portLayout } from "./boites.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
 const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -174,14 +174,14 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
       deps.push({ id: "alim:" + gi, kind: "alim", p: route ? route[0] : tab || { x: b.x, y: b.y - 1 }, routed: !!route,
         label: `Alimentation ${names.join(" + ")} (tableau)${alimG.length > 1 ? ` — gaine ${gi + 1}/${alimG.length}` : ""}`, circuit: names.join(", "), circuits: names, wires, length: len });
     });
-    const faces = assignFaces(b, deps, S.departsFace);
-    deps.forEach((g) => { g.face = faces.get(g.id) || "?"; g.diam = gaineFor(g.wires.map((w) => w.section), S.remplissage); });
+    const PL = portLayout(b, deps.map((g) => ({ id: g.id, p: g.p, keys: g.kind === "alim" ? [g.id === "alim:0" ? "tab" : g.id] : g.appIds })), S.departsFace, b.ports || {});
+    deps.forEach((g) => { const q = PL.get(g.id) || {}; g.face = q.face || "?"; g.slot = q.slot ?? null; g.diam = gaineFor(g.wires.map((w) => w.section), S.remplissage); });
     if (deps.length > S.departsMax) issues.push(`${b.n} : ${deps.length} départs (max ${S.departsMax})`);
     FACES.forEach((f) => { const n = deps.filter((g) => g.face === f).length; if (n > S.departsFace) issues.push(`${b.n} face ${f} : ${n} départs (max ${S.departsFace})`); });
     if (deps.some((g) => g.face === "?")) issues.push(`${b.n} : trop de départs pour les faces (max ${S.departsFace} par face)`);
     // numéros de gaine : face A puis B, C, D ; dans une face, dans le sens horaire
     const ang = (g) => Math.atan2(g.p.x - b.x, -(g.p.y - b.y));
-    deps.sort((p, q) => FACES.indexOf(p.face) - FACES.indexOf(q.face) || ang(p) - ang(q));
+    deps.sort((p, q) => FACES.indexOf(p.face) - FACES.indexOf(q.face) || (p.slot ?? 99) - (q.slot ?? 99) || ang(p) - ang(q));
     deps.forEach((g, i) => { g.no = `${b.n}.${String(i + 1).padStart(2, "0")}`; });
     // n° de raccordement définitifs (dans l'ordre : terres, neutres, phases, retours et navettes…)
     const used = nets.filter((nt) => deps.some((g) => g.wires.some((w) => w.net === nt.key)));

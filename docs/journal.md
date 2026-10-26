@@ -281,6 +281,24 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 37 (26/10/2026) — livrée : symboles, filtre de vue, boîtes avec points d'accroche
+- Demandes de Kévin : symboles carrés, colorés eux-mêmes par leur circuit ; filtre rapide de la vue ; boîtes qui ne
+  changent pas de taille au zoom ; points d'accroche par face (réglage) pour que les gaines ne se croisent pas ;
+  appliques tournées contre leur mur ; spot avec éclat ; quadrillage plus fin ; deux barres d'outils.
+- Ses choix : sans circuit = rouge (sauf lignes directes) ; 2 barres visibles en même temps ; gaines rangées
+  automatiquement + déplaçables à la main ; boutons + 3 vues toutes prêtes.
+- Fait : symboles carrés (prises, RJ45, commandes, BP, VMC, SC), lumières rondes, spot avec éclat, applique tournée
+  dos à son mur (écran et PDF) ; couleur du circuit sur le symbole (vue Câblage), rouge si pas de circuit sauf RJ45,
+  prises spécialisées et SC ; barres « Implantation bâti » (bord orange, avec l'outil Échelle) et « Implantation
+  appareils » (bord bleu) ; filtre en haut à droite : vues Bâti / Implantation / Câblage (Alt+1/2/3) + 9 boutons
+  (fond, murs, pièces, appareils, liaisons, boîtes, gaines, cotes, quadrillage) ; quadrillage 5 cm à 10 m selon le
+  zoom, trait marqué tous les mètres ; boîte de taille fixe sur le plan (comme les symboles, jamais moins de 34 px)
+  avec 6 points par face (réglage « départs par face »), gaines rangées dans l'ordre de leur direction, bout de gaine
+  tiré sur un autre point = épinglé (le moteur de câblage et les numéros de gaine suivent).
+- Choix technique : « ne change pas de taille au zoom » compris comme taille fixe SUR LE PLAN (avant : taille fixe à
+  l'écran, donc la boîte rapetissait par rapport au plan en zoomant).
+- Tests : 30 + 38 + 108 = 176.
+
 ## Comparatif des moteurs IA sur le plan PASQUIER (26/10/2026, même consigne, PDF seul, conversation neuve)
 | Moteur | Durée | Pièces fermées | Ouvertures placées | Appareils | Liaisons justes | VV |
 |---|---|---|---|---|---|---|

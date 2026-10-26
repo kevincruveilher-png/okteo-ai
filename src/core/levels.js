@@ -6,7 +6,7 @@ import { labelPoint } from "../walls/rooms.js";
 import { CH, LKEYS, TYPES, dist, epOf, nodeById, segById, segDir, state, symScaleOf } from "./model.js";
 import { markDirty, snapshot } from "./persist.js";
 import { fit, repMap } from "./view.js";
-import { draw, wallIntervals } from "./render.js";
+import { appRot, draw, wallIntervals } from "./render.js";
 import { followWalls, roomArea, roomPoly } from "./attach.js";
 import { clearSel, roomAt } from "./groups.js";
 import { showSide } from "./panel.js";
@@ -412,7 +412,8 @@ export function okteoGeo() {
     rep: reps[a.id],
     name: TYPES[a.t].n,
     room: (roomAt(a.x, a.y) || {}).name || null,
-    xlink: xl[a.id] || null
+    xlink: xl[a.id] || null,
+    rot: appRot(a)
   }));
   const byId = Object.fromEntries(state.app.map(a => [a.id, a]));
   const links = state.lia.map(l => byId[l.c] && byId[l.l] && {

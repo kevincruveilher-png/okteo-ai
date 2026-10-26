@@ -91,6 +91,12 @@ export function buildCatalog(api, hooks) {
   add("Sélection et édition", "help.gond", "Gond et sens d'une porte", "G / S", "Porte sélectionnée : G change le côté du gond, S le sens d'ouverture.");
 
   // Vue
+  add("Vue", "view.bati", "Vue Bâti (bâtiment seul)", "Alt+1", "Filtre rapide (en haut à droite) : fond, murs, pièces, cotes et quadrillage ; appareils, liaisons, boîtes et gaines masqués.", () => api.viewPreset("bati"));
+  add("Vue", "view.impl", "Vue Implantation (bâtiment + appareils)", "Alt+2", "Filtre rapide : le bâtiment, les appareils et leurs liaisons ; boîtes et gaines masquées.", () => api.viewPreset("impl"));
+  add("Vue", "view.cab", "Vue Câblage (circuits, boîtes, gaines)", "Alt+3", "Filtre rapide : symboles à la couleur de leur circuit (rouge = pas encore de circuit), boîtes avec leurs points d'accroche, gaines.", () => api.viewPreset("cab"));
+  [["fond", "le fond de plan"], ["murs", "les murs, portes et fenêtres"], ["pieces", "les pièces"], ["appareils", "les appareils"], ["liaisons", "les liaisons"], ["boites", "les boîtes"], ["gaines", "les gaines"], ["cotes", "les cotes"], ["grille", "le quadrillage"]].forEach(([k, n]) =>
+    add("Vue", "view.toggle." + k, `Afficher / masquer ${n}`, "", `Bouton « ${n} » du filtre rapide de la vue (en haut à droite) : un clic l'affiche ou le masque.`, () => api.toggleView(k)));
+  add("Câblage", "help.ports", "Points d'accroche des gaines sur une boîte", "", "Chaque face de boîte montre autant de points que le réglage « Départs par face » (Paramètres → Câblage). Les gaines s'y rangent seules sans se croiser ; boîte choisie, tirer le bout d'une gaine sur un autre point (même boîte) pour l'y fixer, ou sur une autre boîte pour l'y raccorder. Ctrl+Z annule.");
   add("Vue", "view.fit", "Ajuster la vue au plan", "", "Recadre pour voir tout le dessin.", () => api.fit());
   add("Vue", "view.in", "Zoom avant", "molette", "", () => api.zoom(1.25));
   add("Vue", "view.out", "Zoom arrière", "molette", "", () => api.zoom(0.8));

@@ -6,7 +6,7 @@ import { detectDevices, pageTexts } from "../src/walls/devices.js";
 import { gaineFor } from "../src/cablage/gaine.js";
 import { computeCircuits, checkCircuits } from "../src/cablage/circuits.js";
 import { CAB_DEFAULTS as S } from "../src/cablage/settings.js";
-import { placeBoxes, buildUnits, faceToward } from "../src/cablage/boites.js";
+import { placeBoxes, buildUnits, faceToward, portLayout, portXY } from "../src/cablage/boites.js";
 import { computeWiring, gaineLength, cableColors } from "../src/cablage/gaines.js";
 import { connectorsFor, boxSteps, boxMaterial, boxChecks, parseSizes, schemaSVG } from "../src/cablage/schema.js";
 
@@ -153,6 +153,17 @@ console.log("Schéma de boîte pour le câbleur (v33)");
     ["A haut", ">A<", ">B<", ">C<", ">D<"].every((f) => svg.includes(f)) && (svg.match(/class="term"/g) || []).length === nW && (svg.match(/class="w"/g) || []).length === nW
     && (svg.match(/class="node"/g) || []).length === traced.length && (svg.match(/class="lnk"/g) || []).length === traced.reduce((s, x) => s + x.wires.length, 0) && svg.includes("côté Chambre 1")
     && /data-c="C\d/.test(svg), `${nW} fils, ${traced.length} points`);
+}
+
+{
+  // points d'accroche (v37) : 6 par face, gaines rangées dans l'ordre de leur direction (pas de croisement), épinglage respecté
+  const box = { x: 0, y: 0 }, deps = [-3, -1, 0.5, 2, 4].map((x, k) => ({ id: "g" + k, p: { x, y: -5 }, keys: ["g" + k] }));
+  const L = portLayout(box, deps, 6), xs = deps.map((d) => portXY(box, 1, 6, L.get(d.id).face, L.get(d.id).slot).x);
+  const pinned = portLayout(box, deps, 6, { g4: { f: "A", i: 0 } });
+  const crosses = (P) => { const s = deps.map((d) => ({ x0: portXY(box, 1, 6, P.get(d.id).face, P.get(d.id).slot).x, x1: d.p.x })); return s.some((a, i) => s.some((b, j) => j > i && (a.x0 - b.x0) * (a.x1 - b.x1) < 0)); };
+  check("points d'accroche : 5 gaines vers le haut sur la face A, dans l'ordre gauche → droite, sans croisement ; une gaine épinglée garde son point",
+    deps.every((d) => L.get(d.id).face === "A") && xs.every((x, i) => i === 0 || x > xs[i - 1]) && !crosses(L) && pinned.get("g4").slot === 0 && pinned.get("g4").face === "A"
+    && new Set(deps.map((d) => pinned.get(d.id).slot)).size === 5, xs.join(" "));
 }
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);

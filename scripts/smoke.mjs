@@ -89,7 +89,7 @@ try {
 
   console.log("Premiers pas (v27)");
   await check("première ouverture : invitation à la visite guidée (non bloquante)", async () => page.isVisible(".tour-invite"));
-  await check("visite guidée : 16 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
+  await check("visite guidée : 18 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
     await page.click("#ti-go");
     const s1 = await page.textContent(".tour-bub .tour-n");
     await page.keyboard.press("ArrowRight");
@@ -97,12 +97,12 @@ try {
       return !document.querySelector(".tour-ring").hidden && r.left <= t.left && r.right >= t.right && r.top <= t.top && r.bottom >= t.bottom; });
     await page.keyboard.press("ArrowLeft");
     const back = await page.textContent(".tour-bub .tour-n");
-    for (let k = 0; k < 16; k++) await page.click("#tour-next");
+    for (let k = 0; k < 18; k++) await page.click("#tour-next");
     const done = await ev(() => document.querySelector(".tour-bub").hidden && okteoExt.panel.state.pane === "steps" && !!document.querySelector(".steps ol li"));
     await ev(() => okteoExt.panel.show("props"));
     await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);
     const again = await page.isVisible(".tour-invite");
-    if (!(s1 === "1 / 16" && lit && back === "1 / 16" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
+    if (!(s1 === "1 / 18" && lit && back === "1 / 18" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
     return true;
   });
 
@@ -803,7 +803,7 @@ try {
       const all = okteo.allApps(), C = okteo.cab.circuits, inC = new Set(C.flatMap((c) => c.apps));
       const need = all.filter((a) => !["TAB", "VMC"].includes(a.t));
       return { miss: need.filter((a) => !inC.has(a.id)).length, n: C.length, lv: new Set(all.map((a) => a.lv)).size,
-        rings: document.querySelectorAll("#sv circle.circ:not(.nocirc)").length, cur: okteo.state.app.filter((a) => !["TAB", "VMC"].includes(a.t)).length,
+        rings: document.querySelectorAll("#sv g.circ:not(.nocirc)").length, cur: okteo.state.app.filter((a) => !["TAB", "VMC"].includes(a.t)).length,
         rows: document.querySelectorAll(".cb-row").length, nums: C.map((c) => c.n).join(" ") };
     });
     if (!(r.miss === 0 && r.lv === 2 && r.rings === r.cur && r.rows === r.n && /^C1 C2 /.test(r.nums))) throw new Error(JSON.stringify(r));
@@ -939,8 +939,10 @@ try {
     return true;
   });
   await check("cadenas : clic sur le cadenas du plan ; recalcul : on coche les boîtes, les verrouillées gardent place, appareils et tracés", async () => {
-    const b = await ev(() => { const b = okteo.cab.boxes.find((x) => x.lv === okteo.level.id && !x.locked); return { id: b.id, p: okteo.toClient(b.x, b.y) }; });
-    await page.mouse.click(b.p.x + 14, b.p.y - 13);
+    const b = await ev(() => { const b = okteo.cab.boxes.find((x) => x.lv === okteo.level.id && !x.locked);
+      const m = document.querySelector(`#sv g.box[data-id="${b.id}"] g.lock`).getAttribute("transform").match(/translate\(([-\d.e]+) ([-\d.e]+)\)/);
+      return { id: b.id, p: okteo.toClient(+m[1], +m[2]) }; });
+    await page.mouse.click(b.p.x, b.p.y);
     const locked = await ev((id) => okteo.cab.boxes.find((x) => x.id === id).locked, b.id);
     const before = await ev(() => JSON.stringify(okteo.cab.boxes.filter((x) => x.locked)));
     await ev(() => okteoExt.panel.show("cablage")); await page.waitForTimeout(150);
@@ -978,10 +980,9 @@ try {
     await page.mouse.click(t.s.x, t.s.y);                       // choisit la boîte : les bouts de gaine apparaissent
     const end = await ev(({ src, id }) => { const h = [...document.querySelectorAll("#sv circle.gend")].length; const b = okteo.cab.boxes.find((x) => x.id === src);
       const a = okteo.state.app.find((x) => x.id === id), L = Math.hypot(a.x - b.x, a.y - b.y); return { h }; }, t);
-    // position du bout (même calcul que gaineEnds : vers le point de contrôle de l'arc, à 22 px)
-    const p0 = await ev(({ src, id }) => { const b = okteo.cab.boxes.find((x) => x.id === src), a = okteo.state.app.find((x) => x.id === id);
-      const L = Math.hypot(a.x - b.x, a.y - b.y) || 1, q = { x: (b.x + a.x) / 2 - (a.y - b.y) * 0.15, y: (b.y + a.y) / 2 + (a.x - b.x) * 0.15 }, Lq = Math.hypot(q.x - b.x, q.y - b.y) || 1;
-      const c = okteo.toClient(b.x, b.y), c2 = okteo.toClient(q.x, q.y), Ls = Math.hypot(c2.x - c.x, c2.y - c.y) || 1; return { x: c.x + (c2.x - c.x) / Ls * 22, y: c.y + (c2.y - c.y) / Ls * 22 }; }, t);
+    // position du bout : la poignée posée sur le point d'accroche de la gaine
+    const p0 = await ev(({ id }) => { const c = [...document.querySelectorAll("#sv circle.gend")].find((e) => e.dataset.k === id) || [...document.querySelectorAll("#sv circle.gend")].find((e) => okteo.cab.boxes.some((b) => b.apps.includes(e.dataset.k)));
+      return okteo.toClient(+c.getAttribute("cx"), +c.getAttribute("cy")); }, t);
     await page.mouse.move(p0.x, p0.y); await page.mouse.down(); await page.mouse.move(t.d.x, t.d.y, { steps: 8 }); await page.mouse.up();
     const r = await ev(({ src, dst, id }) => ({ inDst: okteo.cab.boxes.find((x) => x.id === dst).apps.includes(id), inSrc: okteo.cab.boxes.find((x) => x.id === src).apps.includes(id), hint: document.getElementById("hint").textContent }), t);
     await page.keyboard.press("Control+z");
@@ -1016,6 +1017,91 @@ try {
     return lia.length > 0 && straight && arcs;
   }));
 
+  console.log("Symboles, filtre de vue, boîtes (v37)");
+  await check("symboles : carrés sauf lumières (spot avec éclat) ; couleur du circuit sur le symbole, rouge sans circuit sauf ligne directe", async () => {
+    await page.click('#tabs button[data-tab="plan"]');
+    await ev(() => { okteo.showCircuits = true; });
+    const r = await ev(() => {
+      const shape = (t) => { const g = [...document.querySelectorAll("#tools .pb")].find((b) => b.dataset.tool === t); return g ? g.querySelector("svg").firstElementChild.tagName : null; };
+      const C = okteo.cab.circuits, inC = new Set(C.flatMap((c) => c.apps));
+      const a = okteo.state.app.find((x) => inC.has(x.id) && x.t === "PC16");
+      const g = [...document.querySelectorAll("#sv g.dev")].find((e) => e.getAttribute("transform").startsWith(`translate(${a.x} ${a.y})`));
+      return { pc: shape("PC16"), int: shape("INT"), lum: shape("LUM"), spot: document.querySelector('#tools .pb[data-tool="SPOT"] svg').querySelectorAll("path").length,
+        col: g && g.style.getPropertyValue("--c"), circ: g && g.classList.contains("circ"), oldRings: document.querySelectorAll("#sv circle.circ").length };
+    });
+    // un appareil sans circuit : rouge ; une RJ45 sans circuit : pas d'alerte (ligne directe)
+    const nc = await ev(() => {
+      const p = okteo.state.app.find((x) => x.t === "PC16"), id = p.id, save = JSON.stringify(okteo.cab.circuits);
+      okteo.setCircuits(okteo.cab.circuits.map((c) => ({ ...c, apps: c.apps.filter((k) => k !== id && okteo.state.app.find((a) => a.id === k)?.t !== "RJ45") })));
+      const g = (pred) => [...document.querySelectorAll("#sv g.dev")].find((e) => { const a = okteo.state.app.find(pred); return a && e.getAttribute("transform").startsWith(`translate(${a.x} ${a.y})`); });
+      const red = g((x) => x.id === id), rj = g((x) => x.t === "RJ45");
+      return { red: red && red.classList.contains("nocirc") && red.style.getPropertyValue("--c") === "#d33", rj: !rj || !rj.classList.contains("nocirc") };
+    });
+    await page.keyboard.press("Control+z");
+    if (!(r.pc === "rect" && r.int === "rect" && r.lum === "circle" && r.spot >= 1 && /^#/.test(r.col || "") && r.circ && r.oldRings === 0 && nc.red && nc.rj)) throw new Error(JSON.stringify({ r, nc }));
+    return true;
+  });
+  await check("applique : tournée pour avoir le dos à son mur (mur vertical = ±90°, horizontal = 0 ou 180°)", async () => {
+    const r = await ev(() => {
+      const segs = okteo.state.segs.filter((s) => !s.virt), N = Object.fromEntries(okteo.state.nodes.map((n) => [n.id, n]));
+      const out = [];
+      for (const kind of ["v", "h"]) {
+        const s = segs.find((x) => { const a = N[x.a], b = N[x.b], v = Math.abs(a.x - b.x) < 0.01; return (kind === "v" ? v : Math.abs(a.y - b.y) < 0.01) && Math.hypot(a.x - b.x, a.y - b.y) > 2; });
+        const a = N[s.a], b = N[s.b], ep = s.ep || okteo.state.wallEp;
+        const x = (a.x + b.x) / 2 + (kind === "v" ? ep : 0), y = (a.y + b.y) / 2 + (kind === "h" ? ep : 0);
+        const ids = new Set(okteo.state.app.map((q) => q.id));
+        okteo.importDevices([{ t: "APP", x, y }], [], { replace: false });
+        out.push({ kind, id: okteo.state.app.find((q) => !ids.has(q.id)).id });
+      }
+      return out;
+    });
+    const rots = await ev((list) => list.map(({ kind, id }) => { const a = okteo.state.app.find((x) => x.id === id); const g = [...document.querySelectorAll("#sv g.dev")].find((e) => e.getAttribute("transform").startsWith(`translate(${a.x} ${a.y})`));
+      const m = (g.getAttribute("transform").match(/rotate\(([-\d.]+)\)/) || [0, "0"])[1]; return { kind, seg: !!a.seg, rot: Math.round(+m) }; }), r);
+    await page.keyboard.press("Control+z"); await page.keyboard.press("Control+z");
+    const ok = rots.every((o) => o.seg && (o.kind === "v" ? Math.abs(Math.abs(o.rot) - 90) < 1 : Math.abs(o.rot) % 180 < 1));
+    if (!ok) throw new Error(JSON.stringify(rots));
+    return true;
+  });
+  await check("filtre de vue : Bâti / Implantation / Câblage (Alt+1/2/3), boutons par élément, quadrillage fin 10 cm / 1 m", async () => {
+    const count = () => ev(() => ({ dev: document.querySelectorAll("#sv g.dev").length, box: document.querySelectorAll("#sv g.box").length, gaine: document.querySelectorAll("#sv path.gaine").length, lia: document.querySelectorAll("#sv path.lia").length, grid: document.querySelectorAll("#sv g.grid").length }));
+    await page.click('#vfilter [data-vp="bati"]'); const b = await count();
+    await page.keyboard.press("Alt+2"); const i = await count();
+    await page.keyboard.press("Alt+3"); const c = await count();
+    const onCab = await ev(() => document.querySelector('#vfilter [data-vp="cab"]').classList.contains("on"));
+    await page.click('#vfilter [data-vk="gaines"]'); const ng = await count();
+    await page.click('#vfilter [data-vk="grille"]');
+    const step = await ev(() => { const s = okteo.state.segs[0], n = okteo.state.nodes.find((x) => x.id === s.a); okteo.zoomToBox(n.x - 1, n.y - 1, n.x + 1, n.y + 1); return [...document.querySelectorAll("#sv g.grid")].map((g) => +g.dataset.step); });
+    await ev(() => okteo.fit());
+    const rows = await ev(() => ({ bati: !!document.querySelector("#tools .trow.bati [data-tool=mur]"), appa: !!document.querySelector("#tools .trow.appa [data-tool=lien]") && !!document.querySelector("#tools .trow.appa .palette") }));
+    const ok = b.dev === 0 && b.box === 0 && b.grid > 0 && i.dev > 0 && i.lia > 0 && i.box === 0 && c.box > 0 && c.gaine > 0 && c.lia === 0 && onCab && ng.gaine === 0 && ng.box > 0
+      && step.length === 2 && step[0] <= 0.1 && step[1] === 1 && rows.bati && rows.appa;
+    if (!ok) throw new Error(JSON.stringify({ b, i, c, onCab, ng, step, rows }));
+    await ev(() => okteo.viewPreset("cab"));
+    return true;
+  });
+  await check("boîte : taille fixe sur le plan au zoom ; points d'accroche = réglage par face ; gaine épinglée sur un point (sans croisement), Ctrl+Z", async () => {
+    const size = () => ev(() => { const r = document.querySelector("#sv g.box rect"); return +r.getAttribute("width"); });
+    const t = await ev(() => { const b = okteo.cab.boxes.find((x) => x.lv === okteo.level.id && x.apps.length > 1); okteo.zoomToBox(b.x - 2, b.y - 2, b.x + 2, b.y + 2); return { id: b.id }; });
+    const s1 = await size();
+    await ev(({ id }) => { const b = okteo.cab.boxes.find((x) => x.id === id); okteo.zoomToBox(b.x - 3, b.y - 3, b.x + 3, b.y + 3); }, t);
+    const s2 = await size();
+    const ports = await ev(({ id }) => document.querySelectorAll(`#sv g.box[data-id="${id}"] circle.port`).length, t);
+    // boîte choisie : on tire le bout d'une gaine sur un point libre de la même boîte
+    const p = await ev(({ id }) => { const b = okteo.cab.boxes.find((x) => x.id === id); return okteo.toClient(b.x, b.y); }, t);
+    await page.mouse.click(p.x, p.y);
+    const m = await ev(({ id }) => {
+      const e = document.querySelector("#sv circle.gend"), fr = document.querySelector(`#sv g.box[data-id="${id}"] circle.port:not(.used)`);
+      return { e: okteo.toClient(+e.getAttribute("cx"), +e.getAttribute("cy")), k: e.dataset.k, f: okteo.toClient(+fr.getAttribute("cx"), +fr.getAttribute("cy")), ff: fr.dataset.f, fi: +fr.dataset.i };
+    }, t);
+    await page.mouse.move(m.e.x, m.e.y); await page.mouse.down(); await page.mouse.move(m.f.x, m.f.y, { steps: 6 }); await page.mouse.up();
+    const pinned = await ev(({ id, k }) => (okteo.cab.boxes.find((x) => x.id === id).ports || {})[k], { ...t, k: m.k });
+    await page.keyboard.press("Control+z");
+    const back = await ev(({ id, k }) => (okteo.cab.boxes.find((x) => x.id === id).ports || {})[k] || null, { ...t, k: m.k });
+    const ok = Math.abs(s1 - s2) < 1e-6 && ports === 24 && pinned && pinned.f === m.ff && pinned.i === m.fi && back === null;
+    if (!ok) throw new Error(JSON.stringify({ s1, s2, ports, pinned, m, back }));
+    await ev(() => okteo.fit());
+    return true;
+  });
   console.log("Schémas de boîte pour le câbleur (v33)");
   await check("onglet Bandes : boîte carrée (faces A–D, gaines, connecteurs), orientation, matériel, raccordements dans l'ordre à cocher", async () => {
     await page.click('#tabs button[data-tab="bandes"]');

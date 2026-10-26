@@ -183,13 +183,24 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   (pdf-page.js), contrôle par les cotes sur `okteo:calibrated` (main.js). Schéma : nouveau `schemaSVG` (fils `g.w`,
   bornes `.term`, points `.node`, liaisons `.lnk`, attribut `data-c` = circuits) ; calque dans cablage-bandes.js.
   Fils d'appareil : `wires[].circuit`. Exemples de Kévin : `docs/exemples/` (format SPV supposé dans LISEZMOI.md).
+- v36 : relevé IA sans clé : `fromPaste` / `pastePanel` (ai-releve.js), réponse JSON avec `"ref":{"W","H"}` = pixels de la page
+  entière ; exemples et comparatif des moteurs dans `docs/exemples/` (journal : tableau comparatif).
+- v37 : symboles carrés sauf LUM/APP/SPOT (`glyph`, couleur = `var(--c)` : couleur du circuit sur le symbole, rouge `#d33` sans
+  circuit sauf lignes directes `circuitMap().__direct` RJ45/PC20/SC ; groupe `g.dev` + `g.circ`/`.nocirc`) ; `appRot(a)` tourne
+  l'applique dos à son mur (aussi dans `exportGeometry` → `print.js symbol(..., rot)`). Calques en plus : `boites`, `gaines`,
+  `grille` ; filtre rapide `#vfilter` (controls.js `buildFilter`, `viewPreset("bati"|"impl"|"cab")` Alt+1/2/3, `toggleView`,
+  `okteo.viewPreset/toggleView`) ; deux barres `#tools .trow.bati` / `.trow.appa` (outil `calib` = Échelle). Quadrillage
+  `g.grid.minor/major` (5 cm…10 m selon le zoom, trait marqué au mètre). Boîtes : `boxLayout(b)` (render.js) = côté fixe sur
+  le plan (3 symboles, ≥ 34 px), N = `departsFace` points par face (`circle.port`), départs = un par endroit + alimentation ;
+  `portLayout`/`portXY` (boites.js, pur, aussi utilisé par gaines.js) range sans croisement, `box.ports` = épinglages
+  {appId|"tab": {f,i}} ; bout de gaine (`circle.gend[data-k]`) lâché sur un point = épingle, sur une autre boîte = déplacement.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (37 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (103 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (38 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (108 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

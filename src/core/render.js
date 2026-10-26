@@ -9,38 +9,55 @@ import { followWalls, gaineCtrl, linkCtrl, linkRole, openHandles, roomArea, room
 import { bbox, currentGroup, groupPoints, isSel, multi } from "./groups.js";
 import { placeHud } from "./hud.js";
 import { allLinks, belowData, crossLinks } from "./levels.js";
+import { getCab } from "../cablage/settings.js";
+import { portLayout, portXY } from "../cablage/boites.js";
 
 // ---------- rendu ----------
 export const sv = document.getElementById("sv");
 
+// symboles (v37) : carrés, sauf les lumières (point lumineux, applique, spot) qui restent rondes ; la couleur du trait et du
+// texte = var(--c) (couleur du circuit quand on l'affiche, sinon la couleur du thème)
+const sq = (r) => `<rect x="${-r}" y="${-r}" width="${2 * r}" height="${2 * r}" rx="${(r * 0.18).toFixed(3)}" class="gy"/>`;
 export function glyph(t) {
   switch (t) {
     case "PC16":
-      return `<circle r="0.9" class="gy"/><text y="0.3" class="gl">16</text>`;
+      return sq(0.8) + `<text y="0.3" class="gl">16</text>`;
     case "PC20":
-      return `<circle r="0.9" class="gf"/><text y="0.3" class="glw">20</text>`;
+      return `<rect x="-0.8" y="-0.8" width="1.6" height="1.6" rx="0.15" class="gf"/><text y="0.3" class="glw">20</text>`;
     case "RJ45":
-      return `<rect x="-0.8" y="-0.8" width="1.6" height="1.6" rx="0.2" class="gy"/><text y="0.3" class="gl">RJ</text>`;
+      return sq(0.8) + `<text y="0.3" class="gl">RJ</text>`;
     case "APP":
+      // applique : demi-cercle, le côté plat contre le mur (le dessin est tourné selon le mur)
       return `<path d="M-0.9 0.25A0.9 0.9 0 0 1 0.9 0.25Z" class="gy"/><path d="M-0.55 -0.3L0.55 0.25M0.55 -0.3L-0.55 0.25" class="gs"/>`;
     case "LUM":
       return `<circle r="0.9" class="gy"/><path d="M-0.6 -0.6L0.6 0.6M0.6 -0.6L-0.6 0.6" class="gs"/>`;
     case "SPOT":
-      return `<circle r="0.6" class="gy"/><circle r="0.22" class="gf"/>`;
+      // spot : rond avec un éclat de lumière
+      return `<circle r="0.5" class="gy"/><circle r="0.2" class="gf"/><path d="M0 -0.68V-1.02M0 0.68V1.02M-0.68 0H-1.02M0.68 0H1.02M-0.48 -0.48L-0.72 -0.72M0.48 -0.48L0.72 -0.72M-0.48 0.48L-0.72 0.72M0.48 0.48L0.72 0.72" class="gs"/>`;
     case "INT":
-      return `<circle r="0.55" class="gy"/><line x1="0.35" y1="-0.35" x2="0.95" y2="-0.95" class="gs"/>`;
+      return sq(0.55) + `<line x1="0.4" y1="-0.4" x2="0.95" y2="-0.95" class="gs"/>`;
     case "VV":
-      return `<circle r="0.55" class="gy"/><line x1="0.35" y1="-0.35" x2="0.95" y2="-0.95" class="gs"/><line x1="-0.1" y1="0.3" x2="0.5" y2="-0.3" class="gs"/>`;
+      return sq(0.55) + `<line x1="0.4" y1="-0.4" x2="0.95" y2="-0.95" class="gs"/><line x1="-0.1" y1="0.3" x2="0.5" y2="-0.3" class="gs"/>`;
     case "BP":
-      return `<circle r="0.55" class="gy"/><circle r="0.2" class="gf"/>`;
+      return sq(0.55) + `<circle r="0.2" class="gf"/>`;
     case "VMC":
-      return `<rect x="-0.8" y="-0.8" width="1.6" height="1.6" rx="0.3" class="gy"/><text y="0.3" class="gl">V</text>`;
+      return sq(0.8) + `<text y="0.3" class="gl">V</text>`;
     case "SC":
-      return `<circle r="0.6" class="gy"/><path d="M-0.85 -0.85L0.85 0.85M0.85 -0.85L-0.85 0.85" class="gs"/>`;
+      return sq(0.6) + `<path d="M-0.85 -0.85L0.85 0.85M0.85 -0.85L-0.85 0.85" class="gs"/>`;
     case "TAB":
       return `<rect x="-1" y="-1.2" width="2" height="2.4" rx="0.2" class="gf"/><text y="0.3" class="glw">TD</text>`;
   }
-  return `<circle r="0.8" class="gy"/>`;
+  return sq(0.8);
+}
+// rotation (degrés) d'une applique : côté plat contre son mur, arrondi vers la pièce
+export function appRot(a) {
+  if (a.t !== "APP" || !a.seg || !a.wa) return 0;
+  const seg = segById(a.seg);
+  if (!seg) return 0;
+  const d = segDir(seg);
+  if (!d.a) return 0;
+  const nx = -d.uy * a.wa.s, ny = d.ux * a.wa.s;
+  return +(Math.atan2(nx, -ny) * 180 / Math.PI).toFixed(2);
 }
 
 export function lightsOn(cid) {
@@ -73,16 +90,23 @@ export function draw() {
     [bx, by] = W2V(K.BG.x, K.BG.y),
     ep = state.wallEp;
   let h = `<style>
-  .gy{fill:var(--panel);stroke:var(--accent);stroke-width:.14}.gf{fill:var(--accent);stroke:var(--accent);stroke-width:.14}
-  .gs{stroke:var(--accent);stroke-width:.16;fill:none}.gl{fill:var(--accent);font:600 .75px var(--fm);text-anchor:middle}
+  .gy{fill:var(--panel);stroke:var(--c,var(--accent));stroke-width:.14}.gf{fill:var(--c,var(--accent));stroke:var(--c,var(--accent));stroke-width:.14}
+  .gs{stroke:var(--c,var(--accent));stroke-width:.16;fill:none}.gl{fill:var(--c,var(--accent));font:600 .75px var(--fm);text-anchor:middle}
   .glw{fill:#fff;font:600 .7px var(--fm);text-anchor:middle}</style>`;
   if (K.bgLevel > 0 && layers.fond.on && K.FOND) h += `<image href="${K.FOND}" x="${bx}" y="${by}" width="${K.BG.w * s}" height="${K.BG.h * s}" opacity="${K.bgLevel}" preserveAspectRatio="none"/>`;
-  const g = 1 * s;
-  if (g > 6) {
-    let gl = "";
-    for (let x = ((0 - K.view.cx) * s + VB.w / 2) % g; x < VB.w; x += g) gl += `<line x1="${x}" y1="0" x2="${x}" y2="${VB.h}"/>`;
-    for (let y = ((0 - K.view.cy) * s + VB.h / 2) % g; y < VB.h; y += g) gl += `<line x1="0" y1="${y}" x2="${VB.w}" y2="${y}"/>`;
-    h += `<g stroke="var(--grid)" stroke-width=".4">${gl}</g>`;
+  // quadrillage (v37) : trait fin au pas le plus petit lisible (5 cm, 10 cm, 50 cm, 1 m ou 5 m), trait marqué tous les mètres
+  if (layers.grille.on) {
+    const ppv = pxPerVB(), STEPS = [0.05, 0.1, 0.5, 1, 5, 10];
+    const minor = STEPS.find(m => m * s * ppv >= 7) || 10, major = minor < 1 ? 1 : minor * 5;
+    const lines = (step) => {
+      let gl = "";
+      const g = step * s;
+      for (let x = (((0 - K.view.cx) * s + VB.w / 2) % g + g) % g; x < VB.w; x += g) gl += `<line x1="${x.toFixed(3)}" y1="0" x2="${x.toFixed(3)}" y2="${VB.h}"/>`;
+      for (let y = (((0 - K.view.cy) * s + VB.h / 2) % g + g) % g; y < VB.h; y += g) gl += `<line x1="0" y1="${y.toFixed(3)}" x2="${VB.w}" y2="${y.toFixed(3)}"/>`;
+      return gl;
+    };
+    h += `<g class="grid minor" data-step="${minor}" stroke="var(--grid)" stroke-width="${(0.6 / ppv).toFixed(4)}">${lines(minor)}</g>`;
+    if (major * s * ppv < 2000) h += `<g class="grid major" data-step="${major}" stroke="var(--grid2)" stroke-width="${(1 / ppv).toFixed(4)}">${lines(major)}</g>`;
   }
   h += `<g transform="translate(${VB.w / 2} ${VB.h / 2}) scale(${s}) translate(${-K.view.cx} ${-K.view.cy})">`;
   // groupe sélectionné (sélection multiple ou pièce) : ce qui bougera
@@ -270,47 +294,61 @@ export function draw() {
     }
     h += `<g>${ll}</g>`;
   }
-  // boîtes de pieuvre (onglet Câblage) : liens boîte → appareils, alimentation depuis le tableau, carré + nom
-  if (K.showCirc && (K.CAB.boxes || []).length) {
+  // boîtes de pieuvre (onglet Câblage) : gaines boîte → appareils depuis leur point d'accroche, alimentation depuis le tableau,
+  // boîte carrée de taille fixe sur le plan (comme les symboles), ses points d'accroche sur chaque face, nom, cadenas
+  const showBoxes = K.showCirc && layers.boites.on, showGaines = K.showCirc && layers.gaines.on;
+  if ((showBoxes || showGaines) && (K.CAB.boxes || []).length) {
     const pm = pmNow(), cm = circuitMap(), byId = Object.fromEntries(state.app.map(a => [a.id, a])), tab = state.app.find(a => a.t === "TAB");
     let bl = "", bx = "";
     let wp = "";
     K.CAB.boxes.filter(b => b.lv === K.LV.cur).forEach(b => {
       const on = K.boxSel === b.id,
-        R = b.routes || {};
-      // gaine = ligne brisée boîte → points de passage → appareil (ligne droite tant qu'on ne l'a pas modifiée)
-      // gaine : arc de la boîte à l'appareil (comme sur les plans KiTéOHM) ; tracée à la main : ligne brisée
-      const gpath = (key, t) => {
+        R = b.routes || {},
+        LY = boxLayout(b, pm),
+        S = LY.S;
+      // gaine : arc du point d'accroche à l'appareil (comme sur les plans KiTéOHM) ; tracée à la main : ligne brisée
+      const gpath = (key, P, t) => {
         const pts = R[key];
-        if (pts && pts.length) return "M" + [b, ...pts, t].map(p => p.x + " " + p.y).join(" L ");
-        const q = gaineCtrl(b, t);
-        return `M${b.x} ${b.y} Q ${q.x} ${q.y} ${t.x} ${t.y}`;
+        if (pts && pts.length) return "M" + [P, ...pts, t].map(p => p.x + " " + p.y).join(" L ");
+        const q = gaineCtrl(P, t);
+        return `M${P.x} ${P.y} Q ${q.x} ${q.y} ${t.x} ${t.y}`;
       };
-      b.apps.forEach(id => {
-        const a = byId[id];
-        if (!a) return;
-        const c = cm[id];
-        bl += `<path class="gaine" data-b="${b.id}" data-k="${id}" d="${gpath(id, a)}" fill="none" stroke="${c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" opacity="${on ? 0.9 : 0.55}"/>`;
-      });
-      if (tab) bl += `<path class="gaine alim" data-b="${b.id}" data-k="tab" d="${gpath("tab", tab)}" fill="none" stroke="var(--fg)" stroke-width="${1.2 * pm}" stroke-dasharray="${6 * pm} ${4 * pm}" opacity="0.45"/>`;
-      for (const pts of Object.values(R)) pts.forEach(p => {
-        wp += `<circle class="wp" cx="${p.x}" cy="${p.y}" r="${(on ? 4 : 3) * pm}" fill="var(--panel)" stroke="${on ? "var(--sel)" : "var(--fg)"}" stroke-width="${1.4 * pm}"/>`;
-      });
-      const q = 16 * pm,
-        lk = lockPos(b, pm);
-      bx += `<g class="box" data-id="${b.id}"><rect x="${b.x - q / 2}" y="${b.y - q / 2}" width="${q}" height="${q}" fill="var(--panel)" stroke="${on ? "var(--sel)" : "var(--fg)"}" stroke-width="${(on ? 2.4 : 1.6) * pm}"/>` +
-        `<text x="${b.x}" y="${b.y - q / 2 - 4 * pm}" text-anchor="middle" font-size="${11 * pm}" font-weight="700" font-family="var(--fm)" fill="var(--fg)">${b.n}</text>` +
-        ["A", "B", "C", "D"].map((f, i) => { const dx = [0, 1, 0, -1][i] * q * 0.32, dy = [-1, 0, 1, 0][i] * q * 0.32; return `<text x="${b.x + dx}" y="${b.y + dy}" text-anchor="middle" dominant-baseline="central" font-size="${6 * pm}" font-family="var(--fm)" fill="var(--mut)">${f}</text>`; }).join("") +
-        // cadenas : fermé = la boîte ne bouge plus au recalcul ; un clic l'ouvre ou le ferme
-        `<g class="lock${b.locked ? " on" : ""}" transform="translate(${lk.x} ${lk.y}) scale(${pm})"><title>${b.locked ? "Boîte verrouillée : elle ne bouge pas au recalcul (clic pour déverrouiller)" : "Clic pour verrouiller la boîte"}</title>` +
+      if (showGaines) {
+        LY.deps.forEach(d => {
+          if (d.tab) {
+            bl += `<path class="gaine alim" data-b="${b.id}" data-k="tab" d="${gpath("tab", d.P, tab)}" fill="none" stroke="var(--fg)" stroke-width="${1.2 * pm}" stroke-dasharray="${6 * pm} ${4 * pm}" opacity="0.45"/>`;
+            return;
+          }
+          d.apps.forEach(a => {
+            const c = cm[a.id];
+            bl += `<path class="gaine" data-b="${b.id}" data-k="${a.id}" d="${gpath(a.id, d.P, a)}" fill="none" stroke="${c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" opacity="${on ? 0.9 : 0.55}"/>`;
+          });
+        });
+        for (const pts of Object.values(R)) pts.forEach(p => {
+          wp += `<circle class="wp" cx="${p.x}" cy="${p.y}" r="${(on ? 4 : 3) * pm}" fill="var(--panel)" stroke="${on ? "var(--sel)" : "var(--fg)"}" stroke-width="${1.4 * pm}"/>`;
+        });
+      }
+      if (!showBoxes) return;
+      const lk = lockPos(b, pm), fs = Math.min(S * 0.16, 9 * pm);
+      bx += `<g class="box" data-id="${b.id}"><rect x="${b.x - S / 2}" y="${b.y - S / 2}" width="${S}" height="${S}" fill="var(--panel)" stroke="${on ? "var(--sel)" : "var(--fg)"}" stroke-width="${(on ? 2.4 : 1.6) * pm}"/>` +
+        `<text x="${b.x}" y="${b.y - S / 2 - 5 * pm}" text-anchor="middle" font-size="${11 * pm}" font-weight="700" font-family="var(--fm)" fill="var(--fg)">${b.n}</text>` +
+        ["A", "B", "C", "D"].map((f, i) => { const dx = [0, 1, 0, -1][i] * S * 0.3, dy = [-1, 0, 1, 0][i] * S * 0.3; return `<text x="${b.x + dx}" y="${b.y + dy}" text-anchor="middle" dominant-baseline="central" font-size="${fs}" font-family="var(--fm)" fill="var(--mut)">${f}</text>`; }).join("");
+      // points d'accroche : vides = libres, pleins = une gaine y est raccordée (couleur de son circuit)
+      const taken = new Map(LY.deps.filter(d => d.face && d.slot != null).map(d => [d.face + d.slot, d]));
+      for (const f of ["A", "B", "C", "D"]) for (let i = 0; i < LY.N; i++) {
+        const P = portXY(b, S, LY.N, f, i), d = taken.get(f + i), col = d ? (d.tab ? "var(--fg)" : (cm[d.apps[0].id] || {}).color || "var(--mut)") : null;
+        bx += `<circle class="port${d ? " used" : ""}" data-f="${f}" data-i="${i}" cx="${P.x}" cy="${P.y}" r="${(d ? 2.6 : 2) * pm}" fill="${col || "var(--panel)"}" stroke="${col || "var(--mut)"}" stroke-width="${0.9 * pm}"/>`;
+      }
+      // cadenas : fermé = la boîte ne bouge plus au recalcul ; un clic l'ouvre ou le ferme
+      bx += `<g class="lock${b.locked ? " on" : ""}" transform="translate(${lk.x} ${lk.y}) scale(${pm})"><title>${b.locked ? "Boîte verrouillée : elle ne bouge pas au recalcul (clic pour déverrouiller)" : "Clic pour verrouiller la boîte"}</title>` +
         `<rect x="-5" y="-2" width="10" height="8" rx="1.5" fill="${b.locked ? "var(--accent2)" : "var(--panel)"}" stroke="${b.locked ? "var(--accent2)" : "var(--mut)"}" stroke-width="1.3"/>` +
         `<path d="${b.locked ? "M-3 -2V-4.5a3 3 0 0 1 6 0V-2" : "M-3 -2V-4.5a3 3 0 0 1 6 0"}" fill="none" stroke="${b.locked ? "var(--accent2)" : "var(--mut)"}" stroke-width="1.3"/></g></g>`;
     });
     bx += wp;
-    // bouts des gaines côté boîte (boîte choisie) : une poignée à tirer vers une autre boîte
+    // bouts des gaines (boîte choisie) : une poignée sur chaque point d'accroche utilisé, à tirer vers un autre point ou une autre boîte
     const sb = K.boxSel && K.CAB.boxes.find(b => b.id === K.boxSel && b.lv === K.LV.cur);
-    if (sb) gaineEnds(sb).forEach(e => {
-      bx += `<circle class="gend" cx="${e.x}" cy="${e.y}" r="${4.5 * pm}" fill="var(--sel)" stroke="var(--panel)" stroke-width="${1.2 * pm}"><title>Tirer vers une autre boîte pour y raccorder cette gaine</title></circle>`;
+    if (sb && showBoxes) gaineEnds(sb).forEach(e => {
+      bx += `<circle class="gend" data-k="${e.id}" cx="${e.x}" cy="${e.y}" r="${4.5 * pm}" fill="var(--sel)" stroke="var(--panel)" stroke-width="${1.2 * pm}" opacity="0.85"><title>Tirer vers un autre point d'accroche (même boîte) ou vers une autre boîte</title></circle>`;
     });
     if (K.endDrag) bx += `<line x1="${K.endDrag.x}" y1="${K.endDrag.y}" x2="${K.endDrag.ax}" y2="${K.endDrag.ay}" stroke="var(--sel)" stroke-width="${2 * pm}" stroke-dasharray="${5 * pm} ${3 * pm}"/><circle cx="${K.endDrag.x}" cy="${K.endDrag.y}" r="${5 * pm}" fill="var(--sel)"/>`;
     h += `<g class="boxlinks">${bl}</g>`;
@@ -326,14 +364,17 @@ export function draw() {
     state.app.forEach(a => {
       const aSel = isSel("app", a.id) || GH && GH.apps.has(a.id),
         lit = onSet && onSet.has(a.id);
-      ap += `<g transform="translate(${a.x} ${a.y})"><g transform="scale(${ss})">`;
-      if (lit) ap += `<circle r="1.5" fill="var(--warn)" opacity=".5"/>`;
-      if (aSel) ap += `<circle r="1.5" fill="none" stroke="var(--sel)" stroke-width=".12" stroke-dasharray=".3 .25"/>`;
-      // couleur du circuit (onglet Câblage) : anneau autour du symbole ; appareil sans circuit = anneau rouge pointillé
+      // couleur du circuit (affichage des circuits) sur le symbole lui-même ; sans circuit = rouge (à vérifier),
+      // sauf ce qui part en ligne directe (RJ45, prises spécialisées, sorties de câble)
+      let cls = "dev", col = "";
       if (circ) {
         const c = circ[a.id];
-        if (c) ap += `<circle class="circ" data-c="${c.n}" r="1.28" fill="none" stroke="${c.color}" stroke-width=".34"/>`;else if (circ.__need(a)) ap += `<circle class="circ nocirc" r="1.28" fill="none" stroke="#d33" stroke-width=".22" stroke-dasharray=".25 .2"/>`;
+        if (c) { cls += " circ"; col = c.color; } else if (circ.__need(a) && !circ.__direct(a)) { cls += " circ nocirc"; col = "#d33"; }
       }
+      const rot = appRot(a);
+      ap += `<g class="${cls}"${col ? ` style="--c:${col}"` : ""}${circ && circ[a.id] ? ` data-c="${circ[a.id].n}"` : ""} transform="translate(${a.x} ${a.y})${rot ? ` rotate(${rot})` : ""}"><g transform="scale(${ss})">`;
+      if (lit) ap += `<circle r="1.5" fill="var(--warn)" opacity=".5"/>`;
+      if (aSel) ap += `<circle r="1.5" fill="none" stroke="var(--sel)" stroke-width=".12" stroke-dasharray=".3 .25"/>`;
       ap += glyph(a.t) + `</g>`;
       ap += `</g>`;
     });
@@ -628,48 +669,79 @@ export function circuitMap() {
   });
   // appareils qui devraient être dans un circuit (pas le tableau, pas les bouches VMC non câblées)
   m.__need = a => !["TAB", "VMC"].includes(a.t);
+  // partent en ligne directe du tableau (ou du coffret) : pas d'alerte rouge avant la répartition
+  m.__direct = a => ["RJ45", "PC20", "SC"].includes(a.t);
   return m;
 }
 
+// géométrie d'une boîte (v37) : côté S (taille fixe sur le plan : 3 diamètres de symbole, jamais moins de 34 px à l'écran),
+// N points d'accroche par face (réglage « départs par face »), et ses départs : une gaine par endroit (appareils à moins
+// de « même endroit » l'un de l'autre) + l'alimentation, chacun sur son point (rangés sans croisement, ou épinglés à la main)
+export function boxLayout(b, pm = pmNow()) {
+  const C = getCab(), N = Math.max(1, Math.round(C.departsFace) || 6), near = C.memeEndroit ?? 0.3;
+  const S = Math.max(K.symCm / 100 * 3, 34 * pm);
+  const byId = Object.fromEntries(state.app.map(a => [a.id, a])), tab = state.app.find(a => a.t === "TAB"), R = b.routes || {};
+  const spots = [];
+  b.apps.forEach(id => {
+    const a = byId[id];
+    if (!a) return;
+    const sp = spots.find(g => g.some(o => dist(o.x, o.y, a.x, a.y) <= near + 1e-9));
+    if (sp) sp.push(a); else spots.push([a]);
+  });
+  const deps = spots.map(G => ({ id: G[0].id, keys: G.map(a => a.id), apps: G, t: G[0], p: (G.map(a => R[a.id]).find(r => r && r.length) || [])[0] || G[0] }));
+  if (tab) deps.push({ id: "tab", keys: ["tab"], apps: [], t: tab, p: (R.tab || [])[0] || tab, tab: true });
+  const L = portLayout(b, deps, N, b.ports || {});
+  deps.forEach(d => { const q = L.get(d.id) || {}; d.face = q.face || null; d.slot = q.slot ?? null; d.P = portXY(b, S, N, d.face, d.slot); });
+  return { S, N, deps };
+}
+// point d'accroche sous la souris (boîtes du niveau ouvert) : { box, f, i, x, y }
+export function hitPort(wx, wy) {
+  if (!K.showCirc || !layers.boites.on) return null;
+  const pm = pmNow();
+  let best = null;
+  for (const b of (K.CAB.boxes || []).filter(x => x.lv === K.LV.cur)) {
+    const { S, N } = boxLayout(b, pm);
+    for (const f of ["A", "B", "C", "D"]) for (let i = 0; i < N; i++) {
+      const P = portXY(b, S, N, f, i), d = dist(wx, wy, P.x, P.y);
+      if (d <= 6 * pm && (!best || d < best.d)) best = { box: b, f, i, x: P.x, y: P.y, d };
+    }
+  }
+  return best;
+}
 // boîte sous le point (monde), niveau ouvert
 // bout de chaque gaine côté boîte : à 22 px du centre, dans la direction de la gaine (1er point de passage ou appareil)
 export function gaineEnds(b, pm = pmNow()) {
-  const byId = Object.fromEntries(state.app.map(a => [a.id, a])), R = b.routes || {}, out = [];
-  for (const id of b.apps) {
-    const a = byId[id];
-    if (!a) continue;
-    const t = (R[id] || [])[0] || gaineCtrl(b, a), L = dist(b.x, b.y, t.x, t.y) || 1;
-    out.push({ id, x: b.x + (t.x - b.x) / L * 22 * pm, y: b.y + (t.y - b.y) / L * 22 * pm, ax: a.x, ay: a.y });
-  }
-  return out;
+  return boxLayout(b, pm).deps.filter(d => d.face && d.slot != null).map(d => ({ id: d.id, keys: d.keys, x: d.P.x, y: d.P.y, ax: d.t.x, ay: d.t.y }));
 }
 export function hitGaineEnd(wx, wy) {
   if (!K.showCirc || !K.boxSel) return null;
   const b = (K.CAB.boxes || []).find(x => x.id === K.boxSel && x.lv === K.LV.cur);
   if (!b) return null;
   const pm = pmNow();
-  const e = gaineEnds(b, pm).map(e => ({ ...e, d: dist(wx, wy, e.x, e.y) })).filter(e => e.d <= 7 * pm).sort((p, q) => p.d - q.d)[0];
+  const e = gaineEnds(b, pm).map(e => ({ ...e, d: dist(wx, wy, e.x, e.y) })).filter(e => e.d <= 5 * pm).sort((p, q) => p.d - q.d)[0];
   return e ? { box: b, ...e } : null;
 }
 // position du cadenas d'une boîte (coin haut droit)
 export function lockPos(b, pm = pmNow()) {
-  return { x: b.x + 14 * pm, y: b.y - 13 * pm };
+  const S = boxLayout(b, pm).S;
+  return { x: b.x + S / 2 + 8 * pm, y: b.y - S / 2 - 7 * pm };
 }
 export function hitLock(wx, wy) {
-  if (!K.showCirc) return null;
+  if (!K.showCirc || !layers.boites.on) return null;
   const pm = pmNow();
   return (K.CAB.boxes || []).find(b => b.lv === K.LV.cur && dist(wx, wy, lockPos(b, pm).x, lockPos(b, pm).y) <= 8 * pm) || null;
 }
 // gaine sous la souris : point de passage existant { box, key, wp } ou tronçon { box, key, seg } (inséré à l'indice seg)
 export function hitRoute(wx, wy) {
-  if (!K.showCirc) return null;
+  if (!K.showCirc || !layers.gaines.on) return null;
   const pm = pmNow(), byId = Object.fromEntries(state.app.map(a => [a.id, a])), tab = state.app.find(a => a.t === "TAB");
   let best = null;
   for (const b of (K.CAB.boxes || []).filter(x => x.lv === K.LV.cur)) {
-    const R = b.routes || {};
+    const R = b.routes || {}, LY = boxLayout(b, pm), start = {};
+    LY.deps.forEach(d => d.keys.forEach(k => (start[k] = d.P)));
     const keys = [...b.apps.filter(id => byId[id]), ...(tab ? ["tab"] : [])];
     for (const key of keys) {
-      const pts = [b, ...(R[key] || []), key === "tab" ? tab : byId[key]];
+      const P0 = start[key] || b, pts = [P0, ...(R[key] || []), key === "tab" ? tab : byId[key]];
       for (let i = 1; i < pts.length - 1; i++) {
         const d = dist(wx, wy, pts[i].x, pts[i].y);
         if (d <= 7 * pm && (!best || best.wp == null || d < best.d)) best = { box: b, key, wp: i - 1, d };
@@ -677,12 +749,12 @@ export function hitRoute(wx, wy) {
       if (best && best.wp != null) continue;
       // gaine sans point de passage : on teste l'arc dessiné
       if (pts.length === 2) {
-        const T = pts[1], q = gaineCtrl(b, T);
+        const T = pts[1], q = gaineCtrl(P0, T);
         for (let s = 1; s < 40; s++) {
           const t = s / 40, u = 1 - t;
-          const px = u * u * b.x + 2 * u * t * q.x + t * t * T.x, py = u * u * b.y + 2 * u * t * q.y + t * t * T.y;
+          const px = u * u * P0.x + 2 * u * t * q.x + t * t * T.x, py = u * u * P0.y + 2 * u * t * q.y + t * t * T.y;
           const d = dist(wx, wy, px, py);
-          if (d <= 5 * pm && dist(wx, wy, b.x, b.y) > 14 * pm && dist(wx, wy, T.x, T.y) > 8 * pm && (!best || (best.wp == null && d < best.d))) best = { box: b, key, seg: 0, d };
+          if (d <= 5 * pm && dist(wx, wy, b.x, b.y) > LY.S / 2 + 6 * pm && dist(wx, wy, T.x, T.y) > 8 * pm && (!best || (best.wp == null && d < best.d))) best = { box: b, key, seg: 0, d };
         }
         continue;
       }
@@ -692,14 +764,14 @@ export function hitRoute(wx, wy) {
         if (t <= 0.02 || t >= 0.98) continue;
         const d = dist(wx, wy, A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t);
         // près de la boîte (< 14 px) ou de l'appareil : on laisse la main à la boîte / à l'appareil
-        if (d <= 5 * pm && dist(wx, wy, b.x, b.y) > 14 * pm && (!best || (best.wp == null && d < best.d))) best = { box: b, key, seg: i, d };
+        if (d <= 5 * pm && dist(wx, wy, b.x, b.y) > LY.S / 2 + 6 * pm && (!best || (best.wp == null && d < best.d))) best = { box: b, key, seg: i, d };
       }
     }
   }
   return best;
 }
 export function hitBox(wx, wy) {
-  if (!K.showCirc) return null;
-  const r = 12 * pmNow();
-  return (K.CAB.boxes || []).find(b => b.lv === K.LV.cur && Math.abs(b.x - wx) <= r && Math.abs(b.y - wy) <= r) || null;
+  if (!K.showCirc || !layers.boites.on) return null;
+  const pm = pmNow();
+  return (K.CAB.boxes || []).find(b => { if (b.lv !== K.LV.cur) return false; const r = boxLayout(b, pm).S / 2 + 2 * pm; return Math.abs(b.x - wx) <= r && Math.abs(b.y - wy) <= r; }) || null;
 }

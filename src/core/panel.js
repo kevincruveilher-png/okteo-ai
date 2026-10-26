@@ -19,7 +19,10 @@ export function layerPanel() {
     ouvertures: "Ouvertures",
     appareils: "Appareils",
     liaisons: "Liaisons",
-    cotes: "Cotes"
+    cotes: "Cotes",
+    boites: "Boîtes",
+    gaines: "Gaines",
+    grille: "Quadrillage"
   };
   return `<h3 style="margin-top:14px">Calques</h3>` + Object.keys(layers).map(k => `<div class="lay"><span>${names[k]}</span><span class="btns">
     <button data-lay="${k}" data-act="on">${layers[k].on ? "👁" : "—"}</button><button data-lay="${k}" data-act="lock">${layers[k].lock ? "🔒" : "🔓"}</button></span></div>`).join("");
