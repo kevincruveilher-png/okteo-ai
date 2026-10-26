@@ -923,6 +923,33 @@ try {
     if (!ok) throw new Error(JSON.stringify({ locked, unchecked, lockedIds, same: before === after, n }));
     return true;
   });
+  console.log("Schémas de boîte pour le câbleur (v33)");
+  await check("onglet Bandes : boîte carrée (faces A–D, gaines, connecteurs), orientation, matériel, raccordements dans l'ordre à cocher", async () => {
+    await page.click('#tabs button[data-tab="bandes"]');
+    await page.waitForSelector(".bands .bd-svg svg");
+    const r = await ev(() => ({ picks: document.querySelectorAll(".bands .bd-pick [data-b]").length, boxes: okteo.cab.boxes.length, faces: ["Face A", "Face B", "Face C", "Face D"].every((f) => document.querySelector(".bands .bd-svg").textContent.includes(f)),
+      or: [...document.querySelectorAll(".bands .bd-or li")].map((l) => l.textContent), mat: document.querySelectorAll(".bands h3 + ul li").length, rows: [...document.querySelectorAll(".bands .bd-steps tbody tr")].map((t) => t.children[2].textContent),
+      wires: document.querySelectorAll(".bands .bd-steps .wchip").length }));
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/bandes.png", fullPage: false });
+    await page.check(".bands .bd-steps input[data-n='1']");
+    const done = await ev(() => document.querySelector(".bands .bd-steps tbody tr").classList.contains("done"));
+    const ok = r.picks === r.boxes && r.faces && r.or.length === 4 && r.or.every((t) => /côté/.test(t)) && r.mat >= 2 && /^Terres/.test(r.rows[0]) && r.rows.length > 8 && r.wires > 20 && done;
+    if (!ok) throw new Error(JSON.stringify(r).slice(0, 600));
+    return true;
+  });
+  await check("impression des schémas : une feuille par boîte + raccordements à cocher, texte lisible (PDF relu)", async () => {
+    await page.click("#bd-all");
+    await page.waitForFunction(() => okteoExt.pages.bandes.ui.last, null, { timeout: 30000 });
+    const b64 = await ev(async () => { const u = new Uint8Array(await okteoExt.pages.bandes.ui.last.blob.arrayBuffer()); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); });
+    if (process.env.SHOT) fs.writeFileSync(process.env.SHOT + "/schemas-boites.pdf", Buffer.from(b64, "base64"));
+    const doc = await pdfjsNode.getDocument({ data: new Uint8Array(Buffer.from(b64, "base64")), verbosity: 0 }).promise;
+    const txt = async (i) => (await (await doc.getPage(i)).getTextContent()).items.map((x) => x.str).join(" ");
+    const t1 = await txt(1), t2 = await txt(2), n = await ev(() => okteo.cab.boxes.length);
+    await page.click('#tabs button[data-tab="plan"]');
+    const ok = doc.numPages >= 2 * n && /Boîte B1/.test(t1) && /Orienter la boîte/.test(t1) && /connecteur/.test(t1) && /raccordements à faire dans l'ordre/.test(t2) && /1\. Terres/.test(t2) && /Contrôle final/.test(await txt(doc.numPages));
+    if (!ok) throw new Error(JSON.stringify({ pages: doc.numPages, n, t1: t1.slice(0, 300), t2: t2.slice(0, 300) }));
+    return true;
+  });
   await check("circuits et boîtes enregistrés avec le chantier (rechargement)", async () => {
     const n = await ev(() => { okteo.saveNow(); return [okteo.cab.circuits.length, okteo.cab.boxes.length]; });
     await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);

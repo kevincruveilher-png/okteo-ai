@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v32** (26/10/2026) : repères par allumage, passage des gaines modifiable, cadenas des boîtes.
+Version du prototype : **v33** (26/10/2026) : schémas de boîte pour le câbleur (onglet Bandes), à imprimer.
 
 **Version en ligne (sans rien installer) : https://kevincruveilher-png.github.io/okteo-ai/**
 Les chantiers restent dans le navigateur de chaque ordinateur (fichier `.okteo` pour les transporter). En ligne, l'IA marche avec une clé Claude ; NVIDIA seulement en version locale.
@@ -43,7 +43,7 @@ GitHub Pages doit être réglé sur cette branche).
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 152 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 158 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -58,6 +58,22 @@ Ouvre le logiciel dans un navigateur invisible et fait 152 vérifications (dessi
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Schémas de boîte pour le câbleur (v33)
+
+Onglet **Bandes** (à gauche), une boîte à la fois (boutons B1, B2…), pensé pour un câbleur débutant :
+1. **Le schéma** : la boîte carrée, faces A (haut du plan), B, C, D ; chaque gaine sur sa face avec son n°, sa longueur,
+   son diamètre, l'appareil et ses fils (pastille de couleur + n° de raccordement) ; au centre, un connecteur par n°
+   (nombre de fils, taille du connecteur) ; les retours lampe et les navettes sont tracés de la gaine au connecteur.
+2. **Orienter la boîte** : la pièce qu'on trouve de chaque côté (« Face B : côté Bains », « côté façade »).
+3. **Le matériel** : nombre de connecteurs rapides de 2, 3, 5… entrées (réglable : Paramètres → Câblage), et les ponts
+   quand plus de fils que le plus gros connecteur (12) doivent être réunis.
+4. **Les raccordements dans l'ordre**, à cocher : terres, neutres circuit par circuit, phases, puis retours et
+   navettes ; pour chacun, chaque fil à prendre (gaine, couleur, section, appareil) et le connecteur.
+5. **Le contrôle final** (aucun fil libre ; alertes si un fil n'a pas de raccordement ou si un raccordement n'a qu'un fil).
+
+**🖨 Imprimer** : une feuille A4 par boîte (schéma, orientation, matériel), puis la liste à cocher.
+Les n° de raccordement suivent maintenant l'ordre de câblage (1 = terres, puis neutres, phases, retours, navettes).
 
 ## Repères par allumage, passage des gaines, cadenas (v32)
 

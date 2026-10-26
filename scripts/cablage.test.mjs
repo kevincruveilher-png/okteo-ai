@@ -8,6 +8,7 @@ import { computeCircuits, checkCircuits } from "../src/cablage/circuits.js";
 import { CAB_DEFAULTS as S } from "../src/cablage/settings.js";
 import { placeBoxes, buildUnits, faceToward } from "../src/cablage/boites.js";
 import { computeWiring, gaineLength } from "../src/cablage/gaines.js";
+import { connectorsFor, boxSteps, boxMaterial, boxChecks, parseSizes, schemaSVG } from "../src/cablage/schema.js";
 
 let ok = 0; const fails = [];
 const check = (name, cond, info = "") => { if (cond) { ok++; console.log("  ✓ " + name); } else { fails.push(name); console.log("  ✗ " + name + (info ? " : " + info : "")); } };
@@ -94,6 +95,26 @@ console.log("Tracé des gaines et boîtes gardées (v32)");
   check("recalcul : la boîte gardée ne bouge pas (place, nom, appareils, tracés) ; les autres reçoivent le reste, sans doublon ni oubli",
     kb && kb.x === keep[0].x && kb.n === keep[0].n && kb.routes.tab.length === 1 && keep[0].apps.every((x) => kb.apps.includes(x)) && new Set(all).size === all.length && new Set(all).size === new Set(P.boxes.flatMap((b) => b.apps)).size && new Set(P2.boxes.map((b) => b.id)).size === P2.boxes.length,
     JSON.stringify(P2.boxes.map((b) => [b.id, b.apps.length])));
+}
+
+console.log("Schéma de boîte pour le câbleur (v33)");
+{
+  const Z = parseSizes("2, 3,5 ;8,12");
+  const c = (n) => JSON.stringify(connectorsFor(n, Z));
+  check("connecteurs : 2 fils → 2 entrées, 4 → 5, 12 → 12, 13 → 12 + 3 avec un pont, 20 → 12 + 12 avec un pont",
+    c(2) === '{"list":[2],"ponts":0}' && c(4) === '{"list":[5],"ponts":0}' && c(12) === '{"list":[12],"ponts":0}' && c(13) === '{"list":[12,3],"ponts":1}' && c(20) === '{"list":[12,12],"ponts":1}', [2, 4, 12, 13, 20].map(c).join(" "));
+  const B = W.boxes[0], st = boxSteps(B, Z), fnOrder = st.map((x) => x.fn);
+  const lastN = fnOrder.lastIndexOf("neutre"), firstP = fnOrder.indexOf("phase"), lastP = fnOrder.lastIndexOf("phase"), firstR = fnOrder.findIndex((f) => !["terre", "neutre", "phase"].includes(f));
+  const wired = B.gaines.reduce((s, g) => s + g.wires.filter((w) => w.n != null).length, 0);
+  check("étapes dans l'ordre de câblage : n° 1 = terres, puis tous les neutres, puis les phases, puis retours et navettes",
+    fnOrder[0] === "terre" && lastN < firstP && (firstR < 0 || lastP < firstR) && st.every((x, i) => x.n === i + 1), fnOrder.join(","));
+  const mat = boxMaterial(st), nConn = mat.sizes.reduce((s, [, n]) => s + n, 0);
+  check("chaque fil de chaque gaine apparaît dans une étape ; matériel = un connecteur par raccordement (+ ponts)",
+    st.reduce((s, x) => s + x.wires.length, 0) === wired && nConn === st.length + mat.ponts && boxChecks(B, st).every((t) => /un seul fil|sans raccordement/.test(t)), JSON.stringify(mat));
+  const svg = schemaSVG(B, st, { sides: { A: "côté Chambre 1" } });
+  check("dessin de la boîte : 4 faces, une gaine dessinée par départ, un connecteur par raccordement, retours tracés",
+    ["Face A", "Face B", "Face C", "Face D"].every((f) => svg.includes(f)) && (svg.match(/<line /g) || []).length === B.gaines.length && (svg.match(/rx="6"/g) || []).length === st.length && svg.includes("côté Chambre 1")
+    && (svg.match(/<path /g) || []).length === st.filter((x) => ["retour", "nav1", "nav2", "cmdTL", "retTL"].includes(x.fn)).reduce((s, x) => s + x.wires.length, 0));
 }
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);

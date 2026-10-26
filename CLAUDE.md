@@ -158,13 +158,19 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `K.wpClick` + `removeWaypoint` (le plan est redessiné entre deux clics : le dblclick du navigateur n'arrive pas),
   `routeHint` (distance à la face du mur). `box.locked` (auto au déplacement / tracé) ; `placeBoxes(..., {keep})`
   garde les boîtes non cochées ; `autoBoxes(api, keepIds)`.
+- v33 : schémas de boîte = `src/cablage/schema.js` (pur : `parseSizes`, `connectorsFor` (ponts au-delà du plus gros),
+  `boxSteps` (une étape par n°), `boxMaterial`, `boxChecks`, `shortLabel`, `schemaSVG(box, steps, {color, sides})`) ;
+  n° de raccordement dans l'ordre de câblage (gaines.js : terres, neutres, phases, retours/navettes). Réglage `bornes`
+  (« 2,3,5,8,12 »). Interface : `src/ext/cablage-bandes.js` (onglet `bandes`, `boxSheets(api)`, `facesSides` dans
+  cablage-data.js = pièce de chaque côté, `wireSolid`) + `src/ext/bandes-pdf.js` (jsPDF A4, schéma en JPEG — un PNG
+  ferait un PDF énorme —, texte WinAnsi via `win()`). `okteoExt.pages.bandes.ui.last` = dernier PDF (tests).
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (28 : gaines, circuits, boîtes, fils, tracés) + `scripts/smoke.mjs` (94 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (32 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (96 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

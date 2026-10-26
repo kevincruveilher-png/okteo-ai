@@ -330,3 +330,13 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .bx-lock.on{opacity:1}
 .bx-ask{display:flex;flex-direction:column;gap:4px;padding:8px;border:1px solid var(--line);border-radius:8px;margin:6px 0}
 #sv .lock{cursor:pointer}
+/* v33 : onglet Bandes (schémas de boîte) */
+.bands .bd-pick{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+.bands .bd-pick .grow{flex:1}
+.bands .bd-grid{display:grid;grid-template-columns:minmax(320px,640px) minmax(240px,1fr);gap:18px;align-items:start}
+.bands .bd-svg svg{width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff}
+.bands .bd-side h3,.bands h3{margin:10px 0 4px;font-size:14px}
+.bands .bd-side ul{margin:0 0 6px 18px;padding:0}
+.bands .bd-steps tr.done td{opacity:.45}
+.bands .bd-steps td div{margin:1px 0}
+@media (max-width:900px){.bands .bd-grid{grid-template-columns:1fr}}

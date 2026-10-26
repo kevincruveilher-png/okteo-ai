@@ -50,7 +50,9 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
     // ---------- n° de raccordement (« circuit de câblage ») ----------
     const nets = []; const net = (key, label, fn) => { let x = nets.find((n) => n.key === key); if (!x) { x = { key, n: nets.length + 1, label, fn, wires: [] }; nets.push(x); } return x; };
     net("T", "Terres (toutes ensemble)", "terre");
-    for (const c of circs) { net("P" + c.id, `Phase ${c.n}`, "phase"); net("N" + c.id, `Neutre ${c.n}`, "neutre"); }
+    // ordre de câblage (= ordre des n°) : terres, neutres circuit par circuit, phases, puis retours et navettes
+    for (const c of circs) net("N" + c.id, `Neutre ${c.n}`, "neutre");
+    for (const c of circs) net("P" + c.id, `Phase ${c.n}`, "phase");
     // allumages de la boîte : lumières + commandes reliées
     const lightsOf = new Map();
     for (const l of links) if (inBox.has(l.c) && inBox.has(l.l) && LIGHT.has(byId.get(l.l)?.t)) { if (!lightsOf.has(l.c)) lightsOf.set(l.c, []); lightsOf.get(l.c).push(l.l); }
@@ -114,7 +116,7 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
     const ang = (g) => Math.atan2(g.p.x - b.x, -(g.p.y - b.y));
     deps.sort((p, q) => FACES.indexOf(p.face) - FACES.indexOf(q.face) || ang(p) - ang(q));
     deps.forEach((g, i) => { g.no = `${b.n}-${String(i + 1).padStart(2, "0")}`; });
-    // n° de raccordement définitifs (dans l'ordre : terre, phases, neutres, retours…)
+    // n° de raccordement définitifs (dans l'ordre : terres, neutres, phases, retours et navettes…)
     const used = nets.filter((nt) => deps.some((g) => g.wires.some((w) => w.net === nt.key)));
     used.forEach((nt, i) => { nt.n = i + 1; nt.wires = deps.flatMap((g) => g.wires.filter((w) => w.net === nt.key).map((w) => ({ gaine: g.no, label: g.label, fn: w.fn }))); });
     const numOf = new Map(used.map((nt) => [nt.key, nt.n]));

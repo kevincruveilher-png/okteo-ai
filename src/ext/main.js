@@ -17,6 +17,7 @@ import { createTour } from "./tour.js";
 import { createCablagePane } from "./cablage-ui.js";
 import { mountBoxesPage, mountDirectPage } from "./cablage-pages.js";
 import { createAiReleve } from "./ai-releve.js";
+import { mountBandsPage } from "./cablage-bandes.js";
 
 function start() {
   const api = window.okteo;
@@ -56,6 +57,7 @@ function start() {
     chantiers: { el: document.getElementById("chantiers"), mount: (el) => mountChantiers(el, { api }), ui: null },
     boites: { el: document.getElementById("boites"), mount: (el) => mountBoxesPage(el, { api }), ui: null },
     lignes: { el: document.getElementById("lignes"), mount: (el) => mountDirectPage(el, { api }), ui: null },
+    bandes: { el: document.getElementById("bandes"), mount: (el) => mountBandsPage(el, { api }), ui: null },
   };
   const onTab = (t) => {
     stage.hidden = !!pages[t];
@@ -117,7 +119,7 @@ function start() {
   const tour = createTour({ api, panel, hooks });
   hooks.tour = () => tour.start();
   hooks.steps = () => { panel.show("steps"); tour.render(); };
-  window.okteoExt = { cablage, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, backup: null };
+  window.okteoExt = { cablage, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 

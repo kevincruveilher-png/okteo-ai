@@ -233,10 +233,17 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - Familles de repères changées : spot S, applique AP, va-et-vient VV (les anciens chantiers sont renumérotés tout seuls).
 - Tests : 30 + 28 + 94 = 152.
 
-## PROCHAINE MISE À JOUR (v33) : schéma de boîte pour le câbleur
-La boîte carrée dessinée avec ses faces et ses gaines, fils numérotés, retours lampe et navettes tracés, liste des
-raccordements à cocher ; impression (une page par boîte). Puis SPV pour Counter. Aussi : page « Reprendre le projet »
-pour le collègue qui reprend le développement.
+## Version 33 (26/10/2026) — livrée : schémas de boîte pour le câbleur (onglet Bandes)
+- Pour chaque boîte : schéma carré (faces A–D, gaines avec n°, longueur, Ø, appareil, fils couleur + n°), connecteurs
+  au centre, retours lampe et navettes tracés ; orientation (pièce de chaque côté) ; matériel (connecteurs 2/3/5/8/12
+  entrées, ponts) ; raccordements dans l'ordre à cocher ; contrôle final. Impression A4, une feuille par boîte.
+- N° de raccordement réordonnés : 1 = terres, puis neutres, phases, retours et navettes (ordre de câblage de Kévin).
+- Kévin : gaines déjà repérées ; connecteurs rapides 2, 3, 5… jusqu'à 12 entrées (tailles intermédiaires supposées
+  8 — réglable) ; pas de page « Reprendre le projet » pour l'instant (il dira quand).
+- Tests : 30 + 32 + 96 = 158.
+
+## PROCHAINE MISE À JOUR : à décider avec Kévin
+Pistes : retours de Kévin sur les schémas (essai avec un câbleur débutant), SPV pour Counter, page « Reprendre le projet ».
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.
