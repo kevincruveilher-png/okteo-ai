@@ -963,7 +963,8 @@ try {
     await page.click('#tabs button[data-tab="plan"]');
     await ev(() => { okteo.setTool("sel"); okteo.showCircuits = true; okteo.fit(); });
     const t = await ev(() => { const a = okteo.state.app.find((x) => x.t === "PC16"), b = okteo.cab.boxes.find((x) => x.lv === okteo.level.id); return { a: okteo.toClient(a.x, a.y), b: okteo.toClient(b.x, b.y) }; });
-    const vis = () => ev(() => !document.getElementById("hud").hidden);
+    // vérifie l'affichage réel (display calculé), pas seulement l'attribut hidden
+    const vis = () => ev(() => { const h = document.getElementById("hud"); return !h.hidden && getComputedStyle(h).display !== "none"; });
     await page.mouse.click(t.a.x, t.a.y); const v1 = await vis();
     await page.mouse.click(t.b.x, t.b.y); const v2 = await vis();
     await page.mouse.click(t.a.x, t.a.y); await page.click('#hud [data-h="close"]'); const v3 = await vis();
