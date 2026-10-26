@@ -10,7 +10,7 @@
 // - 3 commandes ou plus, ou bouton poussoir : télérupteur au tableau → chaque commande reçoit phase + commande TL,
 //   et l'alimentation du circuit apporte en plus « commande TL » (vers le tableau) et « retour TL » (vers les lumières) ;
 // - alimentation de la boîte (une gaine par circuit) : phase, neutre, terre (+ fils du télérupteur s'il y en a un).
-import { gaineFor } from "./gaine.js";
+import { gaineFor, packAlim } from "./gaine.js";
 import { assignFaces, FACES } from "./boites.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
@@ -100,13 +100,21 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
       // la face est celle par où la gaine sort : vers son 1er point de passage s'il y en a un
       deps.push({ id: a.id, kind: "app", p: route ? route[0] : a, app: a, routed: !!route, label: `${NAMES[a.t] || a.t} ${a.rep || ""}`.trim(), room: a.room, circuit: c.n, wires, length: len });
     }
-    for (const c of circs) {
-      const sec = c.section || 1.5;
-      const wires = [["phase", "P" + c.id], ["neutre", "N" + c.id], ["terre", "T"], ...(tl.get(c.id) || [])].map(([fn, key]) => ({ fn, color: col[fn], section: sec, net: key }));
+    // alimentation depuis le tableau : une seule gaine (phase + neutre de chaque circuit, une terre), deux si Ø25
+    const alimG = packAlim(circs.map((c) => ({ ...c, section: c.section || 1.5, extra: (tl.get(c.id) || []).length })), S.remplissage);
+    alimG.forEach((G, gi) => {
+      const wires = [];
+      for (const c of G) {
+        const sec = c.section || 1.5;
+        [["phase", "P" + c.id], ["neutre", "N" + c.id], ...(tl.get(c.id) || [])].forEach(([fn, key]) => wires.push({ fn, color: col[fn], section: sec, net: key, circuit: c.n }));
+      }
+      wires.push({ fn: "terre", color: col.terre, section: Math.max(...G.map((c) => c.section || 1.5)), net: "T" });
       const route = (b.routes || {}).tab || null;
       const len = tab ? gaineLength({ horiz: viaLen(b, route, tab), downA: S.traversee + Math.max(0, S.hsp - hTab), levels: Math.abs(lvIdx(tab.lv) - lvB) }, S) : null;
-      deps.push({ id: "alim:" + c.id, kind: "alim", p: route ? route[0] : tab || { x: b.x, y: b.y - 1 }, routed: !!route, label: `Alimentation ${c.n} (tableau)`, circuit: c.n, wires, length: len });
-    }
+      const names = G.map((c) => c.n);
+      deps.push({ id: "alim:" + gi, kind: "alim", p: route ? route[0] : tab || { x: b.x, y: b.y - 1 }, routed: !!route,
+        label: `Alimentation ${names.join(" + ")} (tableau)${alimG.length > 1 ? ` — gaine ${gi + 1}/${alimG.length}` : ""}`, circuit: names.join(", "), circuits: names, wires, length: len });
+    });
     const faces = assignFaces(b, deps, S.departsFace);
     deps.forEach((g) => { g.face = faces.get(g.id) || "?"; g.diam = gaineFor(g.wires.map((w) => w.section), S.remplissage); });
     if (deps.length > S.departsMax) issues.push(`${b.n} : ${deps.length} départs (max ${S.departsMax})`);

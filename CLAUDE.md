@@ -160,7 +160,9 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   garde les boîtes non cochées ; `autoBoxes(api, keepIds)`.
 - v33 : schémas de boîte = `src/cablage/schema.js` (pur : `parseSizes`, `connectorsFor` (ponts au-delà du plus gros),
   `boxSteps` (une étape par n°), `boxMaterial`, `boxChecks`, `shortLabel`, `schemaSVG(box, steps, {color, sides})`) ;
-  n° de raccordement dans l'ordre de câblage (gaines.js : terres, neutres, phases, retours/navettes). Réglage `bornes`
+  n° de raccordement dans l'ordre de câblage (gaines.js : terres, neutres, phases, retours/navettes).
+  Alimentation : `packAlim` (gaine.js) = une gaine pour tous les circuits de la boîte, une terre, coupée avant Ø25 ;
+  gaine `alim:<i>` avec `circuits` [noms] et `wires[].circuit` ; `placeBoxes` compte ces gaines (`S.alimCount`). Réglage `bornes`
   (« 2,3,5,8,12 »). Interface : `src/ext/cablage-bandes.js` (onglet `bandes`, `boxSheets(api)`, `facesSides` dans
   cablage-data.js = pièce de chaque côté, `wireSolid`) + `src/ext/bandes-pdf.js` (jsPDF A4, schéma en JPEG — un PNG
   ferait un PDF énorme —, texte WinAnsi via `win()`). `okteoExt.pages.bandes.ui.last` = dernier PDF (tests).

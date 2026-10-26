@@ -1,10 +1,12 @@
 // Placement automatique des boîtes de pieuvre (v29), pour économiser au maximum le cuivre.
 // Règles (docs/regles-cablage.md) : boîte carrée dans les combles / le faux plafond, faces A (haut du plan), B (droite),
 // C (bas), D (gauche) ; au plus `departsFace` gaines par face et `departsMax` par boîte ; chaque boîte est alimentée
-// depuis le tableau (une gaine d'alimentation par circuit présent dans la boîte) ; les circuits spécialisés et la
+// depuis le tableau (une seule gaine d'alimentation pour tous ses circuits, deux si elle passait en Ø25) ; les circuits spécialisés et la
 // communication sont des lignes directes (pas de boîte).
 // Une commande et les lumières qu'elle allume doivent être dans la même boîte (le retour lampe ne sort pas de la boîte) :
 // on place donc des « unités » indivisibles (un allumage complet, ou une prise seule).
+
+import { packAlim } from "./gaine.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
 const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -50,9 +52,10 @@ export function buildUnits(items, links, circuits) {
   }));
 }
 
-const departsOf = (units, extraCircuits = []) => {
-  const C = new Set(extraCircuits); units.forEach((u) => u.circuits.forEach((c) => C.add(c)));
-  return units.reduce((s, u) => s + u.ids.length, 0) + C.size;               // une gaine par appareil + une alimentation par circuit
+// une gaine par appareil + les gaines d'alimentation (une seule pour tous les circuits, deux si elle passait en Ø25)
+const departsOf = (units, S) => {
+  const C = new Set(); units.forEach((u) => u.circuits.forEach((c) => C.add(c)));
+  return units.reduce((s, u) => s + u.ids.length, 0) + (S && S.alimCount ? S.alimCount(C) : C.size);
 };
 
 // point qui minimise la somme pondérée des distances (algorithme de Weiszfeld)
@@ -71,14 +74,14 @@ function median(pts, start) {
 function boxCost(box, units, tab) {
   let c = 0;
   for (const u of units) for (const p of u.pts) c += d2(box, p) * 3;
-  if (tab) { const nc = new Set(units.flatMap((u) => u.circuits)).size; c += d2(box, tab) * 3 * nc; }
+  if (tab) { const nc = new Set(units.flatMap((u) => u.circuits)).size; c += d2(box, tab) * (2 * nc + 1); }   // phase + neutre par circuit, une terre
   return c;
 }
 
 // placement pour un niveau : regroupement avec capacité, k boîtes, plusieurs essais ; renvoie [{x, y, units}]
 function placeLevel(units, tab, S, tries = 4) {
   if (!units.length) return [];
-  const total = departsOf(units);
+  const total = departsOf(units, S);
   const kmin = Math.max(1, Math.ceil(total / S.departsMax));
   let best = null;
   for (let k = kmin; k <= kmin + tries; k++) {
@@ -109,14 +112,14 @@ function cluster(units, k, tab, S, seed) {
     const order = units.slice().sort((a, b) => b.ids.length - a.ids.length || (a.x - b.x));
     for (const u of order) {
       const cand = boxes.map((b, i) => ({ b, i, d: d2(b, u) })).sort((p, q) => p.d - q.d);
-      const fit = cand.find(({ b }) => departsOf([...b.units, u]) <= S.departsMax);
+      const fit = cand.find(({ b }) => departsOf([...b.units, u], S) <= S.departsMax);
       if (!fit) return null;
       fit.b.units.push(u);
     }
     const moved = boxes.map((b) => {
       if (!b.units.length) return 0;
       const pts = b.units.flatMap((u) => u.pts);
-      if (tab) pts.push({ x: tab.x, y: tab.y, w: new Set(b.units.flatMap((u) => u.circuits)).size });
+      if (tab) pts.push({ x: tab.x, y: tab.y, w: (2 * new Set(b.units.flatMap((u) => u.circuits)).size + 1) / 3 });
       const np = median(pts, b); const m = d2(np, b); b.x = np.x; b.y = np.y; return m;
     });
     if (Math.max(...moved) < 0.01) break;
@@ -135,7 +138,9 @@ function cluster(units, k, tab, S, seed) {
 // toutes les boîtes du chantier ; tabs : {[niveau]: {x, y}} position du tableau (ou de la trémie qui y mène) par niveau
 // keep = boîtes à garder telles quelles (verrouillées ou non cochées) : elles gardent position, nom, tracés et
 // appareils ; une unité dont un appareil est déjà dans une boîte gardée y va en entier ; le reste est réparti.
-export function placeBoxes(items, links, circuits, tabs, S, { keep = [] } = {}) {
+export function placeBoxes(items, links, circuits, tabs, S0, { keep = [] } = {}) {
+  const secOf = new Map(circuits.map((c) => [c.id, c.section || 1.5]));
+  const S = { ...S0, alimCount: (ids) => (ids.size ? packAlim([...ids].map((id) => ({ id, section: secOf.get(id) || 1.5 })), S0.remplissage).length : 0) };
   const all = buildUnits(items, links, circuits), exist = new Set(items.map((a) => a.id));
   const kept = keep.map((b) => ({ ...b, apps: b.apps.filter((id) => exist.has(id)) }));
   const inKept = new Map(); kept.forEach((b) => b.apps.forEach((id) => inKept.set(id, b)));

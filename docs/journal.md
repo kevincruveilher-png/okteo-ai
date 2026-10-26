@@ -240,6 +240,9 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - N° de raccordement réordonnés : 1 = terres, puis neutres, phases, retours et navettes (ordre de câblage de Kévin).
 - Kévin : gaines déjà repérées ; connecteurs rapides 2, 3, 5… jusqu'à 12 entrées (tailles intermédiaires supposées
   8 — réglable) ; pas de page « Reprendre le projet » pour l'instant (il dira quand).
+- Correction après remarque de Kévin : une seule gaine d'alimentation par boîte (phase + neutre de chaque circuit,
+  une terre), divisée en deux seulement si elle passait en Ø25 (avant : une gaine par circuit). EVRARD : 1 356 → 1 276 m
+  de fil (test moteur).
 - Tests : 30 + 32 + 96 = 158.
 
 ## PROCHAINE MISE À JOUR : à décider avec Kévin

@@ -62,3 +62,6 @@ avec une valeur de base modifiable.
   raccordement suivent cet ordre.
 - Le document est conçu pour un câbleur débutant : orientation de la boîte (pièce de chaque côté), matériel, étapes à
   cocher, contrôle final. À valider en le faisant utiliser par un débutant.
+- **Alimentation d'une boîte** (26/10/2026) : **une seule gaine** depuis le tableau pour tous les circuits de la boîte —
+  phase + neutre de chaque circuit (et fils de télérupteur s'il y en a), **une seule terre** (à la plus grosse section) ;
+  dès que la gaine passerait en **Ø25**, on la divise en deux gaines (chacune avec sa terre).

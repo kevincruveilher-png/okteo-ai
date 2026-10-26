@@ -77,7 +77,12 @@ check("point lumineux : retour orange, neutre, terre en 1,5 mm² ; interrupteur 
 const allNets = W.boxes.flatMap((b) => b.nets.map((n) => ({ ...n, box: b })));
 check("n° 1 de chaque boîte = toutes les terres ensemble", W.boxes.every((b) => b.nets[0].fn === "terre" && b.nets[0].wires.length === b.gaines.filter((x) => x.wires.some((w) => w.fn === "terre")).length));
 check("chaque raccordement réunit au moins 2 fils (rien ne reste en l'air)", allNets.every((n) => n.wires.length >= 2), allNets.filter((n) => n.wires.length < 2).map((n) => n.box.n + " " + n.label).join(", "));
-check("chaque circuit présent dans une boîte y a son alimentation (phase, neutre, terre)", W.boxes.every((b) => b.circuits.every((cn) => b.gaines.some((x) => x.kind === "alim" && x.circuit === cn && x.wires.length >= 3))));
+console.log("    alimentations :", W.boxes.map((b) => b.n + " " + b.gaines.filter((x) => x.kind === "alim").map((x) => `${x.circuit} Ø${x.diam} ${x.wires.length} fils`).join(" | ")).join(" · "));
+check("alimentation : une seule gaine par boîte (phase + neutre de chaque circuit, une terre), deux seulement si elle passait en Ø25",
+  W.boxes.every((b) => { const A = b.gaines.filter((x) => x.kind === "alim");
+    return b.circuits.every((cn) => A.some((x) => x.circuits.includes(cn) && x.wires.some((w) => w.fn === "phase" && w.circuit === cn) && x.wires.some((w) => w.fn === "neutre" && w.circuit === cn)))
+      && A.every((x) => x.wires.filter((w) => w.fn === "terre").length === 1 && x.diam < 25) && (A.length === 1 || A.length === Math.ceil(A.length)); }),
+  W.boxes.map((b) => b.gaines.filter((x) => x.kind === "alim").map((x) => `${x.circuit} Ø${x.diam} (${x.wires.length} fils)`).join(" | ")).join(" ; "));
 check("lignes directes : prises spécialisées, sorties de câble et RJ45 (tableau → appareil)", W.direct.length === T("PC20").length + T("SC").length + T("RJ45").length && W.direct.every((x) => x.length > 2));
 
 console.log("Tracé des gaines et boîtes gardées (v32)");

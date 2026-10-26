@@ -74,6 +74,8 @@ Onglet **Bandes** (à gauche), une boîte à la fois (boutons B1, B2…), pensé
 
 **🖨 Imprimer** : une feuille A4 par boîte (schéma, orientation, matériel), puis la liste à cocher.
 Les n° de raccordement suivent maintenant l'ordre de câblage (1 = terres, puis neutres, phases, retours, navettes).
+**Alimentation d'une boîte** : une seule gaine depuis le tableau (phase + neutre de chaque circuit, une seule terre) ;
+deux gaines seulement si elle passait en Ø25.
 
 ## Repères par allumage, passage des gaines, cadenas (v32)
 
