@@ -89,7 +89,7 @@ try {
 
   console.log("Premiers pas (v27)");
   await check("première ouverture : invitation à la visite guidée (non bloquante)", async () => page.isVisible(".tour-invite"));
-  await check("visite guidée : 21 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
+  await check("visite guidée : 22 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
     await page.click("#ti-go");
     const s1 = await page.textContent(".tour-bub .tour-n");
     await page.keyboard.press("ArrowRight");
@@ -97,12 +97,12 @@ try {
       return !document.querySelector(".tour-ring").hidden && r.left <= t.left && r.right >= t.right && r.top <= t.top && r.bottom >= t.bottom; });
     await page.keyboard.press("ArrowLeft");
     const back = await page.textContent(".tour-bub .tour-n");
-    for (let k = 0; k < 21; k++) await page.click("#tour-next");
+    for (let k = 0; k < 22; k++) await page.click("#tour-next");
     const done = await ev(() => document.querySelector(".tour-bub").hidden && okteoExt.panel.state.pane === "steps" && !!document.querySelector(".steps ol li"));
     await ev(() => okteoExt.panel.show("props"));
     await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);
     const again = await page.isVisible(".tour-invite");
-    if (!(s1 === "1 / 21" && lit && back === "1 / 21" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
+    if (!(s1 === "1 / 22" && lit && back === "1 / 22" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
     return true;
   });
 
@@ -1361,6 +1361,83 @@ try {
     return !(await page.textContent(".ch-list")).includes("(copie)");
   });
   await check("le chantier ouvert ne peut pas être supprimé", async () => page.isDisabled('.ch-list tr.cur button[data-act="del"]'));
+  await page.click('#tabs button[data-tab="plan"]');
+
+  console.log("Contrôle permanent (v43)");
+  await ev(() => { okteoExt.panel.close("assistant"); okteo.setTool("sel"); okteo.viewPreset("impl"); });
+  await check("contrôle : une commande seule et une lumière seule comptées, halos animés, clic sur le compteur = cas suivant", async () => {
+    const ids = await ev(() => okteo.importDevices([{ t: "INT", x: 100, y: 100 }, { t: "LUM", x: 102, y: 101 }]).ids);
+    await ev((i) => okteo.zoomTo(i), ids); await page.waitForTimeout(150);
+    const mine = await ev((i) => okteo.control.filter((x) => x.ids.some((k) => i.includes(k))).map((x) => x.kind).sort().join(","), ids);
+    const btn = await ev(() => ({ cls: document.getElementById("ctl").className, t: document.getElementById("ctl").textContent, n: okteo.control.length }));
+    const halos = await ev((i) => i.every((k) => !!document.querySelector(`#fx .fx-halo[data-k="halo:${k}"]`)) && getComputedStyle(document.querySelector("#fx .fx-halo .pulse")).animationName === "fx-pulse", ids);
+    let found = false;
+    for (let k = 0; k < btn.n + 1 && !found; k++) { await page.click("#ctl"); found = await ev((i) => okteo.selection.some((s) => i.some((x) => s.endsWith(":" + x))), ids); }
+    const hint = await page.textContent("#hint");
+    await ev(() => okteoExt.panel.show("cablage")); await page.waitForTimeout(250);
+    const list = await ev(() => document.querySelectorAll("#side .ctl-list li").length);
+    await ev(() => { okteo.undo(); okteoExt.panel.show("props"); });
+    const back = await ev((i) => !okteo.state.app.some((a) => i.includes(a.id)), ids);
+    const ok = mine.includes("cmd") && mine.includes("lum") && btn.cls.includes("bad") && btn.t.includes(String(btn.n)) && halos && found && hint.includes("Contrôle") && list === btn.n && back;
+    if (!ok) throw new Error(JSON.stringify({ mine, btn, halos, found, hint, list, back }));
+    return true;
+  });
+
+  console.log("Pack depuis le bandeau de la pièce (v44)");
+  await check("pièce sélectionnée : « Pack ▾ » dans son bandeau, Maj+P + chiffre = pack posé et pièce renommée, un seul Ctrl+Z", async () => {
+    await ev(() => { okteo.zoomToBox(199, 199, 206, 205); okteo.setTool("piece"); });
+    const a = await ev(() => okteo.toClient(200, 200)), b = await ev(() => okteo.toClient(204, 203.5));
+    await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(b.x, b.y, { steps: 8 }); await page.mouse.up();
+    const room = await ev(() => { const r = okteo.state.rooms[okteo.state.rooms.length - 1]; return { id: r.id, name: r.name }; });
+    await ev((id) => okteo.select([id]), room.id); await page.waitForTimeout(150);
+    const hudBtn = await page.isVisible('#hud [data-h="pack"]');
+    await page.click('#hud [data-h="pack"]');
+    const menu = await ev(() => ({ n: document.querySelectorAll(".pk-menu [data-p]").length, first: document.querySelector(".pk-menu [data-p] b")?.textContent }));
+    await page.keyboard.press("Escape");
+    const closed = !(await page.isVisible(".pk-menu"));
+    const apps0 = await ev(() => okteo.state.app.length);
+    await ev((id) => okteo.select([id]), room.id);
+    await page.keyboard.press("Shift+P"); await page.waitForSelector(".pk-menu"); await page.keyboard.press("1"); await page.waitForTimeout(200);
+    const after = await ev((id) => { const r = okteo.state.rooms.find((x) => x.id === id), R = okteoExt.packs.rooms().find((x) => x.id === id); return { name: r.name, apps: okteo.state.app.length, need: R ? R.need.length : -1, types: R ? R.apps.map((x) => x.t).sort().join(",") : "" }; }, room.id);
+    await ev(() => okteo.undo());
+    const undone = await ev(({ id, n }) => ({ name: okteo.state.rooms.find((x) => x.id === id).name, apps: okteo.state.app.length === n }), { id: room.id, n: apps0 });
+    await ev(() => { okteo.undo(); okteo.setTool("sel"); });
+    const ok = hudBtn && menu.n >= 5 && menu.first === "Chambre" && closed && /^Chambre/.test(after.name) && after.apps === apps0 + 6 && after.need === 0 && after.types === "INT,LUM,PC16,PC16,PC16,RJ45" && undone.name === room.name && undone.apps;
+    if (!ok) throw new Error(JSON.stringify({ hudBtn, menu, closed, room, after, undone }));
+    return true;
+  });
+
+  console.log("Mode essai (v45)");
+  await check("essai : interrupteur allume puis éteint (lumière animée), va-et-vient en inversion, poussoir = télérupteur, disjoncteur, Tester tout, Échap", async () => {
+    const ids = await ev(() => okteo.importDevices([{ t: "INT", x: 300, y: 300 }, { t: "LUM", x: 302, y: 300 }, { t: "VV", x: 300, y: 302 }, { t: "VV", x: 304, y: 302 }, { t: "LUM", x: 302, y: 302.5 },
+      { t: "BP", x: 300, y: 304 }, { t: "LUM", x: 302, y: 304 }, { t: "INT", x: 305, y: 304 }],
+      [{ c: 0, l: 1 }, { c: 2, l: 4 }, { c: 3, l: 4 }, { c: 5, l: 6 }]).ids);
+    const C0 = await ev(() => JSON.parse(JSON.stringify(okteo.cab.circuits || [])));
+    await ev((i) => okteo.setCircuits([...(okteo.cab.circuits || []), { n: "CX", kind: "eclairage", apps: [i[0], i[1]], section: 1.5, prot: 10 }]), ids);
+    await ev((i) => { okteo.zoomToBox(298, 298, 307, 306); okteo.setEssai(true); }, ids); await page.waitForTimeout(150);
+    const card = await page.isVisible(".essai-card");
+    const click = async (k) => { const c = await ev((id) => { const a = okteo.state.app.find((x) => x.id === id); return okteo.toClient(a.x, a.y); }, ids[k]); await page.mouse.click(c.x, c.y); await page.waitForTimeout(60); };
+    const lit = (k) => ev((id) => okteo.essai.lit().includes(id), ids[k]);
+    await click(0); const on1 = await lit(1);
+    await page.waitForTimeout(120);
+    const glow = await ev((id) => { const g = document.querySelector(`#fx .fx-glow[data-k="glow:${id}"]`); return !!g && getComputedStyle(g.querySelector(".fx-lum")).animationName === "fx-flick"; }, ids[1]);
+    await click(0); const off1 = !(await lit(1));
+    await click(2); const v1 = await lit(4); await click(3); const v2 = !(await lit(4)); await click(3); const v3 = await lit(4);
+    await click(5); const t1 = await lit(6); await click(5); const t2 = !(await lit(6));
+    await click(0); await ev(() => okteo.essai.breaker("CX", false)); const brk = !(await lit(1)); await ev(() => okteo.essai.breaker("CX", true)); const brk2 = await lit(1);
+    await click(1); const viaLamp = !(await lit(1));
+    await page.click('.essai-card [data-a="test"]');
+    const res = await ev((i) => okteoExt.essai.result.issues.filter((x) => i.includes(x.ids[0])).map((x) => x.kind).join(","), ids);
+    const listed = await ev(() => document.querySelectorAll(".essai-card .es-res li").length > 0);
+    await page.keyboard.press("Escape");
+    const out = !(await ev(() => okteo.testMode)) && !(await page.isVisible(".essai-card"));
+    await ev((c) => okteo.setCircuits(c), C0);
+    await ev(() => { okteo.undo(); okteo.undo(); okteo.undo(); });
+    const back = await ev((i) => !okteo.state.app.some((a) => i.includes(a.id)), ids);
+    const ok = card && on1 && glow && off1 && v1 && v2 && v3 && t1 && t2 && brk && brk2 && viaLamp && res === "rien" && listed && out && back;
+    if (!ok) throw new Error(JSON.stringify({ card, on1, glow, off1, v1, v2, v3, t1, t2, brk, brk2, viaLamp, res, listed, out, back }));
+    return true;
+  });
   await page.click('#tabs button[data-tab="plan"]');
 
   console.log("Panneau extension");

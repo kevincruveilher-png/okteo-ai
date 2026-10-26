@@ -14,6 +14,7 @@ import { delSel, showSide } from "./panel.js";
 import { VIEW_PRESETS, applyCalib, applyRatio, buildFilter, buildTools, hintFor, resetTransient, setHint, setTab, toggleView, viewPreset } from "./controls.js";
 import { addLevel, allLinks, levelFondInfo, levelName, loadFondImage, okteoGeo, removeLevel, renameLevel, switchLevel, withLevel } from "./levels.js";
 import { CIRC_COLORS } from "./render.js";
+import { CHECK_KINDS, essai, essaiPress, essaiReset, litSet, setBreaker, testAll } from "./check.js";
 
 // ---------- interface publique (extensions : assistant, palette, paramètres ; tests) ----------
 export function zoomToBox(x0, y0, x1, y1) {
@@ -480,6 +481,24 @@ window.okteo = {
   get tab() {
     return K.tab;
   },
+  // contrôle permanent (v43) : anomalies de tout le chantier [{kind, ids, lv}] (recalculées à chaque dessin)
+  get control() {
+    return (K.ctl || []).map(i => ({ ...i, ids: [...i.ids] }));
+  },
+  controlKinds: CHECK_KINDS,
+  // mode essai (v45)
+  essai: {
+    press(id) { const c = essaiPress(id); draw(); return c; },
+    reset() { essaiReset(); draw(); },
+    lit() { return [...litSet()]; },
+    get off() { return [...essai().off]; },
+    breaker(n, on) { setBreaker(n, on); draw(); },
+    testAll() { return testAll(); },
+  },
+  setEssai(on) {
+    if (!!on === !!K.testMode) return;
+    this.toggleTest();
+  },
   get testMode() {
     return K.testMode;
   },
@@ -521,7 +540,7 @@ window.okteo = {
     K.testMode = !K.testMode;
     clearSel();
     buildTools();
-    setHint(K.testMode ? "Mode test : cliquez une commande pour voir ses lumières." : "");
+    setHint(K.testMode ? "Mode essai : cliquez un interrupteur pour allumer ou éteindre ses lumières (un 2e clic les éteint). Va-et-vient : chacun inverse. Échap ou « Essai » pour sortir." : "");
     draw();
     showSide();
   },

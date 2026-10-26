@@ -11,6 +11,7 @@ import { getPrefs, setPref, PREFS_DEFAULTS } from "../prefs.js";
 // préférences d'affichage : [clé, libellé, aide]
 const PREF_FIELDS = [
   ["surfaces", "Afficher la surface des pièces (m²)", "Sur le plan, dans les panneaux, au relevé des pièces et à l'impression. La surface reste calculée (nombre de prises de la norme pour le séjour)."],
+  ["halos", "Halo orange autour des appareils à vérifier", "Contrôle permanent : commande sans lumière, lumière sans commande, va-et-vient incomplet, appareil sans circuit, allumage coupé entre deux boîtes. Le compteur ⚠ en haut reste toujours actif."],
 ];
 
 const KEY = "okteo.settings.v1";

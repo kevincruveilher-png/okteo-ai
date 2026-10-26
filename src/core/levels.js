@@ -388,6 +388,7 @@ export function okteoGeo() {
   const rooms = state.rooms.map(r => {
     const P = roomPoly(r);
     return {
+      id: r.id,
       name: r.name,
       poly: P,
       area: roomArea(r),

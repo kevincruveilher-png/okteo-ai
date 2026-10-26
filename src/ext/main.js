@@ -16,6 +16,8 @@ import { createLevelsBar } from "./levels.js";
 import { createTour } from "./tour.js";
 import { createCablagePane } from "./cablage-ui.js";
 import { createPacksPane } from "./packs-ui.js";
+import { createControl, describe as ctlDescribe } from "./controle-ui.js";
+import { createEssai } from "./essai-ui.js";
 import { mountBoxesPage, mountDirectPage } from "./cablage-pages.js";
 import { createAiReleve } from "./ai-releve.js";
 import { ensurePaperW, chantierScaleCheck } from "./pdf-page.js";
@@ -124,7 +126,9 @@ function start() {
   serverStatus().then((st) => settings.setEnv({ online: !!st.online, anthropic: !!st.anthropic, nvidia: !!st.nvidia }));
 
   // accès pour les tests et le débogage
-  const cablage = createCablagePane({ api, panel });
+  const ctl = createControl({ api });
+  const essai = createEssai({ api, ctlDescribe });
+  const cablage = createCablagePane({ api, panel, ctl });
   const packs = createPacksPane({ api, panel });
   hooks.packs = () => panel.show("packs");
   hooks.cablage = () => panel.show("cablage");
@@ -133,7 +137,7 @@ function start() {
   const tour = createTour({ api, panel, hooks });
   hooks.tour = () => tour.start();
   hooks.steps = () => { panel.show("steps"); tour.render(); };
-  window.okteoExt = { cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, pages, backup: null };
+  window.okteoExt = { ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 

@@ -228,13 +228,22 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `okteo.prefs.v1`) ; `surfaces` (faux par défaut) masque les m² dans render.js (étiquettes, aperçu), panel.js, rooms-ui,
   packs-ui et print.js (option `surfaces`). Paramètres : `mountParams(el, {…, openPacks})`, sections `.pset-sec`
   (#ps-aff, #ps-ia, #cab-set, #ps-packs), sommaire `.pset-nav`, recherche `.pset-find` ; `CAB_FIELDS` = [titre, lignes, aide].
+- v43–v45 : `src/core/check.js` (`controlIssues()` → [{kind cmd|lum|vv|circ|split, ids, lv}], `linkTables`, essai :
+  `K.essai` {sw, tl, off}, `lampLit`, `litSet`, `essaiPress(id)` (lumière → sa commande), `setBreaker`, `testAll()`) ;
+  `src/core/fx.js` `fxDraw(items)` = couche `<svg id="fx">` (au-dessus de #sv, pointer-events none) dont les éléments
+  sont gardés par clé (`halo:<id>`, `glow:<id>`) : ne jamais la reconstruire dans `draw` (animations). `drawFx()` en fin
+  de `draw` : `K.ctl`, événements `okteo:control` (liste changée) et `okteo:essai` (mode changé). API : `okteo.control`,
+  `controlKinds`, `okteo.essai` {press, reset, lit, off, breaker, testAll}, `setEssai(on)`. Préférence `halos`.
+  Ext : `controle-ui.js` (compteur `#ctl`, `go/next`, `controlSection` en tête du panneau Câblage), `essai-ui.js`
+  (`.essai-card`), packs-ui `openMenu/applyPack` (événement `okteo:pack-menu` envoyé par le bouton `data-h="pack"`
+  du HUD pièce ; Maj+P ; `.pk-menu`). `exportGeometry().rooms[].id`. Visite : 22 étapes.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (48 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (116 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (48 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (119 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

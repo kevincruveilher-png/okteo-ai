@@ -10,6 +10,7 @@ import { clampOpenings, clearSel, currentGroup, isSel, marqueeSelect, mk, moveGr
 import { showSide } from "./panel.js";
 import { buildTools, hintFor, setHint } from "./controls.js";
 import { allLinks, levelName } from "./levels.js";
+import { essaiPress, lampLit, linkTables } from "./check.js";
 
 // ---------- mesure sur mur (distance à l'angle) ----------
 export const fmtM = v => (v >= 0 ? "" : "−") + Math.abs(v).toFixed(2).replace(".", ",") + " m";
@@ -581,9 +582,12 @@ sv.addEventListener("pointerdown", e => {
   }
   if (K.tool === "sel") {
     if (K.testMode) {
+      // mode essai (v45) : un clic sur une commande l'actionne ; sur une lumière, actionne sa commande
       const a = hitApp(wx, wy);
-      if (a && (a.t === "INT" || a.t === "VV" || a.t === "BP")) {
-        setSingle("app", a.id);
+      if (a) {
+        const c = essaiPress(a.id);
+        if (c) essaiHint(c);
+        else if (linkRole(a.t) === "l") setHint("Cette lumière n'a pas de commande : reliez-la à un interrupteur (outil Liaison).");
         draw();
       }
       return;
@@ -1023,4 +1027,13 @@ export function removeWaypoint(b, key, i) {
   draw();
   setHint("Point de passage supprimé (Ctrl+Z pour annuler).");
   document.dispatchEvent(new CustomEvent("okteo:cab"));
+}
+
+
+// bandeau d'aide en mode essai : ce que la commande a fait
+export function essaiHint(c) {
+  const T = linkTables(), ls = T.lights.get(c) || [], on = ls.filter((l) => lampLit(l, T)).length;
+  const rm = repMap(), a = state.app.find((x) => x.id === c);
+  const nm = (rm && rm[c]) || (a ? a.t : "commande");
+  setHint(ls.length ? `Essai : ${nm} → ${on ? `${on} lumière${on > 1 ? "s" : ""} allumée${on > 1 ? "s" : ""}` : "lumière éteinte"} sur ${ls.length}. Recliquez pour inverser ; « Tester tout » dans l'encart Essai.` : `Essai : ${nm} n'allume rien (aucune lumière reliée).`);
 }

@@ -4,6 +4,7 @@ const KEY = "okteo.prefs.v1";
 
 export const PREFS_DEFAULTS = {
   surfaces: false, // surface (m²) des pièces : sur le plan, dans les panneaux et à l'impression
+  halos: true, // contrôle (v43) : halo orange animé autour des appareils à vérifier
 };
 
 export function getPrefs() {

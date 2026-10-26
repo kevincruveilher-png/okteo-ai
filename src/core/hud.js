@@ -116,7 +116,7 @@ export function hudHTML() {
   if (K.sel.kind === "room") {
     const r = state.rooms.find(x => x.id === K.sel.id);
     if (!r) return "";
-    return `<input data-h="name" type="text" value="${r.name.replace(/"/g, '&quot;')}" style="width:104px"><span class="vsep"></span>${HUD_TF}
+    return `<input data-h="name" type="text" value="${r.name.replace(/"/g, '&quot;')}" style="width:104px"><button data-h="pack" class="hud-pack" title="Poser un pack d'appareils dans cette pièce : prises, point lumineux, interrupteur… (Maj+P, puis le chiffre du pack)">▦ Pack ▾</button><span class="vsep"></span>${HUD_TF}
       <span class="vsep"></span><button data-h="gdup" title="Dupliquer la pièce et son contenu (Ctrl+D)">Dupliquer</button><button data-h="gdel" title="Supprimer la pièce, ses murs et son contenu">🗑</button>`;
   }
   if (K.sel.kind === "node") return `<button data-h="del">Supprimer le sommet</button>`;
@@ -182,6 +182,12 @@ export function wireHud() {
       return;
     }
     el.onclick = () => {
+      if (act === "pack") {
+        // le menu des packs est dans l'extension Packs (src/ext/packs-ui.js)
+        const r = el.getBoundingClientRect();
+        document.dispatchEvent(new CustomEvent("okteo:pack-menu", { detail: { room: K.sel && K.sel.id, x: r.left, y: r.bottom + 4 } }));
+        return;
+      }
       if (act === "del") {
         delSel();
         return;

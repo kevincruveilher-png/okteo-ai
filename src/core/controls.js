@@ -38,7 +38,7 @@ export function buildTools() {
   const bati = [["sel", "Sélection", "Sélection (V) : cliquer, glisser un cadre, déplacer"], ["piece", "Pièce", "Pièce (E) : un rectangle de murs"], ["mur", "Mur", "Mur (B) : murs enchaînés"], ["porte", "Porte", "Porte : cliquer sur un mur"], ["fenetre", "Fenêtre", "Fenêtre : cliquer sur un mur"], ["offset", "Cloison", "Cloison parallèle à un mur"], ["cote", "Cote", "Cote : deux points"], ["calib", "Échelle", "Échelle du plan : deux points d'une cote connue, ou 1/50"], ["pan", "Main", "Main : déplacer la vue"]];
   let h = `<div class="trow bati" role="toolbar" aria-label="Implantation bâti"><span class="tlab" title="Outils pour dessiner le bâtiment">Implantation<b>bâti</b></span>` + bati.map(([k, n, tip]) => btn(k, n, tip)).join("") + `</div>`;
   h += `<div class="trow appa" role="toolbar" aria-label="Implantation appareils"><span class="tlab" title="Outils pour poser l'appareillage et ses liaisons">Implantation<b>appareils</b></span>` + btn("lien", "Liaison", "Liaison : une commande puis ses lumières") +
-    `<button data-tool="__test" class="tb ${K.testMode ? 'on' : ''}" title="Test : cliquer une commande allume ses lumières">${icon("__test")}<span class="tl">Test</span></button><span class="sep"></span>`;
+    `<button data-tool="__test" class="tb ${K.testMode ? 'on' : ''}" title="Essai : cliquer un interrupteur allume ou éteint ses lumières, comme dans la maison (va-et-vient, télérupteur, disjoncteurs)">${icon("__test")}<span class="tl">Essai</span></button><span class="sep"></span>`;
   // appareils : le symbole tel qu'il est dessiné sur le plan (nom complet dans l'infobulle)
   h += `<span class="palette" role="group" aria-label="Appareils">` + PAL.map(k => `<button data-tool="${k}" class="pb ${K.tool === k ? 'on' : ''}" title="${TYPES[k].n}" aria-label="${TYPES[k].n}"><svg class="ticon" viewBox="-1.25 -1.35 2.5 2.7" aria-hidden="true">${glyph(k)}</svg></button>`).join("") + `</span></div>`;
   t.innerHTML = h;
@@ -49,7 +49,7 @@ export function buildTools() {
       K.testMode = !K.testMode;
       clearSel();
       buildTools();
-      setHint(K.testMode ? "Mode test : cliquez une commande pour voir ses lumières." : "");
+      setHint(K.testMode ? "Mode essai : cliquez un interrupteur pour allumer ou éteindre ses lumières (un 2e clic les éteint). Va-et-vient : chacun inverse. Échap ou « Essai » pour sortir." : "");
       draw();
       showSide();
       return;
@@ -415,6 +415,14 @@ document.addEventListener("keydown", e => {
       K.dimDraft = null;
       hideReadout();
       draw();
+      return;
+    }
+    if (K.testMode) {
+      K.testMode = false;
+      buildTools();
+      setHint("");
+      draw();
+      showSide();
       return;
     }
     clearSel();

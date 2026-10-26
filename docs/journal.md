@@ -281,6 +281,28 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Versions 43, 44 et 45 (26/10/2026) — livrées ensemble : contrôle permanent, Pack depuis la pièce, mode essai
+- v43 — contrôle permanent : bouton « ⚠ n à vérifier » dans le bandeau du haut (vert « ✓ Contrôle » quand tout va bien),
+  recalculé à chaque dessin sur tous les niveaux : commande sans lumière, lumière sans commande, va-et-vient seul,
+  appareil sans circuit (une fois les circuits répartis), commande et lumière dans deux boîtes. Un clic va au cas suivant
+  (change de niveau, sélectionne, zoome, explique dans le bandeau d'aide) ; liste cliquable en tête du panneau Câblage ;
+  halo orange animé (pulsation) autour des appareils concernés, réglage « Halo orange » dans Paramètres → Affichage.
+- v44 — pièce sélectionnée : bouton « ▦ Pack ▾ » dans son bandeau (ou Maj+P : P seul reste l'outil Prise), menu des
+  packs numérotés (chiffre ou clic), pack reconnu d'après le nom mis en avant ; options « Avec sa boîte (pieuvre type) »
+  et « Aussi Chambre 2, Chambre 3… » (pièces du même nom, seulement si le nom désigne un pack). Une pièce au nom non
+  reconnu (« Pièce 3 ») prend le nom du pack (« Chambre 3 »). Rien n'est automatique ; un seul Ctrl+Z.
+- v45 — mode essai (bouton « Essai », ancien « Test ») : un clic sur un interrupteur allume ses lumières, un 2e clic
+  les éteint ; va-et-vient en inversion (chacun inverse) ; poussoir = télérupteur ; un clic sur une lumière actionne sa
+  commande. Lumière animée : fondu à l'allumage et à l'extinction, halo chaud qui éclaire autour de la lampe, légère
+  variation d'intensité (désactivé si le système demande moins d'animations). Encart Essai en haut à gauche du plan :
+  nombre de lumières allumées, « Tout éteindre », « Tester tout » (chaque commande seule : n'allume rien, lumière qui
+  reste éteinte, lumière d'un autre circuit, va-et-vient seul ; lignes cliquables), « Disjoncteurs » (un par circuit :
+  couper éteint ses lumières). Échap ou ✕ pour sortir. Écart à la feuille de route : les disjoncteurs sont dans l'encart
+  Essai (plus près du plan) au lieu du panneau Câblage ; ils iront dans l'onglet Tableau (v46).
+- Effets animés : couche `#fx` séparée du plan, gardée d'un dessin à l'autre (les animations ne repartent pas à chaque
+  mouvement).
+- Tests : 30 + 48 + 119 = 197.
+
 ## Versions 41 et 42 (26/10/2026) — livrées ensemble : écran en encarts, assistant en bas à droite, Paramètres rangés
 - v41 — bandeau du haut en trois encarts titrés : **Actions** (barres Implantation bâti / appareils), **Vues** (Bâti,
   Implantation, Câblage + un bouton par calque), **Panneaux** (Propriétés, Câblage, Packs, Étapes). Un clic ouvre le

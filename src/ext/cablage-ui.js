@@ -10,11 +10,12 @@ import { esc } from "./util.js";
 import { wiringNow, autoBoxes, removeBoxPlan, fr } from "./cablage-data.js";
 import { buildUnits, MODES } from "../cablage/boites.js";
 import { createCompare } from "./pieuvre-compare.js";
+import { controlSection, wireControlSection } from "./controle-ui.js";
 
 const KIND = { eclairage: "Éclairage", prises: "Prises", cuisine: "Prises cuisine", specialise: "Spécialisé", comm: "Communication" };
 const LIGHT = new Set(["LUM", "SPOT", "APP"]);
 
-export function createCablagePane({ api, panel }) {
+export function createCablagePane({ api, panel, ctl }) {
   const el = panel.register({ id: "cablage", label: "Câblage", icon: "⚡", tip: "Circuits, boîtes et gaines : répartition, placement, réglages" });
   let ask = null, renaming = null, askBox = false;
   const fr = (v) => String(v).replace(".", ",");
@@ -89,7 +90,7 @@ export function createCablagePane({ api, panel }) {
     const head = `<div class="cab-h"><b>Circuits</b> <span class="mut sm">NF C 15-100 · max ${S.maxPoints} points / ${S.maxPrises} prises</span></div>
       <label class="ck sm"><input type="checkbox" id="cb-show" ${api.showCircuits ? "checked" : ""}> Couleurs des circuits sur le plan</label>`;
     if (!C.length) {
-      el.innerHTML = `<div class="cab">${head}<p class="mut">Aucun circuit pour l'instant. Oktéo peut répartir tous les appareils du chantier (tous niveaux) en circuits : éclairage par allumage, prises voisines ensemble, un circuit par prise spécialisée, RJ45 en lignes directes.</p>
+      el.innerHTML = `<div class="cab">${controlSection(api)}${head}<p class="mut">Aucun circuit pour l'instant. Oktéo peut répartir tous les appareils du chantier (tous niveaux) en circuits : éclairage par allumage, prises voisines ensemble, un circuit par prise spécialisée, RJ45 en lignes directes.</p>
         <button class="on" id="cb-auto" ${api.allApps().length ? "" : "disabled title=\"Posez d'abord des appareils\""}>Répartir automatiquement</button>
         <p class="mut sm">Réglages (limites, sections, protections, couleurs des fils) : Paramètres → Câblage.</p></div>`;
       wire(); return;
@@ -115,7 +116,7 @@ export function createCablagePane({ api, panel }) {
     }).join("");
     const orphans = chk.orphans.length ? `<p class="warn sm">⚠ ${chk.orphans.length} appareil${chk.orphans.length > 1 ? "s" : ""} sans circuit (anneau rouge pointillé sur le plan). <button id="cb-orph">Les sélectionner</button></p>` : "";
     const issues = chk.issues.map((x) => `<p class="warn sm">⚠ ${esc(x.msg)}</p>`).join("");
-    el.innerHTML = `<div class="cab">${head}${orphans}${issues}
+    el.innerHTML = `<div class="cab">${controlSection(api)}${head}${orphans}${issues}
       <div class="cb-list">${rows}</div>
       <div class="cb-foot">
         <select id="cb-kind">${Object.entries(KIND).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select>
@@ -228,6 +229,7 @@ export function createCablagePane({ api, panel }) {
   }
 
   function wire() {
+    if (ctl) wireControlSection(el, ctl);
     wireBoxes();
     const $ = (s) => el.querySelector(s);
     const sh = $("#cb-show"); if (sh) sh.onchange = () => { api.showCircuits = sh.checked; };
@@ -255,7 +257,7 @@ export function createCablagePane({ api, panel }) {
 
   let t = null;
   const later = () => { clearTimeout(t); t = setTimeout(render, 80); };
-  ["okteo:cab", "okteo:saved", "okteo:level", "okteo:cab-settings", "okteo:box-select"].forEach((e) => document.addEventListener(e, later));
+  ["okteo:cab", "okteo:saved", "okteo:level", "okteo:cab-settings", "okteo:box-select", "okteo:control"].forEach((e) => document.addEventListener(e, later));
   document.addEventListener("okteo:open-cablage", () => panel.show("cablage"));
   // les couleurs des circuits s'affichent quand l'onglet Câblage est ouvert (et restent tant qu'on ne les décoche pas)
   panel.onChange((s) => { if (s.pane === "cablage" && !s.collapsed) { if (!api.showCircuits && !el.__shown) { el.__shown = true; api.showCircuits = true; } later(); } });

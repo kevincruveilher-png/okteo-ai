@@ -19,17 +19,17 @@ Décidée avec Kévin le 26/10/2026. Détail des échanges : `docs/journal.md` (
 - Paramètres regroupés en sections avec titre et courte aide : **Affichage** (surfaces), **Assistant et relevé IA** (clés, modèles), **Câblage** (circuits, couleurs, boîtes, gaines et câbles, longueurs), **Packs** (renvoi vers le panneau Packs) ; sommaire et recherche.
 - Les m² des pièces disparaissent partout (libellé écran et impression, nomenclature, liste des Packs, liste de détection, total « m² habitables »). Réglage « Afficher les surfaces des pièces », désactivé par défaut. La surface reste calculée (nombre de prises de la norme pour le séjour).
 
-## 43 — Contrôle des appareils seuls
+## 43 — Contrôle des appareils seuls — FAIT (26/10/2026)
 - Compteur « ⚠ n » actif en permanence dans le bandeau (calcul léger à chaque dessin).
 - Cas : commande sans lumière, lumière sans commande, va-et-vient incomplet, appareil sans circuit, allumage coupé entre deux boîtes, commande et lumière dans deux boîtes.
 - Halo orange animé (pulsation douce) sur le plan ; un clic sur le compteur zoome sur le cas suivant ; liste dans l'onglet Câblage.
 
-## 44 — Pack en peu de clics
+## 44 — Pack en peu de clics — FAIT (26/10/2026 ; raccourci Maj+P, P = outil Prise)
 - Bouton « Pack ▾ » dans le bandeau de la pièce : pièce, Pack, type = 3 clics. Touche P puis un chiffre.
 - Options : « Pieuvre type » (pack + boîte), « même pack pour les pièces du même nom ».
 - Jamais automatique à la création d'une pièce ; un seul Ctrl+Z.
 
-## 45 — Mode essai
+## 45 — Mode essai — FAIT (26/10/2026 ; disjoncteurs dans l'encart Essai en attendant l'onglet Tableau)
 - Bouton « Essai » : un clic sur un interrupteur allume / éteint ses lampes (deuxième clic sur l'interrupteur ; à confirmer : clic direct sur la lampe aussi).
 - Lumière soignée : fondu à l'allumage et à l'extinction, halo qui éclaire autour de la lampe, légère variation d'intensité en continu ; animations réduites si le système le demande.
 - Va-et-vient en inversion, télérupteur par bouton-poussoir, un disjoncteur simple par circuit dans l'onglet Câblage.

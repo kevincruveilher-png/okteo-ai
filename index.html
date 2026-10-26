@@ -40,6 +40,7 @@
     </div>
     <div class="sep"></div>
     <button id="undo" title="Annuler (Ctrl+Z)">↶</button><button id="redo" title="Rétablir (Ctrl+Y)">↷</button>
+    <button class="ctl" id="ctl" title="Contrôle du plan">✓ Contrôle</button>
     <div class="chip"><span class="dot" id="savedot"></span><span id="savetxt">Enregistré</span></div>
     <button id="btn-print" title="Plan imprimable en PDF, à l'échelle, avec cartouche et nomenclature (Ctrl+P)">🖨 Imprimer</button>
     <div class="sep"></div>
@@ -54,6 +55,7 @@
     <nav class="tabs" id="tabs"></nav>
     <div class="stage">
       <svg id="sv" viewBox="0 0 100 70" preserveAspectRatio="xMidYMid meet" aria-label="Plan du chantier"></svg>
+      <svg class="fx" id="fx" aria-hidden="true" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="hud" id="hud" hidden></div>
       <div class="readout" id="readout" hidden></div>
       <div class="hint" id="hint"></div>

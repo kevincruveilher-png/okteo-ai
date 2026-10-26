@@ -7,6 +7,8 @@ import { TYPES, VB, dist, epOf, layers, nodeById, pmNow, segById, segDir, segLen
 import { V2W, W2V, ensureReps, pxPerVB, repMap, syncVB } from "./view.js";
 import { followWalls, gaineCtrl, linkCtrl, linkRole, openHandles, roomArea, roomPoly } from "./attach.js";
 import { pref } from "../prefs.js";
+import { controlIssues, essai, litSet } from "./check.js";
+import { fxDraw } from "./fx.js";
 import { bbox, currentGroup, groupPoints, isSel, multi } from "./groups.js";
 import { placeHud } from "./hud.js";
 import { allLinks, belowData, crossLinks } from "./levels.js";
@@ -367,7 +369,9 @@ export function draw() {
   } else K.__boxLayer = "";
   // appareils + repères
   if (layers.appareils.on) {
-    const onSet = K.testMode && K.sel ? lightsOn(K.sel.id) : null,
+    // mode essai (v45) : lumières allumées (classe lit) et commandes actionnées (classe on)
+    const onSet = K.testMode ? litSet() : null,
+      sw = K.testMode ? essai().sw : null,
       ss = symView(),
       rm = K.showReps ? repMap() : null;
     const circ = K.showCirc ? circuitMap() : null;
@@ -377,14 +381,13 @@ export function draw() {
         lit = onSet && onSet.has(a.id);
       // couleur du circuit (affichage des circuits) sur le symbole lui-même ; sans circuit = rouge (à vérifier),
       // sauf ce qui part en ligne directe (RJ45, prises spécialisées, sorties de câble)
-      let cls = "dev", col = "";
+      let cls = lit ? "dev lit" : sw && sw[a.id] ? "dev on" : "dev", col = "";
       if (circ) {
         const c = circ[a.id];
         if (c) { cls += " circ"; col = c.color; } else if (circ.__need(a) && !circ.__direct(a)) { cls += " circ nocirc"; col = "#d33"; }
       }
       const rot = appRot(a);
       ap += `<g class="${cls}"${col ? ` style="--c:${col}"` : ""}${circ && circ[a.id] ? ` data-c="${circ[a.id].n}"` : ""} transform="translate(${a.x} ${a.y})${rot ? ` rotate(${rot})` : ""}"><g transform="scale(${ss})">`;
-      if (lit) ap += `<circle r="1.5" fill="var(--warn)" opacity=".5"/>`;
       if (aSel) ap += `<circle r="1.5" fill="none" stroke="var(--sel)" stroke-width=".12" stroke-dasharray=".3 .25"/>`;
       ap += glyph(a.t) + `</g>`;
       ap += `</g>`;
@@ -663,6 +666,25 @@ export function draw() {
   h += `</g>`;
   sv.innerHTML = h;
   if (typeof placeHud === "function") placeHud();
+  drawFx();
+}
+
+// contrôle permanent (v43) + lumière de l'essai (v45) : calculés à chaque dessin, affichés dans la couche d'effets
+// (halos orange animés, lumière des lampes) ; l'événement okteo:control prévient le compteur quand la liste change
+export function drawFx() {
+  let list = [];
+  try { list = controlIssues(); } catch (e) { list = []; }
+  K.ctl = list;
+  const sig = list.map((i) => i.kind + ":" + i.ids.join(",")).join(";");
+  if (sig !== K.ctlSig) { K.ctlSig = sig; document.dispatchEvent(new CustomEvent("okteo:control", { detail: { n: list.length } })); }
+  if (!!K.testMode !== !!K.__essaiWas) { K.__essaiWas = !!K.testMode; document.dispatchEvent(new CustomEvent("okteo:essai", { detail: { on: !!K.testMode } })); }
+  const items = [];
+  if (layers.appareils.on && K.tab === "plan") {
+    const by = Object.fromEntries(state.app.map((a) => [a.id, a])), ss = symView();
+    if (pref("halos")) list.forEach((it) => it.ids.forEach((id) => { const a = by[id]; if (a) items.push({ key: id, kind: "halo", x: a.x, y: a.y, r: 1.45 * ss }); }));
+    if (K.testMode) litSet().forEach((id) => { const a = by[id]; if (a) items.push({ key: id, kind: "glow", x: a.x, y: a.y, r: Math.max(1.7, 5 * ss) }); });
+  }
+  fxDraw(items);
 }
 
 // ---------- hit-tests ----------
