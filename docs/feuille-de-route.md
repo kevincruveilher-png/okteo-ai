@@ -55,6 +55,17 @@ Spécification complète : `docs/journal.md`, section « feuille de boîte ». E
 - Code barre unique (code 128, identifiant du chantier + nom de la boîte) ; modèle de boîte (pavillonnaire carrée) et couvercle haut / bas en simple mention.
 - Textes plus gros, sans Ph / N / PE ; gaine écrite « LI01.10 · P14 · 4,8 m · Ø16 » ; alimentation avec accolades et bagues 1, 2… sous les bornes.
 
+## Tableau — appareillage modulaire (demande de Kévin, 27/10) — à faire avec ou après la 48
+Ajouter au tableau, depuis une liste « ＋ Appareil modulaire », chacun avec sa largeur en modules et son symbole :
+- prise modulaire 2P+T 16 A (2,5 modules, sous un différentiel) ;
+- parafoudre type 2 (2 modules) + son disjoncteur de déconnexion (obligatoire selon la zone, conseillé sinon) ;
+- télérupteur modulaire (1 module) — à relier aux allumages à télérupteur du plan (T1, T2…) ;
+- contacteur jour/nuit heures creuses pour le chauffe-eau (1 module) ;
+- délesteur, minuterie, horloge / programmateur, transformateur de sonnette (1 à 2 modules) ;
+- obturateurs pour les places vides (réserve).
+Contrôle : réserve de 20 % recalculée avec ces appareils. À valider avec Kévin (ou son électricien de référence) : ce qui
+est mis par défaut, et ce qui est fourni par KiTéOHM ou par l'électricien.
+
 ## 48 — Impression complète du plan
 - Boîtes (faces, numéros de gaine, couleurs des circuits), gaines avec leurs points intermédiaires, liaisons en courbe comme à l'écran.
 - Impression selon le filtre de vues actif, une case par calque dans la fenêtre d'impression.
