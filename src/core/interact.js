@@ -4,7 +4,7 @@ import { K } from "./k.js";
 import { TYPES, cornerHalf, dist, epOf, layers, node, nodeById, segById, segDir, segLen, state, uidA, uidD, uidO, uidR, uidS } from "./model.js";
 import { markDirty, save, snapshot } from "./persist.js";
 import { applyOrtho, evWorld, pxPerVB, repMap, snapWorld, tolM } from "./view.js";
-import { draw, hitBox, sv } from "./render.js";
+import { draw, hitBox, hitLock, hitRoute, sv } from "./render.js";
 import { attach, hitApp, hitLink, linkRole, hitNode, hitOpen, hitOpenHandle, hitSeg, projOnSeg, segDistPt, snapAlign, snapToWall, wallMounted } from "./attach.js";
 import { clampOpenings, clearSel, currentGroup, isSel, marqueeSelect, mk, moveGroup, multi, normalizeSel, roomAt, setSingle, startGroupDrag, toggleMulti } from "./groups.js";
 import { showSide } from "./panel.js";
@@ -189,6 +189,16 @@ export function placeApp(t, p) {
 }
 
 export function endPtr() {
+  if (K.routeDrag) {
+    const moved = K.routeDrag.snap;
+    K.routeDrag = null;
+    if (moved) {
+      markDirty();
+      document.dispatchEvent(new CustomEvent("okteo:cab"));
+    }
+    draw();
+    return;
+  }
   if (K.boxDrag) {
     K.boxDrag = null;
     markDirty();
@@ -304,6 +314,38 @@ sv.addEventListener("pointerdown", e => {
   }
   // boîte de pieuvre : on la saisit pour la déplacer (outil Sélection, couleurs des circuits affichées)
   if (K.tool === "sel" && !K.testMode) {
+    // cadenas : verrouiller / déverrouiller la boîte
+    const lk = hitLock(wx, wy);
+    if (lk) {
+      snapshot();
+      lk.locked = !lk.locked;
+      markDirty();
+      draw();
+      setHint(lk.locked ? `${lk.n} verrouillée : elle ne bouge plus quand on recalcule les boîtes.` : `${lk.n} déverrouillée : elle sera recalculée avec les autres.`);
+      document.dispatchEvent(new CustomEvent("okteo:cab"));
+      return;
+    }
+    // gaine : saisir un point de passage, ou en créer un en tirant la gaine
+    const hr = hitApp(wx, wy) ? null : hitRoute(wx, wy);
+    if (hr) {
+      const b = hr.box;
+      // 2e clic rapide sur le même point de passage = double-clic : on le supprime
+      // (le plan est redessiné entre les deux clics, le « dblclick » du navigateur n'arrive pas toujours)
+      const now = performance.now(), L = K.wpClick;
+      K.wpClick = hr.wp != null ? { id: b.id, key: hr.key, i: hr.wp, t: now } : null;
+      if (hr.wp != null && L && L.id === b.id && L.key === hr.key && L.i === hr.wp && now - L.t < 450) {
+        K.wpClick = null;
+        removeWaypoint(b, hr.key, hr.wp);
+        return;
+      }
+      // le point de passage n'est créé qu'au premier mouvement (un simple clic sur une gaine ne change rien)
+      K.routeDrag = { id: b.id, key: hr.key, i: hr.wp == null ? hr.seg : hr.wp, snap: false, create: hr.wp == null };
+      K.boxSel = b.id;
+      document.dispatchEvent(new CustomEvent("okteo:box-select", { detail: { id: b.id } }));
+      draw();
+      setHint(hr.wp == null ? "Tirez la gaine pour lui donner un point de passage." : routeHint(b, hr.key, K.routeDrag.i));
+      return;
+    }
     const b = hitBox(wx, wy);
     if (b) {
       snapshot();
@@ -670,12 +712,47 @@ sv.addEventListener("pointermove", e => {
     draw();
     return;
   }
+  if (K.routeDrag) {
+    const R = K.routeDrag,
+      b = K.CAB.boxes.find(x => x.id === R.id);
+    if (b && R.create) {
+      snapshot();
+      R.snap = true;
+      R.create = false;
+      b.routes = { ...(b.routes || {}) };
+      b.routes[R.key] = [...(b.routes[R.key] || [])];
+      b.routes[R.key].splice(R.i, 0, { x: +wx.toFixed(2), y: +wy.toFixed(2) });
+      b.locked = true;
+    }
+    if (b && b.routes && b.routes[R.key]) {
+      if (!R.snap) {
+        snapshot();
+        R.snap = true;
+        b.routes = { ...b.routes, [R.key]: b.routes[R.key].map(p => ({ ...p })) };
+        b.locked = true;
+      }
+      const pts = b.routes[R.key],
+        prev = R.i === 0 ? b : pts[R.i - 1];
+      let x = wx,
+        y = wy;
+      // Maj : tronçon horizontal ou vertical depuis le point précédent
+      if (e.shiftKey) {
+        if (Math.abs(x - prev.x) >= Math.abs(y - prev.y)) y = prev.y;
+        else x = prev.x;
+      }
+      pts[R.i] = { x: +x.toFixed(2), y: +y.toFixed(2) };
+      draw();
+      setHint(routeHint(b, R.key, R.i));
+    }
+    return;
+  }
   if (K.boxDrag) {
     const b = K.CAB.boxes.find(x => x.id === K.boxDrag.id);
     if (b) {
       b.x = +(Math.round((wx - K.boxDrag.dx) / 0.05) * 0.05).toFixed(2);
       b.y = +(Math.round((wy - K.boxDrag.dy) / 0.05) * 0.05).toFixed(2);
       b.manual = true;
+      b.locked = true;
       draw();
     }
     return;
@@ -817,7 +894,16 @@ sv.addEventListener("pointerleave", () => {
 sv.addEventListener("pointerup", endPtr);
 sv.addEventListener("pointercancel", endPtr);
 sv.addEventListener("contextmenu", e => e.preventDefault());
-sv.addEventListener("dblclick", () => {
+sv.addEventListener("dblclick", e => {
+  // double-clic sur un point de passage : il est supprimé (la gaine reprend le tracé sans lui)
+  if (K.tool === "sel" && K.showCirc) {
+    const [dx, dy] = evWorld(e);
+    const hr = hitRoute(dx, dy);
+    if (hr && hr.wp != null) {
+      removeWaypoint(hr.box, hr.key, hr.wp);
+      return;
+    }
+  }
   if (K.tool === "mur") {
     K.draftFrom = null;
     K.draftPt = null;
@@ -855,4 +941,34 @@ export function linkSummary() {
   const linked = new Set(); allLinks().forEach(x => { linked.add(x.c); linked.add(x.l); });
   const miss = cmd.filter(a => !linked.has(a.id)).length + lum.filter(a => !linked.has(a.id)).length;
   return `${n} liaison${n > 1 ? "s" : ""} sur ce niveau` + (miss ? ` · ${miss} appareil${miss > 1 ? "s" : ""} sans liaison (cerclé${miss > 1 ? "s" : ""} en orange)` : " · tout est relié");
+}
+
+// aide pendant qu'on tire un point de passage : distance à la face du mur le plus proche
+export function routeHint(b, key, i) {
+  const p = (b.routes && b.routes[key] || [])[i];
+  if (!p) return "";
+  let best = null;
+  for (const s of state.segs) {
+    if (s.virt) continue;
+    const A = nodeById(s.a),
+      B = nodeById(s.b);
+    if (!A || !B) continue;
+    const d = segDistPt(p.x, p.y, A, B).d - epOf(s) / 2;
+    if (best == null || d < best) best = d;
+  }
+  const near = best == null ? "" : best <= 0 ? "dans le mur · " : `à ${Math.round(best * 100)} cm du mur le plus proche · `;
+  return `Point de passage de la gaine ${key === "tab" ? b.n + " → tableau" : b.n + " → " + (repMap()[key] || "appareil")} : ${near}Maj : tronçon droit · double-clic : supprimer le point.`;
+}
+
+export function removeWaypoint(b, key, i) {
+  snapshot();
+  const pts = (b.routes && b.routes[key] || []).filter((_, k) => k !== i);
+  b.routes = { ...(b.routes || {}) };
+  if (pts.length) b.routes[key] = pts;
+  else delete b.routes[key];
+  K.routeDrag = null;
+  markDirty();
+  draw();
+  setHint("Point de passage supprimé (Ctrl+Z pour annuler).");
+  document.dispatchEvent(new CustomEvent("okteo:cab"));
 }

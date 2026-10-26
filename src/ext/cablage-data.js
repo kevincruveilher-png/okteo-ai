@@ -9,11 +9,13 @@ export function wiringNow(api) {
 }
 
 // placement automatique des boîtes (tous niveaux) ; le tableau (ou, sur un autre niveau, sa projection) attire les boîtes
-export function autoBoxes(api) {
+// keepIds : boîtes gardées telles quelles (verrouillées ou décochées au recalcul)
+export function autoBoxes(api, keepIds = []) {
   const S = getCab(), items = api.allApps(), links = api.allLinks();
   const tab = items.find((a) => a.t === "TAB");
   const tabs = {}; api.levels.forEach((l) => { if (tab) tabs[l.id] = { x: tab.x, y: tab.y }; });
-  return placeBoxes(items, links, api.cab.circuits || [], tabs, S);
+  const keep = (api.cab.boxes || []).filter((b) => keepIds.includes(b.id));
+  return placeBoxes(items, links, api.cab.circuits || [], tabs, S, { keep });
 }
 
 // couleur d'affichage d'un fil d'après son nom (réglages « Couleurs des fils »)

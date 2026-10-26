@@ -740,7 +740,9 @@ try {
     await page.keyboard.press("PageDown"); await page.waitForFunction(() => okteo.level.name === "RDC");
     const down = await ev(() => [...document.querySelectorAll("#sv text.xlink")].map((t) => t.textContent).join("|"));
     await ev(() => okteo.setTool("sel"));
-    if (!(hint.includes("Liaison depuis " + int.rep) && up === "← " + int.rep + " RDC" && down === "→ L1 Étage")) throw new Error(JSON.stringify({ hint, up, down, rep: int.rep }));
+    // même numéro que l'interrupteur (allumage) : L1, ou L1A si l'allumage a déjà une lumière au RDC
+    const same = new RegExp("^→ L" + int.rep.slice(1) + "A? Étage$");
+    if (!(hint.includes("Liaison depuis " + int.rep) && up === "← " + int.rep + " RDC" && same.test(down))) throw new Error(JSON.stringify({ hint, up, down, rep: int.rep }));
     return true;
   });
   await check("impression de tous les niveaux : une page par niveau + nomenclature commune, liaison inter-niveaux écrite", async () => {
@@ -755,8 +757,8 @@ try {
     await page.selectOption('.pr [data-k="levels"]', "cur");
     await page.waitForFunction(() => okteoExt.printer.last && okteoExt.printer.last.pages === 2, null, { timeout: 30000 });
     await page.keyboard.press("Escape");
-    const ok = t1.includes("RDC") && t2.includes("Étage") && t3.includes("Nomenclature") && t3.includes("Étage · ") && t3.includes("commande L1 (Étage)") && t3.includes("commandé par");
-    if (!ok) throw new Error(JSON.stringify({ a: t1.includes("RDC"), b: t2.includes("Étage"), c: t3.includes("Étage · "), d: t3.includes("commande L1 (Étage)"), t3: t3.slice(-600) }));
+    const ok = t1.includes("RDC") && t2.includes("Étage") && t3.includes("Nomenclature") && t3.includes("Étage · ") && /commande L1A? \(Étage\)/.test(t3) && t3.includes("commandé par");
+    if (!ok) throw new Error(JSON.stringify({ a: t1.includes("RDC"), b: t2.includes("Étage"), c: t3.includes("Étage · "), d: /commande L1A? \(Étage\)/.test(t3), t3: t3.slice(-600) }));
     return true;
   });
 
@@ -837,6 +839,88 @@ try {
     const d = await ev(() => document.querySelectorAll(".cabpage .gt tbody tr").length);
     await page.click('#tabs button[data-tab="plan"]');
     if (!(r.boxes === n && r.rows > 60 && r.chips > 150 && r.nets > 20 && /n° 1 Terres/.test(r.first) && r.faces && d >= 8)) throw new Error(JSON.stringify({ ...r, n, d }));
+    return true;
+  });
+  console.log("Repères par allumage, tracé des gaines, cadenas (v32)");
+  await check("repères par allumage : commande et lumières reliées ont le même numéro, A/B pour le 2e/3e du même type ; prises inchangées", async () => ev(() => {
+    const R = okteo.repMap(), num = (r) => (r.match(/^[A-Z]+(\d+)[A-Z]?$/) || [])[1];
+    const bad = okteo.state.lia.filter((x) => R[x.c] && R[x.l] && num(R[x.c]) !== num(R[x.l])).map((x) => R[x.c] + "→" + R[x.l]);
+    const vals = okteo.state.app.map((a) => R[a.id]), uniq = new Set(vals).size === vals.length;
+    // une lumière de plus sur une commande qui en a une : elle prend la lettre A
+    const by = Object.fromEntries(okteo.state.app.map((a) => [a.id, a]));
+    const x = okteo.state.lia.find((l) => by[l.l] && by[l.l].t === "LUM" && okteo.state.lia.filter((m) => m.c === l.c && by[m.l] && by[m.l].t === "LUM").length === 1);
+    const pBefore = okteo.state.app.filter((a) => a.t.startsWith("PC")).map((a) => R[a.id]).join();
+    const L0 = by[x.l], n0 = okteo.state.app.length;
+    okteo.importDevices([{ t: "LUM", x: L0.x + 1, y: L0.y }]);
+    const nl = okteo.state.app[n0];
+    okteo.state.lia.push({ c: x.c, l: nl.id }); okteo.draw();
+    const R2 = okteo.repMap(), rNew = R2[nl.id], rOld = R2[L0.id], rCmd = R2[x.c];
+    okteo.state.lia.pop(); okteo.undo();
+    const pAfter = okteo.state.app.filter((a) => a.t.startsWith("PC")).map((a) => okteo.repMap()[a.id]).join();
+    const ok = !bad.length && uniq && rOld === "L" + num(rCmd) && new RegExp("^" + rOld + "[A-Z]$").test(rNew) && pBefore === pAfter && okteo.state.app.length === n0;
+    if (!ok) throw new Error(JSON.stringify({ bad: bad.slice(0, 5), uniq, rOld, rNew, rCmd, p: pBefore === pAfter }));
+    return true;
+  }));
+  await check("gaine tirée sur le plan : point de passage (distance au mur affichée), longueur recalculée, boîte verrouillée ; Maj = tronçon droit ; double-clic le supprime", async () => {
+    await page.click('#tabs button[data-tab="plan"]');
+    await ev(() => { okteo.setTool("sel"); okteo.showCircuits = true; okteo.fit(); });
+    const t = await ev(async () => {
+      const m = await import("/src/ext/cablage-data.js"), W = m.wiringNow(okteo);
+      const A = okteo.state.app, by = Object.fromEntries(A.map((a) => [a.id, a]));
+      for (const b of okteo.cab.boxes.filter((x) => x.lv === okteo.level.id)) for (const id of b.apps) {
+        const a = by[id]; if (!a) continue;
+        const d = Math.hypot(a.x - b.x, a.y - b.y); if (d < 2.5) continue;
+        const p = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        if (A.some((o) => Math.hypot(o.x - p.x, o.y - p.y) < 0.6) || okteo.cab.boxes.some((o) => Math.hypot(o.x - p.x, o.y - p.y) < 0.8)) continue;
+        // pas d'autre gaine tout près de ce point
+        const near = okteo.cab.boxes.some((o) => o.apps.some((k) => { if (k === id && o.id === b.id) return false; const c = by[k]; if (!c) return false;
+          const L = Math.hypot(c.x - o.x, c.y - o.y) || 1, u = ((p.x - o.x) * (c.x - o.x) + (p.y - o.y) * (c.y - o.y)) / (L * L); if (u < 0 || u > 1) return false;
+          return Math.hypot(o.x + (c.x - o.x) * u - p.x, o.y + (c.y - o.y) * u - p.y) < 0.25; }));
+        if (near) continue;
+        const g = W.boxes.find((x) => x.id === b.id).gaines.find((x) => x.appId === id);
+        return { box: b.id, id, p: okteo.toClient(p.x, p.y), len: g.length };
+      }
+      return null;
+    });
+    if (!t) throw new Error("pas de gaine isolée");
+    await page.mouse.move(t.p.x, t.p.y); await page.mouse.down(); await page.mouse.move(t.p.x + 50, t.p.y + 50, { steps: 5 });
+    const hint = await page.textContent("#hint");
+    await page.mouse.up();
+    const r1 = await ev(async ({ box, id }) => { const m = await import("/src/ext/cablage-data.js"), b = okteo.cab.boxes.find((x) => x.id === box);
+      const g = m.wiringNow(okteo).boxes.find((x) => x.id === box).gaines.find((x) => x.appId === id);
+      return { wp: (b.routes && b.routes[id] || []).length, locked: !!b.locked, len: g.length, routed: g.routed, q: b.routes[id][0], bx: b.x, by: b.y, poly: !!document.querySelector(`#sv polyline.gaine[data-k="${id}"]`) }; }, t);
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/gaine-trace.png" });
+    // Maj : le point se met dans l'axe de la boîte
+    const wpScr = await ev(({ q }) => okteo.toClient(q.x, q.y), r1);
+    await page.mouse.move(wpScr.x, wpScr.y); await page.mouse.down(); await page.keyboard.down("Shift");
+    await page.mouse.move(wpScr.x + 30, wpScr.y + 4, { steps: 4 }); await page.mouse.up(); await page.keyboard.up("Shift");
+    const r2 = await ev(({ box, id }) => { const b = okteo.cab.boxes.find((x) => x.id === box), q = b.routes[id][0]; return { ortho: Math.abs(q.x - b.x) < 1e-6 || Math.abs(q.y - b.y) < 1e-6, q }; }, t);
+    const s2 = await ev((q) => okteo.toClient(q.x, q.y), r2.q);
+    await page.waitForTimeout(600);
+    await page.mouse.dblclick(s2.x, s2.y);
+    const r3 = await ev(({ box, id }) => { const b = okteo.cab.boxes.find((x) => x.id === box); return (b.routes && b.routes[id] || []).length; }, t);
+    await page.keyboard.press("Control+z");
+    const r4 = await ev(({ box, id }) => { const b = okteo.cab.boxes.find((x) => x.id === box); return (b.routes && b.routes[id] || []).length; }, t);
+    const ok = r1.wp === 1 && r1.locked && r1.routed && r1.len > t.len && r1.poly && /du mur|dans le mur/.test(hint) && r2.ortho && r3 === 0 && r4 === 1;
+    if (!ok) throw new Error(JSON.stringify({ t, r1, r2, r3, r4, hint }));
+    return true;
+  });
+  await check("cadenas : clic sur le cadenas du plan ; recalcul : on coche les boîtes, les verrouillées gardent place, appareils et tracés", async () => {
+    const b = await ev(() => { const b = okteo.cab.boxes.find((x) => x.lv === okteo.level.id && !x.locked); return { id: b.id, p: okteo.toClient(b.x, b.y) }; });
+    await page.mouse.click(b.p.x + 14, b.p.y - 13);
+    const locked = await ev((id) => okteo.cab.boxes.find((x) => x.id === id).locked, b.id);
+    const before = await ev(() => JSON.stringify(okteo.cab.boxes.filter((x) => x.locked)));
+    await ev(() => okteoExt.panel.show("cablage")); await page.waitForTimeout(150);
+    await page.click("#bx-auto");
+    await page.waitForSelector(".bx-redo");
+    const unchecked = await ev(() => [...document.querySelectorAll(".bx-redo")].filter((c) => !c.checked).map((c) => c.value));
+    const lockedIds = await ev(() => okteo.cab.boxes.filter((x) => x.locked).map((x) => x.id));
+    await page.click("#bx-yes");
+    const after = await ev((ids) => JSON.stringify(okteo.cab.boxes.filter((x) => ids.includes(x.id))), lockedIds);
+    const n = await ev(() => ({ boxes: okteo.cab.boxes.length, ids: new Set(okteo.cab.boxes.map((x) => x.id)).size, apps: okteo.cab.boxes.flatMap((x) => x.apps).length, uniq: new Set(okteo.cab.boxes.flatMap((x) => x.apps)).size }));
+    await page.keyboard.press("Control+z");
+    const ok = locked && unchecked.join() === lockedIds.join() && lockedIds.includes(b.id) && JSON.stringify(JSON.parse(before)) === JSON.stringify(JSON.parse(after)) && n.ids === n.boxes && n.apps === n.uniq;
+    if (!ok) throw new Error(JSON.stringify({ locked, unchecked, lockedIds, same: before === after, n }));
     return true;
   });
   await check("circuits et boîtes enregistrés avec le chantier (rechargement)", async () => {

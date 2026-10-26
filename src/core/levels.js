@@ -109,7 +109,8 @@ export function appIndex() {
 
 // repère d'un appareil d'un autre niveau (numérotation propre à chaque niveau)
 export function repOn(lv, id) {
-  if (lv === K.LV.cur) return repMap()[id] || "?";
+  const r = repMap()[id];
+  if (r) return r;
   const d = K.LV.data[lv];
   const a = d && (d.app || []).find(x => x.id === id);
   return a && a.rf && a.n ? a.rf + a.n : a ? TYPES[a.t].r : "?";

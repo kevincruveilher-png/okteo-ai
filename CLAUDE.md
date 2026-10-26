@@ -149,13 +149,22 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   plus proche, en pixels × `map` {x0,y0,sx,sy}) + `src/ext/ai-releve.js` (image du fond rognée ≤ 1568 px, aperçu, cases
   murs/pièces/appareils, `fromText(text, map)` pour les tests). ai.js : Claude appelé directement
   (`anthropic-dangerous-direct-browser-access`) quand le relais local manque ; NVIDIA refusé en ligne (message clair).
+- v32 : repères par allumage = `repMap()` (view.js) : composantes commande↔lumière (tous niveaux, `allLinks`), numéro
+  d'allumage `a.g` (gardé ; sinon celui de la commande s'il est libre), lettre A, B… par famille dans l'allumage ;
+  non reliés = `a.n` (déplacé seulement en cas de collision). Familles : SPOT `S`, APP `AP`, VV `VV` (avant L/L/I).
+  `repMap()` couvre tous les niveaux (`repOn` s'en sert). Gaines tracées : `box.routes = {appId | "tab": [{x,y}…]}`,
+  `viaLen` (gaines.js), face = vers le 1er point ; render `polyline.gaine`, `circle.wp`, cadenas `g.lock` (`lockPos`,
+  `hitLock`, `hitRoute`) ; interact : `K.routeDrag` (point créé au 1er mouvement, Maj = droit), double-clic maison
+  `K.wpClick` + `removeWaypoint` (le plan est redessiné entre deux clics : le dblclick du navigateur n'arrive pas),
+  `routeHint` (distance à la face du mur). `box.locked` (auto au déplacement / tracé) ; `placeBoxes(..., {keep})`
+  garde les boîtes non cochées ; `autoBoxes(api, keepIds)`.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (26 : gaines, circuits, boîtes, fils) + `scripts/smoke.mjs` (91 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (28 : gaines, circuits, boîtes, fils, tracés) + `scripts/smoke.mjs` (94 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

@@ -5,6 +5,8 @@ import { PLAN, TYPES, VB, dist, state } from "./model.js";
 import { markDirty, snapshot } from "./persist.js";
 import { draw, sv } from "./render.js";
 import { bbox, roomAt } from "./groups.js";
+import { linkRole } from "./attach.js";
+import { allLinks } from "./levels.js";
 import { showSide } from "./panel.js";
 
 // ---------- vue ----------
@@ -114,6 +116,8 @@ export function ensureReps() {
   state.app.forEach(a => {
     const f = TYPES[a.t] ? TYPES[a.t].r : "?";
     if (a.rf === f && a.n > 0) max[f] = Math.max(max[f] || 0, a.n);
+    // un nouvel appareil ne doit pas prendre le numéro d'un allumage existant de sa famille
+    if (a.rf === f && a.g > 0) max[f] = Math.max(max[f] || 0, a.g);
   });
   state.app.forEach(a => {
     const f = TYPES[a.t] ? TYPES[a.t].r : "?";
@@ -127,11 +131,94 @@ export function ensureReps() {
   });
 }
 
+// Repères par allumage (v32) : une commande et les lumières qu'elle allume portent le même numéro (I3 + L3) ;
+// le 2e appareil du même type dans l'allumage prend A, le 3e B… (VV1 + VV1A, L3 + L3A, BP1 + BP1A + BP1B).
+// Le numéro d'allumage `a.g` est commun à tous les niveaux et gardé tant que l'allumage existe ; un nouvel allumage
+// prend le numéro de sa commande s'il est libre. Ce qui n'est relié à rien garde son propre numéro `a.n`
+// (changé seulement s'il tombait sur un allumage de sa famille). Renvoie { id → repère } pour tous les niveaux.
 export function repMap() {
   ensureReps();
-  const m = {};
-  state.app.forEach(a => {
-    m[a.id] = a.rf + a.n;
+  const apps = [...state.app, ...Object.entries(K.LV.data).filter(([id]) => id !== K.LV.cur).flatMap(([, d]) => d.app || [])];
+  const by = new Map(apps.map(a => [a.id, a]));
+  const fam = a => TYPES[a.t] ? TYPES[a.t].r : "?";
+  const par = new Map(),
+    root = x => {
+      while (par.get(x) !== x) x = par.get(x);
+      return x;
+    };
+  for (const x of allLinks()) {
+    const c = by.get(x.c),
+      l = by.get(x.l);
+    if (!c || !l || linkRole(c.t) !== "c" || linkRole(l.t) !== "l") continue;
+    [c.id, l.id].forEach(id => {
+      if (!par.has(id)) par.set(id, id);
+    });
+    par.set(root(c.id), root(l.id));
+  }
+  const groups = new Map();
+  for (const id of par.keys()) {
+    const r = root(id);
+    if (!groups.has(r)) groups.set(r, []);
+    groups.get(r).push(by.get(id));
+  }
+  const G = [...groups.values()];
+  const cmdMin = g => Math.min(...g.filter(a => linkRole(a.t) === "c").map(a => a.n > 0 ? a.n : 1e9));
+  G.sort((p, q) => cmdMin(p) - cmdMin(q));
+  // numéros propres des appareils non reliés, par famille (un allumage ne doit pas les prendre)
+  const loose = {};
+  apps.forEach(a => {
+    if (par.has(a.id)) return;
+    (loose[fam(a)] ||= new Set()).add(a.n);
+  });
+  const taken = new Set(),
+    num = new Map();
+  const freeFor = (g, n) => !taken.has(n) && g.every(a => !(loose[fam(a)] && loose[fam(a)].has(n)));
+  for (const g of G) {
+    const cnt = {};
+    g.forEach(a => {
+      if (a.g > 0) cnt[a.g] = (cnt[a.g] || 0) + 1;
+    });
+    const best = Object.keys(cnt).map(Number).sort((x, y) => cnt[y] - cnt[x] || x - y).find(n => !taken.has(n));
+    if (best) {
+      num.set(g, best);
+      taken.add(best);
+    }
+  }
+  for (const g of G) {
+    if (num.has(g)) continue;
+    const c = cmdMin(g);
+    let n = c < 1e9 && freeFor(g, c) ? c : 1;
+    while (!freeFor(g, n)) n++;
+    num.set(g, n);
+    taken.add(n);
+  }
+  const m = {},
+    famUse = {};
+  for (const g of G) {
+    const n = num.get(g),
+      byFam = {};
+    g.forEach(a => {
+      a.g = n;
+      (byFam[fam(a)] ||= []).push(a);
+      (famUse[fam(a)] ||= new Set()).add(n);
+    });
+    for (const [f, list] of Object.entries(byFam)) {
+      list.sort((p, q) => (p.n || 0) - (q.n || 0) || String(p.id).localeCompare(String(q.id)));
+      list.forEach((a, i) => m[a.id] = f + n + (i ? String.fromCharCode(64 + i) : ""));
+    }
+  }
+  // non reliés : leur propre numéro ; s'il est déjà celui d'un allumage de la même famille, le premier libre
+  apps.forEach(a => {
+    if (par.has(a.id)) return;
+    const f = fam(a);
+    if (a.g) delete a.g;
+    if (famUse[f] && famUse[f].has(a.n)) {
+      const used = new Set([...famUse[f], ...apps.filter(b => !par.has(b.id) && fam(b) === f && b !== a).map(b => b.n)]);
+      let k = 1;
+      while (used.has(k)) k++;
+      a.n = k;
+    }
+    m[a.id] = f + a.n;
   });
   return m;
 }
@@ -157,6 +244,7 @@ export function renumberReps() {
     c[f] = (c[f] || 0) + 1;
     a.rf = f;
     a.n = c[f];
+    delete a.g;            // les allumages reprennent le numéro de leur commande
   });
   markDirty();
   draw();

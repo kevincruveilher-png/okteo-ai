@@ -224,7 +224,16 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
   les plans scannés. À refaire avec une vraie clé (Claude Sonnet) et un plan scanné.
 - Tests : 30 + 26 + 91 = 147.
 
-## PROCHAINE MISE À JOUR (v32) : schéma de boîte pour le câbleur
+## Version 32 (26/10/2026) — livrée : repères par allumage, passage des gaines, cadenas des boîtes
+- Règles de Kévin : commande et lumières reliées = même numéro (I3, L3) ; 2e du même type = A, 3e = B (VV1/VV1A,
+  L3/L3A, BP1/BP1A/BP1B, S3/S3A) ; seul = numéro sans lettre ; non relié = garde son numéro.
+- Gaines : points de passage libres (pas d'accroche aux murs, distance au mur affichée, Maj = droit, double-clic =
+  supprimer, « Remettre en ligne droite ») ; +10 % conservés sur un tracé à la main (décision de Kévin).
+- Boîtes : cadenas ; verrou automatique quand on déplace ou retrace ; au recalcul, cases à cocher (verrouillées décochées).
+- Familles de repères changées : spot S, applique AP, va-et-vient VV (les anciens chantiers sont renumérotés tout seuls).
+- Tests : 30 + 28 + 94 = 152.
+
+## PROCHAINE MISE À JOUR (v33) : schéma de boîte pour le câbleur
 La boîte carrée dessinée avec ses faces et ses gaines, fils numérotés, retours lampe et navettes tracés, liste des
 raccordements à cocher ; impression (une page par boîte). Puis SPV pour Counter. Aussi : page « Reprendre le projet »
 pour le collègue qui reprend le développement.

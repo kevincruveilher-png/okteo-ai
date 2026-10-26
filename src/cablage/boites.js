@@ -133,16 +133,28 @@ function cluster(units, k, tab, S, seed) {
 }
 
 // toutes les boîtes du chantier ; tabs : {[niveau]: {x, y}} position du tableau (ou de la trémie qui y mène) par niveau
-export function placeBoxes(items, links, circuits, tabs, S) {
-  const units = buildUnits(items, links, circuits);
+// keep = boîtes à garder telles quelles (verrouillées ou non cochées) : elles gardent position, nom, tracés et
+// appareils ; une unité dont un appareil est déjà dans une boîte gardée y va en entier ; le reste est réparti.
+export function placeBoxes(items, links, circuits, tabs, S, { keep = [] } = {}) {
+  const all = buildUnits(items, links, circuits), exist = new Set(items.map((a) => a.id));
+  const kept = keep.map((b) => ({ ...b, apps: b.apps.filter((id) => exist.has(id)) }));
+  const inKept = new Map(); kept.forEach((b) => b.apps.forEach((id) => inKept.set(id, b)));
+  const units = [];
+  for (const u of all) {
+    const kb = u.ids.map((id) => inKept.get(id)).find(Boolean);
+    if (kb) u.ids.forEach((id) => { if (!kb.apps.includes(id)) { kb.apps.push(id); inKept.set(id, kb); } });
+    else units.push(u);
+  }
   const levels = [...new Set(units.map((u) => u.lv))];
-  const out = [], issues = [];
-  let n = 0;
+  const out = [...kept], issues = [];
+  const usedIds = new Set(kept.map((b) => b.id));
+  let n = Math.max(0, ...kept.map((b) => +String(b.n).replace(/\D/g, "") || 0));
   for (const lv of levels) {
     const L = units.filter((u) => u.lv === lv);
     const r = placeLevel(L, tabs[lv] || null, S);
     if (!r) { issues.push(`Niveau ${lv} : impossible de respecter ${S.departsMax} départs par boîte et ${S.departsFace} par face (une unité trop grosse ?)`); continue; }
-    for (const b of r) out.push({ id: "b" + (++n), n: "B" + n, lv, x: +(Math.round(b.x / 0.05) * 0.05).toFixed(2), y: +(Math.round(b.y / 0.05) * 0.05).toFixed(2), apps: b.units.flatMap((u) => u.ids) });
+    for (const b of r) { do n++; while (usedIds.has("b" + n)); usedIds.add("b" + n); out.push({ id: "b" + n, n: "B" + n, lv, x: +(Math.round(b.x / 0.05) * 0.05).toFixed(2), y: +(Math.round(b.y / 0.05) * 0.05).toFixed(2), apps: b.units.flatMap((u) => u.ids) }); }
   }
+  out.sort((a, b) => (+String(a.n).replace(/\D/g, "") || 0) - (+String(b.n).replace(/\D/g, "") || 0));
   return { boxes: out, issues };
 }

@@ -82,12 +82,12 @@ export const TYPES = {
   APP: {
     n: "Applique",
     h: 180,
-    r: "L"
+    r: "AP"
   },
   SPOT: {
     n: "Spot",
     h: null,
-    r: "L"
+    r: "S"
   },
   INT: {
     n: "Interrupteur",
@@ -97,7 +97,7 @@ export const TYPES = {
   VV: {
     n: "Va-et-vient",
     h: 110,
-    r: "I"
+    r: "VV"
   },
   BP: {
     n: "Bouton poussoir",
@@ -255,6 +255,8 @@ K.CAB = {
 };
 K.showCirc = false;
 K.boxDrag = null;
+K.routeDrag = null;
+K.wpClick = null; // dernier clic sur un point de passage (double-clic maison) // point de passage de gaine en cours de déplacement ({id, key, i, snap})
 K.linkHot = null; // liaison choisie avec l'outil Liaison ({c, l})
 K.linkLight = null; // lumière cliquée avec l'outil Liaison (ses commandes ressortent)
 K.boxSel = null;

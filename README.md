@@ -1,7 +1,7 @@
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
-Version du prototype : **v31** (26/10/2026) : liaisons visibles, menu Relevé (murs, pièces, appareillage séparés), relevé par l'IA.
+Version du prototype : **v32** (26/10/2026) : repères par allumage, passage des gaines modifiable, cadenas des boîtes.
 
 **Version en ligne (sans rien installer) : https://kevincruveilher-png.github.io/okteo-ai/**
 Les chantiers restent dans le navigateur de chaque ordinateur (fichier `.okteo` pour les transporter). En ligne, l'IA marche avec une clé Claude ; NVIDIA seulement en version locale.
@@ -43,7 +43,7 @@ GitHub Pages doit être réglé sur cette branche).
 npm run check
 ```
 
-Ouvre le logiciel dans un navigateur invisible et fait 147 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
+Ouvre le logiciel dans un navigateur invisible et fait 152 vérifications (dessin, palette, paramètres, assistant, relais IA avec un faux serveur Claude/NVIDIA : aucune vraie clé utilisée).
 À lancer après chaque modification.
 
 ## Chantiers et plan de fond (v14)
@@ -58,6 +58,19 @@ Ouvre le logiciel dans un navigateur invisible et fait 147 vérifications (dessi
    dessin + plan, à ranger sur le réseau), **Supprimer** (avec confirmation). **Ouvrir un fichier .okteo** recharge une copie.
 
 Les chantiers sont enregistrés dans le navigateur de ce PC. Pour ne rien perdre, faire régulièrement **Fichier** sur les chantiers importants.
+
+## Repères par allumage, passage des gaines, cadenas (v32)
+
+- **Repères par allumage** : une commande et ce qu'elle allume ont le même numéro — I3 et L3 ; le 2e du même type
+  prend A, le 3e B : VV1 et VV1A, L3 et L3A, BP1, BP1A, BP1B ; spot S3, applique AP3. Le numéro suit tout seul quand
+  on ajoute ou retire une liaison (aussi entre niveaux). Ce qui n'est relié à rien (prises, RJ45…) garde son numéro.
+- **Passage d'une gaine** (couleurs des circuits affichées, outil Sélection) : attraper une gaine sur le plan et la
+  tirer = un point de passage, posé librement ; la distance au mur le plus proche s'affiche en bas. **Maj** : tronçon
+  horizontal ou vertical. **Double-clic** sur un point : le supprimer. « Remettre en ligne droite » dans la liste des
+  boîtes. Longueur = le tracé + 10 %, recalculée ; la face de sortie suit le 1er point de passage ; ✎ dans l'onglet Boîtes.
+- **Cadenas des boîtes** 🔒 : une boîte verrouillée garde sa place, ses appareils et ses tracés au recalcul. Une boîte
+  déplacée ou retracée se verrouille toute seule ; clic sur le cadenas (coin de la boîte sur le plan, ou dans la
+  liste) pour changer. « Replacer les boîtes automatiquement… » demande quelles boîtes recalculer (cases à cocher).
 
 ## Liaisons et relevés (v31)
 

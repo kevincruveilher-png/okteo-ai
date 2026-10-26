@@ -274,20 +274,33 @@ export function draw() {
   if (K.showCirc && (K.CAB.boxes || []).length) {
     const pm = pmNow(), cm = circuitMap(), byId = Object.fromEntries(state.app.map(a => [a.id, a])), tab = state.app.find(a => a.t === "TAB");
     let bl = "", bx = "";
+    let wp = "";
     K.CAB.boxes.filter(b => b.lv === K.LV.cur).forEach(b => {
-      const on = K.boxSel === b.id;
+      const on = K.boxSel === b.id,
+        R = b.routes || {};
+      // gaine = ligne brisée boîte → points de passage → appareil (ligne droite tant qu'on ne l'a pas modifiée)
+      const poly = (key, t) => [b, ...(R[key] || []), t].map(p => p.x + "," + p.y).join(" ");
       b.apps.forEach(id => {
         const a = byId[id];
         if (!a) return;
         const c = cm[id];
-        bl += `<line x1="${b.x}" y1="${b.y}" x2="${a.x}" y2="${a.y}" stroke="${c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" opacity="${on ? 0.9 : 0.55}"/>`;
+        bl += `<polyline class="gaine" data-b="${b.id}" data-k="${id}" points="${poly(id, a)}" fill="none" stroke="${c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" opacity="${on ? 0.9 : 0.55}"/>`;
       });
-      if (tab) bl += `<line x1="${b.x}" y1="${b.y}" x2="${tab.x}" y2="${tab.y}" stroke="var(--fg)" stroke-width="${1.2 * pm}" stroke-dasharray="${6 * pm} ${4 * pm}" opacity="0.45"/>`;
-      const q = 16 * pm;
+      if (tab) bl += `<polyline class="gaine alim" data-b="${b.id}" data-k="tab" points="${poly("tab", tab)}" fill="none" stroke="var(--fg)" stroke-width="${1.2 * pm}" stroke-dasharray="${6 * pm} ${4 * pm}" opacity="0.45"/>`;
+      for (const pts of Object.values(R)) pts.forEach(p => {
+        wp += `<circle class="wp" cx="${p.x}" cy="${p.y}" r="${(on ? 4 : 3) * pm}" fill="var(--panel)" stroke="${on ? "var(--sel)" : "var(--fg)"}" stroke-width="${1.4 * pm}"/>`;
+      });
+      const q = 16 * pm,
+        lk = lockPos(b, pm);
       bx += `<g class="box" data-id="${b.id}"><rect x="${b.x - q / 2}" y="${b.y - q / 2}" width="${q}" height="${q}" fill="var(--panel)" stroke="${on ? "var(--sel)" : "var(--fg)"}" stroke-width="${(on ? 2.4 : 1.6) * pm}"/>` +
         `<text x="${b.x}" y="${b.y - q / 2 - 4 * pm}" text-anchor="middle" font-size="${11 * pm}" font-weight="700" font-family="var(--fm)" fill="var(--fg)">${b.n}</text>` +
-        ["A", "B", "C", "D"].map((f, i) => { const dx = [0, 1, 0, -1][i] * q * 0.32, dy = [-1, 0, 1, 0][i] * q * 0.32; return `<text x="${b.x + dx}" y="${b.y + dy}" text-anchor="middle" dominant-baseline="central" font-size="${6 * pm}" font-family="var(--fm)" fill="var(--mut)">${f}</text>`; }).join("") + `</g>`;
+        ["A", "B", "C", "D"].map((f, i) => { const dx = [0, 1, 0, -1][i] * q * 0.32, dy = [-1, 0, 1, 0][i] * q * 0.32; return `<text x="${b.x + dx}" y="${b.y + dy}" text-anchor="middle" dominant-baseline="central" font-size="${6 * pm}" font-family="var(--fm)" fill="var(--mut)">${f}</text>`; }).join("") +
+        // cadenas : fermé = la boîte ne bouge plus au recalcul ; un clic l'ouvre ou le ferme
+        `<g class="lock${b.locked ? " on" : ""}" transform="translate(${lk.x} ${lk.y}) scale(${pm})"><title>${b.locked ? "Boîte verrouillée : elle ne bouge pas au recalcul (clic pour déverrouiller)" : "Clic pour verrouiller la boîte"}</title>` +
+        `<rect x="-5" y="-2" width="10" height="8" rx="1.5" fill="${b.locked ? "var(--accent2)" : "var(--panel)"}" stroke="${b.locked ? "var(--accent2)" : "var(--mut)"}" stroke-width="1.3"/>` +
+        `<path d="${b.locked ? "M-3 -2V-4.5a3 3 0 0 1 6 0V-2" : "M-3 -2V-4.5a3 3 0 0 1 6 0"}" fill="none" stroke="${b.locked ? "var(--accent2)" : "var(--mut)"}" stroke-width="1.3"/></g></g>`;
     });
+    bx += wp;
     h += `<g class="boxlinks">${bl}</g>`;
     K.__boxLayer = bx;
   } else K.__boxLayer = "";
@@ -607,6 +620,42 @@ export function circuitMap() {
 }
 
 // boîte sous le point (monde), niveau ouvert
+// position du cadenas d'une boîte (coin haut droit)
+export function lockPos(b, pm = pmNow()) {
+  return { x: b.x + 14 * pm, y: b.y - 13 * pm };
+}
+export function hitLock(wx, wy) {
+  if (!K.showCirc) return null;
+  const pm = pmNow();
+  return (K.CAB.boxes || []).find(b => b.lv === K.LV.cur && dist(wx, wy, lockPos(b, pm).x, lockPos(b, pm).y) <= 8 * pm) || null;
+}
+// gaine sous la souris : point de passage existant { box, key, wp } ou tronçon { box, key, seg } (inséré à l'indice seg)
+export function hitRoute(wx, wy) {
+  if (!K.showCirc) return null;
+  const pm = pmNow(), byId = Object.fromEntries(state.app.map(a => [a.id, a])), tab = state.app.find(a => a.t === "TAB");
+  let best = null;
+  for (const b of (K.CAB.boxes || []).filter(x => x.lv === K.LV.cur)) {
+    const R = b.routes || {};
+    const keys = [...b.apps.filter(id => byId[id]), ...(tab ? ["tab"] : [])];
+    for (const key of keys) {
+      const pts = [b, ...(R[key] || []), key === "tab" ? tab : byId[key]];
+      for (let i = 1; i < pts.length - 1; i++) {
+        const d = dist(wx, wy, pts[i].x, pts[i].y);
+        if (d <= 7 * pm && (!best || best.wp == null || d < best.d)) best = { box: b, key, wp: i - 1, d };
+      }
+      if (best && best.wp != null) continue;
+      for (let i = 0; i + 1 < pts.length; i++) {
+        const A = pts[i], B = pts[i + 1], L = dist(A.x, A.y, B.x, B.y) || 1e-9;
+        const t = ((wx - A.x) * (B.x - A.x) + (wy - A.y) * (B.y - A.y)) / (L * L);
+        if (t <= 0.02 || t >= 0.98) continue;
+        const d = dist(wx, wy, A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t);
+        // près de la boîte (< 14 px) ou de l'appareil : on laisse la main à la boîte / à l'appareil
+        if (d <= 5 * pm && dist(wx, wy, b.x, b.y) > 14 * pm && (!best || (best.wp == null && d < best.d))) best = { box: b, key, seg: i, d };
+      }
+    }
+  }
+  return best;
+}
 export function hitBox(wx, wy) {
   if (!K.showCirc) return null;
   const r = 12 * pmNow();

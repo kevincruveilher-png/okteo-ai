@@ -15,6 +15,12 @@ import { assignFaces, FACES } from "./boites.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
 const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+// longueur à plat d'une gaine : boîte → points de passage (tracé à la main, b.routes[clé]) → arrivée
+export function viaLen(from, pts, to) {
+  let p = from, L = 0;
+  for (const q of [...(pts || []), to]) { L += d2(p, q); p = q; }
+  return L;
+}
 const NAMES = { PC16: "Prise 16 A", PC20: "Prise spécialisée", RJ45: "RJ45", LUM: "Point lumineux", APP: "Applique", SPOT: "Spot", INT: "Interrupteur", VV: "Va-et-vient", BP: "Bouton poussoir", VMC: "VMC", SC: "Sortie de câble", TAB: "Tableau" };
 export const FN_LABEL = { phase: "phase", neutre: "neutre", terre: "terre", retour: "retour lampe", nav1: "navette 1", nav2: "navette 2", cmdTL: "commande télérupteur", retTL: "retour télérupteur" };
 
@@ -87,14 +93,17 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
     for (const a of apps) {
       const c = circOf.get(a.id), sec = c.section || 1.5;
       const wires = (role.get(a.id) || []).map(([fn, key]) => ({ fn, color: col[fn], section: ["retour", "nav1", "nav2", "cmdTL", "retTL"].includes(fn) ? sec : sec, net: key }));
-      const len = gaineLength({ horiz: d2(b, a), downA: down(a.h, S), levels: Math.abs(lvIdx(a.lv) - lvB) }, S);
-      deps.push({ id: a.id, kind: "app", p: a, app: a, label: `${NAMES[a.t] || a.t} ${a.rep || ""}`.trim(), room: a.room, circuit: c.n, wires, length: len });
+      const route = (b.routes || {})[a.id] || null;
+      const len = gaineLength({ horiz: viaLen(b, route, a), downA: down(a.h, S), levels: Math.abs(lvIdx(a.lv) - lvB) }, S);
+      // la face est celle par où la gaine sort : vers son 1er point de passage s'il y en a un
+      deps.push({ id: a.id, kind: "app", p: route ? route[0] : a, app: a, routed: !!route, label: `${NAMES[a.t] || a.t} ${a.rep || ""}`.trim(), room: a.room, circuit: c.n, wires, length: len });
     }
     for (const c of circs) {
       const sec = c.section || 1.5;
       const wires = [["phase", "P" + c.id], ["neutre", "N" + c.id], ["terre", "T"], ...(tl.get(c.id) || [])].map(([fn, key]) => ({ fn, color: col[fn], section: sec, net: key }));
-      const len = tab ? gaineLength({ horiz: d2(b, tab), downA: S.traversee + Math.max(0, S.hsp - hTab), levels: Math.abs(lvIdx(tab.lv) - lvB) }, S) : null;
-      deps.push({ id: "alim:" + c.id, kind: "alim", p: tab || { x: b.x, y: b.y - 1 }, label: `Alimentation ${c.n} (tableau)`, circuit: c.n, wires, length: len });
+      const route = (b.routes || {}).tab || null;
+      const len = tab ? gaineLength({ horiz: viaLen(b, route, tab), downA: S.traversee + Math.max(0, S.hsp - hTab), levels: Math.abs(lvIdx(tab.lv) - lvB) }, S) : null;
+      deps.push({ id: "alim:" + c.id, kind: "alim", p: route ? route[0] : tab || { x: b.x, y: b.y - 1 }, routed: !!route, label: `Alimentation ${c.n} (tableau)`, circuit: c.n, wires, length: len });
     }
     const faces = assignFaces(b, deps, S.departsFace);
     deps.forEach((g) => { g.face = faces.get(g.id) || "?"; g.diam = gaineFor(g.wires.map((w) => w.section), S.remplissage); });

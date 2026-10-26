@@ -79,5 +79,22 @@ check("chaque raccordement réunit au moins 2 fils (rien ne reste en l'air)", al
 check("chaque circuit présent dans une boîte y a son alimentation (phase, neutre, terre)", W.boxes.every((b) => b.circuits.every((cn) => b.gaines.some((x) => x.kind === "alim" && x.circuit === cn && x.wires.length >= 3))));
 check("lignes directes : prises spécialisées, sorties de câble et RJ45 (tableau → appareil)", W.direct.length === T("PC20").length + T("SC").length + T("RJ45").length && W.direct.every((x) => x.length > 2));
 
+console.log("Tracé des gaines et boîtes gardées (v32)");
+{
+  const b0 = P.boxes[0], id = b0.apps.find((x) => items.find((a) => a.id === x && !["LUM", "SPOT"].includes(a.t)));
+  const a = items.find((x) => x.id === id), mid = { x: (a.x + b0.x) / 2 + 1, y: (a.y + b0.y) / 2 };
+  const boxes2 = P.boxes.map((b) => (b === b0 ? { ...b, routes: { [id]: [mid] } } : b));
+  const W2 = computeWiring({ items, links, circuits: C, boxes: boxes2, levels: ["rdc"], S });
+  const g1 = W.boxes[0].gaines.find((g) => g.appId === id), g2 = W2.boxes[0].gaines.find((g) => g.appId === id);
+  const extra = (Math.hypot(mid.x - b0.x, mid.y - b0.y) + Math.hypot(a.x - mid.x, a.y - mid.y) - Math.hypot(a.x - b0.x, a.y - b0.y)) * (1 + S.majoration / 100);
+  check("point de passage : la gaine passe par lui (+10 % gardés), marquée « tracée à la main »", g2.routed && !g1.routed && g2.length - g1.length > extra - S.arrondi - 0.01 && g2.length - g1.length < extra + S.arrondi + 0.01, `${g1.length} → ${g2.length} (+${extra.toFixed(2)})`);
+  const keep = [{ ...P.boxes[1], x: P.boxes[1].x + 2, locked: true, routes: { tab: [{ x: 1, y: 1 }] } }];
+  const P2 = placeBoxes(items, links, C, { rdc: { x: 293 * k2, y: 410 * k2 } }, S, { keep });
+  const kb = P2.boxes.find((b) => b.id === keep[0].id), all = P2.boxes.flatMap((b) => b.apps);
+  check("recalcul : la boîte gardée ne bouge pas (place, nom, appareils, tracés) ; les autres reçoivent le reste, sans doublon ni oubli",
+    kb && kb.x === keep[0].x && kb.n === keep[0].n && kb.routes.tab.length === 1 && keep[0].apps.every((x) => kb.apps.includes(x)) && new Set(all).size === all.length && new Set(all).size === new Set(P.boxes.flatMap((b) => b.apps)).size && new Set(P2.boxes.map((b) => b.id)).size === P2.boxes.length,
+    JSON.stringify(P2.boxes.map((b) => [b.id, b.apps.length])));
+}
+
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);
 if (fails.length) process.exit(1);
