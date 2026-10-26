@@ -384,3 +384,5 @@ Pistes : retours de Kévin sur les schémas (essai avec un câbleur débutant), 
   - une case par calque dans la fenêtre d'impression ;
   - vérifier le rendu sur le PDF produit, comme pour l'échelle.
 - **Règle de travail** : ne pas pousser avant la mise à jour ; committer seulement quand Kévin le demande.
+- **Surfaces des pièces** (demandé par Kévin, 26/10 soir) : retirer les m² partout (libellé de pièce à l'écran et à l'impression, nomenclature de l'impression, liste du panneau Packs, liste de détection des pièces, total « m² habitables »). Ajouter un réglage « Afficher les surfaces des pièces » dans Paramètres, désactivé par défaut. La surface reste calculée (utile au nombre de prises de la norme pour le séjour).
+- **Paramètres** (demandé par Kévin) : les regrouper. Proposition : Affichage (surfaces, calques par défaut), Relevé IA (clés et modèles), Câblage (circuits, gaines, boîtes, câbles), Packs (renvoi vers l'onglet Packs). Une section par thème, avec un titre et une courte aide, à valider avec Kévin avant de coder.
