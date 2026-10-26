@@ -63,7 +63,13 @@ Ajouter au tableau, depuis une liste « ＋ Appareil modulaire », chacun avec s
 - contacteur jour/nuit heures creuses pour le chauffe-eau (1 module) ;
 - délesteur, minuterie, horloge / programmateur, transformateur de sonnette (1 à 2 modules) ;
 - obturateurs pour les places vides (réserve).
-Contrôle : réserve de 20 % recalculée avec ces appareils. À valider avec Kévin (ou son électricien de référence) : ce qui
+Contrôle : réserve de 20 % recalculée avec ces appareils.
+- **Coffrets Legrand** en plus des Schneider : gamme Drivia 13 et 18 modules, 1 à 4 rangées (références à vérifier au
+  moment de coder).
+- **Marques** : nom de la marque en tête du tableau (Schneider Electric / Legrand), dans ses couleurs ; les logos
+  officiels seulement si KiTéOHM fournit les fichiers (marques déposées, pas de copie depuis Internet).
+- **Ouvrir le tableau depuis le plan** : clic sur le symbole du tableau → bouton « Ouvrir le tableau » dans son bandeau ;
+  double-clic → onglet Tableau directement (un simple clic doit encore permettre de le sélectionner et de le déplacer). À valider avec Kévin (ou son électricien de référence) : ce qui
 est mis par défaut, et ce qui est fourni par KiTéOHM ou par l'électricien.
 
 ## 48 — Impression complète du plan
