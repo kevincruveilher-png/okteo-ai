@@ -278,6 +278,8 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - Limites du relevé : commandes de volets roulants non relevées (moteurs en SC), « 16Asp » relevée en 16 A, liaisons
   du cellier / de la pièce de vie à vérifier, portes sans arc (dégagement) relevées comme ouvertures.
 - Tests : 30 + 37 + 104 = 171.
+- 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
+  32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
 ## PROCHAINE MISE À JOUR : à décider avec Kévin
 Pistes : retours de Kévin sur les schémas (essai avec un câbleur débutant), SPV pour Counter, page « Reprendre le projet ».
