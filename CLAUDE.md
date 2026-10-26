@@ -4,7 +4,7 @@
 Logiciel de dessin pour le bureau d'études de pieuvres électriques de KiTéOHM (câblage de maisons individuelles :
 boîtes, bandes de câblage, SPV pour Counter). Il doit remplacer FTZ, dont la régénération écrase les corrections manuelles.
 Cible prioritaire : maisons 90–150 m² d'une trentaine de pavillonneurs (60 % des plans).
-Référence complète : `docs/cahier-des-charges.md`. État et suite : `docs/journal.md` (à tenir à jour à chaque version).
+Référence complète : `docs/cahier-des-charges.md`. Mises à jour à venir (41–48) : `docs/feuille-de-route.md` — une à la fois, sur « go » de Kévin, push seulement à la fin de chacune. État et suite : `docs/journal.md` (à tenir à jour à chaque version).
 
 ## L'utilisateur
 Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du dessin industriel.
