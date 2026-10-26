@@ -272,7 +272,7 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
   « Relevé IA : coller une réponse ». Coordonnées en pixels d'une image de TOUTE la page : champ `"ref":{"W","H"}`
   (indépendant du rognage de l'image envoyée à l'IA) → `fromPaste` (ai-releve.js). Même aperçu orange, mêmes cases,
   un seul Ctrl+Z. L'échelle doit être réglée (1/50 si la feuille est au format d'origine).
-- Exemple : docs/exemples/PASQUIER_releve_ia.json = 32 murs, 16 ouvertures, 8 pièces, 76 appareils, 18 liaisons.
+- Exemple : docs/exemples/PASQUIER_releve_ia.json = 32 murs, 16 ouvertures, 8 pièces, 77 appareils, 20 liaisons (12 va-et-vient, interrupteur des appliques AP2/AP3 ajouté).
   Contrôle : surfaces habitables du logiciel (49,8 / 13,6 / 11,3 / 11,0 / 9,2 / 6,1 / 3,3 / 1,2 m²) à 1-2 % de celles
   écrites sur le plan (50,02 / 15,01 SA / 11,40 / 11,01 / 9,33 / 6,29 / 3,39 / 1,21), sauf le garage (SA ≠ surface habitable).
 - Limites du relevé : commandes de volets roulants non relevées (moteurs en SC), « 16Asp » relevée en 16 A, liaisons

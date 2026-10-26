@@ -365,22 +365,22 @@
    "y": 611
   },
   {
-   "t": "INT",
+   "t": "VV",
    "x": 473,
    "y": 697
   },
   {
-   "t": "INT",
+   "t": "VV",
    "x": 771,
    "y": 636
   },
   {
-   "t": "INT",
+   "t": "VV",
    "x": 489,
    "y": 721
   },
   {
-   "t": "INT",
+   "t": "VV",
    "x": 302,
    "y": 783
   },
@@ -400,42 +400,42 @@
    "y": 725
   },
   {
-   "t": "INT",
+   "t": "VV",
    "x": 803,
    "y": 707
   },
   {
-   "t": "INT",
+   "t": "VV",
    "x": 804,
    "y": 714
   },
   {
-   "t": "INT",
+   "t": "VV",
    "x": 1250,
    "y": 578
   },
   {
-   "t": "INT",
+   "t": "VV",
    "x": 1238,
    "y": 735
   },
   {
-   "t": "INT",
+   "t": "VV",
    "x": 1239,
    "y": 746
   },
   {
-   "t": "INT",
+   "t": "VV",
    "x": 841,
    "y": 790
   },
   {
-   "t": "INT",
+   "t": "VV",
    "x": 854,
    "y": 790
   },
   {
-   "t": "INT",
+   "t": "VV",
    "x": 863,
    "y": 982
   },
@@ -658,6 +658,11 @@
    "t": "TAB",
    "x": 1528,
    "y": 958
+  },
+  {
+   "t": "INT",
+   "x": 1174,
+   "y": 328
   }
  ],
  "liaisons": [
@@ -732,7 +737,15 @@
   [
    33,
    10
+  ],
+  [
+   76,
+   12
+  ],
+  [
+   76,
+   13
   ]
  ],
- "remarques": "Plan A3 au 1/50. Épaisseur des murs extérieurs prise sur toute la paroi (structure + doublage, 40 cm). Portes sans arc relevées comme ouvertures dans une ligne de mur virtuelle (dégagement) ; passage Dgt/pièce de vie relevé comme ouverture. Liaisons à vérifier (arcs qui se croisent) : cellier/entrée et pièce de vie. Commandes de volets roulants (VR) non relevées, moteurs en SC. 16Asp relevée comme 16 A. Porte de garage sectionnelle relevée comme ouverture (sans arc)."
+ "remarques": "Plan A3 au 1/50. Épaisseur des murs extérieurs prise sur toute la paroi (structure + doublage, 40 cm). Portes sans arc relevées comme ouvertures dans une ligne de mur virtuelle (dégagement) ; passage Dgt/pièce de vie relevé comme ouverture. Lampe à deux commandes = va-et-vient (VV) ; appliques extérieures AP2 et AP3 commandées par un interrupteur derrière la fenêtre de la baie. Liaisons à vérifier (arcs qui se croisent) : cellier/entrée et pièce de vie. Commandes de volets roulants (VR) non relevées, moteurs en SC. 16Asp relevée comme 16 A. Porte de garage sectionnelle relevée comme ouverture (sans arc)."
 }
