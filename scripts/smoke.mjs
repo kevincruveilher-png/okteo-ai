@@ -620,6 +620,28 @@ try {
       || undone.segs !== before.segs || undone.rooms !== before.rooms || undone.app !== before.app) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("relevé IA sans clé : réponse collée (coordonnées en fraction de page), aperçu orange, ajout, un seul Ctrl+Z", async () => {
+    const ref = { W: 1000, H: 1000 };
+    const rep = { ref, murs: [{ x1: 200, y1: 200, x2: 800, y2: 200, ep: 20 }, { x1: 800, y1: 200, x2: 800, y2: 700, ep: 20 }, { x1: 800, y1: 700, x2: 200, y2: 700, ep: 20 }, { x1: 200, y1: 700, x2: 200, y2: 200, ep: 20 }], ouvertures: [{ x: 500, y: 200, l: 100, t: "fenetre" }], pieces: [{ nom: "Essai collé", x: 500, y: 450 }], appareils: [{ t: "PC16", x: 300, y: 300 }], liaisons: [], remarques: "essai" };
+    const before = await ev(() => ({ segs: okteo.state.segs.length, app: okteo.state.app.length }));
+    const exp = await ev(async () => { const f = await okteo.levelFond(okteo.level.id); return { x0: f.x + 0.2 * f.w, y0: f.y + 0.2 * f.h, x1: f.x + 0.8 * f.w, y1: f.y + 0.7 * f.h }; });
+    await ev(() => okteoExt.aiReleve.pastePanel());
+    await page.fill("#ai-paste", "Voici ma réponse :\n```json\n" + JSON.stringify(rep) + "\n```");
+    await page.click("#ai-read");
+    await page.waitForSelector("#ai-ok", { timeout: 15000 });
+    const P = await ev(() => { const p = okteoExt.aiReleve.plan; const xs = p.nodes.map((n) => n.x), ys = p.nodes.map((n) => n.y); return { walls: p.walls.length, op: p.openings.length, dev: p.devices.length, x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) }; });
+    const txt = await page.textContent(".aicard");
+    await page.click("#ai-ok");
+    const after = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.map((r) => r.name).join(","), app: okteo.state.app.length }));
+    await page.keyboard.press("Control+z");
+    const undone = await ev(() => ({ segs: okteo.state.segs.length, app: okteo.state.app.length }));
+    const near = (a, b) => Math.abs(a - b) < 0.02;
+    const r = { P, exp, after, undone, before };
+    if (P.walls !== 4 || P.op !== 1 || P.dev !== 1 || !near(P.x0, exp.x0) || !near(P.x1, exp.x1) || !near(P.y0, exp.y0) || !near(P.y1, exp.y1)
+      || !/Réponse donnée à la main/.test(txt) || after.segs !== 4 || !/Essai collé/.test(after.rooms) || after.app !== 1
+      || undone.segs !== before.segs || undone.app !== before.app) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("version en ligne : Claude appelé directement depuis le navigateur ; NVIDIA refusé avec un message clair", async () => {
     let hdr = null;
     await page.route("https://api.anthropic.com/v1/messages", (route) => { hdr = route.request().headers(); route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: [{ type: "text", text: "OK direct" }] }) }); });

@@ -265,6 +265,20 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - Exemples rangés dans docs/exemples (bande FTZ, bande préférée, plan d'expédition, fichier SPV + format supposé).
 - Tests : 30 + 37 + 103 = 170.
 
+## Version 36 (26/10/2026) — livrée : relevé IA sans clé (réponse donnée à la main)
+- Kévin ne peut pas utiliser de clé IA en ligne (NVIDIA refusé par le navigateur) : « tu joueras le rôle de l'API ».
+  Claude relève lui-même le plan (page 1 du PDF scanné PASQUIER) au format du relevé IA ; le logiciel sait le lire.
+- Fenêtre « Relevé par l'IA » sans clé : bouton « Coller une réponse » (texte ou fichier .json) ; commande Ctrl+K
+  « Relevé IA : coller une réponse ». Coordonnées en pixels d'une image de TOUTE la page : champ `"ref":{"W","H"}`
+  (indépendant du rognage de l'image envoyée à l'IA) → `fromPaste` (ai-releve.js). Même aperçu orange, mêmes cases,
+  un seul Ctrl+Z. L'échelle doit être réglée (1/50 si la feuille est au format d'origine).
+- Exemple : docs/exemples/PASQUIER_releve_ia.json = 32 murs, 16 ouvertures, 8 pièces, 76 appareils, 18 liaisons.
+  Contrôle : surfaces habitables du logiciel (49,8 / 13,6 / 11,3 / 11,0 / 9,2 / 6,1 / 3,3 / 1,2 m²) à 1-2 % de celles
+  écrites sur le plan (50,02 / 15,01 SA / 11,40 / 11,01 / 9,33 / 6,29 / 3,39 / 1,21), sauf le garage (SA ≠ surface habitable).
+- Limites du relevé : commandes de volets roulants non relevées (moteurs en SC), « 16Asp » relevée en 16 A, liaisons
+  du cellier / de la pièce de vie à vérifier, portes sans arc (dégagement) relevées comme ouvertures.
+- Tests : 30 + 37 + 104 = 171.
+
 ## PROCHAINE MISE À JOUR : à décider avec Kévin
 Pistes : retours de Kévin sur les schémas (essai avec un câbleur débutant), SPV pour Counter, page « Reprendre le projet ».
 

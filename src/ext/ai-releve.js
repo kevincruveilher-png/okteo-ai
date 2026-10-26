@@ -126,12 +126,39 @@ export function createAiReleve({ api, openParams }) {
     return plan;
   }
 
+  // Mode sans clé : la réponse (JSON) est donnée à la main (collée, ou lue dans un fichier .json). Coordonnées en pixels
+  // d'une image de TOUTE la page du PDF ("ref": {"W":…,"H":…}) : indépendant du rognage fait pour l'envoi à l'IA.
+  async function fromPaste(text) {
+    let raw;
+    try { raw = parseAiJson(text); } catch (e) { return message("Ce texte n'est pas un relevé exploitable : " + esc(e.message), [{ label: "Réessayer", run: pastePanel }, { label: "Fermer", run: () => {} }]); }
+    const f = await api.levelFond(api.level.id).catch(() => null);
+    if (!f) return message("Ce chantier n'a pas encore de plan. Ajoutez le PDF ou l'image du plan dans l'onglet Chantiers.", [{ label: "Ouvrir Chantiers", run: () => api.setTab("chantiers") }, { label: "Fermer", run: () => {} }]);
+    if (!api.ch.fond.calibre) {
+      const sc = await autoScale(api).catch(() => ({ ok: false }));
+      if (!sc.ok) return message("Réglez d'abord l'échelle du plan (outil Échelle : « 1/50 » si le plan est au 1/50 sur sa feuille d'origine), puis recollez la réponse.", [{ label: "Régler l'échelle", run: () => api.startCalib() }, { label: "Fermer", run: () => {} }]);
+    }
+    const f2 = await api.levelFond(api.level.id), ref = raw.ref && raw.ref.W > 0 && raw.ref.H > 0 ? raw.ref : null;
+    if (!ref) return message("Cette réponse n'indique pas la taille de l'image de référence (champ « ref »). Elle ne peut pas être placée sur le plan.", [{ label: "Fermer", run: () => {} }]);
+    const map = { x0: f2.x, y0: f2.y, sx: f2.w / ref.W, sy: f2.h / ref.H };
+    return fromText(text, map, `Réponse donnée à la main · image de référence ${ref.W} × ${ref.H} px`);
+  }
+  function pastePanel() {
+    if (api.tab !== "plan") api.setTab("plan");
+    show(`<p class="sm">Sans clé IA : collez ici la réponse (texte JSON) ou choisissez le fichier <b>.json</b> qu'on vous a remis.</p>
+      <textarea id="ai-paste" rows="6" style="width:100%" placeholder='{"ref":{"W":1819,"H":1286},"murs":[…]}'></textarea>
+      <div class="wrow"><input type="file" id="ai-file" accept=".json,.txt,application/json,text/plain"><button class="on" id="ai-read">Lire la réponse</button><button id="ai-x">Annuler</button></div>`);
+    const ta = card.querySelector("#ai-paste");
+    card.querySelector("#ai-file").onchange = async (e) => { const f = e.target.files && e.target.files[0]; if (f) ta.value = await f.text(); };
+    card.querySelector("#ai-read").onclick = () => { const t = ta.value.trim(); if (t) fromPaste(t); };
+    card.querySelector("#ai-x").onclick = close;
+  }
+
   async function open() {
     if (busy) return;
     if (api.tab !== "plan") api.setTab("plan");
     if (!api.ch.fond) return message("Ce chantier n'a pas encore de plan. Ajoutez le PDF ou l'image du plan dans l'onglet Chantiers.", [{ label: "Ouvrir Chantiers", run: () => api.setTab("chantiers") }, { label: "Fermer", run: () => {} }]);
     const provider = settings.activeProvider();
-    if (!provider) return message("Il faut une clé IA pour ce relevé. En version en ligne : une clé Claude (Anthropic). En version locale : Claude ou NVIDIA.", [{ label: "Ouvrir Paramètres", run: openParams }, { label: "Fermer", run: () => {} }]);
+    if (!provider) return message("Il faut une clé IA pour ce relevé. En version en ligne : une clé Claude (Anthropic). En version locale : Claude ou NVIDIA. Sans clé, vous pouvez coller une réponse déjà préparée.", [{ label: "Coller une réponse", run: pastePanel }, { label: "Ouvrir Paramètres", run: openParams }, { label: "Fermer", run: () => {} }]);
     busy = true;
     try {
       if (!api.ch.fond.calibre) {
@@ -153,5 +180,5 @@ export function createAiReleve({ api, openParams }) {
   }
 
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !card.hidden) close(); });
-  return { open, close, fromText, fondImage: (o) => fondImage(api, o), get plan() { return plan; }, get lastImage() { return lastImage; } };
+  return { open, close, fromText, fromPaste, pastePanel, fondImage: (o) => fondImage(api, o), get plan() { return plan; }, get lastImage() { return lastImage; } };
 }

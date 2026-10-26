@@ -52,6 +52,7 @@ function start() {
     api.setHint(`⚠ Les cotes du plan (${s.cotes}) indiquent une échelle fausse de ${pct} % : le PDF n'est peut-être pas à son format d'origine (A3 imprimé en A4 ?). Menu Relevé → 1. Murs → « Corriger l'échelle », ou réglez-la sur une cote.`);
   });
   hooks.aiReleve = () => aiReleve.open();
+  hooks.aiPaste = () => aiReleve.pastePanel();
   document.addEventListener("okteo:walls", () => walls.open());
   document.addEventListener("okteo:devices", () => devices.open());
   const catalog = buildCatalog(api, hooks);
