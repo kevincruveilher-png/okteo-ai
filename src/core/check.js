@@ -15,19 +15,30 @@ export const CHECK_KINDS = {
   cmd: "Commande sans lumière",
   lum: "Lumière sans commande",
   vv: "Va-et-vient incomplet",
+  int2: "Deux interrupteurs sur la même lumière",
+  nobox: "Appareil dans aucune boîte",
   circ: "Appareil sans circuit",
   split: "Commande et lumière dans deux boîtes",
 };
 
 // tables commande → lumières et lumière → commandes (tous niveaux, liaisons dont les deux bouts existent)
+// v45.1 : seule une vraie commande (interrupteur, va-et-vient, poussoir) commande ; une lumière reliée à une autre
+// lumière (relevé du plan : lumières en chaîne) reçoit les commandes de celle-ci ; une lumière reliée seulement à
+// d'autres lumières sans commande reste « sans commande ».
 export function linkTables(idx = appIndex()) {
-  const lights = new Map(), cmds = new Map();
+  const lights = new Map(), cmds = new Map(), adj = new Map();
+  const add = (m, k, v) => { if (!m.has(k)) m.set(k, []); if (!m.get(k).includes(v)) m.get(k).push(v); };
   for (const l of allLinks()) {
     if (!idx.has(l.c) || !idx.has(l.l)) continue;
-    if (!lights.has(l.c)) lights.set(l.c, []);
-    if (!cmds.has(l.l)) cmds.set(l.l, []);
-    if (!lights.get(l.c).includes(l.l)) lights.get(l.c).push(l.l);
-    if (!cmds.get(l.l).includes(l.c)) cmds.get(l.l).push(l.c);
+    const rc = linkRole(idx.get(l.c).a.t), rl = linkRole(idx.get(l.l).a.t);
+    if (rc === "c" && rl === "l") { add(lights, l.c, l.l); add(cmds, l.l, l.c); }
+    else if (rc === "l" && rl === "l") { add(adj, l.c, l.l); add(adj, l.l, l.c); }
+    else if (rc === "l" && rl === "c") { add(lights, l.l, l.c); add(cmds, l.c, l.l); }
+  }
+  // chaînes de lumières : chaque commande atteint toutes les lumières de la chaîne
+  if (adj.size) for (const [c, ls] of [...lights]) {
+    const seen = new Set(ls), todo = [...ls];
+    while (todo.length) for (const n of adj.get(todo.pop()) || []) if (!seen.has(n)) { seen.add(n); todo.push(n); add(lights, c, n); add(cmds, n, c); }
   }
   return { lights, cmds };
 }
@@ -45,6 +56,11 @@ export function controlIssues() {
     const vv = cs.filter((c) => idx.get(c).a.t === "VV");
     if (vv.length === 1 && !seen.has(vv[0])) { seen.add(vv[0]); out.push({ kind: "vv", ids: [vv[0], lid], lv: idx.get(vv[0]).lv }); }
   }
+  // deux interrupteurs simples (ou un simple et un va-et-vient) sur la même lumière : il faut des va-et-vient
+  for (const [lid, cs] of cmds) {
+    const ints = cs.filter((c) => idx.get(c).a.t === "INT"), vvs = cs.filter((c) => idx.get(c).a.t === "VV");
+    if (ints.length >= 2 || (ints.length >= 1 && vvs.length >= 1)) out.push({ kind: "int2", ids: [...ints, ...vvs, lid], lv: idx.get(ints[0]).lv });
+  }
   // appareils sans circuit : seulement quand la répartition en circuits a été faite
   if ((K.CAB.circuits || []).length) {
     const cm = circuitMap();
@@ -55,6 +71,10 @@ export function controlIssues() {
   if (B.length) {
     const boxOf = new Map();
     B.forEach((b) => (b.apps || []).forEach((id) => boxOf.set(id, b)));
+    // appareil raccordé à rien : des boîtes existent sur son niveau, mais il n'est dans aucune (pas de gaine)
+    const cm = circuitMap(), lvBox = new Set(B.map((b) => b.lv)), direct = new Set();
+    (K.CAB.circuits || []).forEach((c) => { if (["specialise", "comm"].includes(c.kind)) (c.apps || []).forEach((id) => direct.add(id)); });
+    for (const [id, { lv, a }] of idx) if (lvBox.has(lv) && cm.__need(a) && !cm.__direct(a) && !direct.has(id) && !boxOf.has(id)) out.push({ kind: "nobox", ids: [id], lv });
     const done = new Set();
     for (const [c, ls] of lights) for (const l of ls) {
       const bc = boxOf.get(c), bl = boxOf.get(l);
@@ -131,6 +151,10 @@ export function testAll() {
     }
     if (a.t === "VV" && ls.every((l) => (T.cmds.get(l) || []).filter((c) => idx.get(c).a.t === "VV").length === 1))
       out.push({ kind: "vv", ids: [id, ...ls], lv, text: "va-et-vient seul : il manque le second" });
+    if (a.t === "INT") {
+      const twin = ls.filter((l) => (T.cmds.get(l) || []).some((c) => c !== id && ["INT", "VV"].includes(idx.get(c).a.t)));
+      if (twin.length) out.push({ kind: "int2", ids: [id, ...twin], lv, text: "interrupteur simple sur une lumière qui a une autre commande : il faut des va-et-vient" });
+    }
   }
   K.essai = save;
   return { tested: [...idx.values()].filter(({ a }) => linkRole(a.t) === "c").length, issues: out };

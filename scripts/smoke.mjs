@@ -226,7 +226,15 @@ try {
   }));
 
   console.log("Assistant sans clé");
-  await check("touche A ouvre l'assistant", async () => { await page.keyboard.press("Escape"); await page.keyboard.press("a"); return await page.waitForSelector(".as-in textarea", { state: "visible", timeout: 5000 }).then(() => true, () => false); });
+  await check("touche A ouvre l'assistant", async () => {
+    // le focus doit être sur la page (pas dans un champ) avant la touche
+    await page.keyboard.press("Escape"); await ev(() => document.activeElement?.blur?.()); await page.click(".brand");
+    for (let k = 0; k < 2; k++) {
+      await page.keyboard.press("a");
+      if (await page.waitForSelector(".as-in textarea", { state: "visible", timeout: 2500 }).then(() => true, () => false)) return true;
+    }
+    return false;
+  });
   await check("sans clé : recherche locale dans les fonctions", async () => {
     await page.fill(".as-in textarea", "porte"); await page.keyboard.press("Enter");
     await page.waitForSelector(".as-meta");
@@ -1095,7 +1103,7 @@ try {
     if (!ok) throw new Error(JSON.stringify(rots));
     return true;
   });
-  await check("filtre de vue : Bâti / Implantation / Câblage (Alt+1/2/3), boutons par élément, quadrillage fin 10 cm / 1 m", async () => {
+  await check("filtre de vue : Bâti / Implantation / Câblage (Alt+1/2/3), boutons par élément, quadrillage masqué par défaut (v45.1) puis fin 10 cm / 1 m à la demande", async () => {
     const count = () => ev(() => ({ dev: document.querySelectorAll("#sv g.dev").length, box: document.querySelectorAll("#sv g.box").length, gaine: document.querySelectorAll("#sv path.gaine").length, lia: document.querySelectorAll("#sv path.lia").length, grid: document.querySelectorAll("#sv g.grid").length }));
     await page.click('#vfilter [data-vp="bati"]'); const b = await count();
     await page.keyboard.press("Alt+2"); const i = await count();
@@ -1106,7 +1114,7 @@ try {
     const step = await ev(() => { const s = okteo.state.segs[0], n = okteo.state.nodes.find((x) => x.id === s.a); okteo.zoomToBox(n.x - 1, n.y - 1, n.x + 1, n.y + 1); return [...document.querySelectorAll("#sv g.grid")].map((g) => +g.dataset.step); });
     await ev(() => okteo.fit());
     const rows = await ev(() => ({ bati: !!document.querySelector("#tools .trow.bati [data-tool=mur]"), appa: !!document.querySelector("#tools .trow.appa [data-tool=lien]") && !!document.querySelector("#tools .trow.appa .palette") }));
-    const ok = b.dev === 0 && b.box === 0 && b.grid > 0 && i.dev > 0 && i.lia > 0 && i.box === 0 && c.box > 0 && c.gaine > 0 && c.lia === 0 && onCab && ng.gaine === 0 && ng.box > 0
+    const ok = b.dev === 0 && b.box === 0 && b.grid === 0 && i.dev > 0 && i.lia > 0 && i.box === 0 && c.box > 0 && c.gaine > 0 && c.lia === 0 && onCab && ng.gaine === 0 && ng.box > 0
       && step.length === 2 && step[0] <= 0.1 && step[1] === 1 && rows.bati && rows.appa;
     if (!ok) throw new Error(JSON.stringify({ b, i, c, onCab, ng, step, rows }));
     await ev(() => okteo.viewPreset("cab"));
@@ -1370,7 +1378,7 @@ try {
     await ev((i) => okteo.zoomTo(i), ids); await page.waitForTimeout(150);
     const mine = await ev((i) => okteo.control.filter((x) => x.ids.some((k) => i.includes(k))).map((x) => x.kind).sort().join(","), ids);
     const btn = await ev(() => ({ cls: document.getElementById("ctl").className, t: document.getElementById("ctl").textContent, n: okteo.control.length }));
-    const halos = await ev((i) => i.every((k) => !!document.querySelector(`#fx .fx-halo[data-k="halo:${k}"]`)) && getComputedStyle(document.querySelector("#fx .fx-halo .pulse")).animationName === "fx-pulse", ids);
+    const halos = await ev((i) => i.every((k) => !!document.querySelector(`#fx .fx-halo[data-k="halo:${k}"]`)) && getComputedStyle(document.querySelector("#fx .fx-halo .pulse")).animationName === "fx-pulse2", ids);
     let found = false;
     for (let k = 0; k < btn.n + 1 && !found; k++) { await page.click("#ctl"); found = await ev((i) => okteo.selection.some((s) => i.some((x) => s.endsWith(":" + x))), ids); }
     const hint = await page.textContent("#hint");
@@ -1380,6 +1388,17 @@ try {
     const back = await ev((i) => !okteo.state.app.some((a) => i.includes(a.id)), ids);
     const ok = mine.includes("cmd") && mine.includes("lum") && btn.cls.includes("bad") && btn.t.includes(String(btn.n)) && halos && found && hint.includes("Contrôle") && list === btn.n && back;
     if (!ok) throw new Error(JSON.stringify({ mine, btn, halos, found, hint, list, back }));
+    return true;
+  });
+
+  await check("contrôle (v45.1) : deux interrupteurs simples sur une lampe signalés ; lampes en chaîne sans commande signalées toutes les deux", async () => {
+    const ids = await ev(() => okteo.importDevices([{ t: "INT", x: 110, y: 100 }, { t: "INT", x: 111, y: 100 }, { t: "LUM", x: 112, y: 101 }, { t: "LUM", x: 115, y: 101 }, { t: "LUM", x: 117, y: 101 }],
+      [{ c: 0, l: 2 }, { c: 1, l: 2 }, { c: 3, l: 4 }]).ids);
+    const k = await ev((i) => okteo.control.filter((x) => x.ids.some((q) => i.includes(q))).map((x) => x.kind + ":" + x.ids.filter((q) => i.includes(q)).map((q) => i.indexOf(q)).join("")), ids);
+    const t = await ev((i) => okteo.essai.testAll().issues.filter((x) => i.includes(x.ids[0])).map((x) => x.kind).sort().join(","), ids);
+    await ev(() => okteo.undo());
+    const ok = k.includes("int2:012") && k.includes("lum:3") && k.includes("lum:4") && t === "int2,int2";
+    if (!ok) throw new Error(JSON.stringify({ k, t }));
     return true;
   });
 

@@ -281,6 +281,17 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 45.1 (27/10/2026) — livrée : retours de Kévin sur les 43 à 45
+- Quadrillage masqué par défaut (y compris sur les anciens dessins, une fois) et retiré de la vue Bâti ; il reste dans
+  l'encart Vues pour qui le veut.
+- Contrôle : nouvelle alerte « Deux interrupteurs sur la même lumière » (deux simples, ou un simple + un va-et-vient :
+  il faut des va-et-vient) ; « Appareil dans aucune boîte » (des boîtes existent sur son niveau mais il n'est raccordé à
+  aucune, lignes directes exceptées) ; lumières reliées en chaîne : seule une vraie commande commande, une chaîne de
+  lumières sans commande est signalée en entier. « Tester tout » signale aussi l'interrupteur simple doublé.
+- Lumière de l'essai ≈ 40 % moins forte et un peu moins large ; alertes plus rouges (anneau #e4472b plus épais,
+  pulsation plus marquée), compteur rouge.
+- Tests : 30 + 48 + 120.
+
 ## Versions 43, 44 et 45 (26/10/2026) — livrées ensemble : contrôle permanent, Pack depuis la pièce, mode essai
 - v43 — contrôle permanent : bouton « ⚠ n à vérifier » dans le bandeau du haut (vert « ✓ Contrôle » quand tout va bien),
   recalculé à chaque dessin sur tous les niveaux : commande sans lumière, lumière sans commande, va-et-vient seul,

@@ -71,7 +71,7 @@ export const VIEW_KEYS = [["fond", "Fond", "Fond de plan (PDF ou image)"], ["mur
   ["appareils", "Appareils", "Symboles de l'appareillage et repères"], ["liaisons", "Liaisons", "Traits commande → lumière"], ["boites", "Boîtes", "Boîtes de pieuvre et leurs points d'accroche"],
   ["gaines", "Gaines", "Gaines boîte → appareils et alimentation"], ["cotes", "Cotes", "Cotes et longueurs des murs"], ["grille", "Quadrillage", "Quadrillage : 5 cm à 1 m selon le zoom, trait marqué tous les mètres"]];
 export const VIEW_PRESETS = {
-  bati: { name: "Bâti", key: "1", tip: "Le bâtiment seul : fond, murs, pièces, cotes, quadrillage", on: ["fond", "murs", "pieces", "cotes", "grille"], circ: false },
+  bati: { name: "Bâti", key: "1", tip: "Le bâtiment seul : fond, murs, pièces, cotes", on: ["fond", "murs", "pieces", "cotes"], circ: false },
   impl: { name: "Implantation", key: "2", tip: "Le bâtiment et l'appareillage : appareils, liaisons, cotes", on: ["fond", "murs", "pieces", "appareils", "liaisons", "cotes"], circ: false },
   cab: { name: "Câblage", key: "3", tip: "Les circuits (couleur des symboles), les boîtes et leurs gaines", on: ["murs", "pieces", "appareils", "boites", "gaines"], circ: true }
 };

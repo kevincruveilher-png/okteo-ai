@@ -94,7 +94,8 @@ export const packData = () => ({
   dims: K.showDims,
   reps: K.showReps,
   below: K.showBelow,
-  layers
+  layers,
+  g451: 1 // v45.1 : quadrillage masqué une fois pour toutes sur les anciens dessins
 });
 
 export function writeNow() {
@@ -173,6 +174,7 @@ export function load() {
     if (typeof o.reps === "boolean") K.showReps = o.reps;
     if (typeof o.below === "boolean") K.showBelow = o.below;
     if (o.layers) Object.assign(layers, o.layers);
+    if (!o.g451) layers.grille.on = false;
     bumpIds();
   } catch (e) {}
 }

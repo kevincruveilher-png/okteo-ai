@@ -9,6 +9,8 @@ const WHAT = {
   cmd: "commande sans lumière : reliez-la à sa lumière (outil Liaison)",
   lum: "lumière sans commande : reliez-la à son interrupteur (outil Liaison)",
   vv: "va-et-vient seul : il faut un 2e va-et-vient sur la même lumière",
+  int2: "deux commandes dont un interrupteur simple sur la même lumière : ça ne peut pas marcher, mettez des va-et-vient",
+  nobox: "appareil raccordé à rien : il n'est dans aucune boîte (panneau Câblage → placer les boîtes, ou tirer une gaine)",
   circ: "appareil sans circuit : panneau Câblage → répartir, ou l'ajouter à un circuit",
   split: "allumage coupé : la commande et sa lumière sont dans deux boîtes (panneau Câblage → regrouper)",
 };

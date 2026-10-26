@@ -66,7 +66,7 @@ export const layers = {
     lock: false
   },
   grille: {
-    on: true,
+    on: false, // v45.1 : quadrillage masqué par défaut (trop chargé, demande de Kévin)
     lock: false
   }
 };

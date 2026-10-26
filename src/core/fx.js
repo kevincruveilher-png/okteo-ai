@@ -6,9 +6,9 @@ import { K } from "./k.js";
 import { VB } from "./model.js";
 
 const DEFS = `<defs>
-  <radialGradient id="fxGlow"><stop offset="0" stop-color="#fff6cf" stop-opacity=".95"/><stop offset=".18" stop-color="#ffe08a" stop-opacity=".75"/>
-    <stop offset=".45" stop-color="#ffc94a" stop-opacity=".32"/><stop offset=".75" stop-color="#ffb52e" stop-opacity=".1"/><stop offset="1" stop-color="#ffb020" stop-opacity="0"/></radialGradient>
-  <radialGradient id="fxCore"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset=".6" stop-color="#fff3b8" stop-opacity=".8"/><stop offset="1" stop-color="#ffe08a" stop-opacity="0"/></radialGradient>
+  <radialGradient id="fxGlow"><stop offset="0" stop-color="#fff6cf" stop-opacity=".58"/><stop offset=".18" stop-color="#ffe08a" stop-opacity=".44"/>
+    <stop offset=".45" stop-color="#ffc94a" stop-opacity=".18"/><stop offset=".75" stop-color="#ffb52e" stop-opacity=".05"/><stop offset="1" stop-color="#ffb020" stop-opacity="0"/></radialGradient>
+  <radialGradient id="fxCore"><stop offset="0" stop-color="#fff" stop-opacity=".7"/><stop offset=".6" stop-color="#fff3b8" stop-opacity=".45"/><stop offset="1" stop-color="#ffe08a" stop-opacity="0"/></radialGradient>
 </defs><g class="fx-root"></g>`;
 
 const tpl = (it) => it.kind === "glow"
