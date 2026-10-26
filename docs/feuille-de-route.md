@@ -77,6 +77,15 @@ est mis par défaut, et ce qui est fourni par KiTéOHM ou par l'électricien.
 - Impression selon le filtre de vues actif, une case par calque dans la fenêtre d'impression.
 - Rendu vérifié sur le PDF produit, comme pour l'échelle. Placée en dernier : le dessin des boîtes et des gaines peut encore bouger avec le tableau.
 
+## QR code → bande de fabrication sur téléphone / tablette (idée de Kévin, 27/10)
+- Un **QR code** sur la feuille de boîte (à côté du code barre) : scanné avec l'appareil photo du téléphone ou de la
+  tablette, il ouvre la version en ligne d'Oktéo directement sur la bande de cette boîte (schéma, ordre de câblage,
+  raccordements à cocher), en page adaptée au téléphone.
+- Sans serveur : le QR contient les données de la bande elles-mêmes (compressées, dans l'adresse), rien n'est envoyé sur
+  Internet ; contrôle de la taille (au-delà de la capacité d'un QR : données réduites à l'essentiel, ou 2 QR).
+- Plus tard, avec une sauvegarde partagée : QR court (n° d'affaire + boîte) qui va chercher la dernière version.
+- Le code barre Code 128 reste pour l'appli de scan / contrôle du poids de l'atelier.
+
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.
 - Export SPV pour Counter.
