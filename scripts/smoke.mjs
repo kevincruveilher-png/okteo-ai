@@ -1158,6 +1158,26 @@ try {
     if (!(cut.marks > 0 && btn && after === 0 && back > 0)) throw new Error(JSON.stringify({ cut, btn, after, back }));
     return true;
   });
+  await check("modes de pieuvre (v39) : comparatif proximité / équilibrée / par pièce (mini-plans, chiffres), « Appliquer », un seul Ctrl+Z", async () => {
+    await page.click('#tabs button[data-tab="plan"]');
+    await ev(() => okteoExt.panel.show("cablage")); await page.waitForTimeout(200);
+    const before = await ev(() => ({ mode: okteo.cab.mode || "proximite", boxes: JSON.stringify(okteo.cab.boxes.map((b) => [b.x, b.y])) }));
+    await page.click("#bx-cmp");
+    await page.waitForSelector(".cmpcard [data-apply]", { timeout: 60000 });
+    const r = await ev(() => [...document.querySelectorAll(".cmp-col")].map((c) => ({ mode: c.dataset.mode, boxes: c.querySelectorAll(".cmp-svg rect").length, rows: c.querySelectorAll(".cmp-t tr").length,
+      fil: +(c.querySelectorAll(".cmp-t tr")[2].children[1].textContent.replace(/\s/g, "").replace(",", ".")), ecart: +(c.querySelectorAll(".cmp-t tr")[5].children[1].textContent.replace(",", ".")), best: c.querySelectorAll(".best").length })));
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/modes.png" });
+    await page.click('.cmpcard [data-apply="piece"]');
+    const after = await ev(() => ({ mode: okteo.cab.mode, boxes: JSON.stringify(okteo.cab.boxes.map((b) => [b.x, b.y])), card: !!document.querySelector(".cmpcard") }));
+    await page.keyboard.press("Control+z");
+    const back = await ev(() => ({ mode: okteo.cab.mode || "proximite", boxes: JSON.stringify(okteo.cab.boxes.map((b) => [b.x, b.y])) }));
+    await page.click('#tabs button[data-tab="bandes"]'); await page.waitForSelector(".bands .bd-svg svg");
+    const P = r.find((x) => x.mode === "proximite"), E = r.find((x) => x.mode === "equilibre");
+    const ok = r.length === 3 && r.every((x) => x.boxes > 0 && x.rows === 7 && x.fil > 0) && E.ecart <= P.ecart && r.some((x) => x.best > 0)
+      && after.mode === "piece" && !after.card && after.boxes !== before.boxes && back.mode === before.mode && back.boxes === before.boxes;
+    if (!ok) throw new Error(JSON.stringify({ r, before: before.mode, after: after.mode, back: back.mode }));
+    return true;
+  });
   await check("impression des schémas : une feuille par boîte + raccordements à cocher, texte lisible (PDF relu)", async () => {
     await page.click("#bd-all");
     await page.waitForFunction(() => okteoExt.pages.bandes.ui.last, null, { timeout: 30000 });

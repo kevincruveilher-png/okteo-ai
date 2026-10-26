@@ -1,7 +1,8 @@
 // Données de câblage calculées à partir du dessin (partagées par l'onglet Câblage et les pages Boîtes / Lignes directes).
 import { getCab } from "../cablage/settings.js";
-import { placeBoxes, buildUnits } from "../cablage/boites.js";
+import { placeBoxes, buildUnits, MODES } from "../cablage/boites.js";
 import { computeWiring } from "../cablage/gaines.js";
+import { circuitsByBox, computeCircuits } from "../cablage/circuits.js";
 import { pointInPoly } from "../walls/rooms.js";
 
 // appareil à l'extérieur : ni sur lui ni à 12 cm autour, aucune pièce (un appareil intérieur posé contre un mur
@@ -24,13 +25,38 @@ export function wiringNow(api) {
 }
 
 // placement automatique des boîtes (tous niveaux) ; le tableau (ou, sur un autre niveau, sa projection) attire les boîtes
-// keepIds : boîtes gardées telles quelles (verrouillées ou décochées au recalcul)
-export function autoBoxes(api, keepIds = [], count = 0) {
+// keepIds : boîtes gardées telles quelles (verrouillées ou décochées au recalcul) ; mode : proximite | equilibre | piece
+export function roomsByLevel(api) {
+  const out = {};
+  api.levels.forEach((l) => { out[l.id] = (api.exportGeometry(l.id).rooms || []).filter((r) => r.poly && r.poly.length > 2).map((r) => ({ name: r.name, poly: r.poly })); });
+  return out;
+}
+export function autoBoxes(api, keepIds = [], count = 0, mode = (api.cab.mode || "proximite"), circuits = api.cab.circuits || []) {
   const S = getCab(), items = api.allApps(), links = api.allLinks();
   const tab = items.find((a) => a.t === "TAB");
   const tabs = {}; api.levels.forEach((l) => { if (tab) tabs[l.id] = { x: tab.x, y: tab.y }; });
   const keep = (api.cab.boxes || []).filter((b) => keepIds.includes(b.id));
-  return placeBoxes(items, links, api.cab.circuits || [], tabs, S, { keep, count });
+  return placeBoxes(items, links, circuits, tabs, S, { keep, count, mode, rooms: mode === "piece" ? roomsByLevel(api) : {} });
+}
+
+// comparatif des modes de pieuvre (v39) : pour chacun, les boîtes, les circuits qui en découlent et les chiffres
+// (boîtes, circuits, cuivre, gaine, départs par boîte, alertes) ; les boîtes verrouillées restent en place partout
+export function compareModes(api) {
+  const S = getCab(), items = api.allApps(), links = api.allLinks();
+  const keepIds = (api.cab.boxes || []).filter((b) => b.locked).map((b) => b.id);
+  const base = (api.cab.circuits || []).length ? api.cab.circuits : computeCircuits(items, links, S);
+  const ext = markExterior(api, items), levels = api.levels.map((l) => l.id);
+  return Object.entries(MODES).map(([mode, name]) => {
+    const r = autoBoxes(api, keepIds, 0, mode, base);
+    const circuits = S.circuitsParBoite ? circuitsByBox(items, links, r.boxes, S) : base;
+    const W = computeWiring({ items: ext, links, circuits, boxes: r.boxes, levels, S });
+    const dep = W.boxes.map((b) => b.gaines.length);
+    const mean = dep.reduce((s, v) => s + v, 0) / (dep.length || 1);
+    return { mode, name, boxes: r.boxes, circuits, W, issues: [...r.issues, ...W.issues.filter((x) => !/télérupteur au tableau|sans commande|ne commande aucune/.test(x))],
+      m: { boites: r.boxes.length, circuits: circuits.filter((c) => !c.direct && c.kind !== "comm").length, cuivre: W.totals.cuivre, gaine: W.totals.gaine,
+        depMin: Math.min(...dep), depMax: Math.max(...dep), ecart: +Math.sqrt(dep.reduce((s, v) => s + (v - mean) ** 2, 0) / (dep.length || 1)).toFixed(1),
+        pieces: (() => { const n = r.boxes.map((b) => new Set(b.apps.map((id) => items.find((a) => a.id === id)?.room).filter(Boolean)).size); return n.length ? Math.max(...n) : 0; })() } };
+  });
 }
 
 // couleur d'affichage d'un fil d'après son nom (réglages « Couleurs des fils »)

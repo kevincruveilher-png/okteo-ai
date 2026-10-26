@@ -7,6 +7,7 @@ import { gaineFor } from "../src/cablage/gaine.js";
 import { computeCircuits, checkCircuits, circuitsByBox } from "../src/cablage/circuits.js";
 import { CAB_DEFAULTS as S } from "../src/cablage/settings.js";
 import { placeBoxes, buildUnits, faceToward, portLayout, portXY } from "../src/cablage/boites.js";
+import { pointInPoly } from "../src/walls/rooms.js";
 import { computeWiring, gaineLength, cableColors } from "../src/cablage/gaines.js";
 import { connectorsFor, boxSteps, boxMaterial, boxChecks, parseSizes, schemaSVG } from "../src/cablage/schema.js";
 
@@ -216,6 +217,35 @@ console.log("Schéma de boîte pour le câbleur (v33)");
   check("points d'accroche : 5 gaines vers le haut sur la face A, dans l'ordre gauche → droite, sans croisement ; une gaine épinglée garde son point",
     deps.every((d) => L.get(d.id).face === "A") && xs.every((x, i) => i === 0 || x > xs[i - 1]) && !crosses(L) && pinned.get("g4").slot === 0 && pinned.get("g4").face === "A"
     && new Set(deps.map((d) => pinned.get(d.id).slot)).size === 5, xs.join(" "));
+}
+
+console.log("Modes de pieuvre (v39)");
+{
+  const tab = items.find((a) => a.t === "TAB") || { x: 0, y: 0 };
+  const tabs = { rdc: { x: tab.x, y: tab.y } };
+  const prox = placeBoxes(items, links, C, tabs, S), eq = placeBoxes(items, links, C, tabs, S, { mode: "equilibre" });
+  const deps = (r) => computeWiring({ items, links, circuits: C, boxes: r.boxes, levels: ["rdc"], S }).boxes.map((b) => b.gaines.length);
+  const dP = deps(prox), dE = deps(eq), spread = (d) => Math.max(...d) - Math.min(...d);
+  const allIn = (r) => { const s = new Set(r.boxes.flatMap((b) => b.apps)); return buildUnits(items, links, C).every((u) => u.ids.every((id) => s.has(id))) && r.boxes.flatMap((b) => b.apps).length === s.size; };
+  check("pieuvre équilibrée : même nombre de boîtes que la proximité, départs plus réguliers, tous les appareils placés, ≤ 18 départs et ≤ 6 par face",
+    eq.boxes.length === prox.boxes.length && spread(dE) <= spread(dP) && allIn(eq) && dE.every((n) => n <= 18) && !eq.issues.length, `proximité ${dP.join("/")} · équilibrée ${dE.join("/")}`);
+  // par pièce : 3 pièces (dont une petite) + un appareil extérieur
+  const sq = (x0, y0, x1, y1) => [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }];
+  const rooms = { rdc: [{ name: "Séjour", poly: sq(0, 0, 6, 5) }, { name: "Chambre", poly: sq(6, 0, 10, 4) }, { name: "WC", poly: sq(6, 4, 7.5, 5) }] };
+  const R = [], RL = [];
+  const put = (id, t, x, y, room) => R.push({ id, t, x, y, lv: "rdc", room, rep: id });
+  for (let i = 0; i < 5; i++) put("sp" + i, "PC16", 0.3 + i, 0.3, "Séjour");
+  put("si", "INT", 5.7, 4.6, "Séjour"); put("sl", "LUM", 3, 2.5, "Séjour"); RL.push({ c: "si", l: "sl" });
+  for (let i = 0; i < 3; i++) put("cp" + i, "PC16", 6.3 + i, 0.3, "Chambre");
+  put("ci", "INT", 6.3, 3.7, "Chambre"); put("cl", "LUM", 8, 2, "Chambre"); RL.push({ c: "ci", l: "cl" });
+  put("wi", "INT", 6.3, 4.3, "WC"); put("wl", "LUM", 6.8, 4.5, "WC"); RL.push({ c: "wi", l: "wl" });
+  put("ex", "PC16", 11, 1, null);
+  const RC = computeCircuits(R, RL, S), pr = placeBoxes(R, RL, RC, { rdc: { x: 0, y: 5 } }, S, { mode: "piece", rooms });
+  const roomOfBox = (b) => rooms.rdc.find((r) => pointInPoly(b.x, b.y, r.poly))?.name;
+  const boxWith = (id) => pr.boxes.find((b) => b.apps.includes(id));
+  check("pieuvre par pièce : une boîte par pièce posée dans sa pièce ; le WC (2 départs) rejoint la pièce voisine ; l'appareil extérieur va à la pièce la plus proche",
+    pr.boxes.length === 2 && pr.boxes.map(roomOfBox).sort().join() === "Chambre,Séjour" && boxWith("wl") === boxWith("cl") && boxWith("ex") === boxWith("cp0") && boxWith("sl") === boxWith("sp0"),
+    pr.boxes.map((b) => `${b.n}@${roomOfBox(b)}:${b.apps.length}`).join(" "));
 }
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);

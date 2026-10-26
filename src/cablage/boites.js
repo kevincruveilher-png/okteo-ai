@@ -7,6 +7,7 @@
 // on place donc des « unités » indivisibles (un allumage complet, ou une prise seule).
 
 import { packAlim } from "./gaine.js";
+import { pointInPoly, labelPoint } from "../walls/rooms.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
 const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -81,7 +82,14 @@ export function buildUnits(items, links, circuits) {
   return [...groups.values()].map((g) => ({
     ids: g.map((a) => a.id), lv: g[0].lv, x: g.reduce((s, a) => s + a.x, 0) / g.length, y: g.reduce((s, a) => s + a.y, 0) / g.length,
     pts: g.map((a) => ({ x: a.x, y: a.y })), circuits: [...new Set(g.map((a) => circOf.get(a.id).id))],
+    // pièce de l'unité (mode « par pièce ») : celle de la majorité de ses lumières, sinon de ses appareils
+    room: majority(g.filter((a) => LIGHT.has(a.t) && a.room).map((a) => a.room)) || majority(g.filter((a) => a.room).map((a) => a.room)) || null,
   }));
+}
+
+function majority(L) {
+  const m = new Map(); L.forEach((x) => m.set(x, (m.get(x) || 0) + 1));
+  return [...m].sort((p, q) => q[1] - p[1])[0]?.[0] || null;
 }
 
 // une gaine par appareil + les gaines d'alimentation (une seule pour tous les circuits, deux si elle passait en Ø25)
@@ -177,11 +185,88 @@ function cluster(units, k, tab, S, seed) {
   return boxes;
 }
 
+// boîte valable : au plus departsMax départs et departsFace par face
+function boxOk(b, tab, S) {
+  if (departsOf(b.units, S) > S.departsMax) return false;
+  const deps = b.units.flatMap((u) => u.ids.map((id, j) => ({ id, p: u.pts[j] })));
+  if (tab) new Set(b.units.flatMap((u) => u.circuits)).forEach((c) => deps.push({ id: "alim:" + c, p: tab }));
+  return ![...assignFaces(b, deps, S.departsFace).values()].some((x) => !x);
+}
+// position d'une boîte : point médian de ses endroits desservis (attiré par le tableau si `pull`)
+function seat(units, tab, S, pull = true) {
+  const pts = spotPts(units, S.memeEndroit ?? 0.3);
+  if (tab && pull) pts.push({ x: tab.x, y: tab.y, w: (2 * new Set(units.flatMap((u) => u.circuits)).size + 1) / 3 });
+  const c = { x: pts.reduce((s, p) => s + p.x, 0) / pts.length, y: pts.reduce((s, p) => s + p.y, 0) / pts.length };
+  return median(pts, c);
+}
+
+// mode « équilibrée » (v39) : la maison découpée en k parts de départs à peu près égaux, par coupes successives selon
+// le plus grand côté (comme le fait le bureau d'études : des boîtes régulières, « qui plaisent à l'œil ») ; les allumages
+// restent entiers ; chaque boîte au milieu de sa part (sans attraction du tableau)
+function bisect(units, k, S) {
+  if (k <= 1 || units.length <= 1) return [units];
+  const xs = units.map((u) => u.x), ys = units.map((u) => u.y);
+  const ax = Math.max(...xs) - Math.min(...xs) >= Math.max(...ys) - Math.min(...ys) ? "x" : "y";
+  const U = units.slice().sort((p, q) => p[ax] - q[ax]);
+  const w = (u) => u.ids.length + 0.5, tot = U.reduce((s, u) => s + w(u), 0), kL = Math.floor(k / 2);
+  let acc = 0, i = 0;
+  while (i < U.length - 1 && acc + w(U[i]) / 2 < tot * kL / k) acc += w(U[i++]);
+  i = Math.max(1, Math.min(U.length - 1, i));
+  return [...bisect(U.slice(0, i), kL, S), ...bisect(U.slice(i), k - kL, S)];
+}
+function placeLevelBalanced(units, tab, S, k0) {
+  if (!units.length) return [];
+  for (let k = Math.max(k0, minBoxes(units, S)); k <= k0 + 6; k++) {
+    const parts = bisect(units, k, S).filter((p) => p.length);
+    const boxes = parts.map((P) => ({ ...seat(P, tab, S, false), units: P }));
+    if (boxes.every((b) => boxOk(b, tab, S))) return boxes;
+  }
+  return null;
+}
+
+// mode « par pièce » (v39) : une boîte par pièce (pièce des lumières de chaque allumage) ; une pièce avec peu de départs
+// (moins que « départs minimum » : WC, dégagement…) rejoint la pièce voisine ; un appareil sans pièce (extérieur) va
+// à la pièce la plus proche ; une pièce trop chargée est coupée ; la boîte est posée dans sa pièce
+function placeLevelRooms(units, tab, S, roomsLv) {
+  if (!units.length) return [];
+  const centerOf = (L) => ({ x: L.reduce((s, u) => s + u.x, 0) / L.length, y: L.reduce((s, u) => s + u.y, 0) / L.length });
+  const G = new Map();
+  units.filter((u) => u.room).forEach((u) => { if (!G.has(u.room)) G.set(u.room, []); G.get(u.room).push(u); });
+  if (!G.size) return placeLevel(units, tab, S);
+  const near = (u) => [...G.entries()].sort(([, p], [, q]) => d2(centerOf(p), u) - d2(centerOf(q), u))[0][0];
+  units.filter((u) => !u.room).forEach((u) => G.get(near(u)).push(u));
+  // petites pièces : rattachées à la pièce la plus proche (la plus petite d'abord)
+  const minD = S.piecesMinDeparts ?? 3;
+  for (let again = true; again && G.size > 1;) {
+    again = false;
+    // départs vers les appareils (un par endroit), sans l'alimentation
+    const small = [...G.entries()].map(([r, L]) => ({ r, L, d: spotPts(L, S.memeEndroit ?? 0.3).length })).filter((x) => x.d < minD).sort((p, q) => p.d - q.d)[0];
+    if (!small) break;
+    const c = centerOf(small.L), to = [...G.entries()].filter(([r]) => r !== small.r).sort(([, p], [, q]) => d2(centerOf(p), c) - d2(centerOf(q), c))[0][0];
+    G.get(to).push(...small.L); G.delete(small.r); again = true;
+  }
+  const out = [];
+  for (const [room, L] of G) {
+    let parts = [L];
+    for (let k = 2; !parts.every((P) => boxOk({ ...seat(P, tab, S), units: P }, tab, S)) && k <= 6; k++) parts = bisect(L, k, S);
+    const poly = (roomsLv || []).find((r) => r.name === room)?.poly;
+    for (const P of parts) {
+      let p = seat(P, tab, S, false);
+      if (poly && poly.length > 2 && !pointInPoly(p.x, p.y, poly)) p = labelPoint(poly);
+      out.push({ ...p, units: P, room });
+    }
+  }
+  return out;
+}
+
 // toutes les boîtes du chantier ; tabs : {[niveau]: {x, y}} position du tableau (ou de la trémie qui y mène) par niveau
 // keep = boîtes à garder telles quelles (verrouillées ou non cochées) : elles gardent position, nom, tracés et
 // appareils ; une unité dont un appareil est déjà dans une boîte gardée y va en entier ; le reste est réparti.
 // count = nombre total de boîtes voulu (boîtes gardées comprises), 0 = automatique
-export function placeBoxes(items, links, circuits, tabs, S0, { keep = [], count = 0 } = {}) {
+// mode (v39) : "proximite" (le moins de cuivre, défaut), "equilibre" (parts égales), "piece" (une boîte par pièce ;
+// rooms = {[niveau]: [{name, poly}]})
+export const MODES = { proximite: "Proximité", equilibre: "Équilibrée", piece: "Par pièce" };
+export function placeBoxes(items, links, circuits, tabs, S0, { keep = [], count = 0, mode = "proximite", rooms = {} } = {}) {
   const secOf = new Map(circuits.map((c) => [c.id, c.section || 1.5]));
   const S = { ...S0, alimCount: (ids) => (ids.size ? packAlim([...ids].map((id) => ({ id, section: secOf.get(id) || 1.5 })), S0.remplissage).length : 0) };
   const all = buildUnits(items, links, circuits), exist = new Set(items.map((a) => a.id));
@@ -212,10 +297,15 @@ export function placeBoxes(items, links, circuits, tabs, S0, { keep = [], count 
   }
   for (const lv of levels) {
     const L = units.filter((u) => u.lv === lv);
-    const r = placeLevel(L, tabs[lv] || null, S, 4, want[lv] || 0);
+    let r;
+    if (mode === "piece") r = placeLevelRooms(L, tabs[lv] || null, S, rooms[lv]);
+    else if (mode === "equilibre") {
+      const kp = want[lv] || (placeLevel(L, tabs[lv] || null, S, 4, 0) || []).length || minBoxes(L, S);
+      r = placeLevelBalanced(L, tabs[lv] || null, S, kp);
+    } else r = placeLevel(L, tabs[lv] || null, S, 4, want[lv] || 0);
     if (!r) { issues.push(`Niveau ${lv} : impossible de respecter ${S.departsMax} départs par boîte et ${S.departsFace} par face (une unité trop grosse ?)`); continue; }
     for (const b of r) { do n++; while (usedIds.has("b" + n)); usedIds.add("b" + n); out.push({ id: "b" + n, n: boxName(n), lv, x: +(Math.round(b.x / 0.05) * 0.05).toFixed(2), y: +(Math.round(b.y / 0.05) * 0.05).toFixed(2), apps: b.units.flatMap((u) => u.ids) }); }
   }
   out.sort((a, b) => (+String(a.n).replace(/\D/g, "") || 0) - (+String(b.n).replace(/\D/g, "") || 0));
-  return { boxes: out, issues };
+  return { boxes: out, issues, mode };
 }

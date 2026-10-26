@@ -203,13 +203,21 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `chooseCable`/`parseStock`/`cableCores` (âme `w.core`, fil `fn:"isole"`), `W.splits`, `W.series` + `g.serie`.
   schema.js : accolades `g.bague`, gaine de câble `g.cable`, `wireName(w)` (« marron repéré orange »). Réglages : version
   `_v` (anciennes valeurs de base remplacées, `OLD_DEFAULTS`). Plan : `line.split` + `g.split-mark` (allumage coupé).
+- v39 : modes de pieuvre (boites.js `placeBoxes(..., {mode, rooms})`, `MODES`) : `proximite` (k-means avec capacité,
+  le moins de cuivre), `equilibre` (`bisect` : coupes successives à parts de départs égales, même k que la proximité,
+  boîte au point médian sans attraction du tableau), `piece` (`placeLevelRooms` : pièce des lumières de l'unité
+  `u.room`, petites pièces < `piecesMinDeparts` gaines rattachées à la voisine, extérieur → pièce la plus proche, coupe si
+  trop chargée, boîte dans le polygone de la pièce) ; `boxOk`, `seat`. Mode du chantier : `K.CAB.mode`. ext :
+  `roomsByLevel`, `autoBoxes(api, keep, count, mode, circuits)`, `compareModes(api)` (cablage-data.js) ;
+  `src/ext/pieuvre-compare.js` (`.cmpcard`, mini-plans, chiffres, « Appliquer » = `setCab({mode, boxes, circuits})`),
+  `okteo:compare-modes` ; onglet Câblage : `#bx-mode`, `#bx-cmp`.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (44 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (110 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (46 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (111 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

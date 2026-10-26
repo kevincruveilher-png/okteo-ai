@@ -5,6 +5,7 @@ export const CAB_DEFAULTS = {
   departsMax: 18,          // gaines par boîte, toutes faces confondues
   departsFace: 6,          // gaines par face (A, B, C, D)
   bornes: "2,3,4,5,6,8,10,12",    // connecteurs rapides disponibles (nombre d'entrées), pour le schéma de boîte
+  piecesMinDeparts: 3,     // mode « par pièce » : une pièce avec moins de départs rejoint la pièce voisine
   // longueurs
   hsp: 2.5,                // hauteur sous plafond (m)
   traversee: 0.3,          // plancher / isolation à traverser entre la boîte et le haut du mur (m)
@@ -68,7 +69,8 @@ export function resetCab() { try { localStorage.removeItem(KEY); } catch { /* */
 // fiche des réglages affichée dans Paramètres : [clé, libellé, unité, type, options]
 export const CAB_FIELDS = [
   ["Boîtes", [["departsMax", "Départs par boîte (toutes faces)", "gaines", "int"], ["departsFace", "Départs par face (A, B, C, D)", "gaines", "int"],
-    ["bornes", "Connecteurs rapides disponibles (nombre d'entrées, séparés par des virgules)", "", "txt"]]],
+    ["bornes", "Connecteurs rapides disponibles (nombre d'entrées, séparés par des virgules)", "", "txt"],
+    ["piecesMinDeparts", "Pieuvre par pièce : gaines d'appareils minimum pour qu'une pièce ait sa boîte (sinon elle rejoint la voisine)", "départs", "int"]]],
   ["Longueurs des gaines", [["hsp", "Hauteur sous plafond", "m", "num"], ["traversee", "Traversée plancher / isolation", "m", "num"],
     ["margeBoite", "Surlongueur côté boîte", "m", "num"], ["margeApp", "Surlongueur côté appareil", "m", "num"],
     ["majoration", "Tracé dans les combles (ligne droite arrondie)", "+ %", "num"], ["arrondi", "Arrondir la longueur au … supérieur", "m", "num"],

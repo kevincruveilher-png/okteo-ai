@@ -281,6 +281,18 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 39 (26/10/2026) — livrée : trois modes de pieuvre et leur comparatif
+- Proximité (le moins de cuivre, une pièce peut être partagée), Équilibrée (boîtes régulières, départs à peu près égaux,
+  « qui plaisent à l'œil », comme le bureau d'études), Par pièce (une boîte par pièce, petites pièces rattachées à la
+  voisine — réglage « gaines minimum », extérieur vers la pièce la plus proche, boîte posée dans sa pièce).
+- Onglet Câblage → Boîtes : choix « Pieuvre » (mode du chantier, utilisé au prochain placement) + « Comparer les 3
+  modes » : mini-plans, boîtes, circuits, fil, gaine, départs, régularité, pièces par boîte, alertes ; « Appliquer »
+  (boîtes + circuits, un seul Ctrl+Z ; les boîtes verrouillées restent).
+- Essai PASQUIER (relevé v2) : proximité 5 boîtes / 1 309 m de fil ; équilibrée 5 boîtes / 1 368 m, départs 11 à 12 ;
+  par pièce 9 boîtes / 1 592 m, 17 circuits.
+- Suite : v40 packs et pieuvres types.
+- Tests : 30 + 46 + 111 = 187.
+
 ## Version 38 (26/10/2026) — livrée : câblage selon les règles KiTéOHM
 - Origine : la bande LI05 d'EVRARD relue avec Kévin (prises en 2,5 rouge/bleu au lieu de 1,5 gris/bleu foncé, retour
   orphelin sur I17 : allumage coupé entre deux boîtes). Règles complètes dans `docs/regles-cablage.md`.

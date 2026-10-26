@@ -111,7 +111,7 @@ avec une valeur de base modifiable.
 
 ## Pistes décidées (après la v38)
 
-- **v39 — trois modes de pieuvre + comparatif** pour choisir : *proximité* (le moins de cuivre, une pièce peut être
+- **v39 (fait) — trois modes de pieuvre + comparatif** pour choisir : *proximité* (le moins de cuivre, une pièce peut être
   partagée entre plusieurs boîtes), *équilibrée* (boîtes réparties régulièrement, surfaces et départs à peu près égaux :
   « une pieuvre qui plaît à l'œil », ce que fait le bureau d'études ; pas de zones dessinées), *par pièce*.
 - **v40 — packs** : « ajouter un pack » = appareillage type d'une pièce (ex. chambre : 3 prises, 1 point lumineux
