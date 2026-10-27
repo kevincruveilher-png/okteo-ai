@@ -185,6 +185,15 @@ Retour de Kévin : « à première vue très prometteur ». Les vues lui seront 
     de garage », grande largeur, sans arc de battant) ;
   - le sens des portes (charnière, côté d'ouverture) est souvent faux : la consigne doit demander le côté des gonds
     et le côté où la porte s'ouvre, et l'import doit les reprendre (aujourd'hui l'ouverture est posée sans sens).
+- **Relecture ciblée par l'IA (idée de Kévin, 23:42)** : après l'import, le logiciel rédige lui-même une 2e consigne
+  à partir des alertes du contrôle (lumière sans commande, commande sans lumière, VV incomplet, pièce non fermée,
+  ouverture ajustée, appareil hors pièce…). Pour chaque point : repère stable (L12, I5…), type, pièce, position en
+  pixels de l'image de référence (même « ref »), et les candidats proches (commandes à moins de quelques mètres).
+  On la colle dans la MÊME conversation (l'IA a encore le PDF) ; elle répond en JSON de corrections :
+  `{"liaisons":[["I5","L12"]], "ajouts":[{"t":"INT","x":…,"y":…,"pour":"L12"}], "portes":[…], "introuvable":[{"rep":"AP3","pourquoi":"…"}]}`.
+  Import = aperçu + un seul Ctrl+Z ; ce que l'IA déclare introuvable garde son alerte, marquée « vu par l'IA :
+  introuvable » (la décision revient au dessinateur). Avec une clé : relecture lancée automatiquement après le relevé.
+  Bouton « Copier la relecture » dans la fenêtre du relevé + commande Ctrl+K.
 - Vues de l'essai reçues (23:35, plan scanné tourné, 1/75) : murs posés sur ceux du plan, les 11 pièces fermées et
   nommées (porche non fermé, non relevé : normal) ; fenêtres bien placées ; porte de garage placée mais en « porte »
   (battant de 2,2 m) ; petit bout de mur qui dépasse à gauche sous la Chambre 2 ; appareils au bon endroit, 8 volets
