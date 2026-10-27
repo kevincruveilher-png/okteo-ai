@@ -724,6 +724,12 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | Q-77 | « Plan expé pieuvre » : que compare cette expérimentation (mode de pieuvre, longueur totale de gaine par boîte) ? Les longueurs par boîte sont-elles le « score » des alternatives dans l'étude (arbre d'étude, section 3 ter) ? | Oui : le score d'un mode est la longueur totale de gaine, avec le nombre de boîtes et de départs | ouverte (reformulée à 14:25) |
 | Q-78 | Valides-tu les nouveaux types : interrupteur de coupure (ligne directe 1,5 R + N), climatisation (4G1,5 ICTA 20), et G EXT en 3G1,5 ICTA 16 ou 3G2,5 ICTA 20 selon le chantier ? | Oui ; G EXT selon le choix du chantier | répondue : types acceptés (R-084 étendue) |
 
+### P. Questions issues du développement (mise à jour 52, 27/10/2026)
+| N° | Question | Supposé aujourd'hui | Statut |
+|---|---|---|---|
+| Q-79 | Plaque de cuisson en 6 mm² (3 fils = 18 mm²) : FTZ la met en ICTA 20, au-delà des 13,5 mm² de R-074. Quel diamètre pour les lignes directes de grosse section (6 et 10 mm²) ? | ICTA 20 comme FTZ, signalé « à vérifier » | ouverte |
+| Q-80 | Terres de sections différentes (2,5 de l'alimentation, 1,5 des appareils) sur la borne n° 1 : autorisé (R-092 parle des circuits) ? | autorisé pour les terres | ouverte |
+
 ## 6. Prochaine étape
 
 **Questions encore ouvertes (état au 27/10/2026, 14:30)**
@@ -773,3 +779,4 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | H-027 | 27/10/2026 | R-084, Q-77, Q-78 | Modification | Q-78 ouverte | Types acceptés (coupure, climatisation, G EXT) ; Q-77 reformulée | Réponse de Kévin du 27/10/2026 (14:21) | IA (validée par Kévin) | — |
 | H-028 | 27/10/2026 | Journal | Modification | En-tête et notes obsolètes (limite de 18, « toutes à valider ») | En-tête à jour (52 règles), regroupement par catégorie complété, doublon de R-084 retiré, section 6 mise à jour | Préparation de la passation au développement, demande de Kévin du 27/10/2026 (14:22) | IA (validée par Kévin) | — |
 | H-029 | 27/10/2026 | R-075 | Modification | Alimentation avec les numéros FTZ (R 1 / B 2, GR 3 / BF 4, R 7 / B 8, terre 9, GR 11 / B 12) | Couleurs seules ; numérotation selon R-031 (terres n° 1) | Contradiction avec R-031 relevée au développement ; Kévin : « on conserve notre règle » (14:29) | IA (validée par Kévin) | — |
+| H-030 | 27/10/2026 | Q-79, Q-80 | Création | — | Deux questions ouvertes | Cas rencontrés en appliquant R-074 et R-092 au câblage (mise à jour 52) | IA | — |

@@ -144,8 +144,9 @@ export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font =
         h += `<g class="cable" data-c="${cAttr(gc)}"><rect x="${sh.x}" y="${sh.y}" width="${sh.w}" height="${sh.h}" rx="6" fill="#2b3440" fill-opacity="0.13" stroke="#2b3440" stroke-width="1.6"/>` +
           `<text x="${sh.x + sh.w / 2}" y="${sh.y + sh.h / 2 + 4}" text-anchor="middle" font-size="10" font-weight="700" fill="#2b3440"${vert ? "" : ` transform="rotate(-90 ${sh.x + sh.w / 2} ${sh.y + sh.h / 2 + 4})"`}>${esc(g.cable)}</text></g>`;
       }
-      // bagues de l'alimentation : une accolade par n° de bague sur les fils qui la portent
-      if (g.kind === "alim") {
+      // bagues : une accolade par n° de bague sur les fils qui la portent (alimentation : n° du circuit, T1… ; gaine
+      // d'appareil : n° de l'allumage quand une couleur de la ronde est réutilisée, R-072)
+      if (g.wires.some((w) => w.bague)) {
         const runs = [];
         g.wires.forEach((w, i) => { if (!w.bague) return; const r = runs[runs.length - 1]; if (r && r.b === w.bague && r.j === i - 1) r.j = i; else runs.push({ b: w.bague, i, j: i }); });
         for (const r of runs) {
@@ -158,7 +159,7 @@ export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font =
       // titre de la gaine (v47) : « LI01.10 » puis « P14 · 4,8 m · Ø16 » (alimentation : « Tableau · … »)
       const mid = start + (n - 1) * L / 2;
       const who = g.kind === "alim" ? "Tableau" : cut((g.reps && g.reps.length ? g.reps.join("+") : g.label), 16);
-      const l1 = `${g.no}${g.serie > 1 ? ` ×${g.serie}` : ""}`, len = `${fr(g.length, 1)} m · Ø${g.diam}${g.cable ? " · " + g.cable : ""}`, l2 = `${who} · ${len}`;
+      const l1 = `${g.no}${g.serie > 1 ? ` ×${g.serie}` : ""}`, len = `${fr(g.length, 1)} m · Ø${g.diam ?? "?"}${g.cable ? " · " + g.cable : ""}${g.bouchon ? " · BOUCHON" : ""}`, l2 = `${who} · ${len}`;
       const gAttr = `class="gt" data-c="${cAttr(gc)}"`;
       // faces A et C : titre tourné (comme sur les bandes FTZ), deux lignes côte à côte
       if (f === "A" || f === "C") {

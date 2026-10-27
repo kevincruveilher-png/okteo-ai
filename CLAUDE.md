@@ -124,14 +124,14 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   (les tests cherchent `.wcard`).
 - Câblage (v28, règles : `docs/regles-cablage.md`) : `src/cablage/` = moteur pur (sans DOM sauf localStorage) :
   `settings.js` (CAB_DEFAULTS, getCab/setCab, `okteo.cablage.v1`, fiche CAB_FIELDS pour Paramètres), `gaine.js`
-  (`gaineFor(sections, remplissage)` : surfaces des fils H07V-U vs surface intérieure ICTA), `circuits.js`
+  (`gaineFor` : v52 somme des sections, R-074), `circuits.js`
   (`computeCircuits(items, links, S)`, `checkCircuits`). Circuits stockés dans le chantier : `K.CAB.circuits`
   (dans `packState`, tous niveaux, annulable) ; `okteo.cab`, `setCircuits(list)`, `showCircuits`, `allApps()` (tous
   niveaux, avec pièce et repère), `allLinks()`, `circuitColors` ; couleur du circuit sur le symbole dans `draw` (`circuitMap`).
   Interface : `src/ext/cablage-ui.js` (onglet « Câblage ») ; réglages dans `settings.js` (page Paramètres).
 - Boîtes et gaines (v29–v30) : `src/cablage/boites.js` (`buildUnits` = allumages indivisibles + appareils seuls des
-  circuits à boîte ; `placeBoxes(items, links, circuits, tabs, S)` = regroupement avec capacité (18 départs dont une
-  alimentation par circuit, 6 par face) + médiane de Weiszfeld attirée par le tableau, k essayés ; `faceToward`,
+  circuits à boîte ; `placeBoxes(items, links, circuits, tabs, S)` = regroupement avec capacité (v52 : 12 départs sans
+  l'alimentation, 6 gaines par face) + médiane de Weiszfeld attirée par le tableau, k essayés ; `faceToward`,
   `assignFaces`) et `src/cablage/gaines.js` (`computeWiring` → boîtes {gaines [{no, face, kind app|alim, label, circuit,
   length, diam, wires [{fn, color, section, n}]}], nets (raccordements, n° 1 = terres)}, direct (lignes directes), issues,
   totals ; `gaineLength` ; rôles des fils : prise, lumière, INT, va-et-vient, télérupteur). Boîtes stockées dans
@@ -271,13 +271,21 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `K.CAB.choix {volets, raccordement}`, écarts, tableau `.rg-row`, fiche `.rg-fiche`, `.rg-ask`) ; assistant : action
   `{"do":"rule",op,id,patch|rule,motif}` → carte `.rg-prop` (`.rg-ok`/`.rg-no`), jamais appliquée sans validation.
   Note de passation et plan 52–54 : `docs/remarques-dev-journal-regles.md`, feuille de route. Chantiers de test : `docs/chantiers/`.
+- v52 (règles du journal dans le moteur) : gaine.js `gaineFor(sections, S)` = somme des sections (R-074, `icta16`
+  7,5 / `icta20` 13,5, null au-delà = doute), `packAlim(circs, S)` ; boites.js `departsOf` = endroits desservis SANS
+  l'alimentation (R-001, `departsMax` 12), `faceDeps` (faces avec l'alimentation) ; gaines.js : ronde R-072 par
+  emplacements (`slots`, `keySpots`, `touch`/`clash`, marron imposé pour les lumières en câble, `rondeBague` → `w.bague`
+  sur les gaines d'appareil), n° R-077 (rotation horaire depuis `alim:0`), `g.sum`, `g.bouchon`, `g.rules`,
+  `box.longueur`/`bouchons`/`rules`, `W.doutes` [{rule, text, box, bloquant}] (aussi en texte dans `W.issues`) ;
+  cablage-bandes `aVerifier(ids)` → `S.verifier`, `S.longueur`. Tests : `scripts/chantiers.test.mjs` sur
+  `scripts/fixtures/chantiers-ftz.mjs` (4 chantiers FTZ, positions schématiques).
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (52 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (130 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (57 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (132 : règles du journal sur 4 chantiers réels) + `scripts/smoke.mjs` (130 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

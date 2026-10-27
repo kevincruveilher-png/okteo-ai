@@ -1,6 +1,6 @@
 // Généré par scripts/regles-import.mjs depuis docs/journal-regles-cablage.md — ne pas modifier à la main.
 export const REGLES_BASE = {
- "version": "2026-10-27.29",
+ "version": "2026-10-27.30",
  "rules": [
   {
    "id": "R-001",
@@ -2438,6 +2438,26 @@ export const REGLES_BASE = {
    "si_doute": "",
    "statut": "repondue",
    "statut_texte": "répondue : types acceptés (R-084 étendue)"
+  },
+  {
+   "id": "Q-79",
+   "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
+   "question": "Plaque de cuisson en 6 mm² (3 fils = 18 mm²) : FTZ la met en ICTA 20, au-delà des 13,5 mm² de R-074. Quel diamètre pour les lignes directes de grosse section (6 et 10 mm²) ?",
+   "reponse": "ICTA 20 comme FTZ, signalé « à vérifier »",
+   "suppose": "",
+   "si_doute": "",
+   "statut": "ouverte",
+   "statut_texte": "ouverte"
+  },
+  {
+   "id": "Q-80",
+   "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
+   "question": "Terres de sections différentes (2,5 de l'alimentation, 1,5 des appareils) sur la borne n° 1 : autorisé (R-092 parle des circuits) ?",
+   "reponse": "autorisé pour les terres",
+   "suppose": "",
+   "si_doute": "",
+   "statut": "ouverte",
+   "statut_texte": "ouverte"
   }
  ],
  "history": [
@@ -2758,6 +2778,17 @@ export const REGLES_BASE = {
    "apres": "Couleurs seules ; numérotation selon R-031 (terres n° 1)",
    "motif": "Contradiction avec R-031 relevée au développement ; Kévin : « on conserve notre règle » (14:29)",
    "par": "IA (validée par Kévin)",
+   "code_valide": null
+  },
+  {
+   "id": "H-030",
+   "date": "27/10/2026",
+   "regle": "Q-79, Q-80",
+   "action": "Création",
+   "avant": "—",
+   "apres": "Deux questions ouvertes",
+   "motif": "Cas rencontrés en appliquant R-074 et R-092 au câblage (mise à jour 52)",
+   "par": "IA",
    "code_valide": null
   }
  ]

@@ -627,3 +627,4 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .rg-tab td:first-child,.rg-ref,.rg-link{white-space:nowrap}
 .rg-fiche-in p:first-child{margin-top:0}
 #rg-f-clear[hidden]{display:none}
+.bd-verif{border-left:3px solid var(--warn);padding:3px 8px;background:rgba(227,165,59,.1);margin:4px 0}

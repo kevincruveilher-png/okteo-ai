@@ -1,7 +1,8 @@
 // Placement automatique des boîtes de pieuvre (v29), pour économiser au maximum le cuivre.
 // Règles (docs/regles-cablage.md) : boîte carrée dans les combles / le faux plafond, faces A (haut du plan), B (droite),
-// C (bas), D (gauche) ; au plus `departsFace` gaines par face et `departsMax` par boîte ; chaque boîte est alimentée
-// depuis le tableau (une seule gaine d'alimentation pour tous ses circuits, deux si elle passait en Ø25) ; les circuits spécialisés et la
+// C (bas), D (gauche) ; au plus `departsFace` gaines par face (alimentation comprise) et `departsMax` départs par boîte
+// (sans l'alimentation, R-001) ; chaque boîte est alimentée
+// depuis le tableau (une seule gaine d'alimentation pour tous ses circuits, deux si elle dépasse l'ICTA 20) ; les circuits spécialisés et la
 // communication sont des lignes directes (pas de boîte).
 // Une commande et les lumières qu'elle allume doivent être dans la même boîte (le retour lampe ne sort pas de la boîte) :
 // on place donc des « unités » indivisibles (un allumage complet, ou une prise seule).
@@ -92,11 +93,16 @@ function majority(L) {
   return [...m].sort((p, q) => q[1] - p[1])[0]?.[0] || null;
 }
 
-// une gaine par appareil + les gaines d'alimentation (une seule pour tous les circuits, deux si elle passait en Ø25)
-const departsOf = (units, S) => {
-  const C = new Set(); units.forEach((u) => u.circuits.forEach((c) => C.add(c)));
-  return units.reduce((s, u) => s + u.ids.length, 0) + (S && S.alimCount ? S.alimCount(C) : C.size);
-};
+// départs d'une boîte (R-001, v52) : une gaine par endroit desservi (appareils au même endroit = une gaine partagée,
+// R-073), SANS l'alimentation ; l'alimentation compte seulement dans les faces (6 gaines par face, alimentation comprise)
+const departsOf = (units, S) => spotPts(units, S && S.memeEndroit != null ? S.memeEndroit : 0.3).length;
+// gaines d'une boîte pour le contrôle des faces : un départ par endroit + la ou les gaines d'alimentation (vers le tableau)
+function faceDeps(units, tab, S) {
+  const deps = spotPts(units, S.memeEndroit ?? 0.3).map((p, i) => ({ id: "s" + i, p }));
+  const C = new Set(units.flatMap((u) => u.circuits)), na = S.alimCount ? S.alimCount(C) : (C.size ? 1 : 0);
+  for (let i = 0; i < na; i++) deps.push({ id: "alim:" + i, p: tab || { x: deps[0]?.p.x ?? 0, y: (deps[0]?.p.y ?? 0) - 1 } });
+  return deps;
+}
 
 // point qui minimise la somme pondérée des distances (algorithme de Weiszfeld)
 function median(pts, start) {
@@ -176,21 +182,14 @@ function cluster(units, k, tab, S, seed) {
   }
   boxes = boxes.filter((b) => b.units.length);
   // contrôle des faces (au plus `departsFace` par face) : sinon cette répartition n'est pas valable
-  for (const b of boxes) {
-    const deps = b.units.flatMap((u) => u.ids.map((id, j) => ({ id, p: u.pts[j] })));
-    if (tab) new Set(b.units.flatMap((u) => u.circuits)).forEach((c) => deps.push({ id: "alim:" + c, p: tab }));
-    const f = assignFaces(b, deps, S.departsFace);
-    if ([...f.values()].some((x) => !x)) return null;
-  }
+  for (const b of boxes) if ([...assignFaces(b, faceDeps(b.units, tab, S), S.departsFace).values()].some((x) => !x)) return null;
   return boxes;
 }
 
-// boîte valable : au plus departsMax départs et departsFace par face
+// boîte valable : au plus departsMax départs (sans l'alimentation) et departsFace gaines par face (alimentation comprise)
 function boxOk(b, tab, S) {
   if (departsOf(b.units, S) > S.departsMax) return false;
-  const deps = b.units.flatMap((u) => u.ids.map((id, j) => ({ id, p: u.pts[j] })));
-  if (tab) new Set(b.units.flatMap((u) => u.circuits)).forEach((c) => deps.push({ id: "alim:" + c, p: tab }));
-  return ![...assignFaces(b, deps, S.departsFace).values()].some((x) => !x);
+  return ![...assignFaces(b, faceDeps(b.units, tab, S), S.departsFace).values()].some((x) => !x);
 }
 // position d'une boîte : point médian de ses endroits desservis (attiré par le tableau si `pull`)
 function seat(units, tab, S, pull = true) {
@@ -268,7 +267,7 @@ function placeLevelRooms(units, tab, S, roomsLv) {
 export const MODES = { proximite: "Proximité", equilibre: "Équilibrée", piece: "Par pièce" };
 export function placeBoxes(items, links, circuits, tabs, S0, { keep = [], count = 0, mode = "proximite", rooms = {} } = {}) {
   const secOf = new Map(circuits.map((c) => [c.id, c.section || 1.5]));
-  const S = { ...S0, alimCount: (ids) => (ids.size ? packAlim([...ids].map((id) => ({ id, section: secOf.get(id) || 1.5 })), S0.remplissage).length : 0) };
+  const S = { ...S0, alimCount: (ids) => (ids.size ? packAlim([...ids].map((id) => ({ id, section: secOf.get(id) || 1.5 })), S0).length : 0) };
   const all = buildUnits(items, links, circuits), exist = new Set(items.map((a) => a.id));
   const kept = keep.map((b) => ({ ...b, apps: b.apps.filter((id) => exist.has(id)) }));
   const inKept = new Map(); kept.forEach((b) => b.apps.forEach((id) => inKept.set(id, b)));
@@ -282,7 +281,7 @@ export function placeBoxes(items, links, circuits, tabs, S0, { keep = [], count 
   const out = [...kept], issues = [];
   const usedIds = new Set(kept.map((b) => b.id));
   let n = Math.max(0, ...kept.map((b) => +String(b.n).replace(/\D/g, "") || 0));
-  // nombre imposé : réparti entre les niveaux selon leurs départs, jamais moins que le minimum (18 départs par boîte)
+  // nombre imposé : réparti entre les niveaux selon leurs départs, jamais moins que le minimum (départs par boîte)
   const want = {};
   if (count > 0) {
     const free = Math.max(0, count - kept.length), dep = Object.fromEntries(levels.map((lv) => [lv, departsOf(units.filter((u) => u.lv === lv), S)]));
@@ -293,7 +292,7 @@ export function placeBoxes(items, links, circuits, tabs, S0, { keep = [], count 
     let left = Math.max(levels.length, free) - levels.reduce((s, lv) => s + want[lv], 0);
     base.sort((p, q) => (q.x - Math.floor(q.x)) - (p.x - Math.floor(p.x))).forEach((b) => { if (left > 0) { want[b.lv]++; left--; } });
     const mins = levels.reduce((s, lv) => s + minBoxes(units.filter((u) => u.lv === lv), S), 0);
-    if (free < mins) issues.push(`${count} boîtes demandées : il en faut au moins ${mins + kept.length} pour respecter ${S.departsMax} départs par boîte et ${S.departsFace} par face`);
+    if (free < mins) issues.push(`${count} boîtes demandées : il en faut au moins ${mins + kept.length} pour respecter ${S.departsMax} départs par boîte (sans l'alimentation) et ${S.departsFace} gaines par face`);
   }
   for (const lv of levels) {
     const L = units.filter((u) => u.lv === lv);
@@ -303,7 +302,7 @@ export function placeBoxes(items, links, circuits, tabs, S0, { keep = [], count 
       const kp = want[lv] || (placeLevel(L, tabs[lv] || null, S, 4, 0) || []).length || minBoxes(L, S);
       r = placeLevelBalanced(L, tabs[lv] || null, S, kp);
     } else r = placeLevel(L, tabs[lv] || null, S, 4, want[lv] || 0);
-    if (!r) { issues.push(`Niveau ${lv} : impossible de respecter ${S.departsMax} départs par boîte et ${S.departsFace} par face (une unité trop grosse ?)`); continue; }
+    if (!r) { issues.push(`Niveau ${lv} : impossible de respecter ${S.departsMax} départs par boîte (sans l'alimentation) et ${S.departsFace} gaines par face (une unité trop grosse ?)`); continue; }
     for (const b of r) { do n++; while (usedIds.has("b" + n)); usedIds.add("b" + n); out.push({ id: "b" + n, n: boxName(n), lv, x: +(Math.round(b.x / 0.05) * 0.05).toFixed(2), y: +(Math.round(b.y / 0.05) * 0.05).toFixed(2), apps: b.units.flatMap((u) => u.ids) }); }
   }
   out.sort((a, b) => (+String(a.n).replace(/\D/g, "") || 0) - (+String(b.n).replace(/\D/g, "") || 0));

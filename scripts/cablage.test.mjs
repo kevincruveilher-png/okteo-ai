@@ -17,12 +17,12 @@ import { packSheet, unpackSheet, encodeSheet, decodeSheet, sheetUrl } from "../s
 let ok = 0; const fails = [];
 const check = (name, cond, info = "") => { if (cond) { ok++; console.log("  ✓ " + name); } else { fails.push(name); console.log("  ✗ " + name + (info ? " : " + info : "")); } };
 
-console.log("Diamètre des gaines (place occupée par les fils)");
+console.log("Diamètre des gaines : somme des sections (R-074)");
 const f = (n, sec) => Array(n).fill(sec);
-check("5 fils de 1,5 mm² → Ø16", gaineFor(f(5, 1.5), S.remplissage) === 16);
-check("6 fils de 1,5 mm² → Ø20 (au-delà de 5)", gaineFor(f(6, 1.5), S.remplissage) === 20);
-check("4 fils de 1,5 + 1 fil de 2,5 → Ø20", gaineFor([...f(4, 1.5), 2.5], S.remplissage) === 20);
-check("3 fils de 1,5 → Ø16 ; 3 fils de 6 → Ø20 ; 5 fils de 6 → Ø25", gaineFor(f(3, 1.5)) === 16 && gaineFor(f(3, 6)) === 20 && gaineFor(f(5, 6)) === 25, [gaineFor(f(3, 6)), gaineFor(f(5, 6))].join(","));
+check("5 fils de 1,5 mm² (7,5) → ICTA 16 ; 3 fils de 2,5 (7,5) → ICTA 16", gaineFor(f(5, 1.5), S) === 16 && gaineFor(f(3, 2.5), S) === 16);
+check("6 fils de 1,5 (9) → ICTA 20 ; 4 × 1,5 + 2,5 (8,5) → ICTA 20", gaineFor(f(6, 1.5), S) === 20 && gaineFor([...f(4, 1.5), 2.5], S) === 20);
+check("9 fils de 1,5 (13,5, maximum vu sur 4 chantiers) → ICTA 20", gaineFor(f(9, 1.5), S) === 20);
+check("au-delà de 13,5 mm² : pas de diamètre (doute), capacités réglables", gaineFor(f(10, 1.5), S) === null && gaineFor(f(3, 6), S) === null && gaineFor(f(10, 1.5), { ...S, icta20: 16 }) === 20);
 
 console.log("Circuits NF C 15-100 sur EVRARD (appareils relevés du PDF)");
 const data = new Uint8Array(fs.readFileSync(new URL("../docs/plans/EVRARD_04949_plan.pdf", import.meta.url)));
@@ -64,7 +64,13 @@ const boxedIds = new Set(C.filter((c) => !c.direct && c.kind !== "comm").flatMap
 const inBox = new Map(); P.boxes.forEach((b) => b.apps.forEach((id) => inBox.set(id, [...(inBox.get(id) || []), b.n])));
 check("chaque appareil d'un circuit à boîte est dans exactement une boîte", [...boxedIds].every((id) => (inBox.get(id) || []).length === 1) && !P.issues.length, P.issues.join(" ; "));
 console.log("    boîtes :", W.boxes.map((b) => `${b.n} ${b.gaines.length} départs (A${b.gaines.filter((g) => g.face === "A").length} B${b.gaines.filter((g) => g.face === "B").length} C${b.gaines.filter((g) => g.face === "C").length} D${b.gaines.filter((g) => g.face === "D").length})`).join(" · "), `· cuivre ${W.totals.cuivre} m · gaine ${W.totals.gaine} m`);
-check("au plus 18 départs par boîte et 6 par face (alimentations comprises)", W.boxes.every((b) => b.gaines.length <= 18 && ["A", "B", "C", "D"].every((f) => b.gaines.filter((g) => g.face === f).length <= 6)));
+check("R-001 : au plus 12 départs par boîte (sans l'alimentation) et 6 gaines par face (alimentation comprise)", W.boxes.every((b) => b.gaines.filter((g) => g.kind === "app").length <= 12 && ["A", "B", "C", "D"].every((f) => b.gaines.filter((g) => g.face === f).length <= 6)));
+check("R-077 : .01 = alimentation, puis numéros strictement dans le sens horaire (face, point)", W.boxes.every((b) => {
+  const G = b.gaines, M = S.departsFace, per = 4 * M, pos = (g) => "ABCD".indexOf(g.face) * M + g.slot, p0 = pos(G[0]);
+  return G[0].kind === "alim" && G[0].no.endsWith(".01") && G.every((g, i) => i === 0 || (pos(g) - p0 + per) % per > (pos(G[i - 1]) - p0 + per) % per);
+}), W.boxes.map((b) => b.gaines.map((g) => g.face + g.slot).join(" ")).join(" | "));
+check("R-074 : diamètre = somme des sections (≤ 7,5 → 16, ≤ 13,5 → 20) ; R-075 : une terre dans l'alimentation, de la plus forte section", W.boxes.every((b) => b.gaines.every((g) => g.diam === (g.sum <= 7.5 ? 16 : 20) && g.sum <= 13.5) && b.gaines.flatMap((g) => g.wires).filter((w) => w.fn === "terre" && b.gaines.find((g) => g.wires.includes(w)).kind === "alim").length === 1));
+check("longueur totale de la boîte = somme de ses gaines", W.boxes.every((b) => Math.abs(b.longueur - b.gaines.reduce((s, g) => s + g.length, 0)) < 0.01 && b.longueur > 0));
 const units = buildUnits(items, links, C);
 check("une commande et ses lumières sont toujours dans la même boîte", units.every((u) => new Set(u.ids.map((id) => inBox.get(id)[0])).size === 1));
 // économie de cuivre : déplacer une boîte de 50 cm ne fait pas mieux (optimum local)
@@ -84,10 +90,11 @@ const allNets = W.boxes.flatMap((b) => b.nets.map((n) => ({ ...n, box: b })));
 check("n° 1 de chaque boîte = toutes les terres ensemble", W.boxes.every((b) => b.nets[0].fn === "terre" && b.nets[0].wires.length === b.gaines.filter((x) => x.wires.some((w) => w.fn === "terre")).length));
 check("chaque raccordement réunit au moins 2 fils (rien ne reste en l'air)", allNets.every((n) => n.wires.length >= 2), allNets.filter((n) => n.wires.length < 2).map((n) => n.box.n + " " + n.label).join(", "));
 console.log("    alimentations :", W.boxes.map((b) => b.n + " " + b.gaines.filter((x) => x.kind === "alim").map((x) => `${x.circuit} Ø${x.diam} ${x.wires.length} fils`).join(" | ")).join(" · "));
-check("alimentation : une seule gaine par boîte (phase + neutre de chaque circuit, une seule terre), divisée seulement si elle passait en Ø25 (terre dans la 1re)",
+check("alimentation : une seule gaine par boîte (phase + neutre de chaque circuit utilisé, une seule terre), divisée seulement au-delà de l'ICTA 20 (terre dans la 1re)",
   W.boxes.every((b) => { const A = b.gaines.filter((x) => x.kind === "alim");
-    return b.circuits.every((cn) => A.some((x) => x.circuits.includes(cn) && x.wires.some((w) => w.fn === "phase" && w.circuit === cn) && x.wires.some((w) => w.fn === "neutre" && w.circuit === cn)))
-      && A.reduce((s, x) => s + x.wires.filter((w) => w.fn === "terre").length, 0) === 1 && A[0].wires.some((w) => w.fn === "terre") && A.every((x) => x.diam < 25); }),
+    const usesN = (cn) => b.gaines.some((g) => g.kind === "app" && g.wires.some((w) => w.fn === "neutre" && w.circuit === cn));
+    return b.circuits.every((cn) => A.some((x) => x.circuits.includes(cn) && x.wires.some((w) => w.fn === "phase" && w.circuit === cn) && (!usesN(cn) || x.wires.some((w) => w.fn === "neutre" && w.circuit === cn))))
+      && A.reduce((s, x) => s + x.wires.filter((w) => w.fn === "terre").length, 0) === 1 && A[0].wires.some((w) => w.fn === "terre") && A.every((x) => x.diam === 16 || x.diam === 20) && (A.length === 1 || A[0].sum + A[1].wires[0].section * 2 > 13.5); }),
   W.boxes.map((b) => b.gaines.filter((x) => x.kind === "alim").map((x) => `${x.circuit} Ø${x.diam} (${x.wires.length} fils)`).join(" | ")).join(" ; "));
 check("lignes directes : prises spécialisées, sorties de câble et RJ45 (tableau → appareil)", W.direct.length === T("PC20").length + T("SC").length + T("RJ45").length && W.direct.every((x) => x.length > 2));
 
@@ -156,9 +163,31 @@ console.log("Règles KiTéOHM (v38) : circuits par boîte, ronde harmonisée, t�
   const HW = computeWiring({ items: [...H, { id: "ht", t: "TAB", x: 90, y: 90, lv: "rdc" }], links: HL, circuits: HC, boxes: HB, levels: ["rdc"], S });
   const retOf = (id) => HW.boxes.flatMap((b) => b.gaines).find((g) => g.appIds && g.appIds.includes(id)).wires.find((w) => w.fn === "retour").color;
   const vvG = HW.boxes[0].gaines.find((g) => g.appIds && g.appIds.includes("hv1"));
-  check("harmonisation : l'allumage le plus fréquent du chantier (interrupteur + lampe) a le retour orange dans toutes les boîtes ; le va-et-vient prend les couleurs suivantes",
-    ["hl0", "hl1", "hl2"].every((id) => retOf(id) === "orange") && retOf("hvl") === "violet" && vvG.wires.filter((w) => w.fn === "nav1" || w.fn === "nav2").every((w) => w.color === "noir"),
-    ["hl0", "hl1", "hl2", "hvl"].map(retOf).join(" "));
+  const navOf = (g) => g.wires.find((w) => w.fn === "nav1").color;
+  check("ronde R-072 : va-et-vient d'abord (navettes orange, retour violet), puis l'allumage simple (noir) ; une boîte qui n'a qu'un allumage simple : orange",
+    retOf("hl0") === "noir" && retOf("hl1") === "orange" && retOf("hl2") === "orange" && retOf("hvl") === "violet" && navOf(vvG) === "orange" && vvG.wires.filter((w) => w.fn === "nav1" || w.fn === "nav2").every((w) => w.color === "orange"),
+    ["hl0", "hl1", "hl2", "hvl"].map(retOf).join(" ") + " nav " + navOf(vvG));
+  // 7 allumages simples dans une boîte, une lumière extérieure en câble : marron imposé, puis pas de répétition tant
+  // qu'une couleur est libre, puis réutilisation avec bague au n° de l'allumage (gaines séparées)
+  { const R = [], RL = [], ids = [];
+    for (let k = 1; k <= 7; k++) {
+      const i = { id: "ri" + k, t: "INT", x: 200 + k * 2, y: 200, h: 110, lv: "rdc", rep: "I" + (k + 20) }, l = { id: "rl" + k, t: "LUM", x: 200 + k * 2, y: 203, lv: "rdc", rep: "L" + (k + 20), ...(k === 4 ? { t: "APP", ext: true } : {}) };
+      R.push(i, l); RL.push({ c: i.id, l: l.id }); ids.push(i.id, l.id);
+    }
+    const RB = [{ id: "rb", n: "LR1", lv: "rdc", x: 207, y: 201.5, apps: ids }];
+    const RC = circuitsByBox(R, RL, RB, S);
+    const RW = computeWiring({ items: [...R, { id: "rt", t: "TAB", x: 190, y: 190, lv: "rdc" }], links: RL, circuits: RC, boxes: RB, levels: ["rdc"], S });
+    const g = (id) => RW.boxes[0].gaines.find((x) => x.appIds && x.appIds.includes(id)), ret = (id) => g(id).wires.find((w) => w.fn === "retour");
+    const cols = [1, 2, 3, 4, 5, 6, 7].map((k) => ret("rl" + k).color);
+    const ext = g("rl4");
+    check("ronde R-072 : lumière extérieure en câble = marron imposé (bouchon R-095) ; les autres évitent le marron ; 6e et 7e allumages réutilisent une couleur avec bague",
+      cols[3] === "marron" && ext.bouchon && ext.cable && new Set(cols.slice(0, 5)).size === 5 && !cols.slice(0, 3).includes("marron") && ret("rl6").bague === "26" && ret("rl7").bague === "27" && !ret("rl1").bague && !RW.doutes.some((d) => d.rule === "R-072"),
+      cols.join(" ") + " | " + [6, 7].map((k) => ret("rl" + k).bague).join(","));
+    // les 7 commandes au même endroit : une seule gaine pour 7 retours → impossible sans répéter une couleur dans la gaine
+    const R2 = R.map((a) => (a.t === "INT" ? { ...a, x: 205, y: 200 } : a));
+    const RW2 = computeWiring({ items: [...R2, { id: "rt", t: "TAB", x: 190, y: 190, lv: "rdc" }], links: RL, circuits: circuitsByBox(R2, RL, RB, S), boxes: RB, levels: ["rdc"], S });
+    check("ronde R-072 : deux allumages de même couleur dans une gaine = doute bloquant", RW2.doutes.some((d) => d.rule === "R-072" && d.bloquant), RW2.doutes.map((d) => d.rule).join(","));
+  }
   // télérupteur (3 commandes) : bague T1 sur ses fils de l'alimentation
   const t3 = [0, 1, 2].map((k) => ({ id: "tc" + k, t: "BP", x: 200 + k * 2, y: 200, lv: "rdc", rep: "BP" + k })), tlL = { id: "tl", t: "LUM", x: 201, y: 201, lv: "rdc", rep: "L7" };
   const TI = [...t3, tlL], TL_ = t3.map((c) => ({ c: c.id, l: "tl" })), TB = [{ id: "tb", n: "LT1", lv: "rdc", x: 201, y: 200.5, apps: TI.map((a) => a.id) }];

@@ -281,6 +281,29 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 52 (27/10/2026) — livrée : le câblage suit les règles confirmées du journal
+- R-001 : 12 départs par boîte sans l'alimentation (un départ = une gaine, appareils au même endroit comptés une fois),
+  6 gaines par face alimentation comprise ; anciens réglages à 18 remplacés (`CAB_V` 3). R-088 : face pleine → face
+  voisine sans alerte ; plus de face libre = doute bloquant.
+- R-074 : diamètre par la somme des sections (ICTA 16 ≤ 7,5 mm², ICTA 20 ≤ 13,5 mm², réglables `icta16`/`icta20`) ;
+  au-delà : doute (pas de diamètre inventé). Alimentation divisée seulement au-delà de l'ICTA 20 ; un fil qu'aucun
+  appareil de la boîte n'utilise n'est pas amené.
+- R-077 : .01 = alimentation, puis strictement dans le sens horaire à partir de l'alimentation.
+- R-072 : ronde orange, violet, noir, marron, ivoire : lumière en câble = marron imposé, puis va-et-vient (navettes,
+  retour), télérupteurs, simples, par repère ; pas de répétition tant qu'une couleur est libre ; réutilisation seulement
+  pour des allumages sans gaine commune, avec bague au n° de l'allumage (dessinée sur le schéma) ; sinon doute bloquant.
+  L'ancienne « harmonisation par fréquence » est retirée.
+- R-095 : BOUCHON sur les gaines à câble extérieur (schéma, bande, matériel, étiquette). Longueur totale de la boîte
+  (somme des gaines) sur la page Bandes, la bande détaillée, l'étiquette et le panneau Câblage.
+- Contrôles : R-089 (spécialisé en gaine partagée), R-091 (salle de bain sur le circuit cuisine), R-092 (sections
+  mélangées sur un n°, terres à part : Q-80). `W.doutes` = [{rule, text, box, bloquant}].
+- « À vérifier » : chaque gaine porte ses règles (`g.rules`), chaque boîte la liste (`box.rules`) ; les règles non
+  confirmées sont écrites sur la page Bandes, la bande détaillée et l'étiquette.
+- Tests sur 4 chantiers réels : `scripts/fixtures/chantiers-ftz.mjs` (contenu relevé sur les bandes FTZ, positions
+  schématiques) + `scripts/chantiers.test.mjs` (132 contrôles : 4 chantiers × 3 modes de pieuvre × 11 règles).
+  Questions nouvelles : Q-79 (plaque 6 mm² en ICTA 20 ?), Q-80 (terres de sections différentes sur la borne n° 1).
+- Tests : 30 + 57 + 132 + 130.
+
 ## Version 51 (27/10/2026) — livrée : journal des règles de câblage dans Paramètres
 - Le journal des règles tenu avec Kévin (`docs/journal-regles-cablage.md`, 52 règles, 78 questions, historique) devient
   des données du logiciel : `scripts/regles-import.mjs` (`npm run regles`) → `src/cablage/regles-data.js`. Moteur

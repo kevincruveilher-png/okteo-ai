@@ -31,7 +31,7 @@ export async function buildBandsPdf(pages, { chantier = "", numero = "" } = {}) 
   const W = 210, M = 12;
   let first = true;
   for (const P of pages) {
-    const { box, steps, material, checks, sides, level, fils, order = [], tabAng = null, code = "", model = "Boîte pavillonnaire carrée", cover = "haut", ch = {} } = P;
+    const { box, steps, material, checks, sides, level, fils, order = [], tabAng = null, code = "", model = "Boîte pavillonnaire carrée", cover = "haut", ch = {}, longueur = box.longueur, bouchons = box.bouchons || 0, verifier = [] } = P;
     if (!first) doc.addPage(); first = false;
     // ---------- en-tête (v47, feuille de Kévin) : étiquette collée sur la boîte ----------
     doc.setTextColor(0);
@@ -53,7 +53,7 @@ export async function buildBandsPdf(pages, { chantier = "", numero = "" } = {}) 
     }
     doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(0); doc.text(tabAng != null ? "TABLEAU" : "TABLEAU ?", cx, 31, { align: "center" });
     doc.setFontSize(16); doc.text(win(`Boîte ${box.n}`), M, 40);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90); doc.text(win(level || ""), M + 32, 40); doc.setTextColor(0);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90); doc.text(win(`${level || ""}${longueur != null ? `   Longueur totale des gaines : ${fr(longueur, 2)} m` : ""}`), M + 32, 40); doc.setTextColor(0);
     // ---------- schéma (faces et pièces aux quatre bords) ----------
     const png = await svgToPng(schemaSVG(box, steps, { color: wireSolid, sides }));
     doc.addImage(png, "JPEG", M - 2, 44, 148, 148);
@@ -81,14 +81,22 @@ export async function buildBandsPdf(pages, { chantier = "", numero = "" } = {}) 
     doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.text("Matériel", M, y);
     doc.setFont("helvetica", "normal"); doc.setFontSize(9);
     const mat = material.sizes.map(([k, n]) => `${n} connecteur${n > 1 ? "s" : ""} ${k} entrées`).join(" · ") + (material.ponts ? ` · ${material.ponts} pont${material.ponts > 1 ? "s" : ""} (bout de fil de la même couleur)` : "");
-    const matT = doc.splitTextToSize(win(mat || "-"), W - 2 * M - 22); doc.text(matT, M + 20, y); y += matT.length * 4.2 + 1.5;
+    const matT = doc.splitTextToSize(win((mat || "-") + (bouchons ? ` · ${bouchons} BOUCHON${bouchons > 1 ? "S" : ""} (gaines à câble extérieur : ${box.gaines.filter((g) => g.bouchon).map((g) => g.no).join(", ")})` : "")), W - 2 * M - 22); doc.text(matT, M + 20, y); y += matT.length * 4.2 + 1.5;
     const bg = [...new Set(box.gaines.filter((g) => g.kind === "alim").flatMap((g) => g.wires.map((w) => w.bague)).filter(Boolean))];
     if (bg.length) { doc.text(win("Bagues sur l'alimentation (accolades) : " + bg.join(" · ")), M + 20, y); y += 5; }
+    const bgA = [...new Set(box.gaines.filter((g) => g.kind !== "alim").flatMap((g) => g.wires.map((w) => w.bague)).filter(Boolean))];
+    if (bgA.length) { doc.text(win("Bagues d'allumage (couleur réutilisée) : " + bgA.join(" · ")), M + 20, y); y += 5; }
     const fl = fils ? fils.wires.map((w) => `${w.n} x ${fr(w.section, 1)} ${w.color}`).join(" · ") + (fils.cables.length ? " · câbles : " + fils.cables.map((c) => `${c.n} x ${c.cable}`).join(", ") : "") : "";
     if (fl) { doc.setFont("helvetica", "bold"); doc.text("Fils", M, y); doc.setFont("helvetica", "normal"); const t = doc.splitTextToSize(win(fl), W - 2 * M - 22); doc.text(t, M + 20, y); y += t.length * 4.2 + 1.5; }
     doc.setFontSize(8.5); doc.setTextColor(70);
     const how = doc.splitTextToSize(win("Câbler dans l'ordre des bornes (cadre « Ordre de câblage », détail au verso) : terres, puis neutre et phase de chaque circuit, puis retours lampe et navettes. Bornes = n° de raccordement ; tracés à l'intérieur : retours, navettes (N2 en pointillés) et commandes ; accolade = bague à poser sur l'alimentation ; câble : âme repérée à la couleur de sa fonction ; xn = gaines identiques sur le chantier."), W - 2 * M);
-    doc.text(how, M, y + 2); doc.setTextColor(0);
+    doc.text(how, M, y + 2); doc.setTextColor(0); y += how.length * 3.8 + 3;
+    // règles du journal pas encore confirmées par Kévin : la feuille le dit (le certain et le supposé ne se mélangent pas sans le dire)
+    if (verifier.length) {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(170, 100, 0);
+      const t = doc.splitTextToSize(win("A VERIFIER (règles non confirmées) : " + verifier.map((r) => `${r.id} ${r.titre}`).join(" · ")), W - 2 * M - 40);
+      doc.text(t.slice(0, 3), M, Math.min(y + 1, 258)); doc.setTextColor(0); doc.setFont("helvetica", "normal");
+    }
     // ---------- pied : modèle de boîte (gauche), code barre (droite) ----------
     doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(110); doc.text(win("MODÈLE DE BOÎTE"), M, 268);
     doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(0); doc.text(win(model), M, 273);

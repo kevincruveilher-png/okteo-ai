@@ -133,7 +133,7 @@ export function createCablagePane({ api, panel, ctl }) {
   function boxesHTML() {
     const B = api.cab.boxes || [], hasTab = api.allApps().some((a) => a.t === "TAB");
     const mode = api.cab.mode || "proximite";
-    const head = `<div class="cab-h" style="margin-top:14px"><b>Boîtes</b> <span class="mut sm">max ${getCab().departsMax} départs, ${getCab().departsFace} par face (A haut, B droite, C bas, D gauche)</span></div>
+    const head = `<div class="cab-h" style="margin-top:14px"><b>Boîtes</b> <span class="mut sm">max ${getCab().departsMax} départs sans l'alimentation, ${getCab().departsFace} gaines par face (A haut, B droite, C bas, D gauche)</span></div>
       <div class="bx-mode"><label title="Comment les boîtes sont constituées au prochain placement automatique">Pieuvre : <select id="bx-mode">${Object.entries(MODES).map(([k, v]) => `<option value="${k}" ${k === mode ? "selected" : ""}>${v}</option>`).join("")}</select></label>
         <button id="bx-cmp" title="Calcule les trois modes (proximité, équilibrée, par pièce) et les compare : mini-plans, fil, gaine, boîtes, départs. Puis « Appliquer ».">Comparer les 3 modes</button></div>`;
     const tabWarn = hasTab ? "" : `<p class="warn sm">⚠ Pas de tableau sur le plan : les boîtes sont placées sans tenir compte de leur alimentation et les longueurs vers le tableau manquent. <button id="bx-tab">Poser le tableau</button></p>`;
@@ -142,10 +142,11 @@ export function createCablagePane({ api, panel, ctl }) {
     const W = wiringNow(api), lvName = new Map(api.levels.map((l) => [l.id, l.name]));
     const rows = W.boxes.map((b) => {
       const f = ["A", "B", "C", "D"].map((x) => `${x}${b.gaines.filter((g) => g.face === x).length}`).join(" ");
-      const over = b.gaines.length > getCab().departsMax || ["A", "B", "C", "D"].some((x) => b.gaines.filter((g) => g.face === x).length > getCab().departsFace);
+      const nApp = b.gaines.filter((g) => g.kind === "app").length;
+      const over = nApp > getCab().departsMax || ["A", "B", "C", "D"].some((x) => b.gaines.filter((g) => g.face === x).length > getCab().departsFace);
       const src = B.find((x) => x.id === b.id) || {}, nR = Object.keys(src.routes || {}).length;
       return `<div class="cb-row bx-row${over ? " over" : ""}${api.boxSel === b.id ? " sel" : ""}" data-b="${b.id}"><button class="bx-lock${src.locked ? " on" : ""}" data-a="lock" title="${src.locked ? "Verrouillée : ne bouge pas quand on recalcule les boîtes. Clic pour déverrouiller." : "Clic pour verrouiller : la boîte ne bougera plus quand on recalcule les boîtes."}">${src.locked ? "🔒" : "🔓"}</button><div class="cb-main">
-        <div><b>${esc(b.n)}</b> <span class="mut sm">${esc(lvName.get(b.lv) || b.lv)} · ${b.gaines.length} / ${getCab().departsMax} départs · ${f}</span></div>
+        <div><b>${esc(b.n)}</b> <span class="mut sm">${esc(lvName.get(b.lv) || b.lv)} · ${nApp} / ${getCab().departsMax} départs + alimentation · ${String(b.longueur ?? "").replace(".", ",")} m de gaines · ${f}</span></div>
         <div class="mut sm">circuits ${esc(b.circuits.join(", "))} · ${fr(b.cuivre)} m de fil${src.manual ? " · déplacée à la main" : ""}${nR ? ` · ${nR} gaine${nR > 1 ? "s" : ""} tracée${nR > 1 ? "s" : ""} à la main` : ""}</div>
         <div class="cb-ctl"><button data-a="see" title="Montrer la boîte sur le plan">Voir</button><button data-a="take" title="Raccorder à cette boîte les appareils sélectionnés sur le plan">← Sélection</button><button data-a="list" title="Ses gaines et ses fils (onglet Boîtes)">Gaines</button><button data-a="del" title="Supprimer la boîte : ses appareils vont dans la boîte la plus proche (Ctrl+Z pour annuler). Sur le plan : cliquer la boîte puis Suppr.">🗑</button>${nR ? `<button data-a="straight" title="Supprimer les points de passage : toutes les gaines de cette boîte reprennent la ligne droite">Remettre en ligne droite</button>` : ""}</div></div></div>`;
     }).join("");

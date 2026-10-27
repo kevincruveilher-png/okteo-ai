@@ -77,7 +77,7 @@ export function filterRules(J, { cat = "", cert = "", statut = "", q = "" } = {}
 // ---------- écarts entre le journal et les réglages actuels du logiciel ----------
 // [règle, libellé, valeur de la règle (fonction du paramètre), clé du réglage Câblage, comparaison, note]
 const ECARTS = [
-  ["R-001", "Départs par boîte", (p) => p.departs_max, "departsMax", (r, v) => v === r + 1, "règle : hors alimentation ; réglage : alimentation comprise"],
+  ["R-001", "Départs par boîte (sans l'alimentation)", (p) => p.departs_max, "departsMax"],
   ["R-001", "Gaines par face", (p) => p.gaines_par_face_max, "departsFace"],
   ["R-020", "Section éclairage", (p) => p.section, "secEclairage"],
   ["R-020", "Couleurs éclairage", (p) => p.couleurs, "couleursEclairage"],
@@ -87,12 +87,13 @@ const ECARTS = [
   ["R-022", "Prises de cuisine par circuit", (p) => p.prises_max, "maxPrisesCuisine"],
   ["R-022", "Section cuisine", (p) => p.section, "secCuisine"],
   ["R-072", "Ronde des retours et navettes", (p) => p.ronde, "couleursCommande"],
-  ["R-074", "Diamètre des gaines", (p) => (p.icta16_mm2 ? `somme des sections : ICTA 16 ≤ ${p.icta16_mm2} mm², ICTA 20 ≤ ${p.icta20_mm2} mm²` : null), "remplissage", () => false, "le logiciel calcule encore par la surface des fils (remplissage en %)"],
+  ["R-074", "ICTA 16 : somme des sections (mm²)", (p) => p.icta16_mm2, "icta16"],
+  ["R-074", "ICTA 20 : somme des sections (mm²)", (p) => p.icta20_mm2, "icta20"],
 ];
 // réglage du panneau Paramètres → Câblage → règle(s) du journal
 export const CAB_RULES = { departsMax: ["R-001"], departsFace: ["R-001", "R-088"], maxPrises: ["R-021", "R-085"], maxPrisesCuisine: ["R-022"],
   secEclairage: ["R-020"], secPrises: ["R-021"], secCuisine: ["R-022"], couleursEclairage: ["R-020"], couleursPrises: ["R-021"],
-  couleursCuisine: ["R-022"], couleursCommande: ["R-072", "R-023"], bagues: ["R-075", "R-085"], remplissage: ["R-074"],
+  couleursCuisine: ["R-022"], couleursCommande: ["R-072", "R-023"], bagues: ["R-075", "R-085"], icta16: ["R-074"], icta20: ["R-074"],
   memeEndroit: ["R-013", "R-073"], cableExt: ["R-014", "R-095"], majoration: ["R-011"], arrondi: ["R-078"], margeBoite: ["R-011"],
   margeApp: ["R-011"], circuitsParBoite: ["R-007", "R-085"], bornes: ["R-092"], hTableau: ["R-011"] };
 const same = (a, b) => (typeof a === "string" ? norm(a).replace(/\s+/g, "") === norm(b).replace(/\s+/g, "") : a === b);
@@ -102,7 +103,7 @@ export function ecarts(J, cab) {
     const r = ruleById(J, id); if (!r || r.statut === "archivee") continue;
     const attendu = val(r.parametres || {}); if (attendu == null) continue;
     const v = cab[key], ok = eq ? eq(attendu, v) || same(attendu, v) : same(attendu, v);
-    if (!ok) out.push({ id, label, attendu, logiciel: key === "remplissage" ? `remplissage ${v} %` : v, key, note: note || "" });
+    if (!ok) out.push({ id, label, attendu, logiciel: v, key, note: note || "" });
   }
   return out;
 }

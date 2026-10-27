@@ -10,12 +10,19 @@
 // - 3 commandes ou plus, ou bouton poussoir : télérupteur au tableau → chaque commande reçoit phase + commande TL,
 //   et l'alimentation du circuit apporte en plus « commande TL » (vers le tableau) et « retour TL » (vers les lumières) ;
 // - alimentation de la boîte : une seule gaine (phase + neutre de chaque circuit, télérupteur, une terre), coupée avant Ø25.
-// Couleurs (v38, règles KiTéOHM) : phase/neutre selon le type de circuit (prises gris/bleu foncé, éclairage et cuisine
-// rouge/bleu) ; deux circuits du même type dans une boîte gardent les mêmes couleurs et se distinguent par leur bague
-// (n° du circuit sur la paire de fils de l'alimentation, T1… pour le télérupteur). Ronde des fils : retours lampe, navettes
-// (les deux de même couleur) et commandes de télérupteur prennent la couleur suivante (orange, violet, noir, marron,
-// ivoire), en repartant du début dans chaque boîte, dans le même ordre partout : les allumages les plus fréquents du
-// chantier d'abord, pour que les mêmes gaines se fabriquent en série.
+// Couleurs (règles KiTéOHM, journal des règles) : phase/neutre selon le type de circuit (R-020 rouge = lumières seulement,
+// R-021 gris = prises seulement, R-022 cuisine rouge/bleu 2,5) ; deux circuits du même type dans une boîte gardent les mêmes
+// couleurs et se distinguent par leur bague (R-085 : n° du circuit, T1… pour le télérupteur).
+// Ronde (R-072, v52) : orange, violet, noir, marron, ivoire, dans chaque boîte en repartant du début ; d'abord les couleurs
+// imposées (lumière en câble 3G : le marron du câble), puis les va-et-vient (navettes d'une couleur, retour d'une autre),
+// les télérupteurs (commande, retour), les allumages simples, par ordre de repère ; un allumage garde la même couleur sur
+// tous ses fils ; pas de répétition tant qu'une couleur est libre dans la boîte (le marron évité tant qu'une autre est
+// libre) ; une couleur réutilisée ne l'est que pour un allumage qui ne partage aucune gaine avec l'autre, avec une bague
+// au n° de l'allumage ; impossible : doute bloquant.
+// Numéros de gaine (R-077) : .01 = alimentation, puis strictement dans le sens horaire à partir de l'alimentation.
+// Diamètre (R-074) : somme des sections ; au-delà de l'ICTA 20 : doute. Bouchon (R-095) sur les gaines à câble extérieur.
+// Doutes (v52) : W.doutes = [{rule, text, box, bloquant}] ; chaque gaine porte ses règles (g.rules) pour la marque
+// « à vérifier » des règles non confirmées.
 // Appareils au même endroit (≤ memeEndroit) : une seule gaine, chaque fil commun une seule fois (repiquage).
 // Appareil à l'extérieur : câble du stock (3G1,5…) choisi selon les fils nécessaires, âmes repérées à la couleur de leur
 // fonction (ex. marron repéré orange), âme en trop isolée.
@@ -127,10 +134,11 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
       return { g, lights, cmds, tele, sig, cx, cy };
     });
   };
-  // harmonisation : les compositions d'allumage les plus fréquentes du chantier prennent les premières couleurs de la ronde
-  const freq = new Map();
-  boxes.forEach((b) => boxGroups(b).forEach((x) => freq.set(x.sig, (freq.get(x.sig) || 0) + 1)));
   let tlNo = 0;
+  const doutes = [];
+  const doubt = (rule, text, box = null, bloquant = false) => { doutes.push({ rule, text, box, bloquant }); issues.push(`${text} — ${bloquant ? "doute bloquant" : "à vérifier"} (${rule})`); };
+  const numOfRep = (r) => (String(r || "").match(/\d+/) || [""])[0];
+  const repKey = (g) => { const r = (g.lights[0] || g.cmds[0] || {}).rep || ""; const m = String(r).match(/(\d+)([A-Z]*)$/i); return m ? +m[1] * 100 + (m[2] ? m[2].charCodeAt(0) - 64 : 0) : 1e6; };
 
   // appareils d'un circuit à boîte qui ne sont dans aucune boîte (boîte supprimée, appareil ajouté après le placement)
   const boxedAll = new Set(boxes.flatMap((b) => b.apps));
@@ -150,20 +158,25 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
       keyColor.set("P" + c.id, p.phase); keyColor.set("N" + c.id, p.neutre);
       if (S.bagues !== false) { keyBague.set("P" + c.id, bagueOf(c)); keyBague.set("N" + c.id, bagueOf(c)); }
     }
-    let ci = 0;
-    const nextCol = () => cmdCols.length ? cmdCols[ci++ % cmdCols.length] : S.cRetour;
+    // ronde (R-072) : chaque allumage demande une ou deux couleurs (« emplacements ») ; elles sont choisies plus bas, une
+    // fois les gaines connues (deux allumages dans une même gaine n'ont jamais la même couleur)
+    const slots = [];                  // [{ g: n° de l'allumage, keys: [n° de raccordement], imposed, ids }]
     // ordre de câblage (= ordre des n°, v47, demande de Kévin) : terres, puis circuit par circuit neutre et phase —
     // cuisine (bleu / rouge 2,5), prises (bleu foncé / gris 1,5), éclairage (bleu / rouge 1,5) — puis retours et navettes
     const RANK = { cuisine: 0, specialise: 1, prises: 2, eclairage: 3 };
     const ordered = [...circs].sort((p, q) => (RANK[p.kind] ?? 4) - (RANK[q.kind] ?? 4) || String(p.n).localeCompare(String(q.n), "fr", { numeric: true }));
     for (const c of ordered) { net("N" + c.id, `Neutre ${c.n}`, "neutre"); net("P" + c.id, `Phase ${c.n}`, "phase"); }
-    // allumages de la boîte, dans l'ordre commun à toutes les boîtes (le plus fréquent du chantier d'abord)
-    const groupsL = boxGroups(b).sort((p, q) => (freq.get(q.sig) || 0) - (freq.get(p.sig) || 0) || p.sig.localeCompare(q.sig) || p.cy - q.cy || p.cx - q.cx);
+    // allumages de la boîte : couleurs imposées (lumière en câble), va-et-vient, télérupteurs, simples ; par repère
+    const extCable = (x) => S.cableExt && x.lights.some((l) => l.ext);
+    const kindRank = (x) => (extCable(x) ? 0 : x.cmds.length === 2 && !x.tele ? 1 : x.tele ? 2 : 3);
+    const groupsL = boxGroups(b).sort((p, q) => kindRank(p) - kindRank(q) || repKey(p) - repKey(q) || p.cy - q.cy || p.cx - q.cx);
     const role = new Map();            // appareil → fils
     const tl = new Map();              // circuit → fils télérupteur à ajouter dans son alimentation
     let gi = 0;
-    for (const { lights, cmds, tele } of groupsL) {
+    for (const G0 of groupsL) {
+      const { lights, cmds, tele } = G0;
       gi++;
+      const ids = [...lights, ...cmds].map((a) => a.id), no = numOfRep((lights[0] || cmds[0]).rep), imposed = extCable(G0);
       const c = circOf.get((lights[0] || cmds[0]).id) || circOf.get((cmds[0] || lights[0]).id);
       const cOf = (a) => circOf.get(a.id) || c;
       if (!c) continue;
@@ -171,24 +184,27 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
       if (!cmds.length) { issues.push(`${b.n} : ${lab} sans commande (retour lampe non raccordé)`); }
       if (!lights.length) { cmds.forEach((k) => role.set(k.id, [["phase", "P" + cOf(k).id], ["retour", null]])); issues.push(`${b.n} : ${cmds.map((k) => k.rep).join(" ")} ne commande aucune lumière`); continue; }
       const R = net("R" + gi, `Retour lampe ${lab}`, "retour").key;
-      keyColor.set(R, nextCol());
+      const rSlot = { g: no, keys: [R], imposed, ids, tele };
       lights.forEach((l) => role.set(l.id, [["retour", R], ["neutre", "N" + cOf(l).id], ["terre", "T"]]));
-      if (cmds.length === 1 && !tele) role.set(cmds[0].id, [["phase", "P" + cOf(cmds[0]).id], ["retour", R]]);
+      if (cmds.length === 1 && !tele) { role.set(cmds[0].id, [["phase", "P" + cOf(cmds[0]).id], ["retour", R]]); slots.push(rSlot); }
       else if (cmds.length === 2 && !tele) {
         const n1 = net("V1" + gi, `Navette 1 ${cmds[0].rep}↔${cmds[1].rep}`, "nav1").key, n2 = net("V2" + gi, `Navette 2 ${cmds[0].rep}↔${cmds[1].rep}`, "nav2").key;
-        const cn = nextCol(); keyColor.set(n1, cn); keyColor.set(n2, cn);
+        // va-et-vient (exemple R-072 : navettes orange, retour violet) : les navettes d'abord (une couleur pour les deux),
+        // puis le retour (marron imposé s'il passe dans un câble)
+        slots.push({ g: no, keys: [n1, n2], imposed: false, ids }, rSlot);
         role.set(cmds[0].id, [["phase", "P" + cOf(cmds[0]).id], ["nav1", n1], ["nav2", n2]]);
         role.set(cmds[1].id, [["retour", R], ["nav1", n1], ["nav2", n2]]);
       } else if (cmds.length) {
         const K = net("K" + gi, `Commande télérupteur ${lab}`, "cmdTL").key;
-        keyColor.set(K, nextCol());
+        // télérupteur (R-093) : commande et retour prennent chacun une couleur ; les deux passent dans l'alimentation
+        slots.push({ ...rSlot, tele: true }, { g: no, keys: [K], imposed: false, ids, tele: true });
         const T = "T" + ++tlNo;
         if (S.bagues !== false) { keyBague.set(K, T); keyBague.set(R + "@alim", T); }
         cmds.forEach((k) => role.set(k.id, [["phase", "P" + cOf(k).id], ["cmdTL", K]]));
         if (!tl.has(c.id)) tl.set(c.id, []);
         tl.get(c.id).push(["cmdTL", K], ["retTL", R]);
         issues.push(`${b.n} : ${cmds.length} commandes pour ${lab} → télérupteur ${T} au tableau`);
-      }
+      } else slots.push(rSlot);
     }
     // prises et sorties de câble
     apps.filter((a) => !LIGHT.has(a.t) && !CMD.has(a.t)).forEach((a) => { const c = circOf.get(a.id); if (c) role.set(a.id, [["phase", "P" + c.id], ["neutre", "N" + c.id], ["terre", "T"]]); });
@@ -202,6 +218,35 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
       const sp = spots.find((g) => g[0].lv === a.lv && g.some((o) => d2(o, a) <= near + 1e-9));
       if (sp) sp.push(a); else spots.push([a]);
     }
+    // ---------- ronde (R-072) ----------
+    // gaines (endroits) où passe chaque n° de raccordement ; les fils du télérupteur passent aussi dans l'alimentation
+    const keySpots = new Map(), addK = (k, sp) => { if (k == null) return; if (!keySpots.has(k)) keySpots.set(k, new Set()); keySpots.get(k).add(sp); };
+    spots.forEach((G, i) => G.forEach((m) => (role.get(m.id) || []).forEach(([, k]) => addK(k, i))));
+    for (const L of tl.values()) L.forEach(([, k]) => addK(k, "alim"));
+    const touch = (sl) => new Set(sl.keys.flatMap((k) => [...(keySpots.get(k) || [])]));
+    const users = new Map();           // couleur → [{ g, touch }]
+    const clash = (T, c) => (users.get(c) || []).some((u) => [...u.touch].some((t) => T.has(t)));
+    const ronde = cmdCols.length ? cmdCols : [S.cRetour];
+    const rondeBague = new Map();      // n° de raccordement → bague (n° de l'allumage) quand une couleur est réutilisée
+    for (const sl of slots) {
+      const T = touch(sl), mine = new Set(slots.filter((o) => o.g === sl.g && o !== sl && keyColor.has(o.keys[0])).map((o) => keyColor.get(o.keys[0])));
+      const freeC = ronde.filter((c) => !users.has(c) && !mine.has(c));
+      let c = null, bague = null;
+      if (sl.imposed && !mine.has("marron")) {
+        // lumière en câble : le marron du câble ; déjà pris dans la boîte par un allumage d'une autre gaine → bague
+        c = "marron";
+        if (users.has("marron")) { bague = sl.g || "?"; if (clash(T, "marron")) doubt("R-072", `${b.n} : deux lumières en câble (marron imposé) dans une même gaine, allumage ${sl.g || "?"}`, b.n, true); }
+      } else if (freeC.length) c = freeC.find((x) => x !== "marron") || freeC[0];
+      else {
+        // plus de couleur libre : une couleur dont les allumages ne partagent aucune gaine avec celui-ci, avec une bague
+        c = ronde.find((x) => !mine.has(x) && !clash(T, x)) || null;
+        if (c) bague = sl.g || "?";
+        else { c = ronde[0]; bague = sl.g || "?"; doubt("R-072", `${b.n} : plus de couleur possible pour l'allumage ${sl.g || "?"} (deux allumages de même couleur dans une gaine)`, b.n, true); }
+      }
+      sl.keys.forEach((k) => { keyColor.set(k, c); if (bague) rondeBague.set(k, String(bague)); });
+      if (!users.has(c)) users.set(c, []);
+      users.get(c).push({ g: sl.g, touch: T });
+    }
     const colorOf = (fn, key) => (key != null && keyColor.has(key) ? keyColor.get(key) : col[fn]);
     for (const G of spots) {
       const a = G[0], seen = new Set(), wires = [];
@@ -210,7 +255,7 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
         for (const [fn, key] of role.get(m.id) || []) {
           if (key != null && seen.has(key)) continue;          // fil commun : une seule fois (repiqué sur place)
           if (key != null) seen.add(key);
-          wires.push({ fn, color: colorOf(fn, key), section: sec, net: key, circuit: fn === "terre" ? null : circOf.get(m.id).n });
+          wires.push({ fn, color: colorOf(fn, key), section: sec, net: key, circuit: fn === "terre" ? null : circOf.get(m.id).n, ...(rondeBague.has(key) ? { bague: rondeBague.get(key) } : {}) });
         }
       }
       let cable = null;
@@ -224,22 +269,27 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
           issues.push(`${b.n} : aucun câble du stock ne convient pour ${G.map((m) => m.rep).join(" + ")} (${wires.length} fils)`);
         }
       }
+      if (G.length > 1 && G.some((m) => circOf.get(m.id).kind === "specialise")) doubt("R-089", `${b.n} : un circuit spécialisé est dans une gaine partagée (${G.map((m) => m.rep).join(" + ")})`, b.n, true);
       const route = G.map((m) => (b.routes || {})[m.id]).find(Boolean) || null;
       const downMax = Math.max(...G.map((m) => down(m.h, S)));
       const len = gaineLength({ horiz: viaLen(b, route, a), downA: downMax, levels: Math.abs(lvIdx(a.lv) - lvB) }, S);
       const label = G.length === 1 ? `${NAMES[a.t] || a.t} ${a.rep || ""}`.trim() : G.map((m) => m.rep || NAMES[m.t] || m.t).join(" + ");
       const cn = [...new Set(G.map((m) => circOf.get(m.id).n))];
       // la face est celle par où la gaine sort : vers son 1er point de passage s'il y en a un
-      deps.push({ id: a.id, kind: "app", p: route ? route[0] : a, app: a, appIds: G.map((m) => m.id), reps: G.map((m) => m.rep || NAMES[m.t] || m.t), routed: !!route, label, room: a.room, circuit: cn.join(", "), wires, length: len, cable, ext: !!cable });
+      deps.push({ id: a.id, kind: "app", p: route ? route[0] : a, app: a, appIds: G.map((m) => m.id), reps: G.map((m) => m.rep || NAMES[m.t] || m.t), routed: !!route, label, room: a.room, circuit: cn.join(", "), wires, length: len, cable, ext: !!cable, bouchon: !!cable,
+        rules: { length: "R-011", diam: "R-074", wires: G.length > 1 ? "R-073" : null, ronde: wires.some((w) => /^(retour|nav1|nav2|cmdTL)$/.test(w.fn)) ? "R-072" : null, cable: cable ? "R-014" : null, bouchon: cable ? "R-095" : null } });
     }
     // alimentation depuis le tableau : une seule gaine (phase + neutre de chaque circuit, télérupteur, une terre) ;
     // divisée si elle passait en Ø25, la terre restant dans la 1re
-    const alimG = packAlim(circs.map((c) => ({ ...c, section: c.section || 1.5, extra: (tl.get(c.id) || []).length })), S.remplissage);
+    const alimG = packAlim(circs.map((c) => ({ ...c, section: c.section || 1.5, extra: (tl.get(c.id) || []).length })), S);
     alimG.forEach((G, gi) => {
       const wires = [];
       for (const c of G) {
         const sec = c.section || 1.5;
-        [["phase", "P" + c.id], ["neutre", "N" + c.id], ...(tl.get(c.id) || [])].forEach(([fn, key]) => wires.push({ fn, color: colorOf(fn, key), section: sec, net: key, circuit: c.n, bague: keyBague.get(fn === "retTL" ? key + "@alim" : key) || null }));
+        // un fil qu'aucun appareil de la boîte n'utilise n'est pas amené (ex. neutre d'un circuit dont la boîte n'a qu'une
+        // commande sans lumière : rien ne reste en l'air)
+        const usedK = (k) => [...role.values()].some((r) => r.some(([, key]) => key === k)) || (tl.get(c.id) || []).some(([, key]) => key === k);
+        [["phase", "P" + c.id], ["neutre", "N" + c.id], ...(tl.get(c.id) || [])].filter(([fn, key]) => fn !== "neutre" || usedK(key)).forEach(([fn, key]) => wires.push({ fn, color: colorOf(fn, key), section: sec, net: key, circuit: c.n, bague: keyBague.get(fn === "retTL" ? key + "@alim" : key) || null }));
       }
       // une seule terre par boîte : dans la 1re gaine d'alimentation, à la plus grosse section de la boîte
       if (gi === 0) wires.push({ fn: "terre", color: S.cTerre, section: Math.max(...circs.map((c) => c.section || 1.5)), net: "T" });
@@ -247,24 +297,48 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
       const len = tab ? gaineLength({ horiz: viaLen(b, route, tab), downA: S.traversee + Math.max(0, S.hsp - hTab), levels: Math.abs(lvIdx(tab.lv) - lvB) }, S) : null;
       const names = G.map((c) => c.n);
       deps.push({ id: "alim:" + gi, kind: "alim", p: route ? route[0] : tab || { x: b.x, y: b.y - 1 }, routed: !!route,
-        label: `Alimentation ${names.join(" + ")} (tableau)${alimG.length > 1 ? ` — gaine ${gi + 1}/${alimG.length}` : ""}`, circuit: names.join(", "), circuits: names, wires, length: len });
+        label: `Alimentation ${names.join(" + ")} (tableau)${alimG.length > 1 ? ` — gaine ${gi + 1}/${alimG.length}` : ""}`, circuit: names.join(", "), circuits: names, wires, length: len,
+        rules: { length: "R-011", diam: "R-074", wires: "R-075" } });
     });
     const PL = portLayout(b, deps.map((g) => ({ id: g.id, p: g.p, keys: g.kind === "alim" ? [g.id === "alim:0" ? "tab" : g.id] : g.appIds })), S.departsFace, b.ports || {});
-    deps.forEach((g) => { const q = PL.get(g.id) || {}; g.face = q.face || "?"; g.slot = q.slot ?? null; g.diam = gaineFor(g.wires.map((w) => w.section), S.remplissage); });
-    if (deps.length > S.departsMax) issues.push(`${b.n} : ${deps.length} départs (max ${S.departsMax})`);
-    FACES.forEach((f) => { const n = deps.filter((g) => g.face === f).length; if (n > S.departsFace) issues.push(`${b.n} face ${f} : ${n} départs (max ${S.departsFace})`); });
-    if (deps.some((g) => g.face === "?")) issues.push(`${b.n} : trop de départs pour les faces (max ${S.departsFace} par face)`);
-    // numéros de gaine : face A puis B, C, D ; dans une face, dans le sens horaire
+    deps.forEach((g) => {
+      const q = PL.get(g.id) || {}; g.face = q.face || "?"; g.slot = q.slot ?? null;
+      const secs = g.wires.filter((w) => w.fn !== "isole" || g.cable).map((w) => w.section);
+      g.sum = +secs.reduce((s2, x) => s2 + x, 0).toFixed(2);
+      g.diam = gaineFor(secs, S);
+      if (g.diam == null) doubt("R-074", `${b.n} : ${g.label} : ${String(g.sum).replace(".", ",")} mm² de fils, plus que l'ICTA 20 (${String(S.icta20 ?? 13.5).replace(".", ",")} mm²)`, b.n, true);
+    });
+    const nApp = deps.filter((g) => g.kind === "app").length;
+    if (nApp > S.departsMax) doubt("R-001", `${b.n} : ${nApp} départs (max ${S.departsMax}, sans l'alimentation)`, b.n, true);
+    FACES.forEach((f) => { const n = deps.filter((g) => g.face === f).length; if (n > S.departsFace) doubt("R-001", `${b.n} face ${f} : ${n} gaines (max ${S.departsFace})`, b.n, true); });
+    if (deps.some((g) => g.face === "?")) doubt("R-088", `${b.n} : plus aucune face libre (${S.departsFace} gaines par face, alimentation comprise)`, b.n, true);
+    // numéros de gaine (R-077) : .01 = alimentation, puis strictement dans le sens horaire à partir de l'alimentation
+    // (faces A, B, C, D ; dans une face, points numérotés dans le sens horaire)
+    const M = Math.max(1, S.departsFace), per = 4 * M;
     const ang = (g) => Math.atan2(g.p.x - b.x, -(g.p.y - b.y));
-    deps.sort((p, q) => FACES.indexOf(p.face) - FACES.indexOf(q.face) || (p.slot ?? 99) - (q.slot ?? 99) || ang(p) - ang(q));
+    const pos = (g) => (g.face && g.face !== "?" ? FACES.indexOf(g.face) * M + (g.slot ?? 0) : null);
+    const a0 = deps.find((g) => g.id === "alim:0"), p0 = a0 ? pos(a0) ?? 0 : 0;
+    deps.sort((p, q) => {
+      const pp = pos(p), pq = pos(q);
+      if (pp == null || pq == null) return (pp == null) - (pq == null) || ang(p) - ang(q);
+      return ((pp - p0 + per) % per) - ((pq - p0 + per) % per) || ang(p) - ang(q);
+    });
     deps.forEach((g, i) => { g.no = `${b.n}.${String(i + 1).padStart(2, "0")}`; });
     // n° de raccordement définitifs (dans l'ordre : terres, neutres, phases, retours et navettes…)
     const used = nets.filter((nt) => deps.some((g) => g.wires.some((w) => w.net === nt.key)));
     used.forEach((nt, i) => { nt.n = i + 1; nt.wires = deps.flatMap((g) => g.wires.filter((w) => w.net === nt.key).map((w) => ({ gaine: g.no, label: g.label, fn: w.fn }))); });
     const numOf = new Map(used.map((nt) => [nt.key, nt.n]));
     deps.forEach((g) => g.wires.forEach((w) => { w.n = w.net ? numOf.get(w.net) ?? null : null; }));
+    // bornes (R-092) : jamais de sections différentes sur un même n° (sauf les terres, réunies par boîte : à confirmer)
+    for (const nt of used) {
+      if (nt.key === "T") continue;
+      const secs = new Set(deps.flatMap((g) => g.wires.filter((w) => w.net === nt.key).map((w) => w.section)));
+      if (secs.size > 1) doubt("R-092", `${b.n} : n° ${nt.n} (${nt.label}) réunit des fils de sections différentes (${[...secs].join(" et ").replace(/\./g, ",")} mm²)`, b.n, true);
+    }
     const cuivre = deps.reduce((s, g) => s + (g.length || 0) * g.wires.length, 0);
-    return { ...b, gaines: deps.map(({ p, app, ...g }) => ({ ...g, appId: app ? app.id : null })), nets: used.map(({ key, ...nt }) => nt), circuits: circs.map((c) => c.n), cuivre: +cuivre.toFixed(1) };
+    const longueur = +deps.reduce((s, g) => s + (g.length || 0), 0).toFixed(2);
+    const rules = [...new Set(["R-001", "R-077", "R-031", "R-088", ...deps.flatMap((g) => Object.values(g.rules || {}).filter(Boolean))])];
+    return { ...b, gaines: deps.map(({ p, app, ...g }) => ({ ...g, appId: app ? app.id : null })), nets: used.map(({ key, ...nt }) => nt), circuits: circs.map((c) => c.n), cuivre: +cuivre.toFixed(1), longueur, bouchons: deps.filter((g) => g.bouchon).length, rules };
   });
 
   // ---------- lignes directes : du tableau à l'appareil (spécialisés), du coffret de communication (RJ45) ----------
@@ -276,7 +350,9 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
       const len = tab ? gaineLength({ horiz: d2(tab, a), downA: S.traversee + Math.max(0, S.hsp - hTab), downB: down(a.h, S), levels: Math.abs(lvIdx(tab.lv) - lvIdx(a.lv)) }, S) : null;
       const wires = c.kind === "comm" ? [] : ["phase", "neutre", "terre"].map((fn) => ({ fn, color: col[fn], section: c.section || 2.5, n: null }));
       direct.push({ no: `L${++k}`, circuit: c.n, appId: a.id, label: `${NAMES[a.t] || a.t} ${a.rep || ""}`.trim(), room: a.room, lv: a.lv, length: len, wires,
-        cable: c.kind === "comm" ? "câble communication (RJ45)" : null, diam: c.kind === "comm" ? 20 : gaineFor(wires.map((w) => w.section), S.remplissage) });
+        cable: c.kind === "comm" ? "câble communication (RJ45)" : null, diam: c.kind === "comm" ? 20 : gaineFor(wires.map((w) => w.section), S) });
+      const dl = direct[direct.length - 1];
+      if (dl.diam == null) doubt("R-074", `Ligne directe ${dl.label} : ${String(wires.reduce((t, w) => t + w.section, 0)).replace(".", ",")} mm² de fils, au-delà de l'ICTA 20 : diamètre à confirmer`, null, false);
     }
   }
   // gaines identiques sur tout le chantier (mêmes fils, mêmes couleurs, même câble) : fabrication en série
@@ -284,6 +360,11 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
   const series = new Map();
   outBoxes.forEach((b) => b.gaines.forEach((g) => { if (g.kind === "app") { const k = sigG(g); series.set(k, (series.get(k) || 0) + 1); } }));
   outBoxes.forEach((b) => b.gaines.forEach((g) => { if (g.kind === "app") g.serie = series.get(sigG(g)); }));
+  // prise de salle de bain sur le circuit de la cuisine (R-091)
+  for (const c of circuits.filter((x) => x.kind === "cuisine")) {
+    const bad = c.apps.map((id) => byId.get(id)).filter((a) => a && /salle de bain|salle d'eau|\bsdb\b|\bsde\b|douche/i.test(a.room || ""));
+    if (bad.length) doubt("R-091", `${c.n} (cuisine) dessert la salle de bain : ${bad.map((a) => a.rep || a.id).join(", ")}`, null, true);
+  }
   // allumage coupé entre deux boîtes : une commande et une lumière qu'elle allume dans deux boîtes différentes
   const boxOf = new Map(); boxes.forEach((b) => b.apps.forEach((id) => boxOf.set(id, b)));
   const splits = [];
@@ -295,5 +376,5 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
   }
   const cuivre = outBoxes.reduce((s, b) => s + b.cuivre, 0) + direct.reduce((s, g) => s + (g.length || 0) * g.wires.length, 0);
   const gaine = outBoxes.reduce((s, b) => s + b.gaines.reduce((t, g) => t + (g.length || 0), 0), 0) + direct.reduce((s, g) => s + (g.length || 0), 0);
-  return { boxes: outBoxes, direct, issues, splits, series: [...series].map(([sig, n]) => ({ sig, n })).sort((p, q) => q.n - p.n), totals: { cuivre: +cuivre.toFixed(1), gaine: +gaine.toFixed(1), boites: outBoxes.length, gaines: outBoxes.reduce((s, b) => s + b.gaines.length, 0) + direct.length } };
+  return { boxes: outBoxes, direct, issues, doutes, splits, series: [...series].map(([sig, n]) => ({ sig, n })).sort((p, q) => q.n - p.n), totals: { cuivre: +cuivre.toFixed(1), gaine: +gaine.toFixed(1), boites: outBoxes.length, gaines: outBoxes.reduce((s, b) => s + b.gaines.length, 0) + direct.length } };
 }

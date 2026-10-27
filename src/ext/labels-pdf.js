@@ -10,6 +10,7 @@ import { logoData, LOGO_RATIO } from "./logo.js";
 
 let lib = null;
 async function jspdf() { if (!lib) lib = (await import("jspdf")).jsPDF; return lib; }
+const fr = (v, d = 2) => (v == null ? "-" : Number(v).toFixed(d).replace(".", ","));
 const win = (s) => String(s ?? "").replace(/[→⟶]/g, "->").replace(/[↔]/g, "<->").replace(/[^\x20-\x7E -ÿ–—…’Œœ]/g, "");
 
 async function svgToJpeg(svg, px = 1400) {
@@ -42,6 +43,8 @@ async function drawLabel(doc, S, x, y, logo) {
     doc.lines(pts.slice(1).map((p, k) => [p[0] - pts[k][0], p[1] - pts[k][1]]), pts[0][0], pts[0][1], [1, 1], "F", true);
   }
   doc.setFontSize(6.5); doc.text("TABLEAU", ax, ay + 9.5, { align: "center" });
+  // longueur totale des gaines de la boîte, sous son nom
+  if (S.longueur != null) { doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.text(win(`${fr(S.longueur, 2)} m de gaines${S.bouchons ? ` · ${S.bouchons} bouchon${S.bouchons > 1 ? "s" : ""}` : ""}`), cx, yy + 10.2); }
   yy += 14;
   const line = (k, v) => { doc.setFont("helvetica", "normal"); doc.setFontSize(6.3); doc.setTextColor(110); doc.text(win(k), cx, yy); doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(0); doc.text(doc.splitTextToSize(win(v || "-"), cw)[0], cx, yy + 4); yy += 8.8; };
   line("PAVILLONNEUR", ch.client); line("CHANTIER", ch.nom);
@@ -62,6 +65,12 @@ async function drawLabel(doc, S, x, y, logo) {
       doc.setFont("helvetica", "normal"); doc.setFontSize(5.5); doc.setTextColor(90); doc.text(win("Bande sur le téléphone"), qx - 1.5, by - 1, { angle: 90 }); doc.setTextColor(0);
     }
   } catch (e) { /* QR impossible */ }
+  // règles non confirmées utilisées : « à vérifier » (à gauche du QR code)
+  if ((S.verifier || []).length) {
+    doc.setFont("helvetica", "bold"); doc.setFontSize(5.6); doc.setTextColor(170, 100, 0);
+    doc.text(doc.splitTextToSize(win("A VERIFIER : " + S.verifier.map((r) => r.id).join(", ")), cw - 32 - 4).slice(0, 5), cx, by - 30);
+    doc.setTextColor(0);
+  }
   // sous le schéma : logo KiTéOHM et code barre côte à côte
   const sy = y + m + sq + 1.5, lw = 36, lh = lw / LOGO_RATIO;
   if (logo) doc.addImage(logo, "JPEG", x + m, sy + (by - sy - lh) / 2, lw, lh);

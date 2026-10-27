@@ -104,7 +104,7 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
   `autoriserModification(action, regle)` (toujours autorisé pour l'instant), champ `code_valide`.
 - Chaque réglage du moteur (Paramètres → Câblage) pointe vers sa règle.
 
-### 52 — Moteur aligné sur les règles confirmées
+### 52 — Moteur aligné sur les règles confirmées — FAIT (27/10/2026)
 - R-001 : 12 départs hors alimentation (au lieu de 18), 6 gaines par face alimentation comprise ; R-088 face pleine →
   face voisine, sans alerte ; plus de face libre = doute bloquant.
 - R-077 : n° de gaine `.01` = alimentation puis strictement horaire (A, B, C, D) à partir de l'alimentation.

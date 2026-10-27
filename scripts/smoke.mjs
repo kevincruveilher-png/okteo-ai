@@ -885,7 +885,7 @@ try {
     return chg && r.length >= 5 && r.every((n) => n <= 4) && reset;
   });
   console.log("Câblage : boîtes et gaines (v29–v30)");
-  await check("sans tableau : alerte « Poser le tableau » ; avec : boîtes placées (≤ 18 départs, ≤ 6 par face), dessinées sur le plan", async () => {
+  await check("sans tableau : alerte « Poser le tableau » ; avec : boîtes placées (≤ 12 départs sans l'alimentation, ≤ 6 gaines par face), dessinées sur le plan", async () => {
     await ev(() => okteoExt.panel.show("cablage"));
     await page.waitForSelector("#bx-auto");
     const warn = await page.isVisible("#bx-tab");
@@ -895,8 +895,8 @@ try {
     await page.click("#bx-auto");
     await page.waitForFunction(() => okteo.cab.boxes.length > 0 && document.querySelectorAll(".bx-row").length === okteo.cab.boxes.length);
     const r = await ev(() => ({ n: okteo.cab.boxes.length, drawn: document.querySelectorAll("#sv g.box").length, here: okteo.cab.boxes.filter((b) => b.lv === okteo.level.id).length,
-      rows: [...document.querySelectorAll(".bx-row")].map((x) => x.textContent.match(/(\d+) \/ 18 départs · A(\d+) B(\d+) C(\d+) D(\d+)/)).map((m) => m && m.slice(1).map(Number)) }));
-    if (!(warn && r.n >= 3 && r.drawn === r.here && r.rows.every((m) => m && m[0] <= 18 && m.slice(1).every((f) => f <= 6)))) throw new Error(JSON.stringify(r));
+      rows: [...document.querySelectorAll(".bx-row")].map((x) => x.textContent.match(/(\d+) \/ 12 départs \+ alimentation · [\d,]+ m de gaines · A(\d+) B(\d+) C(\d+) D(\d+)/)).map((m) => m && m.slice(1).map(Number)) }));
+    if (!(warn && r.n >= 3 && r.drawn === r.here && r.rows.every((m) => m && m[0] <= 12 && m.slice(1).every((f) => f <= 6)))) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("glisser une boîte la déplace (longueurs recalculées), un Ctrl+Z la remet", async () => {
@@ -1291,7 +1291,7 @@ try {
     if (!ok) throw new Error(JSON.stringify({ pages: doc.numPages, n, t1: t1.slice(0, 300), t2: t2.slice(0, 300) }));
     return true;
   });
-  await check("étiquettes de boîte (v50) : 4 par A4 paysage, nom, en-tête, code ; dossier PDF : garde + plan + tableau + bandes détaillées", async () => {
+  await check("étiquettes de boîte (v50) : 4 par A4 paysage, nom, en-tête, code, longueur totale et « à vérifier » (v52) ; dossier PDF : garde + plan + tableau + bandes détaillées", async () => {
     await page.click('#tabs button[data-tab="bandes"]'); await page.waitForSelector(".bands .bd-svg svg");
     const pdfOf = async (expr) => { const b64 = await ev(async (e) => { const r = eval(e); const u = new Uint8Array(await r.blob.arrayBuffer()); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); }, expr);
       return pdfjsNode.getDocument({ data: new Uint8Array(Buffer.from(b64, "base64")), verbosity: 0 }).promise; };
@@ -1306,9 +1306,12 @@ try {
     const D = await pdfOf("okteoExt.pages.bandes.ui.lastDossier"), parts = await ev(() => okteoExt.pages.bandes.ui.lastDossier.parts);
     if (process.env.SHOT) fs.writeFileSync(process.env.SHOT + "/dossier.pdf", Buffer.from(await ev(async () => { const u = new Uint8Array(await okteoExt.pages.bandes.ui.lastDossier.blob.arrayBuffer()); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); }), "base64"));
     const d1 = await txt(D, 1), tb = parts.find((p) => /Tableau/.test(p.title)), tTb = tb ? await txt(D, tb.page) : "", bd = parts.find((p) => /Bandes/.test(p.title)), tBd = bd ? await txt(D, bd.page) : "";
+    // v52 : longueur totale des gaines et règles non confirmées « à vérifier » sur l'étiquette, la page et la bande détaillée
+    const page52 = await ev(() => ({ len: /\d+,\d\d m de gaines/.test(document.querySelector(".bands").textContent), verif: /À vérifier — règles non confirmées : .*R-074/.test(document.querySelector(".bands .bd-verif")?.textContent || "") }));
     const ok = L.numPages === Math.ceil(n / 4) && vp.width > vp.height && /LI01/.test(t1) && /PAVILLONNEUR/.test(t1) && /-LI01/.test(t1) && !/ORDRE DE CABLAGE/.test(t1)
-      && /Dossier de cablage/.test(d1) && /Sommaire/.test(d1) && parts.length === 3 && /Tableau electrique/.test(tTb) && /ORDRE DE CABLAGE/.test(tBd) && D.numPages >= 3 + 2 * n;
-    if (!ok) throw new Error(JSON.stringify({ n, pages: L.numPages, w: vp.width, h: vp.height, t1: t1.slice(0, 200), d1: d1.slice(0, 200), parts, dp: D.numPages }));
+      && /\d+,\d\d m de gaines/.test(t1) && /A VERIFIER : .*R-074/.test(t1) && page52.len && page52.verif
+      && /Dossier de cablage/.test(d1) && /Sommaire/.test(d1) && parts.length === 3 && /Tableau electrique/.test(tTb) && /ORDRE DE CABLAGE/.test(tBd) && /Longueur totale des gaines : \d+,\d\d m/.test(tBd) && /A VERIFIER \(règles non confirmées\)/.test(tBd) && D.numPages >= 3 + 2 * n;
+    if (!ok) throw new Error(JSON.stringify({ n, pages: L.numPages, w: vp.width, h: vp.height, t1: t1.slice(0, 400), d1: d1.slice(0, 200), parts, dp: D.numPages, page52, tBd: tBd.slice(0, 300) }));
     return true;
   });
   await check("couleurs par circuit et gaines partagées : une gaine « P… + P… » ; deux circuits 1,5 d'une boîte en rouge/bleu et gris/bleu foncé", async () => ev(async () => {
@@ -1599,12 +1602,18 @@ try {
   });
   await check("fiche d'une règle : paramètres, écart avec le logiciel (18 / 12), utilisée par, preuves, questions, historique ; lien depuis un réglage Câblage", async () => {
     await clickIn('#ps-regles .rg-row[data-id="R-001"]');
+    const conform = await ev(() => /suivent le journal/.test(document.querySelector("#ps-regles .rg-ecarts-box").textContent));
+    // un réglage changé à la main (18 départs) : l'écart apparaît dans la fiche et en tête du journal
+    await ev(async () => (await import("/src/cablage/settings.js")).setCab({ departsMax: 18 }));
+    await page.waitForTimeout(100);
+    await clickIn('#ps-regles .rg-row[data-id="R-001"]'); await clickIn('#ps-regles .rg-row[data-id="R-001"]');
     const f = await ev(() => document.querySelector("#ps-regles .rg-fiche")?.textContent || "");
     const ec = await ev(() => [...document.querySelectorAll("#ps-regles .rg-ecarts tr")].map((tr) => tr.textContent).join("|"));
+    await ev(async () => (await import("/src/cablage/settings.js")).resetCab());
     await clickIn('#cab-set .rg-link[data-rule="R-074"]');
     await page.waitForTimeout(200);
     const f2 = await ev(() => document.querySelector("#ps-regles .rg-row.on")?.dataset.id + "|" + (document.querySelector("#ps-regles .rg-fiche")?.textContent || ""));
-    const ok = /departs_max = 12/.test(f) && /Départs par boîte : 18 \(journal : 12\)/.test(f) && /R-088/.test(f) && /Bande DUCOURNEAU/.test(f) && /Q-50/.test(f) && /H-020/.test(f)
+    const ok = conform && /departs_max = 12/.test(f) && /Départs par boîte \(sans l'alimentation\) : 18 \(journal : 12\)/.test(f) && /R-088/.test(f) && /Bande DUCOURNEAU/.test(f) && /Q-50/.test(f) && /H-020/.test(f)
       && /R-001.*12.*18/.test(ec) && /^R-074\|/.test(f2) && /icta20_mm2 = 13,5/.test(f2) && /bloquer/.test(f2);
     if (!ok) throw new Error(JSON.stringify({ f: f.slice(0, 300), ec, f2: f2.slice(0, 200) }));
     return true;
@@ -1636,7 +1645,7 @@ try {
     await ev((o) => okteoExt.settings.set(JSON.parse(o)), old);
     await ev(() => okteoExt.panel.close("assistant"));
     const ok = /^Règle R-002 : je veux la modifier/.test(pre) && /Modifier R-002/.test(card) && /certitude.*supposee.*confirmee/.test(card) && /Champs inconnus : couleur/.test(card)
-      && after.cert === "confirmee" && after.st === "active" && after.v === 2 && after.h === "H-030|R-002|Modification|Confirmée par Kévin|true" && /validée \(H-030\)/.test(st);
+      && after.cert === "confirmee" && after.st === "active" && after.v === 2 && after.h === "H-031|R-002|Modification|Confirmée par Kévin|true" && /validée \(H-031\)/.test(st);
     if (!ok) throw new Error(JSON.stringify({ pre, card: card.slice(0, 300), after, st }));
     return true;
   });

@@ -2,6 +2,7 @@
 // gaines (n°, longueur, Ø, appareil, fils avec couleur et n° de raccordement), les connecteurs, les retours lampe et
 // navettes tracés, l'orientation de la boîte (pièce de chaque côté), le matériel, les raccordements à faire dans
 // l'ordre (à cocher) et le contrôle final. Impression : une feuille par boîte.
+import { getJournal, ruleById } from "../cablage/regles.js";
 import { wiringNow, wireCss, wireSolid, facesSides, fr } from "./cablage-data.js";
 import { getCab } from "../cablage/settings.js";
 import { boxSteps, boxMaterial, boxChecks, boxWires, parseSizes, schemaSVG, FN_SHORT, wireName, orderLines, BOX_MODELS } from "../cablage/schema.js";
@@ -13,6 +14,11 @@ import { pointInPoly } from "../walls/rooms.js";
 import { buildBandsPdf } from "./bandes-pdf.js";
 import { esc } from "./util.js";
 
+// règles utilisées par une boîte qui ne sont pas encore confirmées par Kévin : [{id, titre}]
+export function aVerifier(ids) {
+  const J = getJournal();
+  return (ids || []).map((id) => ruleById(J, id)).filter((r) => r && r.statut !== "archivee" && r.certitude !== "confirmee").map((r) => ({ id: r.id, titre: r.titre })).sort((a, b) => a.id.localeCompare(b.id));
+}
 export function boxSheets(api) {
   const W = wiringNow(api), sizes = parseSizes(getCab().bornes), geos = new Map(), lvName = new Map(api.levels.map((l) => [l.id, l.name]));
   const tabs = api.allApps().filter((a) => a.t === "TAB");
@@ -24,7 +30,9 @@ export function boxSheets(api) {
     const tabAng = tab && Math.hypot(tab.x - box.x, tab.y - box.y) > 0.05 ? Math.atan2(tab.y - box.y, tab.x - box.x) : null;
     return { box, steps, material: boxMaterial(steps), fils: boxWires(box), checks: boxChecks(box, steps), sides: facesSides(box, geos.get(box.lv), pointInPoly), level: lvName.get(box.lv) || box.lv,
       order: orderLines(steps), tabAng, code: boxCode(api.ch, box), model: (BOX_MODELS.find((m) => m.id === box.model) || BOX_MODELS[0]).name, cover: box.cover === "bas" ? "bas" : "haut",
-      ch: { nom: api.ch.nom, numero: api.ch.numero || "", client: api.ch.client || "" } };
+      ch: { nom: api.ch.nom, numero: api.ch.numero || "", client: api.ch.client || "" },
+      // v52 : longueur totale des gaines de la boîte, bouchons (R-095), règles non confirmées utilisées (« à vérifier »)
+      longueur: box.longueur, bouchons: box.bouchons || 0, verifier: aVerifier(box.rules) };
   });
 }
 // flèche vers le tableau (SVG, pour l'écran)
@@ -93,7 +101,8 @@ export function mountBandsPage(el, { api }) {
       <div class="bd-pick">${sheets.map((s) => `<button data-b="${s.box.id}" class="${s.box.id === cur ? "on" : ""}" title="${s.box.gaines.length} gaines · ${s.steps.length} raccordements">${esc(s.box.n)}</button>`).join("")}
         <span class="grow"></span><button id="bd-lab-one" class="on" title="Étiquette à coller sur la boîte (148,5 × 105 mm, un quart de A4) : schéma en grand, en-tête, logo, QR code et code barre">🏷 Étiquette ${esc(box.n)}</button><button id="bd-lab-all" title="Les étiquettes de toutes les boîtes, 4 par feuille A4 (traits de coupe)">🏷 Toutes les étiquettes (4 par A4)</button>
         <button id="bd-one" title="Bande détaillée de cette boîte (PDF) : schéma, ordre de câblage, matériel, raccordements">📄 Bande détaillée ${esc(box.n)}</button><button id="bd-all" title="Bandes détaillées de toutes les boîtes (PDF)">📄 Toutes les bandes détaillées</button><button id="bd-dossier" title="Dossier PDF du chantier : page de garde, plan, tableau, bandes détaillées de toutes les boîtes">📁 Dossier du chantier</button><span id="bd-st" class="mut sm"></span></div>
-      <p class="mut sm">${esc(S.level)}${sides.under ? ` · au-dessus de : ${esc(sides.under)}` : ""} · ${box.gaines.length} gaines · ${steps.length} raccordements · ${fr(box.cuivre)} m de fil</p>
+      <p class="mut sm">${esc(S.level)}${sides.under ? ` · au-dessus de : ${esc(sides.under)}` : ""} · ${box.gaines.length} gaines · <b title="Somme des longueurs de toutes les gaines de la boîte">${fr(S.longueur, 2)} m de gaines</b> · ${steps.length} raccordements · ${fr(box.cuivre)} m de fil${S.bouchons ? ` · <b class="warn" title="R-095 : bouchon obligatoire dans la boîte sur les gaines qui amènent l'air extérieur">${S.bouchons} bouchon${S.bouchons > 1 ? "s" : ""}</b>` : ""}</p>
+      ${S.verifier.length ? `<p class="sm bd-verif" title="Le logiciel applique ces règles du journal, mais Kévin ne les a pas encore confirmées : le résultat est à vérifier">À vérifier — règles non confirmées : ${S.verifier.map((r) => `<b>${esc(r.id)}</b> ${esc(r.titre)}`).join(" · ")}</p>` : ""}
       <div class="bd-grid">
         <div class="bd-svgw"><div class="bd-calq" title="Cliquez un circuit (ou un fil du schéma) : les autres s'estompent, comme un calque">Circuits : <button data-cq="" class="${focusC ? "" : "on"}">Tous</button>${box.circuits.map((c) => `<button data-cq="${esc(c)}" class="${focusC === c ? "on" : ""}">${esc(c)}</button>`).join("")}</div>
         <div class="bd-svg">${svg}</div></div>
@@ -114,9 +123,9 @@ export function mountBandsPage(el, { api }) {
           <h3>1. Orienter la boîte</h3>
           <ul class="bd-or">${["A", "B", "C", "D"].map((f, i) => `<li><b>Face ${f}</b> <span class="mut">(${["haut", "droite", "bas", "gauche"][i]} du plan)</span> : ${esc(sides[f] || "—")}</li>`).join("")}</ul>
           <h3>2. Préparer le matériel</h3>
-          <ul>${material.sizes.map(([k, n]) => `<li>${n} connecteur${n > 1 ? "s" : ""} <b>${k} entrées</b></li>`).join("")}${material.ponts ? `<li>${material.ponts} pont${material.ponts > 1 ? "s" : ""} (bout de fil de la même couleur, pour relier deux connecteurs)</li>` : ""}</ul>
+          <ul>${material.sizes.map(([k, n]) => `<li>${n} connecteur${n > 1 ? "s" : ""} <b>${k} entrées</b></li>`).join("")}${material.ponts ? `<li>${material.ponts} pont${material.ponts > 1 ? "s" : ""} (bout de fil de la même couleur, pour relier deux connecteurs)</li>` : ""}${S.bouchons ? `<li><b>${S.bouchons} bouchon${S.bouchons > 1 ? "s" : ""}</b> (gaine${S.bouchons > 1 ? "s" : ""} à câble extérieur : ${box.gaines.filter((g) => g.bouchon).map((g) => esc(g.no)).join(", ")})</li>` : ""}</ul>
           <p class="sm bd-fils" title="Nombre de fils de chaque section et couleur dans les gaines de la boîte">Fils : ${fils.wires.map((w) => `${w.n} × ${fr(w.section, 1)} ${chip({ color: w.color, section: w.section }).replace(/ [\d,]+<\/span>$/, "</span>")}`).join(" · ")}${fils.cables.length ? ` · câbles : ${fils.cables.map((c) => `${c.n} × ${esc(c.cable)}`).join(", ")}` : ""}</p>
-          ${(() => { const B = [...new Set(box.gaines.filter((g) => g.kind === "alim").flatMap((g) => g.wires.map((w) => w.bague)).filter(Boolean))]; return B.length ? `<p class="sm" title="Bagues numérotées à poser sur les fils de l'alimentation (n° du circuit au tableau, T1… = télérupteur)">Bagues sur l'alimentation : ${B.map((b) => `<span class="bague">${esc(b)}</span>`).join(" ")}</p>` : ""; })()}
+          ${(() => { const B = [...new Set(box.gaines.filter((g) => g.kind === "alim").flatMap((g) => g.wires.map((w) => w.bague)).filter(Boolean))]; const R = [...new Set(box.gaines.filter((g) => g.kind !== "alim").flatMap((g) => g.wires.map((w) => w.bague)).filter(Boolean))]; return (B.length ? `<p class="sm" title="Bagues numérotées à poser sur les fils de l'alimentation (n° du circuit au tableau, T1… = télérupteur)">Bagues sur l'alimentation : ${B.map((b) => `<span class="bague">${esc(b)}</span>`).join(" ")}</p>` : "") + (R.length ? `<p class="sm" title="R-072 : une couleur de la ronde est réutilisée ; ses fils portent une bague au n° de l'allumage">Bagues d'allumage (couleur réutilisée) : ${R.map((b) => `<span class="bague">${esc(b)}</span>`).join(" ")}</p>` : ""); })()}
           <h3>3. Raccorder dans l'ordre</h3>
           <p class="mut sm">Terres, neutres, phases, puis retours lampe et navettes. Pour chaque numéro : dans chaque gaine indiquée, prendre le fil de la couleur indiquée, le dénuder et l'enfoncer dans le connecteur. Cocher au fur et à mesure.</p>
         </div>
