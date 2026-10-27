@@ -172,6 +172,22 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
   la mention « à voir avec un collègue » sur la fiche, pour que ces questions ne soient pas reposées à Kévin.
   → Fait avec la 48 (bouton « ⏳ En attente » du journal).
 
+## Plan des mises à jour 56 à 60 (proposé le 28/10/2026, 00:05) — une à la fois, sur « go »
+- **56 — Règles du BE et nouveaux appareils** : R-001 16 départs ; R-077 sens anti-horaire (moteur, bandes, étiquettes,
+  impression, tests) ; R-098 prise de plan de travail (propriété de la prise, circuit cuisine 2,5, packs) ; types îlot,
+  BPS, sonnette ; R-099 total des lignes directes ; journal régénéré. Contrôle sur la bande MAILLARD.
+- **57 — Relevé IA en boucle** : relecture ciblée générée par les alertes du contrôle (copier la relecture, coller les
+  corrections, un Ctrl+Z ; automatique avec une clé) ; consigne enrichie (commandes des points extérieurs, prises de
+  plan de travail, nouveaux types, gonds et sens des portes) ; import du sens des portes ; type « porte de garage »
+  (grande ouverture sans battant). Test sur le relevé Opus de MAILLARD.
+- **58 — Plan lisible** : taille des symboles calculée d'après le dessin (même taille pour tous) ; aucun chevauchement
+  (décalage d'affichage + trait de rappel) ; boîtes plus petites ; noms des pièces déplaçables, taille commune ;
+  rotation du fond (90°, 180°, quelques degrés), dessin compris.
+- **59 — Gaines sans croisement** : choix des points d'accroche et des tracés pour qu'aucune gaine n'en croise une
+  autre, recalcul automatique au déplacement d'une boîte, alerte si un tracé fait à la main en crée un.
+- **60 — Boîte pour le câbleur et le perceur** : schéma sans fils superposés (couloirs séparés, circuit mis en avant au
+  survol) ; vue des 4 tranches A à D avec n° de gaine et aboutissant, à l'écran et dans les PDF.
+
 ## Notes du 27/10/2026 (23:19), 1er essai réel du relevé IA (Opus) puis câblage — pour la prochaine mise à jour
 Retour de Kévin : « à première vue très prometteur ». Les vues lui seront transmises.
 
