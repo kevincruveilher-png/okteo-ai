@@ -177,7 +177,9 @@ Retour de Kévin : « à première vue très prometteur ». Les vues lui seront 
 
 **Relevé IA (Opus, consigne v55.1)**
 - Deux décisions non prises par l'IA : la lampe des WC sans son interrupteur ; les spots extérieurs, dont elle n'a pas
-  reconnu l'interrupteur (corrigé par Kévin à 23:35 : ce n'était pas la lampe du garage). Les alertes orange du contrôle des appareils ont permis de corriger très vite (à garder tel quel).
+  reconnu l'interrupteur (corrigé par Kévin à 23:35 : ce n'était pas la lampe du garage).
+  Consigne à compléter : chercher la commande des points extérieurs (spots, appliques), souvent à l'intérieur près de la
+  porte ; sinon la signaler appareil par appareil dans « remarques ». Les alertes orange du contrôle des appareils ont permis de corriger très vite (à garder tel quel).
 - Portes mal ajustées :
   - la porte de garage est une grande porte (sectionnelle / basculante) : prévoir une ouverture adaptée (type « porte
     de garage », grande largeur, sans arc de battant) ;
