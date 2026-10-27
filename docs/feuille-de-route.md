@@ -210,6 +210,35 @@ Retour de Kévin : « à première vue très prometteur ». Les vues lui seront 
 - À noter au comparatif des moteurs du journal (essai Opus du 27/10, durée 9 min, chiffres de la réponse : 25 murs, 22 ouvertures,
   11 pièces, 100 appareils, 30 liaisons ; 22/22 ouvertures placées après la v55.2).
 
+**Comparaison avec les bandes du BE (MAILLARD AF26074801, 6 boîtes, 23:50)** — `docs/chantiers/MAILLARD_bandes_FTZ.pdf`
+Identique à nos règles : prises GR/BF/V/J 1,5 ; lumières B + retour + V/J ; commandes sans terre (R + retours) ; câble
+3G1,5 marron pour les lumières extérieures (L1, L1A, L3) ; ICTA 20 dès que la somme des sections dépasse 7,5 (LI04.09,
+LI04.12, alimentations LI01 / LI05 à 13,5) ; terre de l'alimentation en 2,5 quand une équipotentielle locale (EQ1) ou
+la cuisine est dans la boîte (notre moteur fait pareil) ; volets dans une boîte à part (LI06, 8 VR connectés, GR/B/V/J,
+pas de fil de commande) ; hotte dans la boîte (LI05.07, 2,5 B/R/V/J) ; ≤ 6 gaines par face. Lignes directes : SS, moteur,
+commande VMC, VMC, EQ principale 10 V/J ICTA 20, antenne / TV en 17 VATC V20, four / LL / LV / SL en 2,5 B+R+V/J,
+bouches K1A…K6 en YSYT 2×1 sans gaine, G EXT 3G2,5, interphone 4G1,5, plaques 6 R+B+V/J ICTA 20, RJ en grade 3 V20 :
+tous identiques à notre catalogue (R-084).
+Différences à trancher avec Kévin :
+1. Départs par boîte : le BE monte à 11–15 gaines hors alimentation (LI02 et LI04 : 15) ; R-001 = 12 maximum. Avec
+   nos règles, ce chantier aurait plus de 6 boîtes. Garder 12 ?
+2. Ronde des retours : aucun violet sur les 6 boîtes (orange, marron, ivoire, noir seulement). R-072 met le violet en
+   2e position.
+3. Cuisine ouverte dans la « Pièce de vie » : seules les prises du plan de travail (P28 à P31) et la hotte sont en
+   2,5 R/B (circuit cuisine) ; les autres prises de la pièce (P19, P27) restent en 1,5 GR/BF. Notre moteur reconnaît la
+   cuisine au NOM de la pièce : dans une pièce de vie, il ne verrait pas de cuisine du tout. Il faut un repère
+   « prise de plan de travail » (type ou propriété) indépendant du nom de la pièce.
+4. Types absents de notre catalogue : ILOT (prises de l'îlot en ligne directe, 1,5 GR+BF+V/J ICTA 16), BPS (bouton
+   poussoir de sonnette, câble 1P 9/10 en ICTA 16), SON (sonnette dans une boîte, R+B+V/J).
+5. Aqua Air : une seule ligne directe (3G2,5 ICTA 20) ; notre catalogue ajoute une ligne de pilotage 3×1,5 ICTA 16.
+6. Total des gaines du tableau des lignes directes : le BE compte les YSYT dans le total (10 ICT16 + 15 ICT20 + 7 YSYT
+   = 32) et range les V20 avec les ICTA 20. À aligner sur notre total.
+7. Numérotation des raccordements : terres n° 9 chez le BE (R 1, B 2, GR 3, BF 4, R 2,5 7, B 2,5 8, V/J 9, retours 11+),
+   terres n° 1 chez nous (R-031, écart déjà décidé). Gaines numérotées dans le sens horaire chez le BE (.01 à gauche
+   puis A, B, C) : à passer en anti-horaire (demande de Kévin, R-077).
+8. Page « Repères tableau » du BE (alimentation de chaque boîte avec ses n° de bague 1 à 12) : nous ne la produisons pas
+   en page à part.
+
 **Câblage des boîtes : lisibilité**
 - Le câblage des boîtes a l'air correct, mais le tracé des circuits est ambigu : les fils se chevauchent dans le schéma
   de la boîte (lignes qui se croisent et se superposent, capture LI05) ; difficile de voir rapidement qui va avec qui.
