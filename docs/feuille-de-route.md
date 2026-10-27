@@ -193,6 +193,19 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
 - **60 — Boîte pour le câbleur et le perceur** : schéma sans fils superposés (couloirs séparés, circuit mis en avant au
   survol) ; vue des 4 tranches A à D avec n° de gaine et aboutissant, à l'écran et dans les PDF.
 
+## Comparaison MAILLARD, réponses de Kévin (28/10/2026, 00:32) — journal H-041
+- Les 20 équipements absents de notre relevé ne sont pas sur le plan : registre des équipements hors plan (R-100) ;
+  proposés par défaut quand ils reviennent sur la plupart des chantiers, « à vérifier avec le devis ». À coder (56) :
+  liste des équipements du chantier à cocher (comme un pack « maison »), lignes directes ajoutées sans position sur le
+  plan ou posées au tableau.
+- Mode Équilibrée = le moins de boîtes possible (R-094) ; Proximité garde « moins de gaine d'abord ». À coder (56).
+- Volets filaire / connecté : choisi par le BE pour le chantier (R-096) : demandé au câblage, pas déduit du plan.
+- Commande + prises dans une gaine : oui, mais jamais de gaine ICTA 25 dans une boîte (R-073). À coder (56).
+- Défauts du moteur trouvés (56) : moteur de volet pris pour un appareil extérieur (câble 5G1,5 au lieu de fils) ;
+  étiquettes des lignes directes (RJ1, pas R1 ; pas de numéro pour un appareil seul : MOTEUR, AQUA AIR).
+- Outil `scripts/chantier-wiring.mjs` : câblage d'un `.okteo` en JSON (option `--recable`, `--departs=16`) ; à
+  transformer en test de référence MAILLARD (écart gaine par gaine avec la bande du BE).
+
 ## Notes du 27/10/2026 (23:19), 1er essai réel du relevé IA (Opus) puis câblage — pour la prochaine mise à jour
 Retour de Kévin : « à première vue très prometteur ». Les vues lui seront transmises.
 

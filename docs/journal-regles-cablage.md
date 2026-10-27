@@ -96,7 +96,7 @@ Nouveaux champs :
 - Gaines : R-010 à R-014, R-060, R-073 à R-075, R-077, R-078, R-095
 - Raccordements : R-030, R-031, R-080
 - Tableau : R-050, R-081
-- Appareils et lignes directes : R-003, R-079, R-082, R-084, R-086, R-096, R-097, R-099
+- Appareils et lignes directes : R-003, R-079, R-082, R-084, R-086, R-096, R-097, R-099, R-100
 
 L'IA modifie la bibliothèque comme le reste : proposition avant / après, validation de Kévin, historique, code de modification plus tard.
 
@@ -298,6 +298,7 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 
 **R-073 · Gaine partagée** (précise R-013) — `a_valider`
 - Les fils des appareils au même endroit sont réunis dans une gaine, avec la phase R 1 et la terre comptées une seule fois (P13+I5+V4 = 7 fils). Libellé : prises, puis interrupteurs, puis va-et-vient.
+- Une commande et des prises au même endroit peuvent partager une gaine (Kévin, 28/10/2026, 00:32), **mais on évite les gaines ICTA 25 dans les boîtes** : si le regroupement demande plus qu'une ICTA 20, les appareils repartent dans des gaines séparées (prises d'un côté, commandes de l'autre). « Pas évident » : à revoir sur les prochains chantiers.
 
 **R-074 · Diamètre des gaines** (précise R-012) — `a_valider`
 - Somme des sections nominales ≤ 7,5 mm² → ICTA 16 (5×1,5 ou 3×2,5) ; au-delà → ICTA 20. Maximum vu : 13,5 mm² (7 fils). Vérifié sur toutes les gaines des 5 boîtes.
@@ -406,7 +407,7 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 
 **R-094 · Boîtes de volets roulants selon le mode de pieuvre** — `active` · `confirmee` (Kévin, 27/10/2026, Q-71)
 - **Proximité** : le logiciel choisit la solution la plus économique (boîtes de volets multiples, ou volets mélangés aux autres boîtes, selon la longueur de fil et de gaine).
-- **Équilibrée** : une seule boîte pour tous les volets.
+- **Équilibrée** : une seule boîte pour tous les volets. En mode Équilibrée, le choix des boîtes vise **le moins de boîtes possible**, comme le BE (Kévin, 28/10/2026, 00:32 ; bande MAILLARD : 5 boîtes de 11 à 15 départs + 1 boîte de volets) ; le critère « plus petite longueur de gaine d'abord » (Q-77) reste celui du mode Proximité.
 - Critère de « plus économique » (confirmé par Kévin le 27/10/2026, Q-77) : plus petite longueur totale de gaine, puis moins de boîtes, puis moins de départs. C'est aussi le score des alternatives dans l'étude (section 3 ter).
 - Par pièce et Plug de pieuvre : non précisé (doute, `avertir`).
 - Précise R-079.
@@ -419,6 +420,7 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 - Chaque volet roulant est soit **filaire** (commande CVR : l'alimentation gris + bleu clair, plus deux fils de commande marron et noir pris dans la ronde de couleurs, R-072), soit **connecté** (micromodule : gris + bleu clair + V/J seulement). Le choix se fait par volet sur le plan.
 - Pour un volet filaire, la gaine du CVR et la gaine du moteur portent les deux mêmes fils de commande ; chaque couple a ses propres numéros.
 - Source : bande BATELIER JEAN LOUIS (CVR3 à CVR5, VR1 et VR2 connectés).
+- Qui décide : le **BE**, chantier par chantier (Kévin, 28/10/2026, 00:32) ; le plan ne le dit pas (MAILLARD : 8 commandes de volet dessinées, volets connectés chez le BE). Le logiciel demande le choix pour le chantier (réglage des choix) et ne le déduit pas du plan.
 
 ---
 
@@ -432,6 +434,28 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 - Le repère est porté par la prise elle-même (« prise de plan de travail »), pas par le nom de la pièce : une cuisine ouverte dans une pièce de vie est ainsi traitée comme une cuisine fermée.
 - Reconnaissance automatique (Kévin, 28/10/2026, 00:13 : « fixons cette règle et nous verrons sur les prochains chantiers ») : une prise posée entre 1,00 m et 1,30 m de hauteur, dans une pièce de cuisine OU à moins de 3 m d'un appareil de cuisine (plaque, hotte, four, lave-vaisselle), est marquée « plan de travail ». Le marquage reste modifiable prise par prise. À revoir sur les prochains chantiers.
 - Source : bande MAILLARD du BE (P28 à P31 + hotte en 2,5 ; P19 et P27, même pièce, en 1,5), réponse de Kévin du 28/10/2026 (00:01).
+
+**R-100 · Équipements hors plan** — `active` · `supposee` (Kévin, 28/10/2026, 00:32 : « ils ne sont pas sur le plan ; tiens un compte de ces gaines »)
+- Description : une partie des lignes et appareils ne figure pas sur le plan électrique ; le BE les ajoute d'après le chantier et le **devis** (cuisine équipée, VMC, équipotentielles, antenne, sonnette…). Le journal tient le compte, chantier par chantier, de ces équipements (registre ci-dessous). Un équipement présent sur la plupart des chantiers est proposé par défaut sur les suivants, marqué « à vérifier avec le devis » (jamais ajouté sans le dire) ; les autres restent à ajouter à la main.
+- Seuil de proposition : à fixer quand le registre aura plusieurs chantiers (supposé : présent sur 80 % des chantiers comptés).
+- Registre (nombre de lignes par chantier) :
+
+| Équipement | MAILLARD AF26074801 (JOYEUX) |
+|---|---|
+| Four (2,5 B+R+V/J) | 1 |
+| Lave-linge, lave-vaisselle, sèche-linge (2,5 B+R+V/J) | 1 + 1 + 1 |
+| Plaques (6 R+B+V/J, ICTA 20) | 1 |
+| Hotte (en boîte, circuit cuisine) | 1 |
+| VMC (1,5 R+B+V/J) + commande VMC (1,5 N+GR) | 1 + 1 |
+| Bouches motorisées (YSYT 2×1 souple) | 7 |
+| Sèche-serviette (1,5 BF+M+V/J) | 1 |
+| Îlot (1,5 GR+BF+V/J) | 1 |
+| Équipotentielle principale (10 V/J) / locale (2,5 V/J, en boîte) | 1 / 1 |
+| Antenne (17 VATC) | 1 |
+| Sonnette (en boîte) + bouton BPS (1P 9/10) | 1 + 1 |
+| G EXT (3G2,5) | 1 |
+
+- Source : comparaison Oktéo / BE sur MAILLARD (`docs/chantiers/MAILLARD_comparaison.md`).
 
 **R-099 · Total des gaines des lignes directes** — `active` · `confirmee` (Kévin, 28/10/2026, 00:01)
 - Description : le total des gaines du tableau des lignes directes compte aussi les liaisons sans gaine (YSYT des bouches motorisées) ; les gaines vertes V20 sont comptées avec les ICTA 20. Exemple MAILLARD : 10 ICTA 16 + 15 ICTA 20 (dont 10 V20) + 7 YSYT = 32.
@@ -816,3 +840,4 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | H-038 | 28/10/2026 | R-001 | Modification | 12 départs hors alimentation | 16 départs hors alimentation | Bande MAILLARD du BE (jusqu'à 15 départs), réponse de Kévin du 28/10/2026 (00:01) | IA (validée par Kévin) | — |
 | H-039 | 28/10/2026 | R-023, R-084, R-098, R-099, Q-85 | Modification et création | — | Violet confirmé dans la ronde ; types îlot, BPS, sonnette ; R-098 prises de plan de travail ; R-099 total des gaines des lignes directes ; Q-85 (Aqua Air) en attente de Thibault | Comparaison avec la bande MAILLARD du BE, réponses de Kévin du 28/10/2026 (00:01) | IA (validée par Kévin) | — |
 | H-040 | 28/10/2026 | R-098, R-084 | Modification | — | R-098 : reconnaissance des prises de plan de travail (1,00–1,30 m, cuisine ou près d'un appareil de cuisine) ; îlot sur le disjoncteur d'un circuit prises | Réponses de Kévin du 28/10/2026 (00:13) | IA (validée par Kévin) | — |
+| H-041 | 28/10/2026 | R-073, R-094, R-096, R-100 | Modification et création | — | R-073 : commande + prises dans une gaine, sans ICTA 25 dans les boîtes ; R-094 : mode Équilibrée = le moins de boîtes ; R-096 : filaire / connecté décidé par le BE ; R-100 : équipements hors plan, registre (MAILLARD) | Comparaison Oktéo / BE sur MAILLARD, réponses de Kévin du 28/10/2026 (00:32) | IA (validée par Kévin) | — |
