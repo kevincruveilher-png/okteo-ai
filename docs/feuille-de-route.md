@@ -274,6 +274,13 @@ version des réglages ; tests du décompte des règles et des 12 départs à met
 6. R-099 (nouvelle) : total des lignes directes avec les YSYT, V20 comptées avec les ICTA 20.
 7. On garde nos règles (terres n° 1, R-031) ; gaines en anti-horaire (R-077 modifiée, H-037).
 8. Page « Repères tableau » : aucun intérêt, pas à faire.
+Réponses du 28/10/2026 (00:13) : prises de plan de travail reconnues par la hauteur (1,00–1,30 m) en cuisine ou près
+d'un appareil de cuisine (R-098, H-040) ; îlot sur le disjoncteur d'un circuit prises (ses prises comptent dans ce
+circuit, supposé). Sonnette : sur MAILLARD, la gaine SON (LI04) prend les raccordements 1 et 2 = phase et neutre de
+l'éclairage de la boîte → réexpliqué à Kévin, à confirmer. Volets : différence oubliée dans la comparaison — le BE a
+des volets connectés (aucun fil de commande dans LI06), le relevé IA a trouvé 8 CVR sur le plan ; en mode « filaire »,
+Oktéo ajouterait les gaines de CVR et les fils de commande (marron / noir) : boîte de volets différente de celle du BE.
+Question posée : qu'est-ce qui, sur un plan, dit que les volets sont connectés ?
 
 **Câblage des boîtes : lisibilité**
 - Le câblage des boîtes a l'air correct, mais le tracé des circuits est ambigu : les fils se chevauchent dans le schéma
