@@ -28,6 +28,7 @@
 // fonction (ex. marron repéré orange), âme en trop isolée.
 import { gaineFor, packAlim } from "./gaine.js";
 import { FACES, portLayout } from "./boites.js";
+import { APPAREILS, lignesOf, parseFils, gaineLabel, raccOf, isFaible } from "./appareils.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
 const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -86,10 +87,11 @@ export function viaLen(from, pts, to) {
   return L;
 }
 const NAMES = { PC16: "Prise 16 A", PC20: "Prise spécialisée", RJ45: "RJ45", LUM: "Point lumineux", APP: "Applique", SPOT: "Spot", INT: "Interrupteur", VV: "Va-et-vient", BP: "Bouton poussoir", VMC: "VMC", SC: "Sortie de câble", TAB: "Tableau" };
-export const FN_LABEL = { phase: "phase", neutre: "neutre", terre: "terre", retour: "retour lampe", nav1: "navette 1", nav2: "navette 2", cmdTL: "commande télérupteur", retTL: "retour télérupteur", isole: "fil en trop (isolé)" };
+const COULEUR_L = (c) => ({ bleu: "B", "bleu foncé": "BF", rouge: "R", gris: "GR", noir: "N", marron: "M", ivoire: "IV", orange: "O", violet: "V", "vert/jaune": "V/J" })[c] || c;
+export const FN_LABEL = { phase: "phase", neutre: "neutre", terre: "terre", retour: "retour lampe", nav1: "navette 1", nav2: "navette 2", cmdTL: "commande télérupteur", retTL: "retour télérupteur", cmdV1: "commande volet 1", cmdV2: "commande volet 2", isole: "fil en trop (isolé)" };
 // couleurs phase/neutre d'un type de circuit (réglages v38)
 export function pairOf(kind, S) {
-  const v = kind === "prises" ? S.couleursPrises : kind === "cuisine" ? S.couleursCuisine : kind === "specialise" ? S.couleursSpecialise : S.couleursEclairage;
+  const v = kind === "prises" ? S.couleursPrises : kind === "cuisine" ? S.couleursCuisine : kind === "specialise" ? S.couleursSpecialise : kind === "volets" ? (S.couleursVolets || "gris/bleu clair") : S.couleursEclairage;
   return parsePairs(v || `${S.cPhase}/${S.cNeutre}`)[0];
 }
 // bague d'un circuit : son n° sans le « C » (C5 → 5)
@@ -163,7 +165,7 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
     const slots = [];                  // [{ g: n° de l'allumage, keys: [n° de raccordement], imposed, ids }]
     // ordre de câblage (= ordre des n°, v47, demande de Kévin) : terres, puis circuit par circuit neutre et phase —
     // cuisine (bleu / rouge 2,5), prises (bleu foncé / gris 1,5), éclairage (bleu / rouge 1,5) — puis retours et navettes
-    const RANK = { cuisine: 0, specialise: 1, prises: 2, eclairage: 3 };
+    const RANK = { cuisine: 0, specialise: 1, prises: 2, eclairage: 3, volets: 4 };
     const ordered = [...circs].sort((p, q) => (RANK[p.kind] ?? 4) - (RANK[q.kind] ?? 4) || String(p.n).localeCompare(String(q.n), "fr", { numeric: true }));
     for (const c of ordered) { net("N" + c.id, `Neutre ${c.n}`, "neutre"); net("P" + c.id, `Phase ${c.n}`, "phase"); }
     // allumages de la boîte : couleurs imposées (lumière en câble), va-et-vient, télérupteurs, simples ; par repère
@@ -206,8 +208,23 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
         issues.push(`${b.n} : ${cmds.length} commandes pour ${lab} → télérupteur ${T} au tableau`);
       } else slots.push(rSlot);
     }
-    // prises et sorties de câble
-    apps.filter((a) => !LIGHT.has(a.t) && !CMD.has(a.t)).forEach((a) => { const c = circOf.get(a.id); if (c) role.set(a.id, [["phase", "P" + c.id], ["neutre", "N" + c.id], ["terre", "T"]]); });
+    // volets roulants (v54, R-096) : moteur = phase + neutre + terre du circuit de volets ; volet filaire (relié à une
+    // commande CVR) : deux fils de commande, de la ronde, dans la gaine du CVR et dans celle du moteur ; CVR = phase + neutre
+    const inBoxIds = new Set(apps.map((a) => a.id));
+    apps.filter((a) => a.t === "CVR").forEach((cv, vi) => {
+      const c = circOf.get(cv.id); if (!c) return;
+      const vs = links.filter((l) => l.c === cv.id && inBoxIds.has(l.l)).map((l) => byId.get(l.l)).filter((x) => x && (x.t === "VR" || x.t === "VEL"));
+      const A = net("VA" + vi, `Commande volet ${cv.rep || ""} (1)`, "cmdV1").key, B = net("VB" + vi, `Commande volet ${cv.rep || ""} (2)`, "cmdV2").key;
+      role.set(cv.id, [["phase", "P" + c.id], ["neutre", "N" + c.id], ["cmdV1", A], ["cmdV2", B]]);
+      vs.forEach((v) => { const cvv = circOf.get(v.id) || c; role.set(v.id, [["phase", "P" + cvv.id], ["neutre", "N" + cvv.id], ["terre", "T"], ["cmdV1", A], ["cmdV2", B]]); });
+      const no = numOfRep(cv.rep), ids = [cv.id, ...vs.map((v) => v.id)];
+      slots.push({ g: no, keys: [A], imposed: false, ids, pref: "marron" }, { g: no, keys: [B], imposed: false, ids, pref: "noir" });
+      if (!vs.length) issues.push(`${b.n} : commande de volet ${cv.rep || ""} reliée à aucun volet de la boîte`);
+    });
+    // équipotentielle locale (R-080) : un fil vert/jaune sur la terre de la boîte
+    apps.filter((a) => a.t === "EQL").forEach((a) => role.set(a.id, [["terre", "T"]]));
+    // prises, sorties de câble, volets connectés
+    apps.filter((a) => !LIGHT.has(a.t) && !CMD.has(a.t) && !role.has(a.id)).forEach((a) => { const c = circOf.get(a.id); if (c) role.set(a.id, [["phase", "P" + c.id], ["neutre", "N" + c.id], ["terre", "T"]]); });
 
     // ---------- gaines ----------
     const deps = [];
@@ -236,7 +253,8 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
         // lumière en câble : le marron du câble ; déjà pris dans la boîte par un allumage d'une autre gaine → bague
         c = "marron";
         if (users.has("marron")) { bague = sl.g || "?"; if (clash(T, "marron")) doubt("R-072", `${b.n} : deux lumières en câble (marron imposé) dans une même gaine, allumage ${sl.g || "?"}`, b.n, true); }
-      } else if (freeC.length) c = freeC.find((x) => x !== "marron") || freeC[0];
+      } else if (sl.pref && freeC.includes(sl.pref)) c = sl.pref;   // commande de volet : marron et noir (R-096)
+      else if (freeC.length) c = freeC.find((x) => x !== "marron") || freeC[0];
       else {
         // plus de couleur libre : une couleur dont les allumages ne partagent aucune gaine avec celui-ci, avec une bague
         c = ronde.find((x) => !mine.has(x) && !clash(T, x)) || null;
@@ -251,11 +269,11 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
     for (const G of spots) {
       const a = G[0], seen = new Set(), wires = [];
       for (const m of G) {
-        const sec = circOf.get(m.id).section || 1.5;
+        const sec = m.t === "EQL" ? (APPAREILS.EQL.terre || 2.5) : (circOf.get(m.id) || {}).section || 1.5;
         for (const [fn, key] of role.get(m.id) || []) {
           if (key != null && seen.has(key)) continue;          // fil commun : une seule fois (repiqué sur place)
           if (key != null) seen.add(key);
-          wires.push({ fn, color: colorOf(fn, key), section: sec, net: key, circuit: fn === "terre" ? null : circOf.get(m.id).n, ...(rondeBague.has(key) ? { bague: rondeBague.get(key) } : {}) });
+          wires.push({ fn, color: colorOf(fn, key), section: sec, net: key, circuit: fn === "terre" ? null : (circOf.get(m.id) || {}).n || null, ...(rondeBague.has(key) ? { bague: rondeBague.get(key) } : {}) });
         }
       }
       let cable = null;
@@ -273,11 +291,11 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
       const route = G.map((m) => (b.routes || {})[m.id]).find(Boolean) || null;
       const downMax = Math.max(...G.map((m) => down(m.h, S)));
       const len = gaineLength({ horiz: viaLen(b, route, a), downA: downMax, levels: Math.abs(lvIdx(a.lv) - lvB) }, S);
-      const label = G.length === 1 ? `${NAMES[a.t] || a.t} ${a.rep || ""}`.trim() : G.map((m) => m.rep || NAMES[m.t] || m.t).join(" + ");
-      const cn = [...new Set(G.map((m) => circOf.get(m.id).n))];
+      const label = G.length === 1 ? `${NAMES[a.t] || (APPAREILS[a.t] || {}).n || a.t} ${a.rep || ""}`.trim() : G.map((m) => m.rep || NAMES[m.t] || m.t).join(" + ");
+      const cn = [...new Set(G.map((m) => (circOf.get(m.id) || {}).n).filter(Boolean))];
       // la face est celle par où la gaine sort : vers son 1er point de passage s'il y en a un
       deps.push({ id: a.id, kind: "app", p: route ? route[0] : a, app: a, appIds: G.map((m) => m.id), reps: G.map((m) => m.rep || NAMES[m.t] || m.t), routed: !!route, label, room: a.room, circuit: cn.join(", "), wires, length: len, cable, ext: !!cable, bouchon: !!cable,
-        rules: { length: "R-011", diam: "R-074", wires: G.length > 1 ? "R-073" : null, ronde: wires.some((w) => /^(retour|nav1|nav2|cmdTL)$/.test(w.fn)) ? "R-072" : null, cable: cable ? "R-014" : null, bouchon: cable ? "R-095" : null } });
+        rules: { length: "R-011", diam: "R-074", wires: G.length > 1 ? "R-073" : null, ronde: wires.some((w) => /^(retour|nav1|nav2|cmdTL|cmdV1|cmdV2)$/.test(w.fn)) ? "R-072" : null, volet: G.some((m) => m.t === "VR" || m.t === "VEL" || m.t === "CVR") ? "R-096" : null, eq: G.some((m) => m.t === "EQL") ? "R-080" : null, cable: cable ? "R-014" : null, bouchon: cable ? "R-095" : null } });
     }
     // alimentation depuis le tableau : une seule gaine (phase + neutre de chaque circuit, télérupteur, une terre) ;
     // divisée si elle passait en Ø25, la terre restant dans la 1re
@@ -292,7 +310,8 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
         [["phase", "P" + c.id], ["neutre", "N" + c.id], ...(tl.get(c.id) || [])].filter(([fn, key]) => fn !== "neutre" || usedK(key)).forEach(([fn, key]) => wires.push({ fn, color: colorOf(fn, key), section: sec, net: key, circuit: c.n, bague: keyBague.get(fn === "retTL" ? key + "@alim" : key) || null }));
       }
       // une seule terre par boîte : dans la 1re gaine d'alimentation, à la plus grosse section de la boîte
-      if (gi === 0) wires.push({ fn: "terre", color: S.cTerre, section: Math.max(...circs.map((c) => c.section || 1.5)), net: "T" });
+      // (v54 : 2,5 mm² si une équipotentielle locale est raccordée dans la boîte, R-075 / R-080)
+      if (gi === 0) wires.push({ fn: "terre", color: S.cTerre, section: Math.max(...circs.map((c) => c.section || 1.5), ...apps.filter((a) => a.t === "EQL").map(() => APPAREILS.EQL.terre || 2.5)), net: "T" });
       const route = (b.routes || {}).tab || null;
       const len = tab ? gaineLength({ horiz: viaLen(b, route, tab), downA: S.traversee + Math.max(0, S.hsp - hTab), levels: Math.abs(lvIdx(tab.lv) - lvB) }, S) : null;
       const names = G.map((c) => c.n);
@@ -341,20 +360,31 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
     return { ...b, gaines: deps.map(({ p, app, ...g }) => ({ ...g, appId: app ? app.id : null })), nets: used.map(({ key, ...nt }) => nt), circuits: circs.map((c) => c.n), cuivre: +cuivre.toFixed(1), longueur, bouchons: deps.filter((g) => g.bouchon).length, rules };
   });
 
-  // ---------- lignes directes : du tableau à l'appareil (spécialisés), du coffret de communication (RJ45) ----------
+  // ---------- lignes directes (R-003, R-082, R-084 ; v54) : du tableau à l'appareil, une ligne par raccordement ----------
+  // étiquette = repère de l'appareil (comme la feuille FTZ « LIGNES DIRECTES ») ; fils ou câble et gaine d'après le type
+  // (src/cablage/appareils.js) ; courant faible en gaine verte Ø20 ; bouche motorisée sans gaine ; gaine aiguillée Ø40
   const direct = [];
-  let k = 0;
+  const legacy = (a, c) => (a.t === "PC20" ? lignesOf(a) : null) || [{ fils: `${String(c.section || 2.5).replace(".", ",")} ${COULEUR_L(col.neutre)}+${COULEUR_L(col.phase)}+V/J`, gaine: null, auto: true }];
   for (const c of circuits.filter((x) => x.direct || x.kind === "comm")) {
     for (const id of c.apps) {
       const a = byId.get(id); if (!a) continue;
       const len = tab ? gaineLength({ horiz: d2(tab, a), downA: S.traversee + Math.max(0, S.hsp - hTab), downB: down(a.h, S), levels: Math.abs(lvIdx(tab.lv) - lvIdx(a.lv)) }, S) : null;
-      const wires = c.kind === "comm" ? [] : ["phase", "neutre", "terre"].map((fn) => ({ fn, color: col[fn], section: c.section || 2.5, n: null }));
-      direct.push({ no: `L${++k}`, circuit: c.n, appId: a.id, label: `${NAMES[a.t] || a.t} ${a.rep || ""}`.trim(), room: a.room, lv: a.lv, length: len, wires,
-        cable: c.kind === "comm" ? "câble communication (RJ45)" : null, diam: c.kind === "comm" ? 20 : gaineFor(wires.map((w) => w.section), S) });
-      const dl = direct[direct.length - 1];
-      if (dl.diam == null) doubt("R-074", `Ligne directe ${dl.label} : ${String(wires.reduce((t, w) => t + w.section, 0)).replace(".", ",")} mm² de fils, au-delà de l'ICTA 20 : diamètre à confirmer`, null, false);
+      const L = APPAREILS[a.t] || a.t === "RJ45" ? lignesOf(a) : legacy(a, c);
+      (L || []).forEach((ln, li) => {
+        const wires = ln.fils ? parseFils(ln.fils).map((f) => ({ fn: /V\/J/.test(f.lettre) ? "terre" : "fil", color: f.color, section: f.section, lettre: f.lettre, n: null })) : [];
+        const sum = wires.reduce((t, w) => t + w.section, 0);
+        const diam = ln.gaine === "V20" ? 20 : ln.gaine === 40 ? 40 : ln.gaine == null && ln.auto ? gaineFor(wires.map((w) => w.section), S) : ln.gaine;
+        const rep = a.rep || a.t;
+        direct.push({ no: L.length > 1 ? `${rep}${li ? String(li) : ""}` : rep, etiquette: L.length > 1 && li ? `${rep}${li}` : rep, circuit: c.n, appId: a.id, label: `${(APPAREILS[a.t] || {}).n || NAMES[a.t] || a.t} ${rep}${ln.label ? " (" + ln.label + ")" : ""}`.trim(),
+          room: a.room, lv: a.lv, length: len, wires, cable: ln.cable || null, fil: ln.cable ? ln.cable : ln.fils || "—", gaine: ln.gaine === undefined ? null : ln.gaine, gaineTxt: ln.auto ? gaineLabel(diam) : gaineLabel(ln.gaine), diam, faible: isFaible(a.t), aboutissant: rep });
+        if (diam == null && ln.gaine !== null && !ln.cable && sum) doubt("R-074", `Ligne directe ${rep} : ${String(sum).replace(".", ",")} mm² de fils, au-delà de l'ICTA 20 : diamètre à confirmer`, null, false);
+      });
     }
   }
+  // hotte dont le raccordement reste à choisir (R-086) : doute sur l'appareil seulement
+  for (const a of items.filter((x) => x.t === "HOTTE" && raccOf(x) === "a_choisir")) doubt("R-086", `${a.rep || "Hotte"} : raccordement à choisir (en boîte sur le circuit cuisine, ou en ligne directe)`, null, false);
+  // totaux des lignes directes par gaine (feuille FTZ : « 11 ICT16, 16 ICT20… »)
+  const directTotals = {}; direct.forEach((d) => { directTotals[d.gaineTxt] = (directTotals[d.gaineTxt] || 0) + 1; });
   // gaines identiques sur tout le chantier (mêmes fils, mêmes couleurs, même câble) : fabrication en série
   const sigG = (g) => (g.cable ? g.cable + "|" : "") + g.wires.map((w) => `${w.section}${w.core ? w.core + ">" : ""}${w.color}`).sort().join(",");
   const series = new Map();
@@ -376,5 +406,5 @@ export function computeWiring({ items, links, circuits, boxes, levels = [], S })
   }
   const cuivre = outBoxes.reduce((s, b) => s + b.cuivre, 0) + direct.reduce((s, g) => s + (g.length || 0) * g.wires.length, 0);
   const gaine = outBoxes.reduce((s, b) => s + b.gaines.reduce((t, g) => t + (g.length || 0), 0), 0) + direct.reduce((s, g) => s + (g.length || 0), 0);
-  return { boxes: outBoxes, direct, issues, doutes, splits, series: [...series].map(([sig, n]) => ({ sig, n })).sort((p, q) => q.n - p.n), totals: { cuivre: +cuivre.toFixed(1), gaine: +gaine.toFixed(1), boites: outBoxes.length, gaines: outBoxes.reduce((s, b) => s + b.gaines.length, 0) + direct.length } };
+  return { boxes: outBoxes, direct, directTotals, issues, doutes, splits, series: [...series].map(([sig, n]) => ({ sig, n })).sort((p, q) => q.n - p.n), totals: { cuivre: +cuivre.toFixed(1), gaine: +gaine.toFixed(1), boites: outBoxes.length, gaines: outBoxes.reduce((s, b) => s + b.gaines.length, 0) + direct.length } };
 }

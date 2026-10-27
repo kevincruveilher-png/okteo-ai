@@ -48,7 +48,8 @@ export function controlIssues() {
   for (const [id, { lv, a }] of idx) {
     const r = linkRole(a.t);
     if (r === "c" && !lights.has(id)) out.push({ kind: "cmd", ids: [id], lv });
-    else if (r === "l" && !cmds.has(id)) out.push({ kind: "lum", ids: [id], lv });
+    // un volet sans commande filaire est un volet connecté (micromodule, R-096) : normal
+    else if (r === "l" && !cmds.has(id) && a.t !== "VR" && a.t !== "VEL") out.push({ kind: "lum", ids: [id], lv });
   }
   // va-et-vient : une lumière commandée par un seul va-et-vient (il en faut deux, ou un va-et-vient et des permutateurs)
   const seen = new Set();

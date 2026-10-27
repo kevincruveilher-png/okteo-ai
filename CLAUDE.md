@@ -286,13 +286,23 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `#et-cabler`, `#et-report`, `#et-where`), `createDoubts` (compteur `#dbt`, `okteo.setDoubts` → `K.doubts` → fx
   `.fx-doubt`), `createWhy` (carte `.why-card` sur `okteo:box-select` {id, key}), stats localStorage `okteo.etudes.v1`).
   Assistant : une commande du catalogue peut renvoyer un texte (compte rendu). gaine.js `GROS_FILS` {6: 20, 10: 25}.
+- v54 : `src/cablage/appareils.js` (pur : `APPAREILS` {n, r, h, lab, groupe, mural, racc direct|boite|choix, lignes
+  [{fils "2,5 B+R+V/J" | cable, gaine 16|20|"V20"|40|null}], variantes, circuit {section, prot}, faible, volet, voletCmd,
+  terre}, `GROUPES`, `raccOf(a)`, `lignesOf(a)` (variante `a.var`), `parseFils`, `gaineLabel`, `isVolet`, `isFaible`) ;
+  cœur : TYPES étendus (model.js), `glyph` par défaut (abréviation), `wallMounted` (+ `muraux`), `linkRole` CVR → c,
+  VR/VEL → l (volet sans CVR = connecté, pas d'alerte), bouton `[data-tool="__more"]` + `.more-pop` (K.moreOpen),
+  Propriétés `raccHTML` (`#f_var`, `#f_racc`, `#f_p`), `allApps()` ajoute var, racc (hotte : choix du chantier), p.
+  Moteur : circuits `volets` (`maxMoteurs`, `voletChunks`), `comm` = courant faible + lignes sans disjoncteur ;
+  boites `u.volet`, option `placeBoxes(..., {volets})` ; gaines : rôles CVR/VR (`cmdV1`/`cmdV2`, slots `pref` marron/noir),
+  EQL (terre 2,5), `W.direct[{etiquette, fil, gaine, gaineTxt, diam, faible, aboutissant}]`, `W.directTotals`.
+  Page « Lignes directes » `.dl-tab`. Fixtures : volets, EQ locales, hotte, 28 lignes directes de DUCOURNEAU.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (58 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (132 : règles du journal sur 4 chantiers réels) + `scripts/smoke.mjs` (136 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (58 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (175 : règles du journal sur 4 chantiers réels) + `scripts/smoke.mjs` (139 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

@@ -9,12 +9,12 @@
 import { ruleById } from "./regles.js";
 
 export const STEPS = [
-  { n: 1, id: "lecture", title: "Lecture du plan", rules: ["R-084"] },
+  { n: 1, id: "lecture", title: "Lecture du plan", rules: ["R-084", "R-086"] },
   { n: 2, id: "mode", title: "Mode de pieuvre", rules: ["R-085", "R-094", "R-009"] },
   { n: 3, id: "boites", title: "Placement des boîtes", rules: ["R-001", "R-088", "R-004", "R-005", "R-006", "R-008"] },
-  { n: 4, id: "circuits", title: "Répartition des circuits", rules: ["R-007", "R-020", "R-021", "R-022", "R-081"] },
-  { n: 5, id: "allumages", title: "Allumages", rules: ["R-002", "R-040", "R-041", "R-070", "R-071", "R-072", "R-093"] },
-  { n: 6, id: "gaines", title: "Gaines", rules: ["R-010", "R-011", "R-073", "R-074", "R-075", "R-077", "R-078", "R-014", "R-095", "R-089", "R-060", "R-003"] },
+  { n: 4, id: "circuits", title: "Répartition des circuits", rules: ["R-007", "R-020", "R-021", "R-022", "R-081", "R-079", "R-087"] },
+  { n: 5, id: "allumages", title: "Allumages", rules: ["R-002", "R-040", "R-041", "R-070", "R-071", "R-072", "R-093", "R-096"] },
+  { n: 6, id: "gaines", title: "Gaines", rules: ["R-010", "R-011", "R-073", "R-074", "R-075", "R-077", "R-078", "R-014", "R-095", "R-089", "R-060", "R-003", "R-080", "R-082", "R-097"] },
   { n: 7, id: "raccordements", title: "Raccordements", rules: ["R-030", "R-031", "R-090", "R-092"] },
   { n: 8, id: "tableau", title: "Tableau", rules: ["R-050", "R-081"] },
   { n: 9, id: "controle", title: "Contrôle", rules: ["R-091"] },
@@ -28,7 +28,8 @@ export const stepOfRule = (id) => (STEPS.find((s) => s.rules.includes(id)) || ST
 // règles utiles à ce chantier (certaines seulement si le cas existe : télérupteur, va-et-vient, câble extérieur…)
 const WHEN = {
   "R-009": (c) => c.mode === "plug", "R-094": (c) => c.volets, "R-085": (c) => c.prises > 8, "R-093": (c) => c.tl, "R-071": (c) => c.vv,
-  "R-014": (c) => c.ext, "R-095": (c) => c.ext, "R-022": (c) => c.cuisine, "R-050": (c) => c.circuits > 0, "R-081": (c) => c.circuits > 0,
+  "R-014": (c) => c.ext, "R-095": (c) => c.ext, "R-079": (c) => c.volets, "R-087": (c) => c.volets, "R-096": (c) => c.volets,
+  "R-086": (c) => c.hotte, "R-080": (c) => c.eql, "R-082": (c) => c.direct, "R-097": (c) => c.aig, "R-022": (c) => c.cuisine, "R-050": (c) => c.circuits > 0, "R-081": (c) => c.circuits > 0,
 };
 export function neededRules(ctx) { return [...new Set(STEPS.flatMap((s) => s.rules))].filter((id) => !WHEN[id] || WHEN[id](ctx)); }
 
@@ -58,7 +59,8 @@ export function contextOf({ items, links, circuits, boxes, mode, W }) {
   const nC = [...cmdsOf.values()].map((s) => s.size);
   const prisesBox = (boxes || []).map((b) => b.apps.filter((id) => by.get(id)?.t === "PC16").length);
   return {
-    mode, volets: false, ext: items.some((a) => a.ext) || (W ? W.boxes.some((b) => b.gaines.some((g) => g.cable)) : false),
+    mode, volets: items.some((a) => a.t === "VR" || a.t === "VEL"), hotte: items.some((a) => a.t === "HOTTE"), eql: items.some((a) => a.t === "EQL"),
+    aig: items.some((a) => a.t === "AIG"), direct: (circuits || []).some((c) => c.direct), ext: items.some((a) => a.ext) || (W ? W.boxes.some((b) => b.gaines.some((g) => g.cable)) : false),
     tl: items.some((a) => a.t === "BP") || nC.some((n) => n >= 3), vv: nC.some((n) => n === 2) || items.some((a) => a.t === "VV"),
     cuisine: (circuits || []).some((c) => c.kind === "cuisine"), prises: Math.max(0, ...prisesBox), circuits: (circuits || []).length,
   };

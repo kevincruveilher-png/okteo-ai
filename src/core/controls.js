@@ -7,6 +7,7 @@ import { applyPack, load, markDirty, packState, paintStatus, save, snapshot } fr
 import { applyOrtho, fit, repMap } from "./view.js";
 import { draw, glyph } from "./render.js";
 import { wallMounted } from "./attach.js";
+import { APPAREILS, GROUPES } from "../cablage/appareils.js";
 import { clearSel, currentGroup, duplicateGroup, groupCount, groupEmpty, instantiateGroup, multi, selectAll, serializeGroup, setSingle, transformGroup } from "./groups.js";
 import { hideReadout, linkSummary, placeApp, posOnWall, showText, wallMeasure } from "./interact.js";
 import { delSel, showSide } from "./panel.js";
@@ -40,10 +41,27 @@ export function buildTools() {
   h += `<div class="trow appa" role="toolbar" aria-label="Implantation appareils"><span class="tlab" title="Outils pour poser l'appareillage et ses liaisons">Implantation<b>appareils</b></span>` + btn("lien", "Liaison", "Liaison : une commande puis ses lumières") +
     `<button data-tool="__test" class="tb ${K.testMode ? 'on' : ''}" title="Essai : cliquer un interrupteur allume ou éteint ses lumières, comme dans la maison (va-et-vient, télérupteur, disjoncteurs)">${icon("__test")}<span class="tl">Essai</span></button><span class="sep"></span>`;
   // appareils : le symbole tel qu'il est dessiné sur le plan (nom complet dans l'infobulle)
-  h += `<span class="palette" role="group" aria-label="Appareils">` + PAL.map(k => `<button data-tool="${k}" class="pb ${K.tool === k ? 'on' : ''}" title="${TYPES[k].n}" aria-label="${TYPES[k].n}"><svg class="ticon" viewBox="-1.25 -1.35 2.5 2.7" aria-hidden="true">${glyph(k)}</svg></button>`).join("") + `</span></div>`;
+  const pb = k => `<button data-tool="${k}" class="pb ${K.tool === k ? 'on' : ''}" title="${TYPES[k].n}" aria-label="${TYPES[k].n}"><svg class="ticon" viewBox="-1.25 -1.35 2.5 2.7" aria-hidden="true">${glyph(k)}</svg></button>`;
+  // v54 : « Autres ▾ » = les appareils du journal des règles (radiateurs, spécialisés, volets, courant faible…), par groupe
+  const more = APPAREILS[K.tool];
+  h += `<span class="palette" role="group" aria-label="Appareils">` + PAL.map(pb).join("") +
+    `<span class="more-w"><button data-tool="__more" class="pb more ${more || K.moreOpen ? 'on' : ''}" title="Autres appareils : radiateurs, sèche-serviette, VMC, four, lave-linge, plaque, hotte, chauffe-eau, prises extérieures, volets roulants, interphone, TV, équipotentielles, gaine aiguillée…" aria-label="Autres appareils" aria-haspopup="true" aria-expanded="${!!K.moreOpen}"><svg class="ticon" viewBox="-1.25 -1.35 2.5 2.7" aria-hidden="true">${more ? glyph(K.tool) : `<circle cx="-0.7" r="0.22" class="gf"/><circle r="0.22" class="gf"/><circle cx="0.7" r="0.22" class="gf"/>`}</svg><span class="tl">Autres ▾</span></button>` +
+    (K.moreOpen ? `<div class="more-pop" role="menu">${GROUPES.map(g => `<div class="mg"><b>${g}</b><div class="mgl">${Object.keys(APPAREILS).filter(t => APPAREILS[t].groupe === g).map(pb).map((x, i) => x.replace('class="pb', 'class="pb mi')).join("")}</div></div>`).join("")}</div>` : "") + `</span></span></div>`;
   t.innerHTML = h;
   t.querySelectorAll("button").forEach(btn => btn.onclick = () => {
     const v = btn.dataset.tool;
+    if (v === "__more") {
+      K.moreOpen = !K.moreOpen;
+      if (!K.moreHook) {
+        // le menu se ferme au clic ailleurs ou avec Échap
+        K.moreHook = true;
+        document.addEventListener("pointerdown", e => { if (K.moreOpen && !e.target.closest(".more-w")) { K.moreOpen = false; buildTools(); } });
+        document.addEventListener("keydown", e => { if (K.moreOpen && e.key === "Escape") { K.moreOpen = false; buildTools(); } });
+      }
+      buildTools();
+      return;
+    }
+    K.moreOpen = false;
     resetTransient();
     if (v === "__test") {
       K.testMode = !K.testMode;

@@ -6,7 +6,27 @@
 // - communication (RJ45) : lignes directes vers le coffret de communication (pas de circuit de puissance).
 // Entrée : items [{id, t, x, y, lv, lvName, room, rep}], links [{c, l}], réglages (cablage/settings.js).
 
+import { APPAREILS, raccOf, isVolet } from "./appareils.js";
+
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
+// v54 : appareil en ligne directe protégé par un disjoncteur (type du journal des règles), ligne sans disjoncteur
+// (courant faible, équipotentielle principale, commandes, gaine en attente), hotte en boîte (circuit cuisine)
+const directBreaker = (a) => APPAREILS[a.t] && raccOf(a) === "direct" && !!APPAREILS[a.t].circuit;
+const directNoBreaker = (a) => a.t === "RJ45" || (APPAREILS[a.t] && raccOf(a) === "direct" && !APPAREILS[a.t].circuit);
+const hotteBoite = (a) => a.t === "HOTTE" && raccOf(a) === "boite";
+// puissance admissible d'un circuit de volets (R-087) : 2 300 W en 10 A, 3 680 W en 16 A (conducteurs 1,5 mm²)
+export const maxMoteurs = (S, p = S.puissanceMoteur || 50) => Math.max(1, Math.floor((S.protVolets >= 16 ? 3680 : 2300) / (p || 50)));
+// moteurs de volets par circuit : chaque moteur compte sa puissance ; une commande (CVR) suit ses volets
+function voletChunks(list, S) {
+  const out = []; let cur = null, w = 0;
+  const cap = (S.protVolets >= 16 ? 3680 : 2300);
+  for (const a of chain(list.filter((x) => x.t !== "CVR"))) {
+    const p = +(a.p ?? S.puissanceMoteur ?? 50) || 50;
+    if (!cur || w + p > cap) { cur = []; w = 0; out.push(cur); }
+    cur.push(a); w += p;
+  }
+  return out;
+}
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 // prise de cuisine : prise 16 A dans une pièce dont le nom contient un des mots du réglage « motsCuisine »
 export function isCuisine(a, S) {
@@ -79,15 +99,29 @@ export function computeCircuits(items, links, S) {
     const P = chain(items.filter((a) => a.t === "PC16" && a.lv === lv && !isCuisine(a, S)));
     let k = 0;
     for (let i = 0; i < P.length; i += S.maxPrises) add("prises", `Prises ${lvName(lv)} ${++k}`, P.slice(i, i + S.maxPrises).map((a) => a.id), { section: S.secPrises, prot: S.protPrises });
-    const Q = chain(items.filter((a) => a.t === "PC16" && a.lv === lv && isCuisine(a, S))), mc = S.maxPrisesCuisine || 6;
+    const Q = chain(items.filter((a) => a.lv === lv && ((a.t === "PC16" && isCuisine(a, S)) || hotteBoite(a)))), mc = S.maxPrisesCuisine || 6;
     k = 0;
     for (let i = 0; i < Q.length; i += mc) add("cuisine", `Prises cuisine ${lvName(lv)}${Q.length > mc ? " " + ++k : ""}`, Q.slice(i, i + mc).map((a) => a.id), { section: S.secCuisine || 2.5, prot: S.protCuisine || 20 });
   }
   // ---------- spécialisés : un circuit chacun, ligne directe ----------
-  const spec = items.filter((a) => a.t === "PC20" || (a.t === "SC" && S.scSpecialise) || (a.t === "VMC" && S.vmcCablee));
+  const spec = items.filter((a) => a.t === "PC20" || (a.t === "SC" && S.scSpecialise) || (a.t === "VMC" && S.vmcCablee) || directBreaker(a));
   for (const a of spec) {
-    const what = a.t === "PC20" ? "Prise spécialisée" : a.t === "SC" ? "Sortie de câble" : "VMC";
-    add("specialise", `${what} ${a.rep || ""} · ${a.room || lvName(a.lv)}`.replace(/\s+/g, " ").trim(), [a.id], { section: S.secSpecialise, prot: S.protSpecialise, direct: true });
+    const D = APPAREILS[a.t];
+    const what = D ? D.n : a.t === "PC20" ? "Prise spécialisée" : a.t === "SC" ? "Sortie de câble" : "VMC";
+    add("specialise", `${what} ${a.rep || ""} · ${a.room || lvName(a.lv)}`.replace(/\s+/g, " ").trim(), [a.id], { section: D ? D.circuit.section : S.secSpecialise, prot: D ? D.circuit.prot : S.protSpecialise, direct: true });
+  }
+  // ---------- volets roulants (v54, R-079, R-087) : circuit dédié, puissance admissible ----------
+  for (const lv of levels) {
+    const V = items.filter((a) => a.lv === lv && isVolet(a.t));
+    voletChunks(V, S).forEach((part, i, all) => {
+      const ids = new Set(part.map((a) => a.id));
+      // les commandes (CVR) suivent leurs volets
+      V.filter((c) => c.t === "CVR" && links.some((l) => l.c === c.id && ids.has(l.l))).forEach((c) => ids.add(c.id));
+      add("volets", `Volets roulants ${lvName(lv)}${all.length > 1 ? " " + (i + 1) : ""}`, [...ids], { section: S.secVolets || 1.5, prot: S.protVolets || 10 });
+    });
+    // commandes de volet sans volet relié : avec le 1er circuit de volets du niveau
+    const lone = V.filter((c) => c.t === "CVR" && !circuits.some((x) => x.apps.includes(c.id)));
+    if (lone.length) { const host = circuits.find((x) => x.kind === "volets" && byId.get(x.apps[0])?.lv === lv); if (host) host.apps.push(...lone.map((a) => a.id)); else add("volets", `Volets roulants ${lvName(lv)}`, lone.map((a) => a.id), { section: S.secVolets || 1.5, prot: S.protVolets || 10 }); }
   }
   // sorties de câble non spécialisées : avec les prises voisines (ou un circuit à part)
   if (!S.scSpecialise) for (const a of items.filter((x) => x.t === "SC")) {
@@ -95,8 +129,8 @@ export function computeCircuits(items, links, S) {
     if (host) host.apps.push(a.id); else add("prises", `Sortie de câble ${a.rep || ""}`.trim(), [a.id], { section: S.secPrises, prot: S.protPrises });
   }
   // ---------- communication ----------
-  const com = items.filter((a) => a.t === "RJ45");
-  if (com.length) add("comm", "Communication (RJ45)", com.map((a) => a.id), { section: null, prot: null, direct: true });
+  const com = items.filter(directNoBreaker);
+  if (com.length) add("comm", "Courant faible et lignes sans disjoncteur", com.map((a) => a.id), { section: null, prot: null, direct: true });
 
   // numéros : C1, C2… dans l'ordre éclairage, prises, spécialisés ; COM à part
   let n = 0;
@@ -122,9 +156,10 @@ export function checkCircuits(circuits, items, S) {
     if (c.kind === "prises" && p > S.maxPrises) issues.push({ c: c.id, msg: `${c.n} : ${p} prises (max ${S.maxPrises})` });
     if (c.kind === "cuisine" && p > (S.maxPrisesCuisine || 6)) issues.push({ c: c.id, msg: `${c.n} : ${p} prises de cuisine (max ${S.maxPrisesCuisine || 6})` });
     if (c.kind === "specialise" && c.apps.length > 1) issues.push({ c: c.id, msg: `${c.n} : circuit spécialisé avec ${c.apps.length} appareils` });
+    if (c.kind === "volets") { const P = c.apps.map((id) => items.find((a) => a.id === id)).filter((a) => a && a.t !== "CVR").reduce((s2, a) => s2 + (+(a.p ?? S.puissanceMoteur ?? 50) || 50), 0), cap = (c.prot >= 16 ? 3680 : 2300); if (P > cap) issues.push({ c: c.id, msg: `${c.n} : ${P} W de moteurs de volets (max ${cap} W en ${c.prot} A)` }); }
   }
-  const need = (t) => !["TAB"].includes(t) && !(t === "VMC" && !S.vmcCablee);
-  const orphans = items.filter((a) => need(a.t) && !inC.has(a.id)).map((a) => a.id);
+  const need = (a) => !["TAB", "EQL"].includes(a.t) && !(a.t === "VMC" && !S.vmcCablee) && !(a.t === "HOTTE" && raccOf(a) === "a_choisir");
+  const orphans = items.filter((a) => need(a) && !inC.has(a.id)).map((a) => a.id);
   return { issues, orphans };
 }
 
@@ -135,7 +170,7 @@ export function checkCircuits(circuits, items, S) {
 // répartition habituelle (computeCircuits). Numéros : C1, C2… boîte par boîte (éclairage, prises, cuisine), puis le reste.
 export function circuitsByBox(items, links, boxes, S) {
   const byId = new Map(items.map((a) => [a.id, a]));
-  const direct = (a) => a.t === "PC20" || a.t === "RJ45" || (a.t === "SC" && S.scSpecialise) || a.t === "VMC" || a.t === "TAB";
+  const direct = (a) => a.t === "PC20" || a.t === "RJ45" || (a.t === "SC" && S.scSpecialise) || a.t === "VMC" || a.t === "TAB" || directBreaker(a) || directNoBreaker(a) || (a.t === "HOTTE" && !hotteBoite(a));
   const near = S.memeEndroit ?? 0.3;
   const out = [], inBoxes = new Set();
   const sorted = boxes.slice().sort((p, q) => String(p.n).localeCompare(String(q.n), "fr", { numeric: true }));
@@ -164,8 +199,17 @@ export function circuitsByBox(items, links, boxes, S) {
     const chunk = (L, max, kind, lab, sec, prot) => { const sz = Math.ceil(L.length / Math.max(1, Math.ceil(L.length / max))); for (let i = 0, k = 0; i < L.length; i += sz) out.push({ kind, label: `${lab} ${b.n}${L.length > max ? " · " + ++k : ""}`, apps: L.slice(i, i + sz).map((a) => a.id), section: sec, prot, box: b.id }); };
     const P = chain(apps.filter((a) => (a.t === "PC16" && !isCuisine(a, S)) || (a.t === "SC" && !S.scSpecialise)));
     chunk(P, S.maxPrises, "prises", "Prises", S.secPrises, S.protPrises);
-    const Q = chain(apps.filter((a) => a.t === "PC16" && isCuisine(a, S)));
+    const Q = chain(apps.filter((a) => (a.t === "PC16" && isCuisine(a, S)) || hotteBoite(a)));
     chunk(Q, S.maxPrisesCuisine || 6, "cuisine", "Prises cuisine", S.secCuisine || 2.5, S.protCuisine || 20);
+    // volets roulants de la boîte : circuit dédié (R-079), coupé selon la puissance admissible (R-087)
+    const V = apps.filter((a) => isVolet(a.t));
+    voletChunks(V, S).forEach((part, i, all) => {
+      const ids = new Set(part.map((a) => a.id));
+      V.filter((c) => c.t === "CVR" && links.some((l) => l.c === c.id && ids.has(l.l))).forEach((c) => ids.add(c.id));
+      out.push({ kind: "volets", label: `Volets roulants ${b.n}${all.length > 1 ? " · " + (i + 1) : ""}`, apps: [...ids], section: S.secVolets || 1.5, prot: S.protVolets || 10, box: b.id });
+    });
+    const loneC = V.filter((c) => c.t === "CVR" && !out.some((x) => x.box === b.id && x.apps.includes(c.id)));
+    if (loneC.length) { const host = out.find((x) => x.box === b.id && x.kind === "volets"); if (host) host.apps.push(...loneC.map((a) => a.id)); else out.push({ kind: "volets", label: `Volets roulants ${b.n}`, apps: loneC.map((a) => a.id), section: S.secVolets || 1.5, prot: S.protVolets || 10, box: b.id }); }
   }
   const rest = computeCircuits(items.filter((a) => !inBoxes.has(a.id)), links, S);
   let n = 0;

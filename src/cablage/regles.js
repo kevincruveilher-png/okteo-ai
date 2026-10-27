@@ -93,7 +93,7 @@ const ECARTS = [
 // réglage du panneau Paramètres → Câblage → règle(s) du journal
 export const CAB_RULES = { departsMax: ["R-001"], departsFace: ["R-001", "R-088"], maxPrises: ["R-021", "R-085"], maxPrisesCuisine: ["R-022"],
   secEclairage: ["R-020"], secPrises: ["R-021"], secCuisine: ["R-022"], couleursEclairage: ["R-020"], couleursPrises: ["R-021"],
-  couleursCuisine: ["R-022"], couleursCommande: ["R-072", "R-023"], bagues: ["R-075", "R-085"], icta16: ["R-074"], icta20: ["R-074"],
+  couleursCuisine: ["R-022"], couleursCommande: ["R-072", "R-023"], bagues: ["R-075", "R-085"], icta16: ["R-074"], icta20: ["R-074"], secVolets: ["R-079", "R-087"], protVolets: ["R-087"], puissanceMoteur: ["R-087"], couleursVolets: ["R-079"],
   memeEndroit: ["R-013", "R-073"], cableExt: ["R-014", "R-095"], majoration: ["R-011"], arrondi: ["R-078"], margeBoite: ["R-011"],
   margeApp: ["R-011"], circuitsParBoite: ["R-007", "R-085"], bornes: ["R-092"], hTableau: ["R-011"] };
 const same = (a, b) => (typeof a === "string" ? norm(a).replace(/\s+/g, "") === norm(b).replace(/\s+/g, "") : a === b);

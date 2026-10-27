@@ -201,7 +201,11 @@ window.okteo = {
       lv,
       lvName: levelName(lv),
       room: (roomAt(a.x, a.y) || {}).name || null,
-      rep: repMap()[a.id]
+      rep: repMap()[a.id],
+      // v54 : variante de raccordement, raccordement (hotte : celui de l'appareil, sinon le choix du chantier), puissance
+      ...(a.var ? { var: a.var } : {}),
+      ...(a.t === "HOTTE" ? { racc: a.racc || (K.CAB.choix || {}).raccordement || "a_choisir" } : {}),
+      ...(a.p != null ? { p: a.p } : {})
     }));
     const out = [];
     for (const l of CH.levels) out.push(...(l.id === K.LV.cur ? one(l.id) : withLevel(l.id, () => one(l.id))));

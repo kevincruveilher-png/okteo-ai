@@ -664,3 +664,10 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .why-card h4{margin:0 0 4px;display:flex;gap:8px;align-items:center}.why-card h4 .grow{flex:1}
 .why-card ol{margin:4px 0 4px 18px;padding:0}.why-card li{margin:2px 0}
 .why-card .gl{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}.why-card .gl button{font-size:11px;padding:0 5px}
+.ticon .gl3{fill:var(--accent);font:700 .55px var(--fm);text-anchor:middle}
+.more-w{position:relative;display:inline-flex}
+.pb.more{width:auto;padding:0 6px;gap:3px;display:inline-flex;align-items:center}.pb.more .tl{font-size:11px}
+.more-pop{position:absolute;top:100%;left:0;z-index:60;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.2);padding:8px;display:grid;grid-template-columns:repeat(3,auto);gap:6px 14px;width:max-content}
+.more-pop .mg b{display:block;font-size:11px;color:var(--mut);margin-bottom:3px;white-space:nowrap}
+.more-pop .mgl{display:flex;flex-wrap:wrap;gap:3px;max-width:190px}
+.dl-tab tr.faible td:first-child{border-left:3px solid #2c9b3a}.dl-sep td{background:rgba(44,155,58,.08)}.dl-tot{margin-top:8px}

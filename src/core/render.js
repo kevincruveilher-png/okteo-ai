@@ -14,6 +14,7 @@ import { placeHud } from "./hud.js";
 import { allLinks, belowData, crossLinks } from "./levels.js";
 import { getCab } from "../cablage/settings.js";
 import { portLayout, portXY } from "../cablage/boites.js";
+import { APPAREILS, raccOf } from "../cablage/appareils.js";
 
 // ---------- rendu ----------
 export const sv = document.getElementById("sv");
@@ -49,6 +50,12 @@ export function glyph(t) {
       return sq(0.6) + `<path d="M-0.85 -0.85L0.85 0.85M0.85 -0.85L-0.85 0.85" class="gs"/>`;
     case "TAB":
       return `<rect x="-1" y="-1.2" width="2" height="2.4" rx="0.2" class="gf"/><text y="0.3" class="glw">TD</text>`;
+  }
+  // v54 : appareils du journal des règles — carré avec leur abréviation (volet : carré barré en bas, courant faible : coin)
+  const D = APPAREILS[t];
+  if (D) {
+    const L = D.lab || t, cls = L.length > 2 ? "gl3" : "gl";
+    return sq(0.8) + (D.volet ? `<line x1="-0.8" y1="0.5" x2="0.8" y2="0.5" class="gs"/>` : "") + (D.faible ? `<path d="M0.35 -0.8H0.8V-0.35Z" class="gf"/>` : "") + `<text y="${D.volet ? 0.18 : 0.3}" class="${cls}">${L}</text>`;
   }
   return sq(0.8);
 }
@@ -95,7 +102,7 @@ export function draw() {
   let h = `<style>
   .gy{fill:var(--panel);stroke:var(--c,var(--accent));stroke-width:.14}.gf{fill:var(--c,var(--accent));stroke:var(--c,var(--accent));stroke-width:.14}
   .gs{stroke:var(--c,var(--accent));stroke-width:.16;fill:none}.gl{fill:var(--c,var(--accent));font:600 .75px var(--fm);text-anchor:middle}
-  .glw{fill:#fff;font:600 .7px var(--fm);text-anchor:middle}</style>`;
+  .glw{fill:#fff;font:600 .7px var(--fm);text-anchor:middle}.gl3{fill:var(--c,var(--accent));font:700 .52px var(--fm);text-anchor:middle}</style>`;
   if (K.bgLevel > 0 && layers.fond.on && K.FOND) h += `<image href="${K.FOND}" x="${bx}" y="${by}" width="${K.BG.w * s}" height="${K.BG.h * s}" opacity="${K.bgLevel}" preserveAspectRatio="none"/>`;
   // quadrillage (v37) : trait fin au pas le plus petit lisible (5 cm, 10 cm, 50 cm, 1 m ou 5 m), trait marqué tous les mètres
   if (layers.grille.on) {
@@ -707,9 +714,10 @@ export function circuitMap() {
     });
   });
   // appareils qui devraient être dans un circuit (pas le tableau, pas les bouches VMC non câblées)
-  m.__need = a => !["TAB", "VMC"].includes(a.t);
+  // (v54 : ni l'équipotentielle locale, raccordée à la terre de sa boîte, ni une hotte dont le raccordement reste à choisir)
+  m.__need = a => !["TAB", "VMC", "EQL"].includes(a.t) && !(a.t === "HOTTE" && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "a_choisir");
   // partent en ligne directe du tableau (ou du coffret) : pas d'alerte rouge avant la répartition
-  m.__direct = a => ["RJ45", "PC20", "SC"].includes(a.t);
+  m.__direct = a => ["RJ45", "PC20", "SC"].includes(a.t) || (APPAREILS[a.t] && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "direct");
   return m;
 }
 

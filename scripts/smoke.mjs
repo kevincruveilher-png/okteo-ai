@@ -1645,7 +1645,7 @@ try {
     await ev((o) => okteoExt.settings.set(JSON.parse(o)), old);
     await ev(() => okteoExt.panel.close("assistant"));
     const ok = /^Règle R-002 : je veux la modifier/.test(pre) && /Modifier R-002/.test(card) && /certitude.*supposee.*confirmee/.test(card) && /Champs inconnus : couleur/.test(card)
-      && after.cert === "confirmee" && after.st === "active" && after.v === 2 && after.h === "H-035|R-002|Modification|Confirmée par Kévin|true" && /validée \(H-035\)/.test(st);
+      && after.cert === "confirmee" && after.st === "active" && after.v === 2 && /^H-\d{3}\|R-002\|Modification\|Confirmée par Kévin\|true$/.test(after.h) && st.includes("validée (" + after.h.slice(0, 5) + ")");
     if (!ok) throw new Error(JSON.stringify({ pre, card: card.slice(0, 300), after, st }));
     return true;
   });
@@ -1744,6 +1744,44 @@ try {
     const t = (await (await doc.getPage(1)).getTextContent()).items.map((x) => x.str).join(" ");
     await page.click('#tabs button[data-tab="plan"]');
     if (!(/Rapport de câblage/.test(t) && /Étapes/.test(t) && /Où ça coince/.test(t) && /Modes de pieuvre étudiés/.test(t))) throw new Error(t.slice(0, 300));
+    return true;
+  });
+
+  console.log("Appareils du journal, volets, lignes directes (v54)");
+  await check("barre d'outils : « Autres ▾ » ouvre les appareils par groupe ; choisir le radiateur l'active (symbole dans le bouton)", async () => {
+    await page.click('#tabs button[data-tab="plan"]');
+    await ev(() => okteoExt.panel.close("assistant"));
+    await page.click('#tools [data-tool="__more"]');
+    const groups = await ev(() => [...document.querySelectorAll("#tools .more-pop .mg b")].map((b) => b.textContent));
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/autres.png", clip: { x: 0, y: 0, width: 1500, height: 420 } });
+    await page.click('#tools .more-pop [data-tool="RAD"]');
+    const r = await ev(() => ({ tool: okteo.tool, open: !!document.querySelector("#tools .more-pop"), on: document.querySelector('#tools [data-tool="__more"]').classList.contains("on"), txt: document.querySelector('#tools [data-tool="__more"] text')?.textContent }));
+    await ev(() => okteo.setTool("sel"));
+    if (!(groups.length === 6 && /Volets roulants/.test(groups.join()) && r.tool === "RAD" && !r.open && r.on && r.txt === "RAD")) throw new Error(JSON.stringify({ groups, r }));
+    return true;
+  });
+  await check("nouveaux appareils : radiateur, TV, hotte (choix du raccordement dans Propriétés), volet + CVR reliés, équipotentielle locale", async () => {
+    const ids = await ev(() => { const a = okteo.state.app.find((x) => x.t === "PC16"); const r = okteo.importDevices([{ t: "RAD", x: a.x + 0.6, y: a.y }, { t: "TV", x: a.x + 1.2, y: a.y }, { t: "HOTTE", x: a.x + 1.8, y: a.y }, { t: "VR", x: a.x + 2.4, y: a.y }, { t: "CVR", x: a.x + 2.4, y: a.y + 0.6 }, { t: "EQL", x: a.x + 3, y: a.y }], [{ c: 4, l: 3 }]); return r.ids || r; });
+    const hotte = await ev(() => okteo.state.app.find((x) => x.t === "HOTTE").id);
+    await ev((id) => okteo.select([id]), hotte);
+    await page.waitForSelector("#f_racc");
+    const info = await ev(() => document.querySelector("#sidebody").textContent);
+    await page.selectOption("#f_racc", "ligne_directe");
+    const racc = await ev(() => okteo.state.app.find((x) => x.t === "HOTTE").racc);
+    const lk = await ev(() => { const c = okteo.state.app.find((x) => x.t === "CVR"), v = okteo.state.app.find((x) => x.t === "VR"); return okteo.state.lia.some((l) => l.c === c.id && l.l === v.id); });
+    await ev(() => okteo.clearSel());
+    if (!(/à choisir : boîte ou ligne directe/.test(info) && racc === "ligne_directe" && lk)) throw new Error(JSON.stringify({ info: info.slice(0, 300), racc, lk, ids }));
+    return true;
+  });
+  await check("lignes directes (feuille FTZ) : étiquette, longueur, gaine, fil, aboutissant ; courant faible à part en gaine verte ; total par gaine", async () => {
+    await ev(() => okteoExt.cablage.auto());
+    await page.click('#tabs button[data-tab="lignes"]');
+    await page.waitForSelector("#lignes .dl-tab");
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/lignes.png" });
+    const r = await ev(() => { const T = document.querySelector("#lignes"); return { head: [...T.querySelectorAll(".dl-tab thead th")].map((x) => x.textContent).join("|"), rows: [...T.querySelectorAll(".dl-tab tbody tr")].map((tr) => tr.textContent), tot: T.querySelector(".dl-tot").textContent }; });
+    await page.click('#tabs button[data-tab="plan"]');
+    const rad = r.rows.find((t) => /^C\d/.test(t)), tv = r.rows.find((t) => /^TV\d/.test(t)), hot = r.rows.find((t) => /^HOTTE\d/.test(t));
+    if (!(r.head === "Étiquette|Longueur (m)|Gaine|Fil|Aboutissant|Circuit|Vérif" && rad && /ICTA 161,5 B\+N\+M\+V\/J/.test(rad) && tv && /ICTA 20 V \(verte\)17 VATC/.test(tv) && hot && /2,5 B\+R\+V\/J/.test(hot) && r.rows.some((t) => /^Courant faible/.test(t)) && /Total de gaines : .*ICTA 16/.test(r.tot))) throw new Error(JSON.stringify(r).slice(0, 600));
     return true;
   });
 

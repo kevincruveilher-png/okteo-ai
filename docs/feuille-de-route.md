@@ -143,7 +143,7 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
 - Vues : bande des 9 étapes, « Où ça coince » (avec « Proposer une modification de la règle »), « Pourquoi ? » au
   clic sur une gaine / un fil / une boîte, statistiques par règle.
 
-### 54 — Nouveaux appareils, volets roulants, lignes directes
+### 54 — Nouveaux appareils, volets roulants, lignes directes — FAIT (27/10/2026)
 - Types (R-084) : radiateur, sèche-serviette, caisson et commande VMC, prises spécialisées nommées (four, LL, LV, SL),
   plaque 6 mm², chauffe-eau, prises extérieures, interphones, antenne et TV, équipotentielles principale et locale,
   volet roulant, CVR, Velux, Aqua Air (alimentation + pilotage), bouche motorisée (YSYT sans gaine), moteur de garage,

@@ -1,6 +1,7 @@
 // Oktéo AI — cœur : Hit-tests (ce qui est sous la souris) et appareils attachés à leur mur.
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
 import { K } from "./k.js";
+import { muraux } from "../cablage/appareils.js";
 import { interiorPoly, polyArea } from "../walls/rooms.js";
 import { cornerHalf, dist, epOf, nodeById, segById, segDir, state } from "./model.js";
 import { markDirty, snapshot } from "./persist.js";
@@ -25,7 +26,8 @@ export function hitNode(wx, wy) {
 // Liaisons : rôle d'un appareil ("c" = commande, "l" = lumière, null = ni l'un ni l'autre),
 // point de contrôle de la courbe dessinée, et liaison sous la souris (courbe échantillonnée).
 export function linkRole(t) {
-  return t === "INT" || t === "VV" || t === "BP" ? "c" : t === "LUM" || t === "SPOT" || t === "APP" ? "l" : null;
+  // v54 : la commande de volet (CVR) se relie à ses volets (VR, Velux) comme un interrupteur à ses lumières (R-096)
+  return t === "INT" || t === "VV" || t === "BP" || t === "CVR" ? "c" : t === "LUM" || t === "SPOT" || t === "APP" || t === "VR" || t === "VEL" ? "l" : null;
 }
 // liaisons en ligne droite (demande de Kévin, v35) : point de contrôle au milieu
 export function linkCtrl(c, l) {
@@ -228,7 +230,7 @@ export function snapAlign(x, y, exclId) {
   };
 }
 
-export const wallMounted = t => ["PC16", "PC20", "RJ45", "INT", "VV", "BP", "SC", "APP"].includes(t);
+export const wallMounted = t => ["PC16", "PC20", "RJ45", "INT", "VV", "BP", "SC", "APP", ...muraux].includes(t);
 
 // ---------- appareils attachés à leur mur ----------
 // a.wa = {e:"a"|"b", d, s} : distance d (m) depuis la FACE du mur d'angle côté e (le plus proche), côté s (±1) du mur.

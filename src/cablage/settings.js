@@ -28,6 +28,8 @@ export const CAB_DEFAULTS = {
   secPrises: 1.5, protPrises: 16,
   secCuisine: 2.5, protCuisine: 20,
   motsCuisine: "cuisine",  // pièces dont les prises 16 A sont des prises de cuisine (mots séparés par des virgules)
+  // volets roulants (v54, R-079, R-087) : circuit dédié en 1,5 mm², 10 A, 50 W par moteur (valeur retenue par Kévin)
+  secVolets: 1.5, protVolets: 10, puissanceMoteur: 50,
   secSpecialise: 2.5, protSpecialise: 20,
   scSpecialise: true,      // une sortie de câble = un circuit spécialisé (sèche-serviettes, volet…)
   vmcCablee: false,        // « VMC » sur le plan = bouche d'extraction (pas de câble) ; cocher si c'est le groupe VMC
@@ -39,6 +41,7 @@ export const CAB_DEFAULTS = {
   couleursEclairage: "rouge/bleu",
   couleursCuisine: "rouge/bleu",
   couleursSpecialise: "rouge/bleu",
+  couleursVolets: "gris/bleu clair",
   // ronde des fils : retours lampe, navettes (les deux de même couleur) et commandes de télérupteur prennent la couleur
   // suivante, dans chaque boîte en repartant du début ; même ordre dans toutes les boîtes (fabrication en série)
   couleursCommande: "orange, violet, noir, marron, ivoire",
@@ -79,10 +82,12 @@ export const CAB_FIELDS = [
     ["secPrises", "Section prises", "mm²", "sec"], ["protPrises", "Protection prises", "A", "prot"],
     ["secCuisine", "Section prises de cuisine", "mm²", "sec"], ["protCuisine", "Protection prises de cuisine", "A", "prot"],
     ["secSpecialise", "Section circuits spécialisés", "mm²", "sec"], ["protSpecialise", "Protection circuits spécialisés", "A", "prot"],
+    ["secVolets", "Section volets roulants", "mm²", "sec"], ["protVolets", "Protection volets roulants", "A", "prot"],
+    ["puissanceMoteur", "Puissance d'un moteur de volet (si l'appareil n'en a pas)", "W", "num"],
     ["scSpecialise", "Une sortie de câble = un circuit spécialisé", "", "bool"], ["vmcCablee", "« VMC » = groupe VMC à alimenter (sinon : bouche, pas de câble)", "", "bool"]],
     "Nombre d'appareils par circuit, sections et protections : servent à la répartition en circuits (panneau Câblage)."],
   ["Couleurs des fils", [["couleursEclairage", "Éclairage : phase/neutre", "", "txt"], ["couleursPrises", "Prises : phase/neutre", "", "txt"],
-    ["couleursCuisine", "Prises de cuisine : phase/neutre", "", "txt"], ["couleursSpecialise", "Lignes directes : phase/neutre", "", "txt"], ["cTerre", "Terre", "", "txt"],
+    ["couleursCuisine", "Prises de cuisine : phase/neutre", "", "txt"], ["couleursSpecialise", "Lignes directes : phase/neutre", "", "txt"], ["couleursVolets", "Volets roulants : phase/neutre", "", "txt"], ["cTerre", "Terre", "", "txt"],
     ["couleursCommande", "Ronde des fils : retours lampe, navettes, commandes de télérupteur (dans l'ordre)", "", "txt"],
     ["bagues", "Bagues numérotées sur l'alimentation (n° du circuit, T1… pour le télérupteur)", "", "bool"]],
     "Couleurs écrites sur les bandes et les schémas de boîte (règles KiTéOHM)."],

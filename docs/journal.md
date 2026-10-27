@@ -281,6 +281,26 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 54 (27/10/2026) — livrée : appareils du journal, volets roulants, lignes directes comme FTZ
+- `src/cablage/appareils.js` (pur, partagé cœur + moteur) : 28 types (R-084) — radiateur, sèche-serviette, caisson et
+  commande VMC, climatisation, Aqua Air (2 lignes), bouche motorisée, four, lave-linge, lave-vaisselle, sèche-linge,
+  plaque, hotte (R-086), chauffe-eau, moteur de garage, interrupteur de coupure, prises extérieures (3G2,5, G EXT, 4G1,5),
+  volet roulant, Velux, CVR, interphone, TV, antenne, équipotentielles principale et locale, gaine aiguillée (R-097).
+  Chacun : repère, hauteur, raccordement (ligne directe, boîte, choix), fils ou câble, gaine, calibre, variantes.
+- Barre d'outils : bouton « Autres ▾ » (menu par groupe). Propriétés : raccordement de l'appareil, variante (câble ou
+  fils), hotte en boîte / ligne directe / à choisir, puissance d'un moteur de volet. Symboles à l'écran et à l'impression.
+- Volets (R-079, R-087, R-094, R-096) : circuit dédié gris / bleu clair 1,5 mm² 10 A, coupé à 2 300 W (50 W par moteur) ;
+  la CVR se relie à ses volets avec l'outil Liaison (volet filaire : deux fils de commande marron et noir de la ronde dans
+  la gaine de la CVR et dans celle du moteur ; sans CVR = volet connecté) ; boîte à part ou mélangés selon le choix du
+  chantier, sinon selon le mode (équilibrée : une boîte, proximité : le plus économique, par pièce : signalé).
+- Équipotentielle locale : un fil V/J 2,5 sur la terre de la boîte, terre de l'alimentation en 2,5 (R-080, R-075).
+- Lignes directes : une ligne par raccordement, étiquette = repère, fils ou câble et gaine du type ; courant faible en
+  gaine verte Ø20, à part ; page « Lignes directes » comme la feuille FTZ (étiquette, longueur, gaine, fil, aboutissant,
+  vérif, total par gaine). Les 28 lignes de DUCOURNEAU sortent avec la gaine et le fil de FTZ (test).
+- Circuits : spécialisés aux calibres du type ; « Courant faible et lignes sans disjoncteur » (COM).
+- Questions : Q-82 (gris des volets / R-021), Q-83 (couleur du fil pilote), Q-84 (calibres non relevés).
+- Tests : 30 + 58 + 175 + 139.
+
 ## Version 53 (27/10/2026) — livrée : étude du câblage, doutes sur le plan, « Pourquoi ? », câbler avec précontrôle
 - Onglet « Étude » (`src/ext/etude-ui.js`, moteur pur `src/cablage/etude.js`) : précontrôle (règles utiles au chantier
   et leur certitude ; une règle inconnue et bloquante, ou absente, empêche de câbler : « Je ne peux pas câbler : il manque

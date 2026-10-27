@@ -35,13 +35,22 @@ export function mountBoxesPage(el, { api }) {
 }
 
 export function mountDirectPage(el, { api }) {
+  // tableau des lignes directes (R-082, v54), comme la feuille FTZ : étiquette, longueur, gaine, fil, aboutissant,
+  // case de vérification ; total par gaine. Courant faible (gaine verte) à part du courant fort (R-003).
+  const done = new Set();
   function render() {
     const W = wiringNow(api), lv = new Map(api.levels.map((l) => [l.id, l.name]));
+    const row = (g, i) => `<tr class="${g.faible ? "faible" : ""}"><td><b>${esc(g.etiquette || g.no)}</b></td><td class="r">${g.length == null ? "—" : fr(g.length, 2)}</td><td>${esc(g.gaineTxt || (g.diam ? "ICTA " + g.diam : "—"))}</td><td>${esc(g.fil || (g.cable || "—"))}</td><td>${esc(g.aboutissant || g.label)}<span class="mut sm"> · ${esc(g.label)}${g.room ? " · " + esc(g.room) : ""} · ${esc(lv.get(g.lv) || g.lv)}</span></td><td>${esc(g.circuit)}</td><td class="c"><input type="checkbox" data-v="${i}" ${done.has(i) ? "checked" : ""} title="Vérifié"></td></tr>`;
+    const fort = W.direct.map((g, i) => [g, i]).filter(([g]) => !g.faible), faible = W.direct.map((g, i) => [g, i]).filter(([g]) => g.faible);
+    const tot = W.directTotals || {};
     el.innerHTML = `<div class="params-in cabpage"><h2>Lignes directes <span class="mut sm">${W.direct.length} lignes · du tableau (ou du coffret de communication) jusqu'à l'appareil, sans boîte</span></h2>
-      ${!W.direct.length ? `<p class="mut">Aucune ligne directe : elles apparaissent après la répartition en circuits (prises spécialisées, sorties de câble, RJ45).</p>` : `
-      <table class="gt"><thead><tr><th>N°</th><th>Circuit</th><th>Appareil</th><th>Pièce</th><th>Niveau</th><th>Longueur</th><th>Ø</th><th>Fils</th></tr></thead>
-      <tbody>${W.direct.map((g) => `<tr><td><b>${esc(g.no)}</b></td><td>${esc(g.circuit)}</td><td>${esc(g.label)}</td><td>${esc(g.room || "—")}</td><td>${esc(lv.get(g.lv) || g.lv)}</td><td class="r">${g.length == null ? "—" : fr(g.length, 2) + " m"}</td><td class="c">${g.diam}</td><td>${g.cable ? esc(g.cable) : g.wires.map(wire).join(" ")}</td></tr>`).join("")}</tbody></table>`}
-      ${W.issues.filter((x) => /^Pas de tableau/.test(x)).map((x) => `<p class="warn sm">⚠ ${esc(x)}</p>`).join("")}</div>`;
+      ${!W.direct.length ? `<p class="mut">Aucune ligne directe : elles apparaissent après la répartition en circuits (spécialisés, sorties de câble, radiateurs, courant faible…).</p>` : `
+      <table class="gt dl-tab"><thead><tr><th>Étiquette</th><th>Longueur (m)</th><th>Gaine</th><th>Fil</th><th>Aboutissant</th><th>Circuit</th><th>Vérif</th></tr></thead>
+      <tbody>${fort.map(([g, i]) => row(g, i)).join("")}
+      ${faible.length ? `<tr class="dl-sep"><td colspan="7"><b>Courant faible</b> <span class="mut sm">gaine verte Ø20, jamais avec le courant fort (R-003, R-084)</span></td></tr>${faible.map(([g, i]) => row(g, i)).join("")}` : ""}</tbody></table>
+      <p class="dl-tot"><b>Total de gaines :</b> ${Object.entries(tot).map(([k, n]) => `${n} × ${esc(k)}`).join(" · ")} · <b>${W.direct.length}</b> en tout</p>`}
+      ${W.issues.filter((x) => /^Pas de tableau|Ligne directe|raccordement à choisir/.test(x)).map((x) => `<p class="warn sm">⚠ ${esc(x)}</p>`).join("")}</div>`;
+    el.querySelectorAll("[data-v]").forEach((c) => (c.onchange = () => { const i = +c.dataset.v; if (c.checked) done.add(i); else done.delete(i); }));
   }
   render();
   return { render };

@@ -1,6 +1,7 @@
 // Oktéo AI — cœur : Chantier ouvert, modèle (murs, pièces, appareils), types d'appareils, géométrie de base.
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
 import { K } from "./k.js";
+import { APPAREILS } from "../cablage/appareils.js";
 import * as CHS from "../chantiers.js";
 import { pxPerVB } from "./view.js";
 
@@ -131,7 +132,9 @@ export const TYPES = {
     n: "Sortie de câble",
     h: null,
     r: "SC"
-  }
+  },
+  // v54 : appareils du journal des règles (radiateurs, spécialisés nommés, volets, courant faible…), src/cablage/appareils.js
+  ...Object.fromEntries(Object.entries(APPAREILS).map(([t, d]) => [t, { n: d.n, h: d.h, r: d.r }]))
 };
 
 export const PAL = ["PC16", "PC20", "RJ45", "LUM", "APP", "SPOT", "INT", "VV", "BP", "VMC", "SC", "TAB"];

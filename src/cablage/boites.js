@@ -8,6 +8,7 @@
 // on place donc des « unités » indivisibles (un allumage complet, ou une prise seule).
 
 import { packAlim } from "./gaine.js";
+import { isVolet } from "./appareils.js";
 import { pointInPoly, labelPoint } from "../walls/rooms.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
@@ -74,7 +75,8 @@ function obliq(box, p) { const dx = Math.abs(p.x - box.x), dy = Math.abs(p.y - b
 // unités indivisibles : allumages (lumières + commandes liées) et appareils seuls ; uniquement les circuits « à boîte »
 export function buildUnits(items, links, circuits) {
   const circOf = new Map(); circuits.forEach((c) => c.apps.forEach((id) => circOf.set(id, c)));
-  const boxed = items.filter((a) => { const c = circOf.get(a.id); return c && !c.direct && c.kind !== "comm"; });
+  // (v54 : l'équipotentielle locale va dans une boîte sans circuit : un fil vert/jaune sur la terre, R-080)
+  const boxed = items.filter((a) => { const c = circOf.get(a.id); return (c && !c.direct && c.kind !== "comm") || a.t === "EQL"; });
   const ids = new Set(boxed.map((a) => a.id));
   const par = new Map(boxed.map((a) => [a.id, a.id])), find = (x) => (par.get(x) === x ? x : (par.set(x, find(par.get(x))), par.get(x)));
   for (const l of links) if (ids.has(l.c) && ids.has(l.l)) par.set(find(l.c), find(l.l));
@@ -82,7 +84,8 @@ export function buildUnits(items, links, circuits) {
   boxed.forEach((a) => { const r = find(a.id); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(a); });
   return [...groups.values()].map((g) => ({
     ids: g.map((a) => a.id), lv: g[0].lv, x: g.reduce((s, a) => s + a.x, 0) / g.length, y: g.reduce((s, a) => s + a.y, 0) / g.length,
-    pts: g.map((a) => ({ x: a.x, y: a.y })), circuits: [...new Set(g.map((a) => circOf.get(a.id).id))],
+    pts: g.map((a) => ({ x: a.x, y: a.y })), circuits: [...new Set(g.map((a) => circOf.get(a.id)?.id).filter(Boolean))],
+    volet: g.every((a) => isVolet(a.t)),
     // pièce de l'unité (mode « par pièce ») : celle de la majorité de ses lumières, sinon de ses appareils
     room: majority(g.filter((a) => LIGHT.has(a.t) && a.room).map((a) => a.room)) || majority(g.filter((a) => a.room).map((a) => a.room)) || null,
   }));
@@ -273,7 +276,7 @@ function placeLevelRooms(units, tab, S, roomsLv) {
 // mode (v39) : "proximite" (le moins de cuivre, défaut), "equilibre" (parts égales), "piece" (une boîte par pièce ;
 // rooms = {[niveau]: [{name, poly}]})
 export const MODES = { proximite: "Proximité", equilibre: "Équilibrée", piece: "Par pièce" };
-export function placeBoxes(items, links, circuits, tabs, S0, { keep = [], count = 0, mode = "proximite", rooms = {} } = {}) {
+export function placeBoxes(items, links, circuits, tabs, S0, { keep = [], count = 0, mode = "proximite", rooms = {}, volets = "" } = {}) {
   const secOf = new Map(circuits.map((c) => [c.id, c.section || 1.5]));
   const S = { ...S0, alimCount: (ids) => (ids.size ? packAlim([...ids].map((id) => ({ id, section: secOf.get(id) || 1.5 })), S0).length : 0) };
   const all = buildUnits(items, links, circuits), exist = new Set(items.map((a) => a.id));
@@ -306,14 +309,37 @@ export function placeBoxes(items, links, circuits, tabs, S0, { keep = [], count 
     const mins = levels.reduce((s, lv) => s + minBoxes(units.filter((u) => u.lv === lv), S), 0);
     if (free < mins) issues.push(`${count} boîtes demandées : il en faut au moins ${mins + kept.length} pour respecter ${S.departsMax} départs par boîte (sans l'alimentation) et ${S.departsFace} gaines par face`);
   }
+  const placeMode = (L, lv, k) => {
+    if (mode === "piece") return placeLevelRooms(L, tabs[lv] || null, S, rooms[lv]);
+    if (mode === "equilibre") {
+      const kp = k || (placeLevel(L, tabs[lv] || null, S, 4, 0) || []).length || minBoxes(L, S);
+      return placeLevelBalanced(L, tabs[lv] || null, S, kp);
+    }
+    return placeLevel(L, tabs[lv] || null, S, 4, k || 0);
+  };
+  const tabOf = (lv) => tabs[lv] || null;
   for (const lv of levels) {
     const L = units.filter((u) => u.lv === lv);
     let r;
-    if (mode === "piece") r = placeLevelRooms(L, tabs[lv] || null, S, rooms[lv]);
-    else if (mode === "equilibre") {
-      const kp = want[lv] || (placeLevel(L, tabs[lv] || null, S, 4, 0) || []).length || minBoxes(L, S);
-      r = placeLevelBalanced(L, tabs[lv] || null, S, kp);
-    } else r = placeLevel(L, tabs[lv] || null, S, 4, want[lv] || 0);
+    // volets roulants (v54, R-079, R-094) : choix du chantier « boîte à part » ou « mélangés » ; sinon selon le mode :
+    // équilibrée = une boîte pour les volets (à part), proximité = la solution la plus économique, par pièce = mélangés
+    const LV = L.filter((u) => u.volet), LO = L.filter((u) => !u.volet);
+    let apart = false;
+    if (LV.length && LO.length) {
+      if (volets === "boite_a_part") apart = true;
+      else if (volets === "melanges") apart = false;
+      else if (mode === "equilibre") apart = true;
+      else if (mode === "proximite") {
+        const cost = (B) => (B || []).reduce((s2, b) => s2 + boxCost(b, b.units, tabOf(lv), S.memeEndroit ?? 0.3), 0) + (B || []).length * 0.5;
+        const mix = placeMode(L, lv, want[lv] || 0), sep = [...(placeLevel(LV, tabOf(lv), S, 4, 0) || []), ...(placeMode(LO, lv, 0) || [])];
+        apart = !!sep.length && (!mix || cost(sep) < cost(mix));
+      } else if (mode === "piece") issues.push("Volets roulants en mode « par pièce » : pas de règle (R-094) — volets mélangés aux autres boîtes, à vérifier");
+    }
+    if (apart) {
+      const rv = mode === "equilibre" ? (boxOk({ ...seat(LV, tabOf(lv), S, false), units: LV }, tabOf(lv), S) ? [{ ...seat(LV, tabOf(lv), S, false), units: LV }] : placeLevel(LV, tabOf(lv), S, 4, 0)) : placeLevel(LV, tabOf(lv), S, 4, 0);
+      const ro = placeMode(LO, lv, want[lv] ? Math.max(1, want[lv] - (rv || []).length) : 0);
+      r = rv && ro ? [...ro, ...rv] : null;
+    } else r = placeMode(L, lv, want[lv] || 0);
     if (!r) { issues.push(`Niveau ${lv} : impossible de respecter ${S.departsMax} départs par boîte (sans l'alimentation) et ${S.departsFace} gaines par face (une unité trop grosse ?)`); continue; }
     for (const b of r) { do n++; while (usedIds.has("b" + n)); usedIds.add("b" + n); out.push({ id: "b" + n, n: boxName(n), lv, x: +(Math.round(b.x / 0.05) * 0.05).toFixed(2), y: +(Math.round(b.y / 0.05) * 0.05).toFixed(2), apps: b.units.flatMap((u) => u.ids) }); }
   }

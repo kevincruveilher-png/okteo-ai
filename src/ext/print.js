@@ -8,6 +8,7 @@ import { logoData, LOGO_RATIO } from "./logo.js";
 export const PAPERS = { A4: [297, 210], A3: [420, 297] };
 const AUTO = [["A4", 50], ["A3", 50], ["A4", 75], ["A3", 75], ["A4", 100], ["A3", 100], ["A3", 125], ["A3", 150], ["A3", 200]];
 const MARGIN = 10, BAND = 44;                       // marge, bandeau bas (légende + cartouche)
+import { APPAREILS } from "../cablage/appareils.js";
 const SHORT = { PC16: "16", PC20: "20", RJ45: "RJ", VMC: "V", TAB: "TD" };
 const COLS = ["PC16", "PC20", "RJ45", "LUM", "APP", "SPOT", "INT", "VV", "BP", "VMC", "SC", "TAB"];
 const COLNAME = { PC16: "16 A", PC20: "20 A", RJ45: "RJ45", LUM: "Point", APP: "Appl.", SPOT: "Spot", INT: "Int.", VV: "VV", BP: "BP", VMC: "VMC", SC: "SC", TAB: "TD" };
@@ -339,6 +340,6 @@ export function symbol(doc, t, x, y, u, rot = 0) {
     case "VMC": sq(0.8); txt(SHORT.VMC); break;
     case "SC": sq(0.6); doc.line(x - 0.85 * u, y - 0.85 * u, x + 0.85 * u, y + 0.85 * u); doc.line(x + 0.85 * u, y - 0.85 * u, x - 0.85 * u, y + 0.85 * u); break;
     case "TAB": doc.setFillColor(20, 60, 110); doc.roundedRect(x - u, y - 1.2 * u, 2 * u, 2.4 * u, 0.2 * u, 0.2 * u, "FD"); txt(SHORT.TAB, true); break;
-    default: sq(0.8);
+    default: { sq(0.8); const D = APPAREILS[t]; if (D) { doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(3, u * (D.lab.length > 2 ? 0.55 : 0.8) * 72 / 25.4)); doc.setTextColor(20, 60, 110); doc.text(D.lab, x, y + u * 0.05, { align: "center", baseline: "middle" }); } }
   }
 }

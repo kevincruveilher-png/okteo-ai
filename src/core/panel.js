@@ -7,6 +7,7 @@ import { repMap } from "./view.js";
 import { draw } from "./render.js";
 import { reattach, removeSeg, roomArea } from "./attach.js";
 import { pref } from "../prefs.js";
+import { APPAREILS, lignesOf, gaineLabel, raccOf } from "../cablage/appareils.js";
 import { currentGroup, deleteGroup, duplicateGroup, groupCount, multi, resizeRoom, transformGroup } from "./groups.js";
 import { posOnWall, wallMeasure } from "./interact.js";
 import { applyCalib, applyRatio, buildTools, hintFor, setHint } from "./controls.js";
@@ -412,7 +413,7 @@ export function showSide() {
       <div class="field"><label>Depuis l'angle B <span class="u">cm</span></label><input id="f_dB" type="number" step="1" value="${Math.round(m.dB * 100)}"></div>` : ""}
       <div class="field"><label>X plan <span class="u">m</span></label><input id="f_x" type="number" step="0.01" value="${a.x}"></div>
       <div class="field"><label>Y plan <span class="u">m</span></label><input id="f_y" type="number" step="0.01" value="${a.y}"></div>
-      <div class="field full"><label>Hauteur <span class="u">cm</span></label><input id="f_h" type="number" step="1" value="${a.h ?? ""}" ${a.h == null ? 'placeholder="— plafond —"' : ''}></div></div>
+      <div class="field full"><label>Hauteur <span class="u">cm</span></label><input id="f_h" type="number" step="1" value="${a.h ?? ""}" ${a.h == null ? 'placeholder="— plafond —"' : ''}></div>${raccHTML(a)}</div>
      <div style="display:flex;gap:6px;margin-top:12px"><button id="dup">Dupliquer</button><button id="del" class="danger">Supprimer</button></div>
      <p class="note">${m ? "Fixé au mur : les distances sont mesurées depuis la face intérieure du mur d'angle, comme sur le chantier. Tapez 30 pour « à 30 cm de l'angle »." : "Approchez l'appareil d'un mur pour qu'il s'y fixe et afficher ses distances aux angles."}</p>`;
     const re = () => {
@@ -444,6 +445,11 @@ export function showSide() {
       markDirty();
       re();
     };
+    // v54 : raccordement des appareils du journal des règles (variante, hotte, puissance des volets)
+    const set = (k, v) => { snapshot(); if (v === "" || v == null) delete a[k]; else a[k] = v; markDirty(); re(); };
+    const fv = b.querySelector("#f_var"); if (fv) fv.onchange = e => set("var", e.target.value);
+    const fr = b.querySelector("#f_racc"); if (fr) fr.onchange = e => set("racc", e.target.value);
+    const fp = b.querySelector("#f_p"); if (fp) fp.onchange = e => set("p", e.target.value === "" ? "" : Math.max(0, +e.target.value));
     b.querySelector("#f_x").onchange = e => {
       snapshot();
       a.x = +(+e.target.value).toFixed(2);
@@ -543,3 +549,19 @@ export function delSel() {
 // ---------- barres ----------
 // icônes des outils (traits simples, couleur du texte)
 
+
+// raccordement d'un appareil du journal des règles (v54) : ligne directe (fils ou câble, gaine), variante modifiable,
+// choix boîte / ligne directe de la hotte (R-086), puissance d'un moteur de volet (R-087)
+function raccHTML(a) {
+  const D = APPAREILS[a.t];
+  if (!D) return "";
+  const eff = raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement });
+  const L = lignesOf(a) || [];
+  const txt = eff === "boite" ? (D.volet ? "dans une boîte, circuit volets (gris / bleu clair)" : D.voletCmd ? "dans la boîte de ses volets (reliez-la à ses volets avec l'outil Liaison)" : D.terre ? "dans une boîte : un fil vert/jaune " + String(D.terre).replace(".", ",") + " mm² sur la terre" : "dans une boîte")
+    : eff === "a_choisir" ? "à choisir : boîte ou ligne directe (doute signalé)" : "ligne directe : " + L.map(l => `${l.cable ? "câble " + l.cable : l.fils || "vide"} · ${gaineLabel(l.gaine)}${l.label ? " (" + l.label + ")" : ""}`).join(" + ") + (D.circuit ? ` · ${D.circuit.prot} A` : D.faible ? " · courant faible" : " · sans disjoncteur");
+  let h = `<div class="field full"><label>Raccordement</label><div class="note" style="margin:0">${txt}</div></div>`;
+  if (D.variantes) h += `<div class="field full"><label>Câble ou fils</label><select id="f_var"><option value="">${(D.lignes || []).map(l => l.cable ? "câble " + l.cable : "fils " + l.fils).join(" + ")} (par défaut)</option>${D.variantes.map(v => `<option value="${v.id}"${a.var === v.id ? " selected" : ""}>${v.label}</option>`).join("")}</select></div>`;
+  if (D.racc === "choix") h += `<div class="field full"><label>Hotte : raccordement</label><select id="f_racc"><option value=""${!a.racc ? " selected" : ""}>Choix du chantier</option><option value="boite"${a.racc === "boite" ? " selected" : ""}>En boîte (circuit cuisine)</option><option value="ligne_directe"${a.racc === "ligne_directe" ? " selected" : ""}>En ligne directe</option><option value="a_choisir"${a.racc === "a_choisir" ? " selected" : ""}>À choisir</option></select></div>`;
+  if (D.volet) h += `<div class="field full"><label>Puissance du moteur <span class="u">W</span></label><input id="f_p" type="number" min="0" step="5" value="${a.p ?? ""}" placeholder="${D.p} (valeur du journal)"></div>`;
+  return h;
+}

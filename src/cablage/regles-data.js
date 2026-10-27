@@ -1,6 +1,6 @@
 // Généré par scripts/regles-import.mjs depuis docs/journal-regles-cablage.md — ne pas modifier à la main.
 export const REGLES_BASE = {
- "version": "2026-10-27.34",
+ "version": "2026-10-27.35",
  "rules": [
   {
    "id": "R-001",
@@ -2496,6 +2496,36 @@ export const REGLES_BASE = {
    "si_doute": "",
    "statut": "repondue",
    "statut_texte": "répondue"
+  },
+  {
+   "id": "Q-82",
+   "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
+   "question": "Volets roulants : les bandes FTZ ont une phase grise (GR 11) et un neutre bleu clair (B 12). Or R-021 dit « le gris est la phase des prises, et uniquement d'elles ». Le gris des volets est-il une exception voulue ?",
+   "reponse": "Oui (bandes) : appliqué, marqué « à vérifier »",
+   "suppose": "",
+   "si_doute": "",
+   "statut": "ouverte",
+   "statut_texte": "ouverte"
+  },
+  {
+   "id": "Q-83",
+   "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
+   "question": "Radiateurs à fil pilote : FTZ met le fil pilote en noir (C1 à C3) et en ivoire (C4) sur DUCOURNEAU. Une couleur par zone de chauffage, ou une seule couleur ?",
+   "reponse": "noir pour tous",
+   "suppose": "",
+   "si_doute": "",
+   "statut": "ouverte",
+   "statut_texte": "ouverte"
+  },
+  {
+   "id": "Q-84",
+   "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
+   "question": "Calibres non relevés sur les tableaux : moteur de garage, climatisation, prise extérieure 4G1,5, G EXT (16 A supposé). Quels calibres ?",
+   "reponse": "16 A, à vérifier",
+   "suppose": "",
+   "si_doute": "",
+   "statut": "ouverte",
+   "statut_texte": "ouverte"
   }
  ],
  "history": [
@@ -2871,6 +2901,17 @@ export const REGLES_BASE = {
    "apres": "Critère « plus économique » confirmé ; règles communes à tous les pavillonneurs ; R-097 gaine aiguillée en attente",
    "motif": "Réponses de Kévin du 27/10/2026 (15:55)",
    "par": "IA (validée par Kévin)",
+   "code_valide": null
+  },
+  {
+   "id": "H-035",
+   "date": "27/10/2026",
+   "regle": "Q-82 à Q-84",
+   "action": "Création",
+   "avant": "—",
+   "apres": "Trois questions ouvertes",
+   "motif": "Cas rencontrés en ajoutant les appareils de R-084 (mise à jour 54)",
+   "par": "IA",
    "code_valide": null
   }
  ]
