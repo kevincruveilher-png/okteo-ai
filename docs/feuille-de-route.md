@@ -217,6 +217,9 @@ Retour de Kévin : « à première vue très prometteur ». Les vues lui seront 
   pièces) ; proportions entre symboles inchangées (prise > interrupteur, lumière ronde) ; bornes mini / maxi (≥ 2,5 mm
   imprimé, ≥ 12 px écran) ; jamais de taille différente selon l'endroit (zone chargée = décalage d'affichage avec trait
   de rappel, même taille) ; réglage manuel gardé. Aucun effet sur les calculs (positions réelles inchangées).
+- **Tourner le fond de plan (Kévin, 23:41)** : pouvoir faire pivoter le fond (90°, 180°, et quelques degrés pour un
+  scan de travers) pour travailler en vue droite ; le dessin déjà fait tourne avec lui (murs, appareils, boîtes), et
+  le relevé IA / automatique reste calé sur la page d'origine.
 - **Noms des pièces (Kévin, 23:32)** :
   - position modifiable : on glisse le nom à la main dans sa pièce ; la position choisie est gardée (enregistrée avec la
     pièce, respectée par le placement automatique des étiquettes et à l'impression) ;
