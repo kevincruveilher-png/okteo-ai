@@ -197,8 +197,11 @@ Retour de Kévin : « à première vue très prometteur ». Les vues lui seront 
   Essai à la main (23:47, Opus, même conversation) : les 3 lumières sans commande retrouvées en une réponse.
   WC : INT ajouté dans le WC derrière la porte (côté paumelle), relié ; appliques extérieures 87 et 88 : reliées entre
   elles et à un interrupteur du boîtier double de la baie ouest de la pièce de vie (l'autre élément = la CVR 76 déjà
-  relevée). Format de réponse respecté (liaisons par indices, ajouts à partir de 100, « introuvable » vide). À confirmer
-  par Kévin contre ses corrections faites à la main.
+  relevée). Format de réponse respecté (liaisons par indices, ajouts à partir de 100, « introuvable » vide).
+  Confirmé par Kévin (23:48) : c'est juste. Principe retenu : toutes les détections automatiques d'erreurs du logiciel
+  (contrôle des appareils, pièces non fermées, ouvertures ajustées, appareils hors pièce, doutes de l'étude…) servent à
+  générer de nouvelles consignes ciblées pour l'IA ; boucle relevé → contrôle → relecture jusqu'à ce qu'il ne reste que
+  des alertes « introuvable » à trancher par le dessinateur.
 - Vues de l'essai reçues (23:35, plan scanné tourné, 1/75) : murs posés sur ceux du plan, les 11 pièces fermées et
   nommées (porche non fermé, non relevé : normal) ; fenêtres bien placées ; porte de garage placée mais en « porte »
   (battant de 2,2 m) ; petit bout de mur qui dépasse à gauche sous la Chambre 2 ; appareils au bon endroit, 8 volets
