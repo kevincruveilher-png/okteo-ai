@@ -194,6 +194,7 @@ Retour de Kévin : « à première vue très prometteur ». Les vues lui seront 
   droite. Changement de la règle R-077 (confirmée « strictement horaire », Q-52) demandé par Kévin : à passer dans le
   journal (modification de R-077 + entrée d'historique) puis dans le moteur (gaines.js), les bandes, les étiquettes,
   l'impression (n° autour des boîtes, v48) et les tests (chantiers.test.mjs : sens horaire).
+  Précisé par Kévin (23:21) : .01 reste l'alimentation, la suite tourne dans le sens anti-horaire à partir d'elle.
 - Nouvelle vue dans le détail du câblage (onglet Bandes, feuille de boîte) : **les 4 tranches de la boîte** (faces A à D
   vues de face), avec sur chacune le n° de chaque gaine et son aboutissant (repère de l'appareil, pièce), pour aider le
   perceur de boîte. À prévoir aussi dans le PDF des bandes / étiquettes.
