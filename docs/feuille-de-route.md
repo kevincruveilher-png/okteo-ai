@@ -185,6 +185,11 @@ Retour de Kévin : « à première vue très prometteur ». Les vues lui seront 
     de garage », grande largeur, sans arc de battant) ;
   - le sens des portes (charnière, côté d'ouverture) est souvent faux : la consigne doit demander le côté des gonds
     et le côté où la porte s'ouvre, et l'import doit les reprendre (aujourd'hui l'ouverture est posée sans sens).
+- Vues de l'essai reçues (23:35, plan scanné tourné, 1/75) : murs posés sur ceux du plan, les 11 pièces fermées et
+  nommées (porche non fermé, non relevé : normal) ; fenêtres bien placées ; porte de garage placée mais en « porte »
+  (battant de 2,2 m) ; petit bout de mur qui dépasse à gauche sous la Chambre 2 ; appareils au bon endroit, 8 volets
+  avec leur CVR ; deux appliques extérieures (façades Ch2 et pièce de vie) sans commande ; symboles qui se chevauchent
+  au plan de travail de la cuisine (prises + RJ45 alignés) et trop gros pour ce plan.
 - À noter au comparatif des moteurs du journal (essai Opus du 27/10, chiffres de la réponse : 25 murs, 22 ouvertures,
   11 pièces, 100 appareils, 30 liaisons ; 22/22 ouvertures placées après la v55.2).
 
