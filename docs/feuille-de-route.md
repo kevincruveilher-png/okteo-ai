@@ -195,6 +195,17 @@ Retour de Kévin : « à première vue très prometteur ». Les vues lui seront 
   journal (modification de R-077 + entrée d'historique) puis dans le moteur (gaines.js), les bandes, les étiquettes,
   l'impression (n° autour des boîtes, v48) et les tests (chantiers.test.mjs : sens horaire).
   Précisé par Kévin (23:21) : .01 reste l'alimentation, la suite tourne dans le sens anti-horaire à partir d'elle.
+
+**Plan : boîtes, gaines, appareils (Kévin, 23:25)**
+- Boîtes trop grosses sur le plan : diminuer leur taille (aujourd'hui 3 symboles et au moins 34 px à l'écran, 11 mm
+  minimum à l'impression).
+- **Jamais de gaines qui se croisent.** Quand on déplace une boîte, ses gaines se recalculent automatiquement pour ne
+  pas se croiser (choix des points d'accroche et des tracés, entre gaines d'une même boîte et entre boîtes voisines).
+  Les tracés faits à la main (points de passage) restent prioritaires : à signaler s'ils créent un croisement.
+- **Jamais d'appareils qui se chevauchent** sur le plan (symboles posés au même endroit ou trop près : décalage
+  d'affichage, l'appareil garde sa position réelle).
+- **Taille des appareils adaptée au dessin** : symboles proportionnés à la taille du plan et des pièces (aujourd'hui
+  taille fixe réglable, au moins 12 px à l'écran), à l'écran comme à l'impression.
 - Nouvelle vue dans le détail du câblage (onglet Bandes, feuille de boîte) : **les 4 tranches de la boîte** (faces A à D
   vues de face), avec sur chacune le n° de chaque gaine et son aboutissant (repère de l'appareil, pièce), pour aider le
   perceur de boîte. À prévoir aussi dans le PDF des bandes / étiquettes.
