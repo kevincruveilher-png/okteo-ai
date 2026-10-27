@@ -303,6 +303,8 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 - Principe confirmé par Kévin (27/10/2026) : addition des sections et place dans la gaine, avec le même ratio pour tous les diamètres.
 - Paramètre réglable : capacité en mm² par diamètre. ICTA 16 = 7,5 (vu). ICTA 20 = 13,5 (maximum vu ; Kévin garde le même ratio que pour 16, 27/10/2026 12:43 : **valeur retenue**, ajustable si la valeur exacte est trouvée, Q-49). Au-dessus de la capacité connue : doute bloquant.
 
+- **Exception (Kévin, 27/10/2026, Q-79)** : plaque de cuisson B + R + V/J en 6 mm² → ICTA 20 (18 mm², au-delà de la règle des sections). Ligne B + R + V/J en 10 mm² : diamètre en attente de la réponse de Kévin (Q-81 : ICTA 25 proposé, ICTA 32 par la règle stricte du tiers).
+
 **R-075 · Alimentation d'une boîte** (précise R-010) — `a_valider` (numérotation : R-031)
 - Gaine .01, avec les couleurs : éclairage R / B (1,5), prises GR / BF (1,5), cuisine R / B (2,5), volets roulants GR / B clair (1,5).
 - **Numéros de raccordement : ceux de R-031 (terres en n° 1), pas ceux de FTZ.** Les numéros vus sur les bandes FTZ (R 1, B 2, GR 3, BF 4, R 7, B 8, terre 9, GR 11, B 12) ne sont pas repris (rectification de Kévin, 27/10/2026, 14:29).
@@ -393,6 +395,7 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 **R-092 · Bornes de raccordement** — `active` · `confirmee` (Q-38)
 - Le nombre de fils par borne n'est **pas une contrainte** : on peut faire des ponts au câblage pour prolonger une borne au-delà de 12. La capacité d'une borne n'influence ni les circuits ni le câblage des boîtes ; le logiciel ne la contrôle pas.
 - Une borne ne réunit jamais des fils de sections différentes (un circuit de prises 2,5 n'est jamais mélangé avec un circuit de prises 1,5).
+- **Seule exception : les terres** se raccordent ensemble quelle que soit leur section (Kévin, 27/10/2026, Q-80).
 
 **R-093 · Télérupteur et boutons poussoirs** — `active` · `confirmee` (Kévin, 27/10/2026, Q-70)
 - Le télérupteur est dans le tableau. Chaque bouton poussoir (BP, BP1A, BP1B…) a dans sa gaine la phase et un fil de commande ; le retour va aux lumières commandées. Commande et retour prennent chacun une couleur de la ronde (R-072) ; les lumières commandées reçoivent la couleur du retour. Les deux fils du télérupteur passent par la gaine d'alimentation de la boîte (R-010).
@@ -727,8 +730,9 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 ### P. Questions issues du développement (mise à jour 52, 27/10/2026)
 | N° | Question | Supposé aujourd'hui | Statut |
 |---|---|---|---|
-| Q-79 | Plaque de cuisson en 6 mm² (3 fils = 18 mm²) : FTZ la met en ICTA 20, au-delà des 13,5 mm² de R-074. Quel diamètre pour les lignes directes de grosse section (6 et 10 mm²) ? | ICTA 20 comme FTZ, signalé « à vérifier » | ouverte |
-| Q-80 | Terres de sections différentes (2,5 de l'alimentation, 1,5 des appareils) sur la borne n° 1 : autorisé (R-092 parle des circuits) ? | autorisé pour les terres | ouverte |
+| Q-79 | Plaque de cuisson en 6 mm² (3 fils = 18 mm²) : FTZ la met en ICTA 20, au-delà des 13,5 mm² de R-074. Quel diamètre pour les lignes directes de grosse section (6 et 10 mm²) ? | Exception : B + R + V/J 6 mm² en ICTA 20 (R-074) ; 10 mm² : Q-81 | répondue |
+| Q-80 | Terres de sections différentes (2,5 de l'alimentation, 1,5 des appareils) sur la borne n° 1 : autorisé (R-092 parle des circuits) ? | Oui : seules les terres se câblent ensemble malgré leur section (R-092) | répondue |
+| Q-81 | Ligne B + R + V/J en 10 mm² (3 × 10 mm²) : ICTA 25 (même tolérance que la plaque 6 mm² en ICTA 20) ou ICTA 32 (règle du tiers de la section de la gaine) ? | ICTA 25 proposé par Claude | ouverte |
 
 ## 6. Prochaine étape
 
@@ -780,3 +784,5 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | H-028 | 27/10/2026 | Journal | Modification | En-tête et notes obsolètes (limite de 18, « toutes à valider ») | En-tête à jour (52 règles), regroupement par catégorie complété, doublon de R-084 retiré, section 6 mise à jour | Préparation de la passation au développement, demande de Kévin du 27/10/2026 (14:22) | IA (validée par Kévin) | — |
 | H-029 | 27/10/2026 | R-075 | Modification | Alimentation avec les numéros FTZ (R 1 / B 2, GR 3 / BF 4, R 7 / B 8, terre 9, GR 11 / B 12) | Couleurs seules ; numérotation selon R-031 (terres n° 1) | Contradiction avec R-031 relevée au développement ; Kévin : « on conserve notre règle » (14:29) | IA (validée par Kévin) | — |
 | H-030 | 27/10/2026 | Q-79, Q-80 | Création | — | Deux questions ouvertes | Cas rencontrés en appliquant R-074 et R-092 au câblage (mise à jour 52) | IA | — |
+| H-031 | 27/10/2026 | R-074 | Modification | Au-delà de 13,5 mm² : doute | Exception : plaque B + R + V/J 6 mm² en ICTA 20 ; Q-79 répondue, Q-81 ouverte (10 mm²) | Réponse de Kévin du 27/10/2026 (15:50) | IA (validée par Kévin) | — |
+| H-032 | 27/10/2026 | R-092 | Modification | Sections jamais mélangées sur une borne | Sauf les terres, raccordées ensemble quelle que soit leur section ; Q-80 répondue | Réponse de Kévin du 27/10/2026 (15:50) | IA (validée par Kévin) | — |

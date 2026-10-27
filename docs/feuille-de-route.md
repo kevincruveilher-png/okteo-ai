@@ -124,6 +124,12 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
 - Longueur totale de la boîte sous son nom (bande, étiquette, dossier).
 - Chaque résultat garde la règle qui l'a produit et sa certitude ; « à vérifier » imprimé sur la bande si non confirmée.
 
+### Notes du 27/10/2026 (15:50), à faire avec la prochaine mise à jour
+- R-074 : exception plaque B + R + V/J 6 mm² → ICTA 20 dans `gaineFor` (lignes directes) ; 10 mm² selon Q-81.
+- R-092 : terres de sections différentes autorisées sur la borne n° 1 (déjà le cas dans le contrôle, retirer la mention
+  « à confirmer »).
+- `npm run regles` après la mise à jour du journal (H-031, H-032).
+
 ### 53 — Doutes, précontrôle et étude
 - Précontrôle avant « Câbler » (bouton et assistant) : règles utiles au chantier et leur certitude ; « Je ne peux pas
   câbler : il manque N règles » si un point bloquant est ouvert.
