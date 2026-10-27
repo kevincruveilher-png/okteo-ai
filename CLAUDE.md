@@ -302,13 +302,16 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   mètres `BS/f`), n° de gaine horizontaux sur fond blanc ; print-ui : cases `.pr-layers`, `fromView()` à l'ouverture
   (calques + `showCircuits`), `.pr-fromview`, `gaineNos()` via `wiringNow`. Journal : `pendingQuestions(J)`,
   `filterRules(..., {attente})`, bouton `#rg-f-wait`, `.rg-wait(.col)`.
+- v55.1 : ai-plan.js `AI_TYPES` = 12 de base + `APPAREILS` (descriptions `HINT`), `promptBody` commun, `aiPrompt` (avec
+  clé) et `pastePrompt()` (sans clé, « ref » page entière) ; import : `h` (cm, 0–300) et liaisons CVR → VR/VEL ;
+  ai-releve `#ai-copy` (presse-papiers avec délai 1,5 s, sinon dans `#ai-paste`), `okteoExt.aiReleve.copied`.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (58 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (175 : règles du journal sur 4 chantiers réels) + `scripts/smoke.mjs` (142 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (58 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (175 : règles du journal sur 4 chantiers réels) + `scripts/smoke.mjs` (143 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

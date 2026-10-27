@@ -690,6 +690,29 @@ try {
       || undone.segs !== before.segs || undone.app !== before.app) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("relevé IA sans clé (v55.1) : « Copier la consigne » (ref, 40 types, hauteurs, CVR) ; réponse avec radiateur, volet + CVR, hauteur lue", async () => {
+    await ev(() => okteoExt.aiReleve.pastePanel());
+    await page.click("#ai-copy");
+    await page.waitForFunction(() => !/Copier la consigne/.test(document.querySelector("#ai-copy").textContent), null, { timeout: 5000 });
+    const P0 = await ev(() => okteoExt.aiReleve.copied);
+    const cons = /"ref"/.test(P0) && /CVR vers VR ou VEL/.test(P0) && /H:1\.20m/.test(P0) && /RAD = /.test(P0) && /CETH = /.test(P0) && /ne le coupe jamais/.test(P0) && /TOUTES les lumières/.test(P0);
+    const rep = { ref: { W: 1000, H: 1000 }, murs: [{ x1: 200, y1: 200, x2: 800, y2: 200, ep: 20 }, { x1: 800, y1: 200, x2: 800, y2: 700, ep: 20 }, { x1: 800, y1: 700, x2: 200, y2: 700, ep: 20 }, { x1: 200, y1: 700, x2: 200, y2: 200, ep: 20 }],
+      ouvertures: [{ x: 500, y: 200, l: 120, t: "fenetre" }], pieces: [{ nom: "Chambre essai", x: 500, y: 450 }],
+      appareils: [{ t: "RAD", x: 300, y: 690 }, { t: "VR", x: 500, y: 210 }, { t: "CVR", x: 600, y: 210, h: 110 }, { t: "INT", x: 210, y: 400, h: 120 }, { t: "LUM", x: 500, y: 450 }, { t: "XYZ", x: 400, y: 400 }],
+      liaisons: [[2, 1], [4, 3], [0, 4]] };
+    await page.fill("#ai-paste", JSON.stringify(rep));
+    await page.click("#ai-read");
+    await page.waitForSelector("#ai-ok", { timeout: 15000 });
+    const P = await ev(() => { const p = okteoExt.aiReleve.plan; return { t: p.devices.map((d) => d.t).join(","), h: p.devices.map((d) => d.h || 0).join(","), links: p.links.map((l) => p.devices[l.c].t + ">" + p.devices[l.l].t).join(",") }; });
+    const n0 = await ev(() => okteo.state.app.length);
+    await page.click("#ai-ok");
+    const A = await ev(() => ({ int: (okteo.state.app.find((a) => a.t === "INT") || {}).h, rad: okteo.state.app.some((a) => a.t === "RAD"), lia: okteo.state.lia.length }));
+    await page.keyboard.press("Control+z");
+    const back = await ev(() => okteo.state.app.length);
+    const ok = cons && P.t === "RAD,VR,CVR,INT,LUM" && P.h === "0,0,110,120,0" && P.links === "CVR>VR,INT>LUM" && A.int === 120 && A.rad && A.lia === 2 && back === n0;
+    if (!ok) throw new Error(JSON.stringify({ cons, P, A, back, n0 }));
+    return true;
+  });
   await check("version en ligne : Claude appelé directement depuis le navigateur ; NVIDIA refusé avec un message clair", async () => {
     let hdr = null;
     await page.route("https://api.anthropic.com/v1/messages", (route) => { hdr = route.request().headers(); route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: [{ type: "text", text: "OK direct" }] }) }); });

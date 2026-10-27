@@ -2,43 +2,79 @@
 // remise au propre de la géométrie (murs redressés, sommets fusionnés, jonctions en T coupées), conversion pixels → mètres.
 // L'IA travaille en pixels de l'image envoyée ; `map` = { x0, y0, sx, sy } : x (m) = x0 + u × sx, y (m) = y0 + v × sy.
 
-export const AI_TYPES = {
+import { APPAREILS } from "../cablage/appareils.js";
+
+// types relevés (v55.1 : les 12 de base + les appareils du journal, R-084) — description donnée à l'IA
+const BASE_TYPES = {
   PC16: "prise de courant 16 A",
-  PC20: "prise spécialisée 20 A ou 32 A (four, plaque, lave-linge…)",
-  RJ45: "prise réseau RJ45 / téléphone / TV",
+  PC20: "prise spécialisée 20 A ou 32 A dont l'usage n'est pas écrit (sinon FOUR, LL, LV, SL, PLAQ)",
+  RJ45: "prise réseau RJ45 / téléphone",
   LUM: "point lumineux au plafond (DCL)",
   APP: "applique murale",
   SPOT: "spot encastré",
   INT: "interrupteur simple",
-  VV: "va-et-vient",
-  BP: "bouton poussoir",
-  VMC: "bouche de VMC",
+  VV: "va-et-vient (un symbole à chaque endroit de commande)",
+  BP: "bouton poussoir (télérupteur)",
+  VMC: "bouche d'extraction VMC",
   TAB: "tableau électrique",
-  SC: "sortie de câble (volet roulant, chauffe-eau, extérieur…)",
+  SC: "sortie de câble dont l'usage n'est pas reconnu (en dernier recours)",
 };
+// précisions pour reconnaître les appareils du journal sur un plan
+const HINT = {
+  RAD: "radiateur électrique / convecteur", SS: "sèche-serviette (salle de bain)", VMCG: "caisson / groupe VMC (combles)",
+  CVMC: "commande de VMC (grande vitesse)", CLIM: "climatisation (unité ou alimentation)", AQA: "pompe à chaleur / Aqua Air / PAC",
+  BOUCHE: "bouche de diffusion motorisée", FOUR: "prise du four", LL: "prise du lave-linge", LV: "prise du lave-vaisselle",
+  SL: "prise du sèche-linge", PLAQ: "sortie plaque de cuisson (32 A)", HOTTE: "hotte", CETH: "chauffe-eau (cumulus, thermodynamique)",
+  MGAR: "moteur de porte de garage / portail", ICOUP: "interrupteur de coupure", PCEXT: "prise extérieure",
+  GEXT: "prise de garage extérieure (G EXT)", PX4: "prise extérieure pilotée (4G1,5)", VR: "moteur de volet roulant (à la fenêtre)",
+  VEL: "Velux / fenêtre de toit motorisée", CVR: "commande de volet roulant (inverseur montée / descente)",
+  INTERCO: "interphone / visiophone / sonnette", TV: "prise TV (antenne)", ANT: "antenne / parabole",
+  EQP: "équipotentielle principale", EQL: "équipotentielle locale (salle de bain)", AIG: "gaine aiguillée en attente (fibre, réseau)",
+};
+export const AI_TYPES = { ...BASE_TYPES, ...Object.fromEntries(Object.entries(APPAREILS).map(([k, v]) => [k, HINT[k] || v.n])) };
+const LIGHT = new Set(["LUM", "APP", "SPOT"]), CMD = new Set(["INT", "VV", "BP"]), VOLET = new Set(["VR", "VEL"]);
 
-export function aiPrompt({ W, H, cmPerPx }) {
+// consigne commune (relevé avec clé : image envoyée ; sans clé : PDF joint dans une autre conversation)
+function promptBody(coords) {
   const types = Object.entries(AI_TYPES).map(([k, v]) => `  ${k} = ${v}`).join("\n");
-  return `Voici le plan d'une maison individuelle (image de ${W} × ${H} pixels ; 1 pixel ≈ ${cmPerPx.toFixed(2)} cm ; origine en haut à gauche, x vers la droite, y vers le bas).
-Relève ce plan pour le redessiner : murs, portes et fenêtres, pièces, appareillage électrique et liaisons commande → lumière.
+  return `Relève ce plan pour le redessiner : murs, portes et fenêtres, pièces, appareillage électrique et liaisons des commandes.
 
 Règles :
-- Coordonnées en PIXELS de cette image, nombres entiers.
-- Un mur = un segment sur l'AXE du mur (milieu de son épaisseur), d'un angle à l'autre ; "ep" = épaisseur en cm (murs extérieurs souvent 20 à 30 cm, cloisons 5 à 10 cm). Les murs se rejoignent exactement aux angles et aux jonctions en T (même point).
-- Ne coupe pas un mur aux portes et fenêtres : donne les ouvertures à part (centre, largeur en cm, "porte" ou "fenetre").
-- Pièces : le nom écrit sur le plan et un point à l'intérieur de la pièce.
-- Appareils : le centre du symbole et son type parmi :
+${coords}
+- Murs : un segment sur l'AXE du mur (milieu de son épaisseur), d'un angle à l'autre ; "ep" = épaisseur en cm (murs extérieurs souvent 20 à 30 cm, cloisons 5 à 10 cm). Les murs se rejoignent exactement aux angles et aux jonctions en T (même point).
+- Un mur PASSE à travers ses portes et fenêtres : ne le coupe jamais à une ouverture. Donne les ouvertures à part (centre sur l'axe du mur, largeur en cm, "porte" ou "fenetre"). Chaque pièce doit être entièrement fermée par des murs.
+- Pièces : le nom écrit sur le plan et un point à l'intérieur de la pièce. Ne crée pas de pièce qui n'est pas écrite.
+- Appareils : le centre du symbole, son type parmi la liste ci-dessous, et "h" = hauteur en cm quand elle est écrite à côté (ex. « H:1.20m » → 120), sinon pas de "h".
 ${types}
-- Liaisons : [indice de la commande, indice de la lumière] dans la liste des appareils (INT, VV ou BP vers LUM, APP ou SPOT).
-- N'invente rien : si tu ne vois pas d'appareils, laisse la liste vide.
-
-Réponds UNIQUEMENT avec ce JSON (sans texte autour) :
-{"murs":[{"x1":0,"y1":0,"x2":0,"y2":0,"ep":20}],
+  Prends le type le plus précis : une prise marquée « LL » ou « lave-linge » est LL, pas PC20 ; un chauffe-eau est CETH, pas SC ; une commande de volet est CVR, pas SC ni INT. SC seulement si l'usage n'est pas reconnaissable.
+- Liaisons : [indice de la commande, indice de l'appareil commandé] dans la liste des appareils :
+  INT, VV ou BP vers LUM, APP ou SPOT ; CVR vers VR ou VEL.
+  Un allumage commandé de plusieurs endroits : chaque VV (ou BP) est relié à TOUTES les lumières qu'il commande. Une commande qui allume plusieurs lumières : une liaison par lumière.
+- N'invente rien : ce que tu ne vois pas reste absent. Mets dans "remarques" ce qui est douteux.`;
+}
+const JSON_FORM = `{"murs":[{"x1":0,"y1":0,"x2":0,"y2":0,"ep":20}],
  "ouvertures":[{"x":0,"y":0,"l":90,"t":"porte"}],
  "pieces":[{"nom":"Cuisine","x":0,"y":0}],
- "appareils":[{"t":"PC16","x":0,"y":0}],
- "liaisons":[[0,1]],
+ "appareils":[{"t":"PC16","x":0,"y":0},{"t":"INT","x":0,"y":0,"h":110},{"t":"LUM","x":0,"y":0}],
+ "liaisons":[[1,2]],
  "remarques":"ce qui est douteux, en une ou deux phrases"}`;
+
+// relevé avec clé : l'image (rognée) est envoyée avec la consigne
+export function aiPrompt({ W, H, cmPerPx }) {
+  return `Voici le plan d'une maison individuelle (image de ${W} × ${H} pixels ; 1 pixel ≈ ${cmPerPx.toFixed(2)} cm ; origine en haut à gauche, x vers la droite, y vers le bas).
+${promptBody("- Coordonnées en PIXELS de cette image, nombres entiers.")}
+
+Réponds UNIQUEMENT avec ce JSON (sans texte autour) :
+${JSON_FORM}`;
+}
+// relevé sans clé (v36) : consigne à copier dans une conversation neuve avec le PDF joint ; la réponse se colle dans Oktéo
+export function pastePrompt() {
+  return `Voici le plan d'une maison individuelle (PDF joint, page 1).
+${promptBody(`- Fais une image de TOUTE la page 1 (sans rognage). Coordonnées en PIXELS de cette image (origine en haut à gauche, x vers la droite, y vers le bas), nombres entiers. Donne la taille de cette image dans "ref" (W = largeur, H = hauteur en pixels) : sans "ref", la réponse ne peut pas être placée.
+- Mesure les positions sur l'image (pas à l'estime) : les murs doivent tomber sur les murs du plan.`)}
+
+Réponds UNIQUEMENT avec ce JSON (sans texte autour) :
+${JSON_FORM.replace("{", '{"ref":{"W":0,"H":0},\n ')}`;
 }
 
 // la réponse peut contenir des ``` ou du texte autour : on prend le premier objet JSON complet
@@ -59,7 +95,6 @@ export function parseAiJson(text) {
 
 const num = (v) => (typeof v === "number" ? v : parseFloat(v));
 const ok = (...v) => v.every((x) => Number.isFinite(x));
-const LIGHT = new Set(["LUM", "APP", "SPOT"]), CMD = new Set(["INT", "VV", "BP"]);
 
 // Réponse de l'IA → { nodes, walls, openings } (format du relevé automatique), pieces, devices, links, stats
 export function aiToPlan(raw, map, { defEp = 0.2, mergeTol = 0.15, axisTol = 4 } = {}) {
@@ -144,14 +179,17 @@ export function aiToPlan(raw, map, { defEp = 0.2, mergeTol = 0.15, axisTol = 4 }
   (raw.appareils || []).forEach((d, i) => {
     const t = String(d.t || "").toUpperCase(), u = num(d.x), v = num(d.y);
     if (!AI_TYPES[t] || !ok(u, v)) return;
-    devIdx[i] = devices.length; devices.push({ t, ...P(u, v) });
+    const h = num(d.h);   // hauteur écrite sur le plan (cm), gardée si plausible
+    devIdx[i] = devices.length; devices.push({ t, ...P(u, v), ...(h > 0 && h <= 300 ? { h: Math.round(h) } : {}) });
   });
   const links = [];
   (raw.liaisons || []).forEach((l) => {
     const c = devIdx[Array.isArray(l) ? l[0] : l.c], m = devIdx[Array.isArray(l) ? l[1] : l.l];
     if (c == null || m == null) return;
-    if (CMD.has(devices[c].t) && LIGHT.has(devices[m].t)) links.push({ c, l: m });
-    else if (CMD.has(devices[m].t) && LIGHT.has(devices[c].t)) links.push({ c: m, l: c });
+    // commande → lumière, ou commande de volet (CVR) → volet / Velux ; dans un sens ou dans l'autre
+    const pair = (x, y) => (CMD.has(devices[x].t) && LIGHT.has(devices[y].t)) || (devices[x].t === "CVR" && VOLET.has(devices[y].t));
+    if (pair(c, m)) links.push({ c, l: m });
+    else if (pair(m, c)) links.push({ c: m, l: c });
   });
 
   // sommets sans mur retirés, numéros resserrés

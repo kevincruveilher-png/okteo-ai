@@ -281,6 +281,20 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 55.1 (27/10/2026) — livrée : consigne du relevé IA refaite
+- Consigne commune au relevé avec clé et au relevé sans clé (`promptBody`, ai-plan.js) ; `pastePrompt()` = version à
+  copier dans une conversation neuve avec le PDF joint (image de la page entière, champ « ref » obligatoire).
+- 40 types au lieu de 12 : les appareils du journal (radiateur, sèche-serviette, four, LL, LV, SL, plaque, hotte,
+  chauffe-eau, Aqua Air / PAC, volet + CVR, Velux, interphone / sonnette, TV, équipotentielles, prises extérieures,
+  moteur de garage…) ; « le type le plus précis », SC en dernier recours (leçons du comparatif : commandes de volets
+  comptées en SC, chauffe-eau / PAC / sonnette oubliés).
+- Hauteur `h` lue quand elle est écrite (« H:1.20m » → 120) et gardée à l'import ; liaisons CVR → volet / Velux en plus
+  de commande → lumière ; chaque VV relié à toutes ses lumières ; murs jamais coupés aux ouvertures, pièces fermées,
+  pas de pièce inventée (défauts d'Opus, de Sonnet et de Luna dans le comparatif).
+- Fenêtre « Coller une réponse » : bouton « 📋 Copier la consigne » (repli : consigne mise dans la zone de texte) ;
+  commande Ctrl+K « Relevé IA : copier la consigne ». Types inconnus toujours ignorés à l'import.
+- Tests : 30 + 58 + 175 + 143 = 406.
+
 ## Version 48 (27/10/2026) — livrée : impression complète du plan (boîtes, gaines, circuits), questions en attente
 Livrée après la 54 (elle attendait que le dessin des boîtes et des gaines soit stable). Version du logiciel : 0.55.0.
 - Impression (Ctrl+P) : les calques imprimés suivent la vue de l'écran (Bâti / Implantation / Câblage, menu Affichage) ;

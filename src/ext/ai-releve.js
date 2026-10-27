@@ -4,7 +4,7 @@
 // avec le relevé sans IA. On coche ce qu'on garde (murs / pièces / appareils) : un seul Ctrl+Z annule l'ajout.
 import { chat, PROVIDERS } from "./ai.js";
 import { settings } from "./settings.js";
-import { aiPrompt, parseAiJson, aiToPlan } from "../walls/ai-plan.js";
+import { aiPrompt, pastePrompt, parseAiJson, aiToPlan } from "../walls/ai-plan.js";
 import { findRooms, nameRooms, labelPoint, pointInPoly } from "../walls/rooms.js";
 import { autoScale } from "./pdf-page.js";
 import { esc } from "./util.js";
@@ -144,13 +144,24 @@ export function createAiReleve({ api, openParams }) {
   }
   function pastePanel() {
     if (api.tab !== "plan") api.setTab("plan");
-    show(`<p class="sm">Sans clé IA : collez ici la réponse (texte JSON) ou choisissez le fichier <b>.json</b> qu'on vous a remis.</p>
+    show(`<p class="sm"><b>1.</b> Copiez la consigne, collez-la dans une conversation neuve (Claude, ChatGPT…) avec le PDF du plan joint.
+      <button id="ai-copy" title="Copie la consigne du relevé (murs, ouvertures, pièces, 40 types d'appareils, hauteurs, liaisons) dans le presse-papiers">📋 Copier la consigne</button></p>
+      <p class="sm"><b>2.</b> Collez ici sa réponse (texte JSON) ou choisissez le fichier <b>.json</b> qu'on vous a remis.</p>
       <textarea id="ai-paste" rows="6" style="width:100%" placeholder='{"ref":{"W":1819,"H":1286},"murs":[…]}'></textarea>
       <div class="wrow"><input type="file" id="ai-file" accept=".json,.txt,application/json,text/plain"><button class="on" id="ai-read">Lire la réponse</button><button id="ai-x">Annuler</button></div>`);
     const ta = card.querySelector("#ai-paste");
     card.querySelector("#ai-file").onchange = async (e) => { const f = e.target.files && e.target.files[0]; if (f) ta.value = await f.text(); };
     card.querySelector("#ai-read").onclick = () => { const t = ta.value.trim(); if (t) fromPaste(t); };
     card.querySelector("#ai-x").onclick = close;
+    card.querySelector("#ai-copy").onclick = async (e) => {
+      const b = e.currentTarget, txt = pastePrompt();
+      copied = txt;
+      let ok = false;
+      // presse-papiers refusé ou sans réponse (1,5 s) : la consigne est mise dans la zone de texte, sélectionnée
+      try { await Promise.race([navigator.clipboard.writeText(txt), new Promise((_, no) => setTimeout(() => no(new Error("délai")), 1500))]); ok = true; } catch { /* repli ci-dessous */ }
+      if (!ok) { ta.value = txt; ta.select(); }
+      b.textContent = ok ? "✓ Consigne copiée" : "Consigne dans la zone ci-dessous : Ctrl+C";
+    };
   }
 
   async function open() {
@@ -180,5 +191,6 @@ export function createAiReleve({ api, openParams }) {
   }
 
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !card.hidden) close(); });
-  return { open, close, fromText, fromPaste, pastePanel, fondImage: (o) => fondImage(api, o), get plan() { return plan; }, get lastImage() { return lastImage; } };
+  let copied = "";
+  return { open, close, fromText, fromPaste, pastePanel, pastePrompt, get copied() { return copied; }, fondImage: (o) => fondImage(api, o), get plan() { return plan; }, get lastImage() { return lastImage; } };
 }
