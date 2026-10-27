@@ -74,7 +74,7 @@ est mis par défaut, et ce qui est fourni par KiTéOHM ou par l'électricien.
 
 ## 50 — Étiquettes de boîte et dossier PDF du chantier — FAIT (27/10/2026)
 
-## 48 — Impression complète du plan
+## 48 — Impression complète du plan — FAIT (27/10/2026, version 0.55.0)
 - Boîtes (faces, numéros de gaine, couleurs des circuits), gaines avec leurs points intermédiaires, liaisons en courbe comme à l'écran.
 - Impression selon le filtre de vues actif, une case par calque dans la fenêtre d'impression.
 - Rendu vérifié sur le PDF produit, comme pour l'échelle. Placée en dernier : le dessin des boîtes et des gaines peut encore bouger avec le tableau.
@@ -170,6 +170,7 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
 - Q-83 (couleur du fil pilote, peut-être par zone de chauffage) et Q-84 (calibres) : en attente d'un collègue plus
   qualifié. Le logiciel garde la valeur supposée « à vérifier ». Idée : dans le journal, un filtre « en attente » et
   la mention « à voir avec un collègue » sur la fiche, pour que ces questions ne soient pas reposées à Kévin.
+  → Fait avec la 48 (bouton « ⏳ En attente » du journal).
 
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.

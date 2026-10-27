@@ -671,3 +671,11 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .more-pop .mg b{display:block;font-size:11px;color:var(--mut);margin-bottom:3px;white-space:nowrap}
 .more-pop .mgl{display:flex;flex-wrap:wrap;gap:3px;max-width:190px}
 .dl-tab tr.faible td:first-child{border-left:3px solid #2c9b3a}.dl-sep td{background:rgba(44,155,58,.08)}.dl-tot{margin-top:8px}
+/* v48 : calques imprimés */
+.pr-ckh{display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.pr-ckh button{padding:1px 8px;font-size:11px;text-transform:none;letter-spacing:0}
+.pr-layers{border-top:1px solid var(--line);padding-top:6px}
+/* v48 : questions en suspens */
+.rg-wait{display:inline-block;margin-left:6px;padding:0 6px;border-radius:9px;font-size:11px;background:rgba(224,138,30,.15);color:var(--warn);white-space:nowrap}
+.rg-wait.col{background:rgba(120,90,200,.15);color:#8a6ad8}
+#rg-f-wait.on{background:var(--accent);color:#fff;border-color:var(--accent)}

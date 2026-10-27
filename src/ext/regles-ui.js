@@ -2,7 +2,7 @@
 // En tête : les choix du chantier ouvert (mode de pieuvre, volets, appareils à choix) et les écarts entre le journal et
 // les réglages actuels du logiciel ; puis le tableau filtrable des règles (clic = fiche), les questions et l'historique.
 // Pas d'édition directe : une règle se modifie par l'assistant (avant / après, validation, historique).
-import { CATS, CERTS, STATUTS, QSTATUTS, getJournal, ruleById, usedBy, historyOf, stats, totals, filterRules, ecarts,
+import { CATS, CERTS, STATUTS, QSTATUTS, getJournal, pendingQuestions, ruleById, usedBy, historyOf, stats, totals, filterRules, ecarts,
   exportJournal, importJournal } from "../cablage/regles.js";
 import { MODES } from "../cablage/boites.js";
 import { getCab } from "../cablage/settings.js";
@@ -26,7 +26,7 @@ if (typeof document !== "undefined") {
 }
 
 export function mountRegles(el, { api, ask }) {
-  const F = { cat: "", cert: "", statut: "", q: "" };
+  const F = { cat: "", cert: "", statut: "", q: "", attente: false };
   let open = "", tabQ = false, tabH = false;
 
   function choixHTML() {
@@ -77,7 +77,7 @@ export function mountRegles(el, { api, ask }) {
         <dt>Dépend de</dt><dd>${(r.depends_on || []).map(chip).join(" ") || "—"}</dd>
         <dt>Utilisée par</dt><dd>${used.map(chip).join(" ") || "—"}</dd>
         ${(r.preuves || []).length ? `<dt>Preuves</dt><dd>${r.preuves.map(esc).join("<br>")}</dd>` : ""}
-        ${Q.length ? `<dt>Questions</dt><dd>${Q.map((q) => `<span class="rg-q ${q.statut}">${q.id}</span> ${esc(q.question)} <span class="mut">— ${esc(q.reponse || q.suppose || "")} (${esc(QSTATUTS[q.statut] || q.statut)})</span>`).join("<br>")}</dd>` : ""}
+        ${Q.length ? `<dt>Questions</dt><dd>${Q.map((q) => `<span class="rg-q ${q.statut}">${q.id}</span> ${esc(q.question)} <span class="mut">— ${esc(q.reponse || q.suppose || "")} (${esc(QSTATUTS[q.statut] || q.statut)})</span>${waitTag(q)}`).join("<br>")}</dd>` : ""}
         <dt>Historique</dt><dd>${H.length ? H.map((h) => `<span class="mono">${h.id}</span> ${esc(h.date)} · ${esc(h.action)} · ${esc(h.motif)}`).join("<br>") : "—"}</dd>
       </dl>
       <div class="rg-act"><button class="rg-ask" data-id="${r.id}" title="Les règles ne se modifient que par l'assistant : il propose un avant / après que vous validez">✦ Demander une modification à l'assistant</button><span class="mut sm">Modifié le ${esc((r.modifie_le || "").split("-").reverse().join("/"))} par ${esc(r.modifie_par || "—")}</span></div>
@@ -91,11 +91,17 @@ export function mountRegles(el, { api, ask }) {
         ${open === r.id ? `<tr class="rg-fiche"><td colspan="5">${ficheHTML(J, r)}</td></tr>` : ""}`).join("")}
       </tbody></table>${list.length ? "" : `<p class="mut">Aucune règle ne correspond aux filtres.</p>`}`;
   }
+  // question en suspens : à voir avec un collègue plus qualifié, ou en attente d'un chantier (jamais reposée à Kévin)
+  function waitTag(q) {
+    if (q.statut !== "attente") return "";
+    const col = /coll[eè]gue/i.test(q.statut_texte || "");
+    return ` <span class="rg-wait${col ? " col" : ""}" title="${col ? "Hors de portée de Kévin : la valeur supposée reste « à vérifier » jusqu'à la réponse d'un collègue plus qualifié" : "En attente d'un chantier de ce type"}">${col ? "à voir avec un collègue" : "en attente d'un chantier"}</span>`;
+  }
   function questionsHTML(J) {
     const ord = { ouverte: 0, attente: 1, partielle: 2, reportee: 3, repondue: 4 };
-    const L = [...J.questions].sort((a, b) => ord[a.statut] - ord[b.statut] || a.id.localeCompare(b.id));
+    const L = [...(F.attente ? pendingQuestions(J) : J.questions)].sort((a, b) => ord[a.statut] - ord[b.statut] || a.id.localeCompare(b.id));
     return `<table class="rg-tab rg-qs"><tr><th>N°</th><th>Question</th><th>Réponse ou supposé</th><th>Statut</th></tr>
-      ${L.map((q) => `<tr><td class="mono">${q.id}</td><td>${esc(q.question)}<small class="mut">${esc(q.section)}</small></td><td>${esc(q.reponse || (q.suppose ? "supposé : " + q.suppose : ""))}${q.si_doute ? ` <span class="mut">(si doute : ${esc(q.si_doute)})</span>` : ""}</td><td><span class="rg-q ${q.statut}">${esc(QSTATUTS[q.statut] || q.statut)}</span></td></tr>`).join("")}</table>`;
+      ${L.map((q) => `<tr><td class="mono">${q.id}</td><td>${esc(q.question)}<small class="mut">${esc(q.section)}</small></td><td>${esc(q.reponse || (q.suppose ? "supposé : " + q.suppose : ""))}${q.si_doute ? ` <span class="mut">(si doute : ${esc(q.si_doute)})</span>` : ""}</td><td><span class="rg-q ${q.statut}">${esc(QSTATUTS[q.statut] || q.statut)}</span>${waitTag(q)}</td></tr>`).join("")}</table>`;
   }
   function historyHTML(J) {
     return `<table class="rg-tab rg-hist"><tr><th>N°</th><th>Date</th><th>Règle</th><th>Action</th><th>Avant → après</th><th>Motif</th><th>Par</th><th>Code</th></tr>
@@ -118,10 +124,11 @@ export function mountRegles(el, { api, ask }) {
         <select id="rg-f-cert" aria-label="Certitude"><option value="">Toutes certitudes</option>${Object.entries(CERTS).map(([k, l]) => `<option value="${k}" ${F.cert === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
         <select id="rg-f-statut" aria-label="Statut"><option value="">Statuts en vigueur</option>${Object.entries(STATUTS).map(([k, l]) => `<option value="${k}" ${F.statut === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
         <input type="search" id="rg-f-q" placeholder="Chercher dans les règles (ex. terre, ICTA, volet)" value="${esc(F.q)}">
-        <button id="rg-f-clear" ${F.cat || F.cert || F.statut || F.q ? "" : "hidden"}>Tout afficher</button>
+        <button id="rg-f-wait" class="${F.attente ? "on" : ""}" aria-pressed="${!!F.attente}" title="Questions en suspens (en attente d'un chantier ou d'un collègue plus qualifié) et les règles qui en dépendent">⏳ En attente <b>${pendingQuestions(J).length}</b></button>
+        <button id="rg-f-clear" ${F.cat || F.cert || F.statut || F.q || F.attente ? "" : "hidden"}>Tout afficher</button>
       </div>
       <div class="rg-list">${tableHTML(J)}</div>
-      <details class="rg-more" ${tabQ ? "open" : ""} id="rg-qd"><summary>Questions pour Kévin (${J.questions.length}, dont ${T.questions} à traiter)</summary>${questionsHTML(J)}</details>
+      <details class="rg-more" ${tabQ || F.attente ? "open" : ""} id="rg-qd"><summary>${F.attente ? `Questions en attente (${pendingQuestions(J).length})` : `Questions pour Kévin (${J.questions.length}, dont ${T.questions} à traiter)`}</summary>${questionsHTML(J)}</details>
       <details class="rg-more" ${tabH ? "open" : ""} id="rg-hd"><summary>Historique des modifications (${J.history.length})</summary>${historyHTML(J)}</details>`;
     wire();
   }
@@ -136,14 +143,14 @@ export function mountRegles(el, { api, ask }) {
   function wireEcarts() { el.querySelectorAll(".rg-ecarts [data-open]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); openRule(a.dataset.open); })); }
   function relist() {
     const J = getJournal(); el.querySelector(".rg-list").innerHTML = tableHTML(J); wireList();
-    el.querySelector("#rg-f-clear").hidden = !(F.cat || F.cert || F.statut || F.q);
+    el.querySelector("#rg-f-clear").hidden = !(F.cat || F.cert || F.statut || F.q || F.attente);
   }
   function msg(t, bad) { const m = el.querySelector(".rg-msg"); m.hidden = false; m.className = "rg-msg" + (bad ? " bad" : ""); m.textContent = t; }
 
   function openRule(id, scroll = true) {
     open = open === id && !scroll ? "" : id;
     const r = ruleById(getJournal(), id);
-    if (r && filterRules(getJournal(), F).every((x) => x.id !== id)) { F.cat = ""; F.cert = ""; F.statut = r.statut === "archivee" ? "archivee" : ""; F.q = ""; render(); }
+    if (r && filterRules(getJournal(), F).every((x) => x.id !== id)) { F.cat = ""; F.cert = ""; F.statut = r.statut === "archivee" ? "archivee" : ""; F.q = ""; F.attente = false; render(); }
     else relist();
     if (scroll) el.querySelector(`.rg-row[data-id="${id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
@@ -163,7 +170,8 @@ export function mountRegles(el, { api, ask }) {
     c.onchange = () => { F.cert = c.value; render(); };
     s.onchange = () => { F.statut = s.value; render(); };
     q.oninput = () => { F.q = q.value; relist(); };
-    el.querySelector("#rg-f-clear").onclick = () => { F.cat = F.cert = F.statut = F.q = ""; render(); };
+    el.querySelector("#rg-f-clear").onclick = () => { F.cat = F.cert = F.statut = F.q = ""; F.attente = false; render(); };
+    el.querySelector("#rg-f-wait").onclick = () => { F.attente = !F.attente; render(); };
     el.querySelector("#rg-qd").ontoggle = (e) => { tabQ = e.target.open; };
     el.querySelector("#rg-hd").ontoggle = (e) => { tabH = e.target.open; };
     el.querySelector("#rg-export").onclick = () => {

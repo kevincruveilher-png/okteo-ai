@@ -281,6 +281,26 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 48 (27/10/2026) — livrée : impression complète du plan (boîtes, gaines, circuits), questions en attente
+Livrée après la 54 (elle attendait que le dessin des boîtes et des gaines soit stable). Version du logiciel : 0.55.0.
+- Impression (Ctrl+P) : les calques imprimés suivent la vue de l'écran (Bâti / Implantation / Câblage, menu Affichage) ;
+  une case par calque dans la fenêtre (murs, portes et fenêtres, pièces, cotes, appareils, repères, liaisons, couleur
+  des circuits, boîtes, gaines, fond) ; bouton « = écran » pour reprendre la vue.
+- Boîtes sur le PDF : carré de taille fixe sur le papier (≈ 3 symboles, 11 mm mini), nom au-dessus, faces A–D, points
+  d'accroche (pleins = gaine raccordée, couleur du circuit), n° de gaine à côté de chaque point (« 01 » = alimentation,
+  sens horaire, les mêmes que les bandes), sur fond blanc, décalés d'un cran quand deux points voisins sont pris.
+- Gaines : en arc comme à l'écran, ou par les points de passage tracés à la main (points marqués) ; couleur du circuit ;
+  alimentation vers le tableau en pointillés gris. Symboles à la couleur de leur circuit (case « Couleur des circuits »).
+  Liaisons droites, comme à l'écran depuis la v35. Légende : « Boîte de pieuvre × n » ; cartouche « CÂBLAGE (PIEUVRE) ».
+- `exportGeometry()` : `boxes` [{id, n, x, y, N, deps [{face, slot, tab, ends [{key, x, y, route, color}]}]}] et
+  `apps[].color / circuit` ; `buildPlanPdf` options `murs, ouvertures, pieces, appareils, boites, gaines, circuits,
+  gaineNos` (n° tirés de `wiringNow`).
+- Journal des règles : bouton « ⏳ En attente » = questions en suspens (Q-42, Q-44 : en attente d'un chantier ; Q-83,
+  Q-84 : « à voir avec un collègue ») et règles qui en dépendent ; mention sur la fiche et dans la liste des questions.
+- Vérifié sur le PDF produit (relu par pdf.js) : noms des boîtes, faces, tous les n° de gaine, traits à la couleur des
+  circuits ; décocher Boîtes / Gaines les retire ; vue Bâti → ni appareils ni boîtes.
+- Tests : 30 + 58 + 175 + 142 = 405.
+
 ## Version 54 (27/10/2026) — livrée : appareils du journal, volets roulants, lignes directes comme FTZ
 - `src/cablage/appareils.js` (pur, partagé cœur + moteur) : 28 types (R-084) — radiateur, sèche-serviette, caisson et
   commande VMC, climatisation, Aqua Air (2 lignes), bouche motorisée, four, lave-linge, lave-vaisselle, sèche-linge,
@@ -535,7 +555,7 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
   fermerait ses pièces.
 
 ## PROCHAINE MISE À JOUR : à décider avec Kévin
-Pistes : retours de Kévin sur les schémas (essai avec un câbleur débutant), SPV pour Counter, page « Reprendre le projet ».
+Les mises à jour 41 à 54 sont toutes livrées (48 en dernier, le 27/10/2026). Pistes : retours de Kévin sur les schémas (essai avec un câbleur débutant), SPV pour Counter, page « Reprendre le projet ».
 
 ## Limites connues
 - Pas encore : pièces en L / détection automatique des pièces fermées, étages, scinder/fusionner un mur, accrochages milieu/intersection/perpendiculaire, sortie PDF imprimable.

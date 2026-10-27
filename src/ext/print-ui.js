@@ -2,6 +2,7 @@
 import { buildPlanPdf, layoutPlan } from "./print.js";
 import { esc, store, storeSet } from "./util.js";
 import { pdfjs } from "./fond-import.js";
+import { wiringNow } from "./cablage-data.js";
 
 const KEY = "okteo.print.v1";
 
@@ -17,11 +18,21 @@ export function createPrintTool({ api }) {
       <label class="f">Niveau<input data-k="niveau" value="RDC"></label>
       <label class="f" id="pr-lvwrap" title="Tous les niveaux : une page par niveau, même format et même échelle, nomenclature commune">Niveaux imprimés<select data-k="levels"><option value="cur">Le niveau ouvert</option><option value="all">Tous les niveaux</option></select></label>
       <label class="f">Indice<input data-k="indice" value="A" maxlength="3"></label>
-      <div class="pr-ck">
+      <div class="pr-ck pr-layers" title="Calques imprimés : cochés d'après le filtre de la vue (Bâti / Implantation / Câblage) à l'ouverture de la fenêtre">
+        <div class="pr-ckh">Calques <button class="pr-fromview sm" title="Reprendre les calques affichés à l'écran">= écran</button></div>
+        <label><input type="checkbox" data-k="murs"> Murs</label>
+        <label><input type="checkbox" data-k="ouvertures"> Portes et fenêtres</label>
+        <label><input type="checkbox" data-k="pieces"> Pièces (fond et noms)</label>
         <label><input type="checkbox" data-k="cotes"> Cotes</label>
+        <label><input type="checkbox" data-k="appareils"> Appareils</label>
         <label><input type="checkbox" data-k="reperes"> Repères et hauteurs</label>
         <label><input type="checkbox" data-k="liaisons"> Liaisons</label>
+        <label><input type="checkbox" data-k="circuits"> Couleur des circuits</label>
+        <label><input type="checkbox" data-k="boites"> Boîtes (faces, n° de gaine)</label>
+        <label><input type="checkbox" data-k="gaines"> Gaines</label>
         <label><input type="checkbox" data-k="fond"> Fond de plan (estompé)</label>
+      </div>
+      <div class="pr-ck">
         <label><input type="checkbox" data-k="nomenclature"> Page 2 : nomenclature</label>
       </div>
       <p class="pr-info"></p>
@@ -35,6 +46,25 @@ export function createPrintTool({ api }) {
   const $ = (s) => back.querySelector(s);
   let opts = { paper: "auto", orient: "auto", scale: "auto", niveau: "RDC", levels: "cur", indice: "A", cotes: true, reperes: true, liaisons: true, fond: false, nomenclature: true, ...store(KEY, {}) };
   let last = null, url = null, timer = null, seq = 0;
+  // calques imprimés = ceux de la vue à l'écran (filtre Bâti / Implantation / Câblage, cases du menu Affichage) ;
+  // boîtes, gaines et couleurs de circuit seulement quand les circuits sont affichés (onglet Câblage)
+  function fromView() {
+    const L = api.layers || {}, on = (k) => !L[k] || L[k].on !== false, circ = !!api.showCircuits, has = (api.cab.boxes || []).length > 0;
+    Object.assign(opts, { murs: on("murs"), ouvertures: on("ouvertures"), pieces: on("pieces"), cotes: on("cotes"), appareils: on("appareils"),
+      liaisons: on("liaisons"), circuits: circ, boites: circ && has && on("boites"), gaines: circ && has && on("gaines"), fond: on("fond") && !!opts.fond });
+  }
+  // n° des gaines par boîte : { boxId: { appId | "tab": "04" } } (repris du calcul des bandes)
+  function gaineNos() {
+    if (!(api.cab.boxes || []).length) return null;
+    try {
+      const W = wiringNow(api), out = {};
+      W.boxes.forEach((b) => {
+        const m = (out[b.id] = {});
+        b.gaines.forEach((g) => { const no = String(g.no || "").split(".").pop(); if (g.kind === "alim") { if (g.id === "alim:0") m.tab = no; } else (g.appIds || [g.appId]).filter(Boolean).forEach((id) => (m[id] = no)); });
+      });
+      return out;
+    } catch { return null; }
+  }
 
   function fill() {
     back.querySelectorAll("[data-k]").forEach((el) => { const v = opts[el.dataset.k]; if (el.type === "checkbox") el.checked = !!v; else el.value = String(v); });
@@ -48,7 +78,7 @@ export function createPrintTool({ api }) {
     const L = layoutPlan(all ? { walls: geo.flatMap((g) => g.walls), apps: geo.flatMap((g) => g.apps), rooms: geo.flatMap((g) => g.rooms), fond: geo[0].fond } : geo, opts);
     $(".pr-info").innerHTML = `${L.paper} ${L.orient} · <b>1:${L.scale}</b> · ${L.fits ? "le plan tient dans le cadre" : `<span class="warn">le plan dépasse : choisissez un plus grand format ou une plus petite échelle</span>`}`;
     try {
-      const r = await buildPlanPdf(geo, opts);
+      const r = await buildPlanPdf(geo, { ...opts, gaineNos: opts.boites ? gaineNos() : null });
       if (my !== seq) return;
       last = r; if (url) URL.revokeObjectURL(url); url = URL.createObjectURL(r.blob);
       await preview(r.blob, my);
@@ -78,6 +108,7 @@ export function createPrintTool({ api }) {
   }
   const close = () => { back.hidden = true; };
   $(".pr-x").onclick = close;
+  $(".pr-fromview").onclick = () => { fromView(); fill(); storeSet(KEY, opts); refresh(); };
   back.onclick = (e) => { if (e.target === back) close(); };
   $(".pr-dossier").onclick = async () => {
     const b = $(".pr-dossier"); b.disabled = true; b.textContent = "Préparation…";
@@ -97,6 +128,6 @@ export function createPrintTool({ api }) {
     if (e.key === "Escape" && !back.hidden) close();
   });
   // le niveau imprimé est celui qui est ouvert
-  function open() { if (api.tab !== "plan") api.setTab("plan"); opts.niveau = api.level.name; $("#pr-lvwrap").hidden = api.levels.length < 2; if (api.levels.length < 2) opts.levels = "cur"; fill(); back.hidden = false; refresh(); }
+  function open() { if (api.tab !== "plan") api.setTab("plan"); opts.niveau = api.level.name; fromView(); $("#pr-lvwrap").hidden = api.levels.length < 2; if (api.levels.length < 2) opts.levels = "cur"; fill(); back.hidden = false; refresh(); }
   return { open, close, get last() { return last; } };
 }

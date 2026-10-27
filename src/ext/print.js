@@ -9,10 +9,15 @@ export const PAPERS = { A4: [297, 210], A3: [420, 297] };
 const AUTO = [["A4", 50], ["A3", 50], ["A4", 75], ["A3", 75], ["A4", 100], ["A3", 100], ["A3", 125], ["A3", 150], ["A3", 200]];
 const MARGIN = 10, BAND = 44;                       // marge, bandeau bas (légende + cartouche)
 import { APPAREILS } from "../cablage/appareils.js";
+import { portXY } from "../cablage/boites.js";
 const SHORT = { PC16: "16", PC20: "20", RJ45: "RJ", VMC: "V", TAB: "TD" };
 const COLS = ["PC16", "PC20", "RJ45", "LUM", "APP", "SPOT", "INT", "VV", "BP", "VMC", "SC", "TAB"];
 const COLNAME = { PC16: "16 A", PC20: "20 A", RJ45: "RJ45", LUM: "Point", APP: "Appl.", SPOT: "Spot", INT: "Int.", VV: "VV", BP: "BP", VMC: "VMC", SC: "SC", TAB: "TD" };
 const fr = (v, d = 2) => v.toFixed(d).replace(".", ",");
+// « #e6194b » → [230, 25, 75] ; autre chose (variable CSS, rien) → null
+export function rgb(c) { const m = /^#?([0-9a-f]{6})$/i.exec(c || ""); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+// point de contrôle de l'arc d'une gaine (même formule que le cœur, attach.js gaineCtrl)
+function gaineCtrl(b, a) { const L = Math.hypot(a.x - b.x, a.y - b.y) || 1, k = 0.15; return { x: (b.x + a.x) / 2 - (a.y - b.y) / L * L * k, y: (b.y + a.y) / 2 + (a.x - b.x) / L * L * k }; }
 
 let lib = null;
 async function jspdf() { if (!lib) lib = (await import("jspdf")).jsPDF; return lib; }
@@ -51,7 +56,7 @@ async function toDataURL(url) {
 
 // geoIn : une géométrie (exportGeometry) ou une liste (un niveau par page, même format et même échelle)
 export async function buildPlanPdf(geoIn, opts = {}) {
-  const o0 = { fond: false, cotes: true, reperes: true, liaisons: true, nomenclature: true, surfaces: !!pref("surfaces"), date: new Date(), ...opts };
+  const o0 = { fond: false, cotes: true, reperes: true, liaisons: true, nomenclature: true, pieces: true, murs: true, ouvertures: true, appareils: true, boites: false, gaines: false, circuits: false, gaineNos: null, surfaces: !!pref("surfaces"), date: new Date(), ...opts };
   const geos = Array.isArray(geoIn) ? geoIn : [geoIn];
   const logo = o0.logo === false ? null : await logoData(); // logo KiTéOHM dans le cartouche (v50)
   // mise en page commune : calculée sur l'emprise de tous les niveaux réunis
@@ -149,20 +154,20 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     }
     // pièces : fond très clair
     doc.setFillColor(242, 246, 249);
-    geo.rooms.forEach((r) => poly(r.poly, "F"));
+    if (o.pieces) geo.rooms.forEach((r) => poly(r.poly, "F"));
     // murs
     doc.setFillColor(60, 60, 60); doc.setDrawColor(60, 60, 60); doc.setLineWidth(0.05);
-    geo.walls.forEach((P) => poly(P, "F"));
-    geo.joints.forEach((j) => doc.rect(X(j.x - j.e / 2), Y(j.y - j.e / 2), j.e * f, j.e * f, "F"));
+    if (o.murs) geo.walls.forEach((P) => poly(P, "F"));
+    if (o.murs) geo.joints.forEach((j) => doc.rect(X(j.x - j.e / 2), Y(j.y - j.e / 2), j.e * f, j.e * f, "F"));
     // limites de pièce (sans mur) : trait fin en pointillés
-    if (geo.limits && geo.limits.length) {
+    if (o.pieces && geo.limits && geo.limits.length) {
       doc.setDrawColor(150, 150, 150); doc.setLineWidth(0.1); doc.setLineDashPattern([0.6, 0.6], 0);
       geo.limits.forEach((l) => doc.line(X(l.a.x), Y(l.a.y), X(l.b.x), Y(l.b.y)));
       doc.setLineDashPattern([], 0);
     }
     // ouvertures
     doc.setDrawColor(40, 40, 40);
-    geo.openings.forEach((op) => {
+    (o.ouvertures ? geo.openings : []).forEach((op) => {
       const e2 = op.ep / 2, n = op.n;
       if (op.kind === "fenetre") {
         doc.setLineWidth(0.2);
@@ -181,11 +186,16 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const u = geo.symU * f;                            // unité de symbole en mm
     const tw = (str, size, bold) => { doc.setFont("helvetica", bold ? "bold" : "normal"); doc.setFontSize(size); return doc.getTextWidth(String(str)); };
     const boxAt = (cx, cy, w, h) => ({ x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2 });
-    geo.apps.forEach((a) => PL.add(boxAt(X(a.x), Y(a.y), 2 * u, 2 * u)));      // les symboles sont des obstacles
+    const apps = o.appareils ? geo.apps : [];
+    apps.forEach((a) => PL.add(boxAt(X(a.x), Y(a.y), 2 * u, 2 * u)));      // les symboles sont des obstacles
+    // boîtes de pieuvre (v48) : carré de taille fixe sur le papier (comme à l'écran : environ 3 symboles), obstacles aussi
+    const boxes = o.boites || o.gaines ? (geo.boxes || []) : [];
+    const BS = Math.max(4.8 * u, 11), BSm = BS / f;
+    if (o.boites) boxes.forEach((b) => PL.add(boxAt(X(b.x), Y(b.y) - BS * 0.2, BS + 5, BS * 1.4 + 5)));
     // noms et surfaces des pièces : au point d'étiquette, sinon à la place libre la plus proche dans la pièce
     const inPoly = (x, y, P) => { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) c = !c; } return c; };
     const S1 = Math.max(6, Math.min(11, 0.5 * f * 2.83)), S2 = Math.max(5, Math.min(8, 0.34 * f * 2.83));
-    const roomLabels = geo.rooms.slice().sort((p, q) => q.area - p.area).map((r) => {
+    const roomLabels = (o.pieces ? geo.rooms : []).slice().sort((p, q) => q.area - p.area).map((r) => {
       const surf = o.surfaces ? `${fr(r.area, 1)} m²` : "", w = Math.max(tw(r.name, S1, true), surf ? tw(surf, S2) : 0) + 1, h = (S1 + (surf ? S2 : 0)) * MM + 1.4;
       const P = r.poly, bb = { x0: Math.min(...P.map((p) => p.x)), y0: Math.min(...P.map((p) => p.y)), x1: Math.max(...P.map((p) => p.x)), y1: Math.max(...P.map((p) => p.y)) };
       const c = roomCandidates(r.label, bb, (x, y) => inPoly(x, y, P), Math.max(0.2, 4 / f)).slice(0, 80)
@@ -206,7 +216,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     });
     // repères (et hauteur hors standard) : autour du symbole, à la première place libre
     const SR = Math.max(5, pt(u * 0.9));
-    const repLabels = !o.reperes ? [] : geo.apps.map((a) => {
+    const repLabels = !o.reperes ? [] : apps.map((a) => {
       const str = a.rep || "", hs = [a.h != null && a.h !== a.hDef ? `h ${fr(a.h / 100)}` : "", a.xlink || ""].filter(Boolean).join("  ");
       const w = Math.max(tw(str, SR, true), hs ? tw(hs, SR) : 0), h = SR * MM * (hs ? 2.1 : 1.05), g = u * 1.05;
       const ax = X(a.x), ay = Y(a.y);
@@ -218,7 +228,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       return { str, hs, x: ax + g, y: ay - g - h, hidden: true };
     });
     // longueur des murs : seulement là où il reste de la place
-    const wallLabels = !o.cotes ? [] : geo.wallDims.filter((d) => d.L >= 0.5).map((d) => {
+    const wallLabels = !o.cotes || !o.murs ? [] : geo.wallDims.filter((d) => d.L >= 0.5).map((d) => {
       let a = -d.ang * 180 / Math.PI; if (a > 90 || a <= -90) a += 180;
       const w = tw(fr(d.L), 6), h = 6 * MM, vert = Math.abs(Math.sin(a * Math.PI / 180)) > 0.7, b = boxAt(X(d.x), Y(d.y), vert ? h : w, vert ? w : h);
       if (!PL.free(b)) return null; PL.add(b); return { d, a };
@@ -239,13 +249,60 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       doc.setFont("helvetica", "bold"); doc.setFontSize(S1); doc.text(r.name, x, y - h / 2 + S1 * MM, { align: "center", baseline: "bottom" });
       if (surf) { doc.setFont("helvetica", "normal"); doc.setFontSize(S2); doc.text(surf, x, y + h / 2, { align: "center", baseline: "bottom" }); }
     });
-    // liaisons commande → lumière
-    if (o.liaisons && geo.links.length) {
+    // liaisons commande → lumière : droites, comme à l'écran (v35)
+    if (o.liaisons && o.appareils && geo.links.length) {
       doc.setDrawColor(50, 90, 200); doc.setLineWidth(0.15); doc.setLineDashPattern([1.2, 0.8], 0);
       geo.links.forEach((l) => line(l.a, l.b));
       doc.setLineDashPattern([], 0);
     }
-    geo.apps.forEach((a) => symbol(doc, a.t, X(a.x), Y(a.y), u, a.rot || 0));
+    // gaines (v48) : du point d'accroche de la boîte à l'appareil, en arc ou par les points de passage tracés à la main,
+    // couleur du circuit ; l'alimentation (vers le tableau) en pointillés gris
+    const portOf = (b, d) => portXY(b, BSm, b.N, d.face, d.slot);
+    if (o.gaines) boxes.forEach((b) => b.deps.forEach((d) => {
+      const P = portOf(b, d);
+      d.ends.forEach((e) => {
+        let pts;
+        if (e.route && e.route.length) pts = [P, ...e.route, e];
+        else { const q = gaineCtrl(P, e); pts = Array.from({ length: 17 }, (_, i) => { const t = i / 16, v = 1 - t; return { x: v * v * P.x + 2 * v * t * q.x + t * t * e.x, y: v * v * P.y + 2 * v * t * q.y + t * t * e.y }; }); }
+        const c = d.tab ? [120, 120, 120] : rgb(e.color) || [130, 130, 130];
+        doc.setDrawColor(...c); doc.setLineWidth(d.tab ? 0.2 : 0.25);
+        if (d.tab) doc.setLineDashPattern([1.5, 1], 0);
+        for (let i = 1; i < pts.length; i++) line(pts[i - 1], pts[i]);
+        doc.setLineDashPattern([], 0);
+        if (e.route && e.route.length) { doc.setFillColor(255, 255, 255); e.route.forEach((p) => doc.circle(X(p.x), Y(p.y), 0.45, "FD")); }
+      });
+    }));
+    apps.forEach((a) => symbol(doc, a.t, X(a.x), Y(a.y), u, a.rot || 0, o.circuits ? rgb(a.color) : null));
+    // boîtes : carré, nom au-dessus, faces A–D, points d'accroche (pleins = gaine raccordée, couleur du circuit),
+    // n° de la gaine à côté de son point (onglet Bandes : LI01.04 → « 04 »)
+    if (o.boites) boxes.forEach((b) => {
+      const bx = X(b.x), by = Y(b.y), nos = (o.gaineNos || {})[b.id] || {};
+      doc.setFillColor(255, 255, 255); doc.setDrawColor(20, 20, 20); doc.setLineWidth(0.35);
+      doc.rect(bx - BS / 2, by - BS / 2, BS, BS, "FD");
+      doc.setTextColor(20, 20, 20); doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(6, pt(BS * 0.28)));
+      doc.text(String(b.n), bx, by - BS / 2 - 3, { align: "center", baseline: "bottom" });
+      doc.setFont("helvetica", "normal"); doc.setFontSize(Math.max(4, pt(BS * 0.14))); doc.setTextColor(140, 140, 140);
+      [["A", 0, -1], ["B", 1, 0], ["C", 0, 1], ["D", -1, 0]].forEach(([fc, dx, dy]) => doc.text(fc, bx + dx * BS * 0.3, by + dy * BS * 0.3, { align: "center", baseline: "middle" }));
+      const used = new Map(b.deps.filter((d) => d.face && d.slot != null).map((d) => [d.face + d.slot, d]));
+      const out = { A: [0, -1], B: [1, 0], C: [0, 1], D: [-1, 0] };
+      for (const fc of ["A", "B", "C", "D"]) for (let i = 0; i < b.N; i++) {
+        const Pw = portXY(b, BSm, b.N, fc, i), px = X(Pw.x), py = Y(Pw.y), d = used.get(fc + i);
+        const c = d ? (d.tab ? [20, 20, 20] : rgb((d.ends[0] || {}).color) || [130, 130, 130]) : null;
+        doc.setLineWidth(0.12); doc.setDrawColor(...(c || [150, 150, 150])); doc.setFillColor(...(c || [255, 255, 255]));
+        doc.circle(px, py, d ? 0.55 : 0.4, "FD");
+        const no = d && (d.tab ? nos.tab : d.ends.map((e) => nos[e.key]).find(Boolean));
+        if (no) {
+          const [ox, oy] = out[fc], vert = fc === "B" || fc === "D";
+          // n° sur un petit fond blanc, pour rester lisible par-dessus les gaines
+          // (toujours horizontal : sur les faces B et D, les n° voisins se suivent sans se chevaucher)
+          doc.setFont("helvetica", "bold"); doc.setFontSize(4);
+          const w = doc.getTextWidth(no) + 0.3, h = 1.45, tx = px + ox * (vert ? w / 2 + 0.75 : 0), ty = py + oy * (vert ? 0 : 1.55 + (i % 2 && used.has(fc + (i - 1)) ? 1.5 : 0)); // voisin occupé : décalé d'un cran
+          doc.setFillColor(255, 255, 255); doc.rect(tx - w / 2, ty - h / 2, w, h, "F");
+          doc.setTextColor(...(c || [0, 0, 0]));
+          doc.text(no, tx, ty, { align: "center", baseline: "middle" });
+        }
+      }
+    });
     doc.setTextColor(200, 70, 40);
     repLabels.forEach((L) => {
       if (L.hidden) return;
@@ -258,7 +315,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
   
     // ---------- bandeau : légende, échelle graphique, cartouche ----------
     const by = Lay.H - MARGIN - BAND + 4, bh = BAND - 4;
-    const present = COLS.filter((t) => geo.apps.some((a) => a.t === t));
+    const present = o.appareils ? COLS.filter((t) => geo.apps.some((a) => a.t === t)) : [];
     const cartW = 128, legW = Lay.W - 2 * MARGIN - cartW - 4;
     doc.setLineWidth(0.25); doc.rect(MARGIN, by, legW, bh);
     doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(0);
@@ -272,7 +329,15 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       doc.setTextColor(0); doc.setFontSize(7); doc.setFont("helvetica", "normal");
       doc.text(`${geo.apps.find((a) => a.t === t).name}  × ${geo.apps.filter((a) => a.t === t).length}`, x + 4, y, { baseline: "middle" });
     });
-    if (!present.length) { doc.setTextColor(120); doc.text("Aucun appareil posé.", MARGIN + 6, by + 11); }
+    if (o.boites && (geo.boxes || []).length) {
+      const i = present.length, c = Math.floor(i / perCol), r = i % perCol, x = MARGIN + 6 + c * colW, y = by + 10 + r * 5.6;
+      if (x + colW <= MARGIN + legW - 50) {
+        doc.setDrawColor(20, 20, 20); doc.setFillColor(255, 255, 255); doc.setLineWidth(0.3); doc.rect(x - 1.8, y - 1.8, 3.6, 3.6, "FD");
+        doc.setTextColor(0); doc.setFontSize(7); doc.setFont("helvetica", "normal");
+        doc.text(`Boîte de pieuvre  × ${geo.boxes.length}`, x + 4, y, { baseline: "middle" });
+      }
+    }
+    if (!present.length && !(o.boites && (geo.boxes || []).length)) { doc.setTextColor(120); doc.text(o.appareils ? "Aucun appareil posé." : "Appareils non imprimés.", MARGIN + 6, by + 11); }
     // échelle graphique (0 – 1 – 2 – 5 m)
     const sx = MARGIN + legW - 46, sy = by + bh - 8, m1 = f;
     doc.setTextColor(0); doc.setFontSize(6.5); doc.setLineWidth(0.2); doc.setDrawColor(0);
@@ -286,7 +351,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     doc.setFont("helvetica", "normal"); doc.setLineWidth(0.3); doc.rect(kx, by, cartW, bh);
     doc.setFillColor(30, 45, 60); doc.rect(kx, by, cartW, 8, "F");
     doc.setTextColor(255); doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-    doc.text("PLAN ÉLECTRIQUE — IMPLANTATION", kx + 3, by + 5.3);
+    doc.text(o.boites && (geo.boxes || []).length ? "PLAN ÉLECTRIQUE — CÂBLAGE (PIEUVRE)" : "PLAN ÉLECTRIQUE — IMPLANTATION", kx + 3, by + 5.3);
     doc.setFontSize(7); doc.text("Oktéo AI", kx + cartW - 3, by + 5.3, { align: "right" });
     if (logo) { const lw = 30; doc.addImage(logo, "JPEG", kx + cartW - 3 - lw, by + bh - 3 - lw / LOGO_RATIO, lw, lw / LOGO_RATIO); }
     const ch = geo.chantier, d = o.date;
@@ -316,14 +381,16 @@ export async function buildPlanPdf(geoIn, opts = {}) {
 
 // symboles normalisés simplifiés (mêmes formes qu'à l'écran, v37 : carrés sauf les lumières) ; u = unité de symbole en mm ;
 // rot = rotation de l'applique (degrés), côté plat contre le mur
-export function symbol(doc, t, x, y, u, rot = 0) {
-  doc.setLineWidth(Math.max(0.12, u * 0.08)); doc.setDrawColor(20, 60, 110); doc.setFillColor(255, 255, 255);
-  const txt = (s, white) => { doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(3.5, u * 0.85 * 72 / 25.4)); doc.setTextColor(white ? 255 : 20, white ? 255 : 60, white ? 255 : 110); doc.text(s, x, y + u * 0.05, { align: "center", baseline: "middle" }); };
+// col : couleur du circuit [r, g, b] (v48, comme le symbole à l'écran quand les circuits sont affichés), sinon bleu
+export function symbol(doc, t, x, y, u, rot = 0, col = null) {
+  const C = col || [20, 60, 110];
+  doc.setLineWidth(Math.max(0.12, u * 0.08)); doc.setDrawColor(...C); doc.setFillColor(255, 255, 255);
+  const txt = (s, white) => { doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(3.5, u * 0.85 * 72 / 25.4)); if (white) doc.setTextColor(255, 255, 255); else doc.setTextColor(...C); doc.text(s, x, y + u * 0.05, { align: "center", baseline: "middle" }); };
   const sq = (r, style = "FD") => doc.roundedRect(x - r * u, y - r * u, 2 * r * u, 2 * r * u, 0.18 * r * u, 0.18 * r * u, style);
   const tick = () => doc.line(x + 0.4 * u, y - 0.4 * u, x + 0.95 * u, y - 0.95 * u);
   switch (t) {
     case "PC16": sq(0.8); txt(SHORT.PC16); break;
-    case "PC20": doc.setFillColor(20, 60, 110); sq(0.8); txt(SHORT.PC20, true); break;
+    case "PC20": doc.setFillColor(...C); sq(0.8); txt(SHORT.PC20, true); break;
     case "RJ45": sq(0.8); txt(SHORT.RJ45); break;
     case "APP": { const r = 0.9 * u, c = Math.cos(rot * Math.PI / 180), sn = Math.sin(rot * Math.PI / 180);
       const R = (lx, ly) => [x + lx * c - ly * sn, y + lx * sn + ly * c];
@@ -332,14 +399,14 @@ export function symbol(doc, t, x, y, u, rot = 0) {
       const L = (a, b) => doc.line(...R(...a), ...R(...b));
       L([-0.55 * u, -0.3 * u], [0.55 * u, 0.25 * u]); L([0.55 * u, -0.3 * u], [-0.55 * u, 0.25 * u]); break; }
     case "LUM": doc.circle(x, y, 0.9 * u, "FD"); doc.line(x - 0.6 * u, y - 0.6 * u, x + 0.6 * u, y + 0.6 * u); doc.line(x + 0.6 * u, y - 0.6 * u, x - 0.6 * u, y + 0.6 * u); break;
-    case "SPOT": { doc.circle(x, y, 0.5 * u, "FD"); doc.setFillColor(20, 60, 110); doc.circle(x, y, 0.2 * u, "F");
+    case "SPOT": { doc.circle(x, y, 0.5 * u, "FD"); doc.setFillColor(...C); doc.circle(x, y, 0.2 * u, "F");
       for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, r0 = (k % 2 ? 0.68 : 0.68) * u, r1 = (k % 2 ? 1.0 : 1.02) * u; doc.line(x + Math.cos(a) * r0, y + Math.sin(a) * r0, x + Math.cos(a) * r1, y + Math.sin(a) * r1); } break; }
     case "INT": sq(0.55); tick(); break;
     case "VV": sq(0.55); tick(); doc.line(x - 0.1 * u, y + 0.3 * u, x + 0.5 * u, y - 0.3 * u); break;
-    case "BP": sq(0.55); doc.setFillColor(20, 60, 110); doc.circle(x, y, 0.2 * u, "F"); break;
+    case "BP": sq(0.55); doc.setFillColor(...C); doc.circle(x, y, 0.2 * u, "F"); break;
     case "VMC": sq(0.8); txt(SHORT.VMC); break;
     case "SC": sq(0.6); doc.line(x - 0.85 * u, y - 0.85 * u, x + 0.85 * u, y + 0.85 * u); doc.line(x + 0.85 * u, y - 0.85 * u, x - 0.85 * u, y + 0.85 * u); break;
-    case "TAB": doc.setFillColor(20, 60, 110); doc.roundedRect(x - u, y - 1.2 * u, 2 * u, 2.4 * u, 0.2 * u, 0.2 * u, "FD"); txt(SHORT.TAB, true); break;
-    default: { sq(0.8); const D = APPAREILS[t]; if (D) { doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(3, u * (D.lab.length > 2 ? 0.55 : 0.8) * 72 / 25.4)); doc.setTextColor(20, 60, 110); doc.text(D.lab, x, y + u * 0.05, { align: "center", baseline: "middle" }); } }
+    case "TAB": doc.setFillColor(...C); doc.roundedRect(x - u, y - 1.2 * u, 2 * u, 2.4 * u, 0.2 * u, 0.2 * u, "FD"); txt(SHORT.TAB, true); break;
+    default: { sq(0.8); const D = APPAREILS[t]; if (D) { doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(3, u * (D.lab.length > 2 ? 0.55 : 0.8) * 72 / 25.4)); doc.setTextColor(...C); doc.text(D.lab, x, y + u * 0.05, { align: "center", baseline: "middle" }); } }
   }
 }

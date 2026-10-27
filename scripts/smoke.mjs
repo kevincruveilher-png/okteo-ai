@@ -1378,6 +1378,53 @@ try {
     await page.keyboard.press("Escape");
     return !(await page.isVisible(".pr"));
   });
+  // v48 : impression complète (boîtes, gaines, couleurs des circuits) d'après le filtre de la vue
+  let viewKeep = null, prN = 0;
+  const prText = async () => {
+    await page.waitForFunction(() => okteoExt.printer.last && !document.querySelector(".pr-wait:not([hidden])"), null, { timeout: 30000 });
+    await page.waitForTimeout(400);
+    await page.waitForFunction(() => !document.querySelector(".pr-wait:not([hidden])"), null, { timeout: 30000 });
+    const bytes = await ev(async () => Array.from(new Uint8Array(await okteoExt.printer.last.blob.arrayBuffer())));
+    fs.writeFileSync(path.join(os.tmpdir(), `okteo-plan-v48-${++prN}.pdf`), new Uint8Array(bytes));
+    const doc = await pdfjsNode.getDocument({ data: new Uint8Array(bytes), verbosity: 0 }).promise;
+    return { doc, t1: (await (await doc.getPage(1)).getTextContent()).items.map((i) => i.str) };
+  };
+  await check("impression en vue Câblage : boîtes (nom, faces A–D, n° de gaine), gaines couleur du circuit, cases des calques cochées d'après la vue", async () => {
+    viewKeep = await ev(() => ({ L: Object.fromEntries(Object.entries(okteo.layers).map(([k, v]) => [k, v.on])), c: okteo.showCircuits }));
+    await ev(() => okteo.viewPreset("cab"));
+    await page.keyboard.press("Control+p"); await page.waitForSelector(".pr-back:not([hidden])");
+    const ck = await ev(() => Object.fromEntries(["boites", "gaines", "circuits", "appareils", "cotes", "murs"].map((k) => [k, document.querySelector(`.pr [data-k="${k}"]`).checked])));
+    const { doc, t1 } = await prText();
+    const W = await ev(async () => { const m = await import("/src/ext/cablage-data.js"), W = m.wiringNow(okteo), lv = okteo.level.id;
+      const B = W.boxes.filter((b) => b.lv === lv); return { names: B.map((b) => b.n), nos: B.flatMap((b) => b.gaines.filter((g) => g.kind !== "alim" || g.id === "alim:0").map((g) => g.no.split(".").pop())) }; });
+    const ex = await extractSegments(await doc.getPage(1), pdfjsNode.OPS);
+    const cols = await ev(() => { const g = okteo.exportGeometry(); return [...new Set(g.boxes.flatMap((b) => b.deps.flatMap((d) => d.ends.map((e) => e.color))).filter(Boolean))]; });
+    const near = (h, c) => h && [1, 3, 5].every((i) => Math.abs(parseInt(h.slice(i, i + 2), 16) - parseInt(c.slice(i, i + 2), 16)) <= 3);
+    const colored = cols.filter((c) => ex.segs.some((s) => near(s.stroke, c) || near(s.fill, c))).length;
+    const nosFound = W.nos.filter((n) => t1.includes(n)).length;
+    const ok = ck.boites && ck.gaines && ck.circuits && ck.appareils && !ck.cotes && ck.murs && W.names.length && W.names.every((n) => t1.includes(n))
+      && ["A", "B", "C", "D"].every((f) => t1.includes(f)) && nosFound === W.nos.length && t1.some((s) => /Boîte de pieuvre/.test(s)) && cols.length && colored >= Math.min(2, cols.length);
+    if (!ok) throw new Error(JSON.stringify({ ck, names: W.names, nosFound, nos: W.nos.length, cols: cols.length, colored }));
+    return true;
+  });
+  await check("impression : décocher « Boîtes » et « Gaines » les retire du PDF ; « = écran » les remet ; vue Bâti → ni appareils ni boîtes", async () => {
+    const name = await ev(() => okteo.exportGeometry().boxes[0].n);
+    await page.uncheck('.pr [data-k="boites"]'); await page.uncheck('.pr [data-k="gaines"]');
+    await page.waitForTimeout(250);
+    const a = (await prText()).t1;
+    await page.click(".pr-fromview"); await page.waitForTimeout(250);
+    const b = (await prText()).t1;
+    await page.keyboard.press("Escape");
+    await ev(() => okteo.viewPreset("bati"));
+    await page.keyboard.press("Control+p"); await page.waitForSelector(".pr-back:not([hidden])");
+    const ck = await ev(() => ["boites", "gaines", "appareils", "liaisons"].map((k) => document.querySelector(`.pr [data-k="${k}"]`).checked));
+    const c = (await prText()).t1;
+    await page.keyboard.press("Escape");
+    await ev((V) => { Object.entries(V.L).forEach(([k, v]) => (okteo.layers[k].on = v)); okteo.showCircuits = V.c; window.__okteo.draw(); }, viewKeep);
+    const ok = !a.includes(name) && b.includes(name) && ck.every((v) => !v) && !c.includes(name) && c.some((s) => /Appareils non imprimés/.test(s));
+    if (!ok) throw new Error(JSON.stringify({ a: a.includes(name), b: b.includes(name), ck, c: c.includes(name) }));
+    return true;
+  });
 
   await check("l'épaisseur d'un mur relevé se modifie dans son menu", async () => {
     const id = await ev(() => okteo.state.segs[0].id);
@@ -1598,6 +1645,17 @@ try {
     const tab = await ev(() => [...document.querySelectorAll("#ps-regles .rg-row")].map((tr) => tr.dataset.id).join(","));
     await clickIn('#ps-regles .rg-cat[data-cat="tableau"]');
     if (!(r.intro && r.n === 52 && r.archHidden && r.rouge && r.nav && inc === "R-009" && icta.includes("R-074") && tab === "R-050,R-081")) throw new Error(JSON.stringify({ r, inc, icta, tab }));
+    return true;
+  });
+  await check("journal : « ⏳ En attente » = questions en suspens (collègue, chantier) et règles qui en dépendent ; « Tout afficher » revient", async () => {
+    await clickIn("#rg-f-wait");
+    const r = await ev(() => { const S = document.getElementById("ps-regles");
+      return { rows: [...S.querySelectorAll(".rg-row")].map((tr) => tr.dataset.id).join(","), open: S.querySelector("#rg-qd").open,
+        qs: [...S.querySelectorAll(".rg-qs tr td.mono")].map((t) => t.textContent).join(","), col: S.querySelectorAll(".rg-qs .rg-wait.col").length,
+        on: S.querySelector("#rg-f-wait").classList.contains("on") }; });
+    await clickIn("#rg-f-clear");
+    const n = await ev(() => document.querySelectorAll("#ps-regles .rg-row").length);
+    if (!(r.on && r.open && r.rows === "R-009" && /Q-83/.test(r.qs) && /Q-84/.test(r.qs) && /Q-42/.test(r.qs) && !/Q-01\b/.test(r.qs) && r.col === 2 && n === 52)) throw new Error(JSON.stringify({ r, n }));
     return true;
   });
   await check("fiche d'une règle : paramètres, écart avec le logiciel (18 / 12), utilisée par, preuves, questions, historique ; lien depuis un réglage Câblage", async () => {

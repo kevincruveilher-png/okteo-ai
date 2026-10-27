@@ -6,7 +6,7 @@ import { labelPoint } from "../walls/rooms.js";
 import { CH, LKEYS, TYPES, dist, epOf, nodeById, segById, segDir, state, symScaleOf } from "./model.js";
 import { markDirty, snapshot } from "./persist.js";
 import { fit, repMap } from "./view.js";
-import { appRot, draw, wallIntervals } from "./render.js";
+import { appRot, boxLayout, circuitMap, draw, wallIntervals } from "./render.js";
 import { followWalls, roomArea, roomPoly } from "./attach.js";
 import { clearSel, roomAt } from "./groups.js";
 import { showSide } from "./panel.js";
@@ -399,6 +399,7 @@ export function okteoGeo() {
     };
   });
   const reps = repMap();
+  const cmap = circuitMap();
   const xl = {};
   crossLinks().forEach(x => {
     xl[x.id] = (xl[x.id] ? xl[x.id] + ' · ' : '') + x.word;
@@ -414,7 +415,9 @@ export function okteoGeo() {
     name: TYPES[a.t].n,
     room: (roomAt(a.x, a.y) || {}).name || null,
     xlink: xl[a.id] || null,
-    rot: appRot(a)
+    rot: appRot(a),
+    color: (cmap[a.id] || {}).color || null,
+    circuit: (cmap[a.id] || {}).n || null
   }));
   const byId = Object.fromEntries(state.app.map(a => [a.id, a]));
   const links = state.lia.map(l => byId[l.c] && byId[l.l] && {
@@ -436,6 +439,28 @@ export function okteoGeo() {
     },
     L: dist(d.a.x, d.a.y, d.b.x, d.b.y)
   }));
+  // boîtes de pieuvre du niveau (v48) : centre, nom, points d'accroche (face + n°) et gaines (bout, points de passage,
+  // couleur du circuit) ; la taille sur le papier est choisie à l'impression, comme celle des symboles
+  const tabA = state.app.find(a => a.t === "TAB");
+  const boxes = (K.CAB.boxes || []).filter(b => b.lv === K.LV.cur).map(b => {
+    const LY = boxLayout(b, 1), R = b.routes || {};
+    return {
+      id: b.id,
+      n: b.n,
+      x: b.x,
+      y: b.y,
+      locked: !!b.locked,
+      N: LY.N,
+      deps: LY.deps.map(d => ({
+        key: d.id,
+        tab: !!d.tab,
+        face: d.face,
+        slot: d.slot,
+        ends: d.tab ? (tabA ? [{ key: "tab", x: tabA.x, y: tabA.y, route: (R.tab || []).map(p => ({ x: p.x, y: p.y })), color: null }] : [])
+          : d.apps.map(a => ({ key: a.id, x: a.x, y: a.y, route: (R[a.id] || []).map(p => ({ x: p.x, y: p.y })), color: (cmap[a.id] || {}).color || null }))
+      }))
+    };
+  });
   return {
     walls,
     joints,
@@ -446,6 +471,7 @@ export function okteoGeo() {
     apps,
     links,
     dims,
+    boxes,
     symU: symScaleOf(),
     fond: K.FOND && K.BG.w > 0 ? {
       url: K.FOND,

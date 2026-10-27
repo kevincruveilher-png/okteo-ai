@@ -32,7 +32,7 @@ const TOUR = [
   { t: "#btn-view", title: "9. Affichage", text: "Cotes, repères, visibilité du plan de fond, taille des symboles, niveau du dessous en transparence." },
   { t: "#ctl", title: "Contrôle permanent", text: "Toujours actif : « ⚠ n à vérifier » compte les commandes sans lumière, lumières sans commande, va-et-vient incomplets, appareils sans circuit, allumages coupés entre deux boîtes ; ils ont un halo orange sur le plan. Un clic va au cas suivant ; la liste est dans le panneau Câblage." },
   { t: "#savedot", title: "10. Enregistrement", text: "Tout s'enregistre seul. Pour ne jamais rien perdre : page Chantiers → « Sauvegarde automatique » dans un dossier du PC. Ctrl+Z / Ctrl+Y : annuler / rétablir." },
-  { t: "#btn-print", title: "11. Imprimer", text: "Plan PDF à l'échelle exacte (1:50…), avec légende, cartouche et nomenclature. Ctrl+P." },
+  { t: "#btn-print", title: "11. Imprimer", text: "Plan PDF à l'échelle exacte (1:50…), avec légende, cartouche et nomenclature. Les calques imprimés suivent la vue : en mode Câblage, boîtes, gaines et couleurs des circuits. Ctrl+P." },
   { t: "#btn-palette", title: "12. Trouver une fonction", text: "Ctrl+K (ou F1) : toutes les fonctions avec une recherche. Tapez par ex. « niveau », « échelle » ou « renuméroter »." },
   { t: "#as-dock", title: "13. L'assistant", text: "En bas à droite du plan : un clic l'agrandit, « — » le réduit (touche A pour l'ouvrir). L'assistant IA répond aux questions sur le logiciel et peut analyser le plan (clé Claude ou NVIDIA dans Paramètres). Cette visite se relance par Ctrl+K → « Visite guidée »." },
 ];

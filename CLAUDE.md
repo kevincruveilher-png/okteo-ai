@@ -296,13 +296,19 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   boites `u.volet`, option `placeBoxes(..., {volets})` ; gaines : rôles CVR/VR (`cmdV1`/`cmdV2`, slots `pref` marron/noir),
   EQL (terre 2,5), `W.direct[{etiquette, fil, gaine, gaineTxt, diam, faible, aboutissant}]`, `W.directTotals`.
   Page « Lignes directes » `.dl-tab`. Fixtures : volets, EQ locales, hotte, 28 lignes directes de DUCOURNEAU.
+- v48 (livrée après la 54) : impression complète. `okteoGeo()` rend `boxes` (deps {face, slot, tab, ends [{key, x, y,
+  route, color}]}, depuis `boxLayout(b, 1)`) et `apps[].color/circuit` ; print.js : options `murs, ouvertures, pieces,
+  appareils, boites, gaines, circuits, gaineNos`, `rgb(hex)`, `symbol(..., col)`, boîte = carré `BS` mm (portXY en
+  mètres `BS/f`), n° de gaine horizontaux sur fond blanc ; print-ui : cases `.pr-layers`, `fromView()` à l'ouverture
+  (calques + `showCircuits`), `.pr-fromview`, `gaineNos()` via `wiringNow`. Journal : `pendingQuestions(J)`,
+  `filterRules(..., {attente})`, bouton `#rg-f-wait`, `.rg-wait(.col)`.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (58 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (175 : règles du journal sur 4 chantiers réels) + `scripts/smoke.mjs` (139 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (58 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (175 : règles du journal sur 4 chantiers réels) + `scripts/smoke.mjs` (142 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

@@ -67,9 +67,15 @@ export function totals(J) {
 }
 
 const norm = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-export function filterRules(J, { cat = "", cert = "", statut = "", q = "" } = {}) {
+// questions en suspens (v48) : statut « en attente » (d'un chantier, ou d'un collègue plus qualifié : `collegue`)
+export function pendingQuestions(J) {
+  return J.questions.filter((q) => q.statut === "attente").map((q) => ({ ...q, collegue: /coll[eè]gue/i.test(q.statut_texte || "") }));
+}
+export function filterRules(J, { cat = "", cert = "", statut = "", q = "", attente = false } = {}) {
   const words = norm(q).split(/\s+/).filter(Boolean);
+  const wait = attente ? new Set(pendingQuestions(J).map((x) => x.id)) : null;
   return J.rules.filter((r) => (!cat || r.categorie === cat) && (!cert || r.certitude === cert) && (!statut || r.statut === statut)
+    && (!wait || (r.questions_liees || []).some((id) => wait.has(id)))
     && (!statut && r.statut === "archivee" ? false : true)
     && words.every((w) => norm([r.id, r.titre, r.description, ...(r.details || []), JSON.stringify(r.parametres)].join(" ")).includes(w)));
 }
