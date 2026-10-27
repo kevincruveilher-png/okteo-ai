@@ -239,6 +239,21 @@ Différences à trancher avec Kévin :
 8. Page « Repères tableau » du BE (alimentation de chaque boîte avec ses n° de bague 1 à 12) : nous ne la produisons pas
    en page à part.
 
+Réponses de Kévin (28/10/2026, 00:01), inscrites au journal des règles (H-037 à H-039) — code à faire à la prochaine
+mise à jour (`npm run regles` + PLUS de regles-import.mjs : `departs_max` 16 ; réglage `departsMax` 16 avec montée de
+version des réglages ; tests du décompte des règles et des 12 départs à mettre à jour) :
+1. R-001 : 16 départs hors alimentation (au lieu de 12).
+2. Violet : bien utilisé, ronde inchangée.
+3. R-098 (nouvelle) : seules les prises de plan de travail (+ hotte en boîte) sur le circuit cuisine 2,5 ; repère porté
+   par la prise (propriété « plan de travail »), pas par le nom de la pièce. À coder : propriété dans le panneau,
+   import IA (consigne : prises du plan de travail), `isCuisine` remplacé, packs cuisine.
+4. Nouveaux types à apprendre au logiciel : ILOT (ligne directe 1,5 GR+BF+V/J ICTA 16), BPS (ligne directe 1P 9/10
+   ICTA 16), SON (sonnette en boîte, 1,5 R+B+V/J ICTA 16) ; aussi dans la consigne IA.
+5. Q-85 Aqua Air (une ou deux lignes) : à poser à Thibault (collègue qui prendra la suite) ; deux lignes en attendant.
+6. R-099 (nouvelle) : total des lignes directes avec les YSYT, V20 comptées avec les ICTA 20.
+7. On garde nos règles (terres n° 1, R-031) ; gaines en anti-horaire (R-077 modifiée, H-037).
+8. Page « Repères tableau » : aucun intérêt, pas à faire.
+
 **Câblage des boîtes : lisibilité**
 - Le câblage des boîtes a l'air correct, mais le tracé des circuits est ambigu : les fils se chevauchent dans le schéma
   de la boîte (lignes qui se croisent et se superposent, capture LI05) ; difficile de voir rapidement qui va avec qui.

@@ -1,7 +1,7 @@
 # Journal des règles de câblage — Oktéo AI
 
 Référence unique des règles de câblage (boîtes, gaines, circuits, couleurs, raccordements, repères, tableau). Il sert à l'onglet **Paramètres → Journal des règles de câblage**.
-Créé le 27/10/2026. État au 27/10/2026 (14:30, R-075 rectifiée à 14:29 : H-029) : 52 règles (25 `active` · `confirmee`, 25 `a_valider`, 1 `brouillon`, 1 `archivee`). Les règles `a_valider` viennent du journal de développement ou ont été déduites des bandes ; Kévin les confirme au fil de ses réponses. Règles testées sur 5 chantiers FTZ (DUCOURNEAU, FALGUA E6390, BATELIER JEAN LOUIS, FONTES D2129 MAISON 1) : voir sections 5 K à O.
+Créé le 27/10/2026. État au 28/10/2026 (00:01, H-039) : 55 règles (R-001 à R-099, numérotation discontinue ; décompte exact donné par le logiciel). État au 27/10/2026 (14:30) : 52 règles (25 `active` · `confirmee`, 25 `a_valider`, 1 `brouillon`, 1 `archivee`). Les règles `a_valider` viennent du journal de développement ou ont été déduites des bandes ; Kévin les confirme au fil de ses réponses. Règles testées sur 5 chantiers FTZ (DUCOURNEAU, FALGUA E6390, BATELIER JEAN LOUIS, FONTES D2129 MAISON 1) : voir sections 5 K à O.
 
 **Objectif : le logiciel ne se trompe plus, et quand il ne sait pas, il le dit.** La commande IA « câbler » ne devine jamais : elle applique des règles confirmées, et signale tout doute ou toute règle absente.
 
@@ -91,12 +91,12 @@ Nouveaux champs :
 
 **Regroupement par catégorie (repère de lecture)**
 - Boîtes : R-001, R-002, R-004 à R-009, R-088, R-089, R-090, R-091, R-094
-- Circuits et couleurs : R-020 à R-024, R-085, R-087, R-092
+- Circuits et couleurs : R-020 à R-024, R-085, R-087, R-092, R-098
 - Allumages : R-040, R-041, R-070 à R-072, R-083, R-093
 - Gaines : R-010 à R-014, R-060, R-073 à R-075, R-077, R-078, R-095
 - Raccordements : R-030, R-031, R-080
 - Tableau : R-050, R-081
-- Appareils et lignes directes : R-003, R-079, R-082, R-084, R-086, R-096, R-097
+- Appareils et lignes directes : R-003, R-079, R-082, R-084, R-086, R-096, R-097, R-099
 
 L'IA modifie la bibliothèque comme le reste : proposition avant / après, validation de Kévin, historique, code de modification plus tard.
 
@@ -145,8 +145,8 @@ Les règles `active` · `confirmee` sont validées par Kévin. Les règles `a_va
 ### Boîtes
 
 **R-001 · Départs par boîte** — `active` · `confirmee`
-- Description : une boîte accepte 12 départs au plus, sans compter l'alimentation ; 6 gaines au plus par face, alimentation comprise (faces A à D, dans le sens horaire). Règle non fixée sur les chantiers de Kévin : il garde celle de Claude (27/10/2026, Q-50), avec une limite abaissée de 18 à 12 départs le 27/10/2026 (12:00). Conséquence : la boîte LI03 de la bande DUCOURNEAU (18 départs) ne rentrerait plus dans une seule boîte.
-- Paramètres : `departs_max = 12` (hors alimentation), `gaines_par_face_max = 6` (alimentation comprise), réglables
+- Description : une boîte accepte 16 départs au plus, sans compter l'alimentation ; 6 gaines au plus par face, alimentation comprise (faces A à D). Règle non fixée sur les chantiers de Kévin : il garde celle de Claude (27/10/2026, Q-50), avec une limite abaissée de 18 à 12 départs le 27/10/2026 (12:00), puis portée à 16 le 28/10/2026 (00:01) après la comparaison avec les bandes du BE (MAILLARD : jusqu'à 15 départs, LI02 et LI04). Conséquence : la boîte LI03 de la bande DUCOURNEAU (18 départs) ne rentre toujours pas dans une seule boîte.
+- Paramètres : `departs_max = 16` (hors alimentation), `gaines_par_face_max = 6` (alimentation comprise), réglables
 - Source : règles de câblage v28, réglage « départs par face » v37.
 
 **R-002 · Commande et lumières dans la même boîte** — `a_valider`
@@ -231,6 +231,7 @@ Les règles `active` · `confirmee` sont validées par Kévin. Les règles `a_va
 
 **R-023 · Couleurs de la ronde (retours et navettes)** — `a_valider` (précisée par R-072)
 - Description : retours et navettes en orange, violet, noir, marron, ivoire. Même ordre partout dans une boîte, les allumages les plus fréquents du chantier d'abord.
+- Le violet est bien utilisé chez KiTéOHM (Kévin, 28/10/2026, 00:01), même si la bande MAILLARD du BE n'en a pas : la ronde reste inchangée.
 - Source : v34, v38. **3e paire de couleurs phase / neutre : Q-12.**
 
 **R-024 · Paires de couleurs par circuit** — `a_valider`
@@ -314,8 +315,8 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 **R-076 · Numéros de raccordement FTZ** (écart avec R-031) — `archivee` (écartée par Kévin le 27/10/2026 : on garde R-031)
 - 1/2 éclairage, 3/4 prises, 7/8 cuisine, 9 terre, 11 et plus : navettes et retours. Les numéros 5, 6 et 10 ne sont jamais utilisés. R-031 (terres en premier) n'est pas celle de FTZ : voir Q-45.
 
-**R-077 · Numéro de gaine** — `active` · `confirmee` (Kévin, 27/10/2026, Q-52)
-- NomBoîte.NN ; .01 = alimentation ; les autres **strictement** dans le sens horaire (A, B, C, D) à partir de l'alimentation. Les inversions vues dans FTZ (LI01.06/.07, LI03.06, LI03.10) ne sont pas à reproduire.
+**R-077 · Numéro de gaine** — `active` · `confirmee` (Kévin, 27/10/2026, Q-52 ; sens changé le 27/10/2026, 23:19)
+- NomBoîte.NN ; .01 = alimentation ; les autres **strictement** dans le sens **anti-horaire** à partir de l'alimentation, pour que les numéros se lisent de gauche à droite sur chaque face. Les inversions vues dans FTZ (LI01.06/.07, LI03.06, LI03.10) ne sont pas à reproduire. FTZ et le BE numérotent dans le sens horaire : écart voulu.
 
 **R-078 · Longueurs** — `a_valider`
 - Affichées au 0,1 m (de 2,10 à 8,10 m dans les boîtes). Le sens de l'arrondi n'est pas visible : Q-07.
@@ -343,6 +344,7 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 - Pour chaque type, la nature du raccordement (câble ou fils) et la section sont **modifiables**.
 - Courant faible (TV, antenne, RJ45) : gaine verte Ø20 (ICTA_V20 dans FTZ), pour tous les chantiers (Kévin, 27/10/2026 : les anciens chantiers en ICTA 16 sont abandonnés). Types ajoutés le 27/10/2026 (Q-74) : module Aqua Air (alimentation 3G2,5 et pilotage 3×1,5), bouche de diffusion motorisée (YSYT 2×1 souple, sans gaine), prise extérieure 4G1,5, Velux motorisé (dans la boîte des volets, comme un volet), moteur de garage (ligne directe 1,5 GR + BF + V/J), interrupteur de coupure (ligne directe ICTA 16, 1,5 R + N), climatisation (4G1,5 ICTA 20), G EXT en 3G1,5 ICTA 16 ou 3G2,5 ICTA 20 selon le chantier.
 - Hotte : en boîte (circuit cuisine) ou en ligne directe, « ça dépend » (Q-60). Moteur de volet roulant : boîte ou ligne directe selon l'option du chantier (R-079).
+- Types ajoutés le 28/10/2026 (bande MAILLARD du BE, Kévin 00:01) : **îlot** (prises de l'îlot central en ligne directe, 1,5 GR + BF + V/J, ICTA 16) ; **bouton poussoir de sonnette** BPS (ligne directe, câble 1P 9/10, ICTA 16) ; **sonnette** SON (carillon dans une boîte, gaine 1,5 R + B + V/J, ICTA 16).
 
 **R-085 · Plus de 8 prises dans une boîte** — `active` · `confirmee` (Kévin, 27/10/2026, Q-59)
 - Deux solutions, au choix du **mode de pieuvre** (Proximité, Équilibrée, Par pièce, Plug de pieuvre) : (a) créer un 2e circuit prises dans l'alimentation de la même boîte ; (b) mettre les prises en trop dans une autre boîte. Réglage modifiable chantier par chantier.
@@ -424,6 +426,15 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 - Description : une gaine vide, aiguillée, laissée en attente (fibre, réseau…) est un appareil à poser sur le plan ; elle part en ligne directe du tableau, sans fil.
 - Paramètres : `diametre = 40` (vu sur DUCOURNEAU, AIG2 : Ø40, 1,2 m), modifiable par appareil.
 - Source : bande DUCOURNEAU (lignes directes), réponse de Kévin du 27/10/2026 (15:55).
+
+**R-098 · Prises de plan de travail** — `active` · `confirmee` (Kévin, 28/10/2026, 00:01)
+- Description : dans la cuisine, seules les prises du plan de travail (et la hotte, quand elle va en boîte : R-086) sont sur le circuit cuisine 2,5 mm² rouge / bleu (R-022, 6 au plus) ; les autres prises de la pièce restent sur un circuit prises 1,5 mm² gris / bleu foncé (R-021).
+- Le repère est porté par la prise elle-même (« prise de plan de travail »), pas par le nom de la pièce : une cuisine ouverte dans une pièce de vie est ainsi traitée comme une cuisine fermée.
+- Source : bande MAILLARD du BE (P28 à P31 + hotte en 2,5 ; P19 et P27, même pièce, en 1,5), réponse de Kévin du 28/10/2026 (00:01).
+
+**R-099 · Total des gaines des lignes directes** — `active` · `confirmee` (Kévin, 28/10/2026, 00:01)
+- Description : le total des gaines du tableau des lignes directes compte aussi les liaisons sans gaine (YSYT des bouches motorisées) ; les gaines vertes V20 sont comptées avec les ICTA 20. Exemple MAILLARD : 10 ICTA 16 + 15 ICTA 20 (dont 10 V20) + 7 YSYT = 32.
+- Source : bande MAILLARD du BE (page « Lignes directes »).
 
 ---
 
@@ -743,10 +754,11 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | Q-82 | Volets roulants : les bandes FTZ ont une phase grise (GR 11) et un neutre bleu clair (B 12). Or R-021 dit « le gris est la phase des prises, et uniquement d'elles ». Le gris des volets est-il une exception voulue ? | Oui : volets en bleu clair + gris + vert/jaune, validé ; R-021 modifiée | répondue |
 | Q-83 | Radiateurs à fil pilote : FTZ met le fil pilote en noir (C1 à C3) et en ivoire (C4) sur DUCOURNEAU. Une couleur par zone de chauffage, ou une seule couleur ? | Peut-être une couleur par zone de chauffage (Kévin, pas sûr) ; noir pour tous en attendant, à vérifier | en attente (collègue qualifié) |
 | Q-84 | Calibres non relevés sur les tableaux : moteur de garage, climatisation, prise extérieure 4G1,5, G EXT (16 A supposé). Quels calibres ? | 16 A, à vérifier | en attente (collègue qualifié) |
+| Q-85 | Module Aqua Air : la bande MAILLARD du BE n'a qu'une ligne directe (alimentation 3G2,5 ICTA 20) ; R-084 (Q-74) ajoute une ligne de pilotage 3×1,5 ICTA 16. Une ligne ou deux ? | Deux lignes (R-084), à vérifier | en attente (Thibault) |
 
 ## 6. Prochaine étape
 
-**Questions en suspens (« en attente », collègue plus qualifié)** : certaines questions ne sont pas à la portée de Kévin ; elles restent ouvertes, le logiciel garde la valeur supposée et la marque « à vérifier », sans jamais la reposer comme si elle était tranchée (Q-83, Q-84).
+**Questions en suspens (« en attente », collègue plus qualifié)** : certaines questions ne sont pas à la portée de Kévin ; elles restent ouvertes, le logiciel garde la valeur supposée et la marque « à vérifier », sans jamais la reposer comme si elle était tranchée (Q-83, Q-84, Q-85). Q-85 est à poser à **Thibault**, le collègue de Kévin qui prendra la suite.
 
 **Questions encore ouvertes (état au 27/10/2026, 14:30)**
 - Q-42, Q-44 : Plug de pieuvre (chaîne de boîtes, chantier concerné), en attente d'un chantier de ce type.
@@ -799,3 +811,6 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | H-034 | 27/10/2026 | R-094, R-097, Q-26, Q-77 | Modification et création | Q-26, Q-77 ouvertes ; AIG2 à préciser | Critère « plus économique » confirmé ; règles communes à tous les pavillonneurs ; R-097 gaine aiguillée en attente | Réponses de Kévin du 27/10/2026 (15:55) | IA (validée par Kévin) | — |
 | H-035 | 27/10/2026 | Q-82 à Q-84 | Création | — | Trois questions ouvertes | Cas rencontrés en ajoutant les appareils de R-084 (mise à jour 54) | IA | — |
 | H-036 | 27/10/2026 | R-021, R-079, Q-82 à Q-84 | Modification | R-021 : gris = prises seulement ; R-079 à valider | R-021 : gris = phase des prises et des volets (neutre bleu clair pour les volets) ; R-079 confirmée ; Q-83 et Q-84 en attente d'un collègue plus qualifié | Réponse de Kévin du 27/10/2026 (18:39) | IA (validée par Kévin) | — |
+| H-037 | 27/10/2026 | R-077 | Modification | Sens horaire depuis l'alimentation | Sens anti-horaire depuis l'alimentation (.01 reste l'alimentation) : numéros lus de gauche à droite sur chaque face | Demande de Kévin du 27/10/2026 (23:19, précisée à 23:21) | IA (validée par Kévin) | — |
+| H-038 | 28/10/2026 | R-001 | Modification | 12 départs hors alimentation | 16 départs hors alimentation | Bande MAILLARD du BE (jusqu'à 15 départs), réponse de Kévin du 28/10/2026 (00:01) | IA (validée par Kévin) | — |
+| H-039 | 28/10/2026 | R-023, R-084, R-098, R-099, Q-85 | Modification et création | — | Violet confirmé dans la ronde ; types îlot, BPS, sonnette ; R-098 prises de plan de travail ; R-099 total des gaines des lignes directes ; Q-85 (Aqua Air) en attente de Thibault | Comparaison avec la bande MAILLARD du BE, réponses de Kévin du 28/10/2026 (00:01) | IA (validée par Kévin) | — |
