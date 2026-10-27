@@ -1,6 +1,6 @@
 // Généré par scripts/regles-import.mjs depuis docs/journal-regles-cablage.md — ne pas modifier à la main.
 export const REGLES_BASE = {
- "version": "2026-10-27.30",
+ "version": "2026-10-27.34",
  "rules": [
   {
    "id": "R-001",
@@ -1493,7 +1493,8 @@ export const REGLES_BASE = {
    "categorie": "circuits",
    "description": "Le nombre de fils par borne n'est **pas une contrainte** : on peut faire des ponts au câblage pour prolonger une borne au-delà de 12. La capacité d'une borne n'influence ni les circuits ni le câblage des boîtes ; le logiciel ne la contrôle pas.",
    "details": [
-    "Une borne ne réunit jamais des fils de sections différentes (un circuit de prises 2,5 n'est jamais mélangé avec un circuit de prises 1,5)."
+    "Une borne ne réunit jamais des fils de sections différentes (un circuit de prises 2,5 n'est jamais mélangé avec un circuit de prises 1,5).",
+    "**Seule exception : les terres** se raccordent ensemble quelle que soit leur section (Kévin, 27/10/2026, Q-80)."
    ],
    "condition": "",
    "action": "",
@@ -1506,7 +1507,8 @@ export const REGLES_BASE = {
    "note": "Q-38",
    "precise": "",
    "questions_liees": [
-    "Q-38"
+    "Q-38",
+    "Q-80"
    ],
    "noeud": "chantier/circuits/R-092",
    "depends_on": [],
@@ -1558,7 +1560,7 @@ export const REGLES_BASE = {
    "description": "**Proximité** : le logiciel choisit la solution la plus économique (boîtes de volets multiples, ou volets mélangés aux autres boîtes, selon la longueur de fil et de gaine).",
    "details": [
     "**Équilibrée** : une seule boîte pour tous les volets.",
-    "Critère de « plus économique » (provisoire, Q-77 ouverte) : plus petite longueur totale de gaine, puis moins de boîtes, puis moins de départs.",
+    "Critère de « plus économique » (confirmé par Kévin le 27/10/2026, Q-77) : plus petite longueur totale de gaine, puis moins de boîtes, puis moins de départs. C'est aussi le score des alternatives dans l'étude (section 3 ter).",
     "Par pièce et Plug de pieuvre : non précisé (doute, `avertir`).",
     "Précise R-079."
    ],
@@ -1651,6 +1653,32 @@ export const REGLES_BASE = {
      ]
     }
    ],
+   "preuves": [],
+   "version": 1,
+   "cree_le": "2026-10-27",
+   "modifie_le": "2026-10-27",
+   "modifie_par": "Kévin"
+  },
+  {
+   "id": "R-097",
+   "titre": "Gaine aiguillée en attente",
+   "categorie": "appareils",
+   "description": "une gaine vide, aiguillée, laissée en attente (fibre, réseau…) est un appareil à poser sur le plan ; elle part en ligne directe du tableau, sans fil.",
+   "details": [],
+   "condition": "",
+   "action": "",
+   "parametres": {},
+   "parametres_texte": "`diametre = 40` (vu sur DUCOURNEAU, AIG2 : Ø40, 1,2 m), modifiable par appareil.",
+   "certitude": "confirmee",
+   "si_doute": "avertir",
+   "statut": "active",
+   "source": "bande DUCOURNEAU (lignes directes), réponse de Kévin du 27/10/2026 (15:55).",
+   "note": "Kévin, 27/10/2026",
+   "precise": "",
+   "questions_liees": [],
+   "noeud": "chantier/appareils/R-097",
+   "depends_on": [],
+   "choix": null,
    "preuves": [],
    "version": 1,
    "cree_le": "2026-10-27",
@@ -1913,11 +1941,11 @@ export const REGLES_BASE = {
    "id": "Q-26",
    "section": "G. Portée des règles",
    "question": "Une règle peut-elle changer selon le pavillonneur ou le chantier (ex. norme, section) ? Lesquelles ?",
-   "reponse": "",
-   "suppose": "règles communes",
-   "si_doute": "avertir",
-   "statut": "ouverte",
-   "statut_texte": ""
+   "reponse": "Oui : règles communes à tous les pavillonneurs (Kévin, 15:55)",
+   "suppose": "",
+   "si_doute": "",
+   "statut": "repondue",
+   "statut_texte": "répondue"
   },
   {
    "id": "Q-27",
@@ -2426,8 +2454,8 @@ export const REGLES_BASE = {
    "reponse": "Oui : le score d'un mode est la longueur totale de gaine, avec le nombre de boîtes et de départs",
    "suppose": "",
    "si_doute": "",
-   "statut": "ouverte",
-   "statut_texte": "ouverte (reformulée à 14:25)"
+   "statut": "repondue",
+   "statut_texte": "répondue : critère confirmé par Kévin (15:55) : longueur totale de gaine, puis nombre de boîtes, puis départs"
   },
   {
    "id": "Q-78",
@@ -2443,21 +2471,31 @@ export const REGLES_BASE = {
    "id": "Q-79",
    "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
    "question": "Plaque de cuisson en 6 mm² (3 fils = 18 mm²) : FTZ la met en ICTA 20, au-delà des 13,5 mm² de R-074. Quel diamètre pour les lignes directes de grosse section (6 et 10 mm²) ?",
-   "reponse": "ICTA 20 comme FTZ, signalé « à vérifier »",
+   "reponse": "Exception : B + R + V/J 6 mm² en ICTA 20 (R-074) ; 10 mm² : Q-81",
    "suppose": "",
    "si_doute": "",
-   "statut": "ouverte",
-   "statut_texte": "ouverte"
+   "statut": "repondue",
+   "statut_texte": "répondue"
   },
   {
    "id": "Q-80",
    "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
    "question": "Terres de sections différentes (2,5 de l'alimentation, 1,5 des appareils) sur la borne n° 1 : autorisé (R-092 parle des circuits) ?",
-   "reponse": "autorisé pour les terres",
+   "reponse": "Oui : seules les terres se câblent ensemble malgré leur section (R-092)",
    "suppose": "",
    "si_doute": "",
-   "statut": "ouverte",
-   "statut_texte": "ouverte"
+   "statut": "repondue",
+   "statut_texte": "répondue"
+  },
+  {
+   "id": "Q-81",
+   "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
+   "question": "Ligne B + R + V/J en 10 mm² (3 × 10 mm²) : ICTA 25 (même tolérance que la plaque 6 mm² en ICTA 20) ou ICTA 32 (règle du tiers de la section de la gaine) ?",
+   "reponse": "ICTA 25 (Kévin, 15:52)",
+   "suppose": "",
+   "si_doute": "",
+   "statut": "repondue",
+   "statut_texte": "répondue"
   }
  ],
  "history": [
@@ -2789,6 +2827,50 @@ export const REGLES_BASE = {
    "apres": "Deux questions ouvertes",
    "motif": "Cas rencontrés en appliquant R-074 et R-092 au câblage (mise à jour 52)",
    "par": "IA",
+   "code_valide": null
+  },
+  {
+   "id": "H-031",
+   "date": "27/10/2026",
+   "regle": "R-074",
+   "action": "Modification",
+   "avant": "Au-delà de 13,5 mm² : doute",
+   "apres": "Exception : plaque B + R + V/J 6 mm² en ICTA 20 ; Q-79 répondue, Q-81 ouverte (10 mm²)",
+   "motif": "Réponse de Kévin du 27/10/2026 (15:50)",
+   "par": "IA (validée par Kévin)",
+   "code_valide": null
+  },
+  {
+   "id": "H-032",
+   "date": "27/10/2026",
+   "regle": "R-092",
+   "action": "Modification",
+   "avant": "Sections jamais mélangées sur une borne",
+   "apres": "Sauf les terres, raccordées ensemble quelle que soit leur section ; Q-80 répondue",
+   "motif": "Réponse de Kévin du 27/10/2026 (15:50)",
+   "par": "IA (validée par Kévin)",
+   "code_valide": null
+  },
+  {
+   "id": "H-033",
+   "date": "27/10/2026",
+   "regle": "R-074",
+   "action": "Modification",
+   "avant": "10 mm² : en attente",
+   "apres": "Exception : B + R + V/J 10 mm² en ICTA 25 ; Q-81 répondue",
+   "motif": "Réponse de Kévin du 27/10/2026 (15:52)",
+   "par": "IA (validée par Kévin)",
+   "code_valide": null
+  },
+  {
+   "id": "H-034",
+   "date": "27/10/2026",
+   "regle": "R-094, R-097, Q-26, Q-77",
+   "action": "Modification et création",
+   "avant": "Q-26, Q-77 ouvertes ; AIG2 à préciser",
+   "apres": "Critère « plus économique » confirmé ; règles communes à tous les pavillonneurs ; R-097 gaine aiguillée en attente",
+   "motif": "Réponses de Kévin du 27/10/2026 (15:55)",
+   "par": "IA (validée par Kévin)",
    "code_valide": null
   }
  ]

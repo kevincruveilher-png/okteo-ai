@@ -5,7 +5,7 @@ import { addLimit } from "../walls/rooms.js";
 import { CH, PAL, PLAN, TYPES, VB, layers, node, nodeById, segById, state, uidA, uidN, uidO, uidR, uidS } from "./model.js";
 import { markDirty, packData, snapshot, writeNow } from "./persist.js";
 import { fit, renumberReps, repMap, syncVB } from "./view.js";
-import { draw, sv } from "./render.js";
+import { draw, drawFx, sv } from "./render.js";
 import { attach, reattach, roomArea, roomPoly, snapToWall, wallMounted } from "./attach.js";
 import { bbox, clampOpenings, clearSel, duplicateGroup, multi, normalizeSel, openCenter, roomAt, selectAll, transformGroup } from "./groups.js";
 import { wallMeasure } from "./interact.js";
@@ -247,6 +247,14 @@ window.okteo = {
   setPreview(p) {
     K.preview = p || null;
     draw();
+  },
+  // doutes du câblage affichés sur le plan (v53) : [{key, x, y, lv, bloquant, text}]
+  setDoubts(list) {
+    K.doubts = Array.isArray(list) ? list : [];
+    drawFx();
+  },
+  get doubts() {
+    return K.doubts || [];
   },
   roomArea,
   roomPoly,

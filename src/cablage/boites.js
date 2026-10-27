@@ -172,6 +172,14 @@ function cluster(units, k, tab, S, seed) {
       if (!fit) return null;
       fit.b.units.push(u);
     }
+    // boîte restée vide : on la recentre sur l'unité la plus éloignée de sa boîte (le nombre de boîtes demandé est tenu)
+    let reseed = false;
+    for (const e of boxes.filter((b) => !b.units.length)) {
+      let far = null, fd = -1;
+      for (const b of boxes) if (b.units.length > 1) for (const u of b.units) { const d = d2(b, u); if (d > fd) { fd = d; far = u; } }
+      if (far) { e.x = far.x + 0.01; e.y = far.y + 0.01; reseed = true; }
+    }
+    if (reseed && it < 24) continue;
     const moved = boxes.map((b) => {
       if (!b.units.length) return 0;
       const pts = spotPts(b.units, S.memeEndroit ?? 0.3);
@@ -291,6 +299,10 @@ export function placeBoxes(items, links, circuits, tabs, S0, { keep = [], count 
     base.forEach((b) => { want[b.lv] = 1 + Math.floor(b.x); });
     let left = Math.max(levels.length, free) - levels.reduce((s, lv) => s + want[lv], 0);
     base.sort((p, q) => (q.x - Math.floor(q.x)) - (p.x - Math.floor(p.x))).forEach((b) => { if (left > 0) { want[b.lv]++; left--; } });
+    // jamais plus de boîtes que d'unités sur un niveau : le surplus va aux niveaux qui en ont le plus
+    const cap = Object.fromEntries(levels.map((lv) => [lv, units.filter((u) => u.lv === lv).length]));
+    let extra = 0; levels.forEach((lv) => { if (want[lv] > cap[lv]) { extra += want[lv] - cap[lv]; want[lv] = cap[lv]; } });
+    for (const lv of levels.slice().sort((p, q) => dep[q] - dep[p])) { const room = cap[lv] - want[lv]; const k = Math.min(room, extra); want[lv] += k; extra -= k; }
     const mins = levels.reduce((s, lv) => s + minBoxes(units.filter((u) => u.lv === lv), S), 0);
     if (free < mins) issues.push(`${count} boîtes demandées : il en faut au moins ${mins + kept.length} pour respecter ${S.departsMax} départs par boîte (sans l'alimentation) et ${S.departsFace} gaines par face`);
   }

@@ -281,6 +281,27 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 53 (27/10/2026) — livrée : étude du câblage, doutes sur le plan, « Pourquoi ? », câbler avec précontrôle
+- Onglet « Étude » (`src/ext/etude-ui.js`, moteur pur `src/cablage/etude.js`) : précontrôle (règles utiles au chantier
+  et leur certitude ; une règle inconnue et bloquante, ou absente, empêche de câbler : « Je ne peux pas câbler : il manque
+  N règles »), bande des 9 étapes avec leur état (✓ appliqué, ◐ supposé, ? doute, ✕ bloqué, ✎ corrigé à la main), modes de
+  pieuvre comparés avec leur score (gaine, puis boîtes, puis départs : Q-77), « Où ça coince » trié par gravité avec la
+  question à poser, « Voir » et « Proposer une modification de la règle » (l'assistant s'ouvre avec le cas), rapport de
+  câblage PDF, statistiques par règle et par mode sur toutes les études du PC (export JSON).
+- « ⚡ Câbler le chantier » (aussi pour l'assistant, commande `etude.cabler`) : précontrôle, circuits si besoin, boîtes
+  (verrouillées et déplacées à la main gardées), circuits par boîte, étude enregistrée dans le chantier (`cab.etude`) :
+  un seul Ctrl+Z.
+- Doutes sur le plan : pastille ✕ (bloquant) / ? à côté de la boîte (`okteo.setDoubts`, couche fx), compteur « ✕ n doutes »
+  en haut (clic = onglet Étude).
+- « Pourquoi ? » : clic sur une boîte ou une gaine du plan → carte avec la chaîne de règles (boîte : R-001, mode, R-002,
+  R-005, R-007, R-077… ; gaine : R-077, R-073, R-072, R-014/R-095, R-074, R-011 ; fil : couleur et n°).
+- Journal : réponses Q-26, Q-77, Q-79 à Q-81, R-097 (gaine aiguillée en attente) ; R-074 : exceptions B + R + V/J 6 mm²
+  → ICTA 20, 10 mm² → ICTA 25 ; R-092 : terres de sections différentes autorisées. 53 règles.
+- Placement : une boîte restée vide pendant le regroupement est recentrée, jamais plus de boîtes que d'unités sur un
+  niveau (le nombre de boîtes demandé est tenu) ; panneau Câblage : le nombre de boîtes tapé et les cases cochées ne sont
+  plus effacés par un enregistrement automatique.
+- Tests : 30 + 58 + 132 + 136.
+
 ## Version 52 (27/10/2026) — livrée : le câblage suit les règles confirmées du journal
 - R-001 : 12 départs par boîte sans l'alimentation (un départ = une gaine, appareils au même endroit comptés une fois),
   6 gaines par face alimentation comprise ; anciens réglages à 18 remplacés (`CAB_V` 3). R-088 : face pleine → face

@@ -684,6 +684,11 @@ export function drawFx() {
     if (pref("halos")) list.forEach((it) => it.ids.forEach((id) => { const a = by[id]; if (a) items.push({ key: id, kind: "halo", x: a.x, y: a.y, r: 1.5 * ss }); }));
     if (K.testMode) litSet().forEach((id) => { const a = by[id]; if (a) items.push({ key: id, kind: "glow", x: a.x, y: a.y, r: Math.max(1.4, 4 * ss) }); });
   }
+  // doutes du câblage (v53, okteo.setDoubts) : pastille en haut à droite de la boîte, sur le niveau ouvert
+  if (K.tab === "plan" && K.showCirc !== false) {
+    const ss = symView();
+    (K.doubts || []).filter((d) => d.lv == null || d.lv === K.LV.cur).forEach((d) => items.push({ key: d.key, kind: "doubt", x: d.x + 1.1 * ss, y: d.y - 1.1 * ss, r: 0.62 * ss, bloquant: !!d.bloquant }));
+  }
   fxDraw(items);
 }
 

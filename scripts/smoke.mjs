@@ -92,7 +92,7 @@ try {
 
   console.log("Premiers pas (v27)");
   await check("première ouverture : invitation à la visite guidée (non bloquante)", async () => page.isVisible(".tour-invite"));
-  await check("visite guidée : 24 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
+  await check("visite guidée : 25 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
     await page.click("#ti-go");
     const s1 = await page.textContent(".tour-bub .tour-n");
     await page.keyboard.press("ArrowRight");
@@ -100,12 +100,12 @@ try {
       return !document.querySelector(".tour-ring").hidden && r.left <= t.left && r.right >= t.right && r.top <= t.top && r.bottom >= t.bottom; });
     await page.keyboard.press("ArrowLeft");
     const back = await page.textContent(".tour-bub .tour-n");
-    for (let k = 0; k < 24; k++) await page.click("#tour-next");
+    for (let k = 0; k < 25; k++) await page.click("#tour-next");
     const done = await ev(() => document.querySelector(".tour-bub").hidden && okteoExt.panel.state.pane === "steps" && !!document.querySelector(".steps ol li"));
     await ev(() => okteoExt.panel.show("props"));
     await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);
     const again = await page.isVisible(".tour-invite");
-    if (!(s1 === "1 / 24" && lit && back === "1 / 24" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
+    if (!(s1 === "1 / 25" && lit && back === "1 / 25" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
     return true;
   });
 
@@ -1584,7 +1584,7 @@ try {
     const r = await ev(() => {
       const S = document.getElementById("ps-regles");
       const rows = () => [...S.querySelectorAll(".rg-row")].map((tr) => tr.dataset.id);
-      const o = { intro: /52 règles : 25 actives, 25 à valider, 1 brouillon, 1 archivée/.test(S.textContent), n: rows().length, archHidden: !rows().includes("R-076"),
+      const o = { intro: /53 règles : 26 actives, 25 à valider, 1 brouillon, 1 archivée/.test(S.textContent), n: rows().length, archHidden: !rows().includes("R-076"),
         rouge: S.querySelector('.rg-cat[data-cat="boites"]').classList.contains("rouge"), nav: !!document.querySelector('.pset-nav a[data-to="ps-regles"]') };
       return o;
     });
@@ -1597,7 +1597,7 @@ try {
     await clickIn('#ps-regles .rg-cat[data-cat="tableau"]');
     const tab = await ev(() => [...document.querySelectorAll("#ps-regles .rg-row")].map((tr) => tr.dataset.id).join(","));
     await clickIn('#ps-regles .rg-cat[data-cat="tableau"]');
-    if (!(r.intro && r.n === 51 && r.archHidden && r.rouge && r.nav && inc === "R-009" && icta.includes("R-074") && tab === "R-050,R-081")) throw new Error(JSON.stringify({ r, inc, icta, tab }));
+    if (!(r.intro && r.n === 52 && r.archHidden && r.rouge && r.nav && inc === "R-009" && icta.includes("R-074") && tab === "R-050,R-081")) throw new Error(JSON.stringify({ r, inc, icta, tab }));
     return true;
   });
   await check("fiche d'une règle : paramètres, écart avec le logiciel (18 / 12), utilisée par, preuves, questions, historique ; lien depuis un réglage Câblage", async () => {
@@ -1645,7 +1645,7 @@ try {
     await ev((o) => okteoExt.settings.set(JSON.parse(o)), old);
     await ev(() => okteoExt.panel.close("assistant"));
     const ok = /^Règle R-002 : je veux la modifier/.test(pre) && /Modifier R-002/.test(card) && /certitude.*supposee.*confirmee/.test(card) && /Champs inconnus : couleur/.test(card)
-      && after.cert === "confirmee" && after.st === "active" && after.v === 2 && after.h === "H-031|R-002|Modification|Confirmée par Kévin|true" && /validée \(H-031\)/.test(st);
+      && after.cert === "confirmee" && after.st === "active" && after.v === 2 && after.h === "H-035|R-002|Modification|Confirmée par Kévin|true" && /validée \(H-035\)/.test(st);
     if (!ok) throw new Error(JSON.stringify({ pre, card: card.slice(0, 300), after, st }));
     return true;
   });
@@ -1663,7 +1663,87 @@ try {
     await ev(async () => { const m = await import("/src/cablage/regles.js"); m.resetJournal(); });
     const back = await ev(async () => { const m = await import("/src/cablage/regles.js"); return m.ruleById(m.getJournal(), "R-002").certitude; });
     await ev(() => okteo.setTab("plan"));
-    if (!(/^journal-regles-cablage-\d{8}\.json$/.test(name) && j.okteo === "journal-regles" && j.rules.length === 52 && r.t === "Boîtes verrouillées (importé)" && r.h === "Import" && r.conf === "confirmee" && /Journal importé/.test(r.msg) && back === "supposee")) throw new Error(JSON.stringify({ name, r, back }));
+    if (!(/^journal-regles-cablage-\d{8}\.json$/.test(name) && j.okteo === "journal-regles" && j.rules.length === 53 && r.t === "Boîtes verrouillées (importé)" && r.h === "Import" && r.conf === "confirmee" && /Journal importé/.test(r.msg) && back === "supposee")) throw new Error(JSON.stringify({ name, r, back }));
+    return true;
+  });
+
+  console.log("Étude du câblage (v53)");
+  await check("onglet Étude : précontrôle, 9 étapes avec leur état, modes comparés (gaine, boîtes, départs), où ça coince", async () => {
+    await ev(() => okteoExt.panel.close("assistant"));
+    await page.click('#tabs button[data-tab="etude"]');
+    await page.waitForSelector("#etude .et-step");
+    const r = await ev(() => ({ steps: [...document.querySelectorAll("#etude .et-step")].map((b) => b.querySelector("b").textContent), pc: document.querySelector("#etude .et-pc").textContent, where: document.querySelectorAll("#et-where li").length }));
+    await page.click('#etude .et-step[data-n="2"]');
+    const alt = await ev(() => [...document.querySelectorAll("#etude .et-box table tr")].slice(1).map((tr) => tr.textContent));
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/etude.png" });
+    if (!(r.steps.length === 9 && /1\. Lecture du plan/.test(r.steps[0]) && /9\. Contrôle/.test(r.steps[8]) && /Précontrôle — ✓ les \d+ règles utiles/.test(r.pc) && /supposées/.test(r.pc) && r.where > 0 && alt.length === 3 && alt.some((t) => /retenu/.test(t)))) throw new Error(JSON.stringify({ r, alt }));
+    return true;
+  });
+  await check("« Câbler le chantier » : boîtes et circuits recalculés, étude enregistrée dans le chantier, statistiques ; un seul Ctrl+Z", async () => {
+    const before = await ev(() => JSON.stringify(okteo.cab.boxes.map((b) => b.id + ":" + b.apps.length)));
+    await page.click("#et-cabler");
+    await page.waitForSelector("#etude .et-msg");
+    const r = await ev(() => ({ msg: document.querySelector("#etude .et-msg").textContent, etude: okteo.cab.etude && okteo.cab.etude.steps.length, stats: Object.keys(JSON.parse(localStorage.getItem("okteo.etudes.v1") || "{}")).length, last: /Dernier câblage/.test(document.querySelector("#etude .et-pc").textContent) }));
+    await page.click('#tabs button[data-tab="plan"]');
+    await page.keyboard.press("Control+z");
+    const undone = await ev(() => ({ etude: !!okteo.cab.etude, boxes: JSON.stringify(okteo.cab.boxes.map((b) => b.id + ":" + b.apps.length)) }));
+    await page.keyboard.press("Control+y");
+    const redo = await ev(() => !!okteo.cab.etude);
+    if (!(/^Câblé : \d+ boîtes/.test(r.msg) && r.etude === 9 && r.stats >= 1 && r.last && !undone.etude && undone.boxes === before && redo)) throw new Error(JSON.stringify({ r, undone, before, redo }));
+    return true;
+  });
+  await check("précontrôle : une règle bloquante inconnue → « Je ne peux pas câbler : il manque 1 règle » (rien ne change) ; l'assistant peut lancer le câblage", async () => {
+    const r = await ev(async () => {
+      const R = await import("/src/cablage/regles.js");
+      const J = R.getJournal(); R.apply(J, R.propose(J, { op: "modifier", id: "R-074", patch: { certitude: "inconnue", si_doute: "bloquer" }, motif: "essai" }));
+      const before = JSON.stringify(okteo.cab.boxes);
+      const txt = okteoExt.catalog.find((c) => c.id === "etude.cabler").run();
+      const same = JSON.stringify(okteo.cab.boxes) === before;
+      R.resetJournal();
+      const txt2 = okteoExt.catalog.find((c) => c.id === "etude.cabler").run();
+      return { txt, same, txt2 };
+    });
+    if (!(/^Je ne peux pas câbler : il manque 1 règle — R-074/.test(r.txt) && r.same && /^Câblé/.test(r.txt2))) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("doutes sur le plan : pastille ✕ près de la boîte, compteur « ✕ n doutes » (clic = onglet Étude)", async () => {
+    await ev(async () => (await import("/src/cablage/settings.js")).setCab({ icta20: 5, icta16: 3 }));
+    await page.waitForFunction(() => okteo.doubts.length > 0 && !document.getElementById("dbt").hidden, null, { timeout: 5000 });
+    await ev(() => { okteo.showCircuits = true; window.__okteo.draw(); });
+    const r = await ev(() => ({ n: okteo.doubts.length, fx: document.querySelectorAll("#fx .fx-doubt.blq").length, btn: document.getElementById("dbt").textContent }));
+    await page.click("#dbt");
+    const tab = await ev(() => okteo.tab);
+    const coince = await ev(() => document.querySelector("#et-where").textContent);
+    await ev(async () => (await import("/src/cablage/settings.js")).resetCab());
+    await page.waitForFunction(() => document.getElementById("dbt").hidden || !/✕/.test(document.getElementById("dbt").textContent), null, { timeout: 5000 });
+    if (!(r.n > 0 && r.fx > 0 && /^✕ \d+ doutes?/.test(r.btn) && tab === "etude" && /R-074/.test(coince))) throw new Error(JSON.stringify({ r, tab, coince: coince.slice(0, 200) }));
+    return true;
+  });
+  await check("« Pourquoi ? » : clic sur une boîte (R-001, mode, faces) puis sur sa gaine d'alimentation (R-074, R-075) et un fil (R-031)", async () => {
+    await page.click('#tabs button[data-tab="plan"]');
+    const id = await ev(() => okteo.cab.boxes[0].id);
+    await ev((i) => document.dispatchEvent(new CustomEvent("okteo:box-select", { detail: { id: i } })), id);
+    const box = await ev(() => document.querySelector(".why-card:not([hidden])")?.textContent || "");
+    await ev((i) => document.dispatchEvent(new CustomEvent("okteo:box-select", { detail: { id: i, key: "tab" } })), id);
+    const g = await ev(() => document.querySelector(".why-card:not([hidden])")?.textContent || "");
+    await page.click('.why-card [data-w="0"]');
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/pourquoi.png" });
+    const w = await ev(() => document.querySelector(".why-card .why-w")?.textContent || "");
+    await page.click(".why-card [data-x]");
+    const shut = await ev(() => document.querySelector(".why-card").hidden);
+    if (!(/Pourquoi LI\d+ \?/.test(box) && /R-001/.test(box) && /Mode de pieuvre/.test(box) && /\.01 \?/.test(g) && /R-074/.test(g) && /R-075/.test(g) && /R-031/.test(w) && shut)) throw new Error(JSON.stringify({ box: box.slice(0, 200), g: g.slice(0, 200), w }));
+    return true;
+  });
+  await check("rapport de câblage (PDF) : étapes, modes, où ça coince", async () => {
+    await page.click('#tabs button[data-tab="etude"]');
+    await page.waitForSelector("#et-report");
+    await page.click("#et-report");
+    await page.waitForFunction(() => document.getElementById("etude").__report, null, { timeout: 20000 });
+    const b64 = await ev(async () => { const u = new Uint8Array(await document.getElementById("etude").__report.blob.arrayBuffer()); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); });
+    const doc = await pdfjsNode.getDocument({ data: new Uint8Array(Buffer.from(b64, "base64")), verbosity: 0 }).promise;
+    const t = (await (await doc.getPage(1)).getTextContent()).items.map((x) => x.str).join(" ");
+    await page.click('#tabs button[data-tab="plan"]');
+    if (!(/Rapport de câblage/.test(t) && /Étapes/.test(t) && /Où ça coince/.test(t) && /Modes de pieuvre étudiés/.test(t))) throw new Error(t.slice(0, 300));
     return true;
   });
 

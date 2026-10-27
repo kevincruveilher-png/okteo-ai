@@ -236,7 +236,7 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `controlKinds`, `okteo.essai` {press, reset, lit, off, breaker, testAll}, `setEssai(on)`. Préférence `halos`.
   Ext : `controle-ui.js` (compteur `#ctl`, `go/next`, `controlSection` en tête du panneau Câblage), `essai-ui.js`
   (`.essai-card`), packs-ui `openMenu/applyPack` (événement `okteo:pack-menu` envoyé par le bouton `data-h="pack"`
-  du HUD pièce ; Maj+P ; `.pk-menu`). `exportGeometry().rooms[].id`. Visite : 24 étapes (v51).
+  du HUD pièce ; Maj+P ; `.pk-menu`). `exportGeometry().rooms[].id`. Visite : 25 étapes (v53).
   v45.1 : `linkTables` ne compte que les vraies commandes et suit les chaînes de lumières ; alertes `int2`, `nobox` ;
   quadrillage `layers.grille.on=false` par défaut (drapeau `g451` dans les données enregistrées).
 - v46 : `src/cablage/tableau.js` (pur : `MODELS` Resi9, `autoTableau(circuits, {model, area})`, `syncTableau`,
@@ -279,13 +279,20 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `box.longueur`/`bouchons`/`rules`, `W.doutes` [{rule, text, box, bloquant}] (aussi en texte dans `W.issues`) ;
   cablage-bandes `aVerifier(ids)` → `S.verifier`, `S.longueur`. Tests : `scripts/chantiers.test.mjs` sur
   `scripts/fixtures/chantiers-ftz.mjs` (4 chantiers FTZ, positions schématiques).
+- v53 : `src/cablage/etude.js` (pur : `STEPS` (9), `ETATS`, `neededRules`/`precontrole(J, ctx)`, `contextOf`, `buildTrace`
+  → {steps[{state, decisions[{rule, state, text, box, ids, question}]}], alternatives (rang Q-77), where, counts},
+  `scoreOf`/`cmpScore`, `questionOf`, `whyBox`/`whyGaine`/`whyWire`, `statsOf`) ; `src/ext/etude-ui.js` (`etudeNow(api)`,
+  `cabler(api)` (api.batch : un Ctrl+Z, `cab.etude`), `buildReport`, page `#etude` (onglet « Étude », `.et-step[data-n]`,
+  `#et-cabler`, `#et-report`, `#et-where`), `createDoubts` (compteur `#dbt`, `okteo.setDoubts` → `K.doubts` → fx
+  `.fx-doubt`), `createWhy` (carte `.why-card` sur `okteo:box-select` {id, key}), stats localStorage `okteo.etudes.v1`).
+  Assistant : une commande du catalogue peut renvoyer un texte (compte rendu). gaine.js `GROS_FILS` {6: 20, 10: 25}.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (57 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (132 : règles du journal sur 4 chantiers réels) + `scripts/smoke.mjs` (130 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (58 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (132 : règles du journal sur 4 chantiers réels) + `scripts/smoke.mjs` (136 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

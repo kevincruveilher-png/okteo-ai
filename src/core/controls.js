@@ -210,7 +210,7 @@ export function setHint(s) {
 
 export function buildTabs() {
   const el = document.getElementById("tabs");
-  const items = [["chantiers", "Chantiers", null], ["plan", "Plan", null], ["boites", "Boîtes", null], ["bandes", "Bandes", null], ["lignes", "Lignes directes", null], ["tableau", "Tableau", null], ["params", "Paramètres", null]];
+  const items = [["chantiers", "Chantiers", null], ["plan", "Plan", null], ["etude", "Étude", null], ["boites", "Boîtes", null], ["bandes", "Bandes", null], ["lignes", "Lignes directes", null], ["tableau", "Tableau", null], ["params", "Paramètres", null]];
   el.innerHTML = items.map(([k, n, s]) => `<button data-tab="${k}" class="${K.tab === k ? 'on' : ''}${k === "params" ? " tab-params" : ""}" ${s ? 'disabled' : ''}><span class="lbl">${n}</span>${s ? `<span class="soon">${s}</span>` : ""}</button>`).join("");
   el.querySelectorAll("button").forEach(b => b.onclick = () => {
     if (b.disabled) return;

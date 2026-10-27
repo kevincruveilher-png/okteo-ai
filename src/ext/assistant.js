@@ -181,7 +181,7 @@ export function createAssistant(el, { api, getCatalog, openParams }) {
         const C = getCatalog().find((c) => c.id === a.id);
         if (!C) return note(`✗ Fonction inconnue : ${a.id}`);
         if (!C.run) return note(`ℹ ${C.label} : ${C.desc}`);
-        C.run(); return note(`✓ ${C.label}`);
+        const r = C.run(); return note(typeof r === "string" ? r : `✓ ${C.label}`);
       }
       if (a.do === "select") { const n = api.select(a.ids || []); return note(n ? `✓ ${n} objet${n > 1 ? "s" : ""} sélectionné${n > 1 ? "s" : ""}` : "✗ Objets introuvables"); }
       if (a.do === "zoom") { return note(api.zoomTo(a.ids || []) ? `✓ Vue centrée sur ${(a.ids || []).join(", ")}` : "✗ Objets introuvables"); }

@@ -124,7 +124,7 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
 - Longueur totale de la boîte sous son nom (bande, étiquette, dossier).
 - Chaque résultat garde la règle qui l'a produit et sa certitude ; « à vérifier » imprimé sur la bande si non confirmée.
 
-### Notes du 27/10/2026 (15:50), à faire avec la prochaine mise à jour
+### Notes du 27/10/2026 (15:50) — faites avec la 53 (sauf R-097 : avec la 54)
 - R-074 : exceptions dans `gaineFor` (lignes directes) : B + R + V/J 6 mm² → ICTA 20, 10 mm² → ICTA 25 (Q-79, Q-81).
 - R-092 : terres de sections différentes autorisées sur la borne n° 1 (déjà le cas dans le contrôle, retirer la mention
   « à confirmer »).
@@ -133,7 +133,7 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
 - R-097 : type « gaine aiguillée en attente » (AIG, ligne directe sans fil, Ø40 modifiable) à ajouter avec la 54.
 - `npm run regles` après la mise à jour du journal (H-031 à H-034 ; 53 règles).
 
-### 53 — Doutes, précontrôle et étude
+### 53 — Doutes, précontrôle et étude — FAIT (27/10/2026)
 - Précontrôle avant « Câbler » (bouton et assistant) : règles utiles au chantier et leur certitude ; « Je ne peux pas
   câbler : il manque N règles » si un point bloquant est ouvert.
 - Doutes : marqueur sur le plan (comme les halos), compteur, liste cliquable, rapport de câblage.

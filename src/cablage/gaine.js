@@ -19,8 +19,11 @@ export function capacities(S) {
 export const sumSections = (fils) => +fils.reduce((s, x) => s + (+x || 0), 0).toFixed(2);
 // fils : liste des sections (mm²) ; S : réglages (icta16, icta20) — un nombre seul (ancien « remplissage ») est ignoré.
 // → 16 | 20 | null (au-delà de la plus grande capacité connue : doute R-074)
+// exceptions de R-074 (Kévin, 27/10/2026, Q-79 et Q-81) : lignes B + R + V/J de grosse section
+export const GROS_FILS = { 6: 20, 10: 25 };
 export function gaineFor(fils, S) {
   const sum = sumSections(fils);
+  if (fils.length && fils.length <= 3 && fils.every((x) => +x === +fils[0]) && GROS_FILS[+fils[0]]) return GROS_FILS[+fils[0]];
   for (const [nom, cap] of capacities(typeof S === "object" ? S : null)) if (sum <= cap + 1e-9) return nom;
   return null;
 }

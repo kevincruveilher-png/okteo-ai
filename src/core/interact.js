@@ -387,7 +387,7 @@ sv.addEventListener("pointerdown", e => {
       // le point de passage n'est créé qu'au premier mouvement (un simple clic sur une gaine ne change rien)
       K.routeDrag = { id: b.id, key: hr.key, i: hr.wp == null ? hr.seg : hr.wp, snap: false, create: hr.wp == null };
       K.boxSel = b.id;
-      document.dispatchEvent(new CustomEvent("okteo:box-select", { detail: { id: b.id } }));
+      document.dispatchEvent(new CustomEvent("okteo:box-select", { detail: { id: b.id, key: hr.key } }));
       draw();
       setHint(hr.wp == null ? "Tirez la gaine pour lui donner un point de passage." : routeHint(b, hr.key, K.routeDrag.i));
       return;

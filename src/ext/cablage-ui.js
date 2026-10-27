@@ -86,6 +86,8 @@ export function createCablagePane({ api, panel, ctl }) {
 
   function render() {
     if (el.hidden) return;
+    // une saisie en cours (nombre de boîtes, boîtes cochées) survit à un nouvel affichage (enregistrement automatique…)
+    const keepCount = el.querySelector("#bx-count")?.value, keepRedo = new Map([...el.querySelectorAll(".bx-redo")].map((c) => [c.value, c.checked]));
     const { S, C, chk, byId } = data(), colors = api.circuitColors;
     const head = `<div class="cab-h"><b>Circuits</b> <span class="mut sm">NF C 15-100 · max ${S.maxPoints} points / ${S.maxPrises} prises</span></div>
       <label class="ck sm"><input type="checkbox" id="cb-show" ${api.showCircuits ? "checked" : ""}> Couleurs des circuits sur le plan</label>`;
@@ -126,6 +128,8 @@ export function createCablagePane({ api, panel, ctl }) {
       </div>
       <p class="mut sm">Couleur = circuit. Réglages : Paramètres → Câblage.</p>
       ${boxesHTML()}</div>`;
+    if (keepCount) { const i = el.querySelector("#bx-count"); if (i) i.value = keepCount; }
+    el.querySelectorAll(".bx-redo").forEach((c) => { if (keepRedo.has(c.value)) c.checked = keepRedo.get(c.value); });
     wire();
   }
 

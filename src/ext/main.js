@@ -4,6 +4,7 @@ import { buildCatalog, tooltipFor } from "./catalog.js";
 import { createPalette } from "./palette.js";
 import { createSidePanel } from "./panel.js";
 import { createAssistant } from "./assistant.js";
+import { mountEtudePage, createDoubts, createWhy, cabler } from "./etude-ui.js";
 import { settings, mountParams } from "./settings.js";
 import { PROVIDERS, testProvider, serverStatus, listModels } from "./ai.js";
 import { mountChantiers } from "./chantiers-page.js";
@@ -66,11 +67,14 @@ function start() {
   const asEl = panel.register({ id: "assistant", label: "Assistant", icon: "✦", dock: true });
   assistant = createAssistant(asEl, { api, getCatalog, openParams: () => api.setTab("params") });
 
+  // demande de modification d'une règle : l'assistant s'ouvre avec la demande préparée (journal des règles, étude)
+  const askRule = (id, text) => { api.setTab("plan"); panel.show("assistant"); assistant.prefill(text || `Règle ${id} : je veux la modifier — `); };
   // ---------- pages pleine largeur (remplacent la zone de dessin quand leur onglet est actif) ----------
   const stage = document.querySelector(".stage");
   const pages = {
     params: { el: document.getElementById("params"), mount: (el) => mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, openPacks: () => { api.setTab("plan"); panel.show("packs"); }, api,
-      askRule: (id) => { api.setTab("plan"); panel.show("assistant"); assistant.prefill(`Règle ${id} : je veux la modifier — `); } }), ui: null },
+      askRule }), ui: null },
+    etude: { el: document.getElementById("etude"), mount: (el) => mountEtudePage(el, { api, askRule }), ui: null },
     chantiers: { el: document.getElementById("chantiers"), mount: (el) => mountChantiers(el, { api }), ui: null },
     boites: { el: document.getElementById("boites"), mount: (el) => mountBoxesPage(el, { api }), ui: null },
     lignes: { el: document.getElementById("lignes"), mount: (el) => mountDirectPage(el, { api }), ui: null },
@@ -140,7 +144,9 @@ function start() {
   const tour = createTour({ api, panel, hooks });
   hooks.tour = () => tour.start();
   hooks.steps = () => { panel.show("steps"); tour.render(); };
-  window.okteoExt = { ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, pages, backup: null };
+  const doubts = createDoubts(api), why = createWhy(api);
+  hooks.cabler = () => { const r = cabler(api); api.setHint(r.text); if (pages.etude.ui) pages.etude.ui.render(); return r.text; };
+  window.okteoExt = { doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 

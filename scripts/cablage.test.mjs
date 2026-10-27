@@ -22,7 +22,8 @@ const f = (n, sec) => Array(n).fill(sec);
 check("5 fils de 1,5 mm² (7,5) → ICTA 16 ; 3 fils de 2,5 (7,5) → ICTA 16", gaineFor(f(5, 1.5), S) === 16 && gaineFor(f(3, 2.5), S) === 16);
 check("6 fils de 1,5 (9) → ICTA 20 ; 4 × 1,5 + 2,5 (8,5) → ICTA 20", gaineFor(f(6, 1.5), S) === 20 && gaineFor([...f(4, 1.5), 2.5], S) === 20);
 check("9 fils de 1,5 (13,5, maximum vu sur 4 chantiers) → ICTA 20", gaineFor(f(9, 1.5), S) === 20);
-check("au-delà de 13,5 mm² : pas de diamètre (doute), capacités réglables", gaineFor(f(10, 1.5), S) === null && gaineFor(f(3, 6), S) === null && gaineFor(f(10, 1.5), { ...S, icta20: 16 }) === 20);
+check("au-delà de 13,5 mm² : pas de diamètre (doute), capacités réglables", gaineFor(f(10, 1.5), S) === null && gaineFor(f(4, 6), S) === null && gaineFor(f(10, 1.5), { ...S, icta20: 16 }) === 20);
+check("exceptions R-074 (Q-79, Q-81) : B + R + V/J 6 mm² → ICTA 20 ; 10 mm² → ICTA 25", gaineFor(f(3, 6), S) === 20 && gaineFor(f(3, 10), S) === 25);
 
 console.log("Circuits NF C 15-100 sur EVRARD (appareils relevés du PDF)");
 const data = new Uint8Array(fs.readFileSync(new URL("../docs/plans/EVRARD_04949_plan.pdf", import.meta.url)));
