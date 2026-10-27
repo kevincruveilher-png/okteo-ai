@@ -172,26 +172,20 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
   la mention « à voir avec un collègue » sur la fiche, pour que ces questions ne soient pas reposées à Kévin.
   → Fait avec la 48 (bouton « ⏳ En attente » du journal).
 
-## Plan des mises à jour 56 à 60 (proposé le 28/10/2026, 00:05) — une à la fois, sur « go »
-- **56 — Règles du BE et nouveaux appareils** : R-001 16 départs ; R-077 sens anti-horaire (moteur, bandes, étiquettes,
-  impression, tests) ; R-098 prise de plan de travail (propriété de la prise, circuit cuisine 2,5, packs) ; types îlot,
-  BPS, sonnette ; R-099 total des lignes directes ; journal régénéré. Contrôle sur la bande MAILLARD.
-- **57 — Relevé IA en boucle** : relecture ciblée générée par les alertes du contrôle (copier la relecture, coller les
-  corrections, un Ctrl+Z ; automatique avec une clé) ; consigne enrichie (commandes des points extérieurs, prises de
-  plan de travail, nouveaux types, gonds et sens des portes) ; import du sens des portes ; type « porte de garage »
-  (grande ouverture sans battant). Test sur le relevé Opus de MAILLARD.
-  Limites de la boucle (Kévin, 00:07) : 2 relectures automatiques au plus (réglable, 0 à 3) ; arrêt dès qu'il ne reste
-  aucune alerte, ou si une relecture ne règle rien (même nombre d'alertes) ; un point déclaré « introuvable » n'est
-  jamais redemandé ; une relecture ne porte que sur les points nouveaux ou non traités ; délai maximal par appel (3 min),
-  sinon arrêt avec message ; bouton « Arrêter » ; compteur « Relecture 1/2 » et coût affichés. Sans clé, chaque
-  relecture est lancée à la main (pas de boucle).
-- **58 — Plan lisible** : taille des symboles calculée d'après le dessin (même taille pour tous) ; aucun chevauchement
-  (décalage d'affichage + trait de rappel) ; boîtes plus petites ; noms des pièces déplaçables, taille commune ;
-  rotation du fond (90°, 180°, quelques degrés), dessin compris.
-- **59 — Gaines sans croisement** : choix des points d'accroche et des tracés pour qu'aucune gaine n'en croise une
-  autre, recalcul automatique au déplacement d'une boîte, alerte si un tracé fait à la main en crée un.
-- **60 — Boîte pour le câbleur et le perceur** : schéma sans fils superposés (couloirs séparés, circuit mis en avant au
-  survol) ; vue des 4 tranches A à D avec n° de gaine et aboutissant, à l'écran et dans les PDF.
+## Plan des mises à jour 56 à 60 (révisé le 28/10/2026, 00:34) — une à la fois, sur « go »
+- **56 — Câblage aligné sur le BE** (moteur, règles H-037 à H-041) : R-001 16 départs ; R-077 anti-horaire ; mode
+  Équilibrée = le moins de boîtes (R-094) ; R-098 prises de plan de travail (repère sur la prise, reconnaissance par la
+  hauteur) ; R-073 pas d'ICTA 25 en boîte ; types îlot, BPS, sonnette ; volets : jamais « extérieurs », choix
+  filaire / connecté demandé au câblage (R-096) ; étiquettes et total des lignes directes comme le BE (R-099) ;
+  journal régénéré ; test de référence MAILLARD (outil chantier-wiring, écart avec la bande du BE).
+- **57 — Saisie complète du chantier** : équipements hors plan (R-100 : liste à cocher d'après le devis, registre,
+  propositions « à vérifier ») ; relevé IA en boucle (relecture ciblée générée par les alertes, limites) ; consigne
+  enrichie (points extérieurs, prises de plan de travail, nouveaux types, gonds et sens des portes) ; porte de garage.
+- **58 — Plan lisible** : taille des symboles d'après le dessin, aucun chevauchement, boîtes plus petites, noms des
+  pièces déplaçables (taille commune), rotation du fond.
+- **59 — Gaines sans croisement** : points d'accroche et tracés sans croisement, recalcul au déplacement d'une boîte.
+- **60 — Boîte pour le câbleur et le perceur** : schéma sans fils superposés, vue des 4 tranches (n° de gaine et
+  aboutissant), à l'écran et dans les PDF.
 
 ## Comparaison MAILLARD, réponses de Kévin (28/10/2026, 00:32) — journal H-041
 - Les 20 équipements absents de notre relevé ne sont pas sur le plan : registre des équipements hors plan (R-100) ;
