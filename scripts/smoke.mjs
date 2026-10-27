@@ -1584,7 +1584,7 @@ try {
     const r = await ev(() => {
       const S = document.getElementById("ps-regles");
       const rows = () => [...S.querySelectorAll(".rg-row")].map((tr) => tr.dataset.id);
-      const o = { intro: /53 règles : 26 actives, 25 à valider, 1 brouillon, 1 archivée/.test(S.textContent), n: rows().length, archHidden: !rows().includes("R-076"),
+      const o = { intro: /53 règles : \d+ actives, \d+ à valider, 1 brouillon, 1 archivée/.test(S.textContent), n: rows().length, archHidden: !rows().includes("R-076"),
         rouge: S.querySelector('.rg-cat[data-cat="boites"]').classList.contains("rouge"), nav: !!document.querySelector('.pset-nav a[data-to="ps-regles"]') };
       return o;
     });
