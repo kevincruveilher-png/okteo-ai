@@ -303,7 +303,7 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 - Principe confirmé par Kévin (27/10/2026) : addition des sections et place dans la gaine, avec le même ratio pour tous les diamètres.
 - Paramètre réglable : capacité en mm² par diamètre. ICTA 16 = 7,5 (vu). ICTA 20 = 13,5 (maximum vu ; Kévin garde le même ratio que pour 16, 27/10/2026 12:43 : **valeur retenue**, ajustable si la valeur exacte est trouvée, Q-49). Au-dessus de la capacité connue : doute bloquant.
 
-- **Exception (Kévin, 27/10/2026, Q-79)** : plaque de cuisson B + R + V/J en 6 mm² → ICTA 20 (18 mm², au-delà de la règle des sections). Ligne B + R + V/J en 10 mm² : diamètre en attente de la réponse de Kévin (Q-81 : ICTA 25 proposé, ICTA 32 par la règle stricte du tiers).
+- **Exception (Kévin, 27/10/2026, Q-79)** : plaque de cuisson B + R + V/J en 6 mm² → ICTA 20 (18 mm², au-delà de la règle des sections). Ligne B + R + V/J en 10 mm² → ICTA 25 (Kévin, 27/10/2026, Q-81).
 
 **R-075 · Alimentation d'une boîte** (précise R-010) — `a_valider` (numérotation : R-031)
 - Gaine .01, avec les couleurs : éclairage R / B (1,5), prises GR / BF (1,5), cuisine R / B (2,5), volets roulants GR / B clair (1,5).
@@ -732,7 +732,7 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 |---|---|---|---|
 | Q-79 | Plaque de cuisson en 6 mm² (3 fils = 18 mm²) : FTZ la met en ICTA 20, au-delà des 13,5 mm² de R-074. Quel diamètre pour les lignes directes de grosse section (6 et 10 mm²) ? | Exception : B + R + V/J 6 mm² en ICTA 20 (R-074) ; 10 mm² : Q-81 | répondue |
 | Q-80 | Terres de sections différentes (2,5 de l'alimentation, 1,5 des appareils) sur la borne n° 1 : autorisé (R-092 parle des circuits) ? | Oui : seules les terres se câblent ensemble malgré leur section (R-092) | répondue |
-| Q-81 | Ligne B + R + V/J en 10 mm² (3 × 10 mm²) : ICTA 25 (même tolérance que la plaque 6 mm² en ICTA 20) ou ICTA 32 (règle du tiers de la section de la gaine) ? | ICTA 25 proposé par Claude | ouverte |
+| Q-81 | Ligne B + R + V/J en 10 mm² (3 × 10 mm²) : ICTA 25 (même tolérance que la plaque 6 mm² en ICTA 20) ou ICTA 32 (règle du tiers de la section de la gaine) ? | ICTA 25 (Kévin, 15:52) | répondue |
 
 ## 6. Prochaine étape
 
@@ -786,3 +786,4 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | H-030 | 27/10/2026 | Q-79, Q-80 | Création | — | Deux questions ouvertes | Cas rencontrés en appliquant R-074 et R-092 au câblage (mise à jour 52) | IA | — |
 | H-031 | 27/10/2026 | R-074 | Modification | Au-delà de 13,5 mm² : doute | Exception : plaque B + R + V/J 6 mm² en ICTA 20 ; Q-79 répondue, Q-81 ouverte (10 mm²) | Réponse de Kévin du 27/10/2026 (15:50) | IA (validée par Kévin) | — |
 | H-032 | 27/10/2026 | R-092 | Modification | Sections jamais mélangées sur une borne | Sauf les terres, raccordées ensemble quelle que soit leur section ; Q-80 répondue | Réponse de Kévin du 27/10/2026 (15:50) | IA (validée par Kévin) | — |
+| H-033 | 27/10/2026 | R-074 | Modification | 10 mm² : en attente | Exception : B + R + V/J 10 mm² en ICTA 25 ; Q-81 répondue | Réponse de Kévin du 27/10/2026 (15:52) | IA (validée par Kévin) | — |
