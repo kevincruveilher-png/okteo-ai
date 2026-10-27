@@ -206,6 +206,10 @@ Retour de Kévin : « à première vue très prometteur ». Les vues lui seront 
   d'affichage, l'appareil garde sa position réelle).
 - **Taille des appareils adaptée au dessin** : symboles proportionnés à la taille du plan et des pièces (aujourd'hui
   taille fixe réglable, au moins 12 px à l'écran), à l'écran comme à l'impression.
+  Décision (Claude, 23:26) : une seule taille pour tout le plan, calculée d'après le dessin (taille de la maison et des
+  pièces) ; proportions entre symboles inchangées (prise > interrupteur, lumière ronde) ; bornes mini / maxi (≥ 2,5 mm
+  imprimé, ≥ 12 px écran) ; jamais de taille différente selon l'endroit (zone chargée = décalage d'affichage avec trait
+  de rappel, même taille) ; réglage manuel gardé. Aucun effet sur les calculs (positions réelles inchangées).
 - Nouvelle vue dans le détail du câblage (onglet Bandes, feuille de boîte) : **les 4 tranches de la boîte** (faces A à D
   vues de face), avec sur chacune le n° de chaque gaine et son aboutissant (repère de l'appareil, pièce), pour aider le
   perceur de boîte. À prévoir aussi dans le PDF des bandes / étiquettes.
