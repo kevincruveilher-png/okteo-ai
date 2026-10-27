@@ -281,6 +281,21 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 50 (27/10/2026) — livrée : étiquettes de boîte, dossier PDF du chantier, logo KiTéOHM
+- Deux documents (demande de Kévin) : l'**étiquette** imprimée et collée sur la boîte, et la **bande détaillée** qui va
+  dans le dossier PDF (pas imprimée).
+- Étiquette : 148,5 × 105 mm, 4 par A4 paysage avec traits de coupe. Schéma en grand (textes ×1,28), nom de la boîte en
+  très gros, flèche du tableau, pavillonneur, chantier, n° d'affaire, couvercle (gardé), Nom BE, cadre d'initiales du
+  câbleur ; sous le schéma le logo KiTéOHM et le code barre, à droite le QR code (bande sur le téléphone). Retirés de
+  l'étiquette : ordre de câblage, matériel, fils, modèle de boîte, paragraphe d'explication.
+- Dossier PDF du chantier (onglet Bandes « Dossier du chantier », ou fenêtre d'impression) : page de garde (logo,
+  chantier, pavillonneur, n° d'affaire, date, sommaire avec pages), plan de tous les niveaux et nomenclature, tableau
+  électrique (coffret, différentiels, disjoncteurs, appareillage modulaire, liste des circuits, alertes), bandes
+  détaillées de toutes les boîtes. Assemblé avec pdf-lib 1.17.1.
+- Logo KiTéOHM (fourni par Kévin, rogné : public/assets/kiteohm-logo.png / .jpg) : étiquettes, page de garde, cartouche
+  du plan, page du tableau, aperçu de l'étiquette dans l'onglet Bandes.
+- Tests : 30 + 52 + 125.
+
 ## Version 49 (27/10/2026) — livrée : bande sur le téléphone (QR code), tableau complet
 - QR code de la bande de câblage : un par boîte, sur la feuille imprimée (en bas à droite, « Bande sur le téléphone »)
   et dans l'onglet Bandes. Scanné avec l'appareil photo, il ouvre la page `bande.html` de la version en ligne : en-tête

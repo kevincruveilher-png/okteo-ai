@@ -1,5 +1,6 @@
 import { Placer, roomCandidates } from "../place.js";
 import { pref } from "../prefs.js";
+import { logoData, LOGO_RATIO } from "./logo.js";
 // Sortie PDF imprimable du plan (vectorielle, à l'échelle exacte) : page 1 = plan + légende + échelle graphique
 // + cartouche ; page 2 = nomenclature (appareils par pièce, surfaces) et liste des appareils.
 // Unités jsPDF : millimètres. Échelle 1:N → 1 m réel = 1000/N mm sur le papier.
@@ -51,6 +52,7 @@ async function toDataURL(url) {
 export async function buildPlanPdf(geoIn, opts = {}) {
   const o0 = { fond: false, cotes: true, reperes: true, liaisons: true, nomenclature: true, surfaces: !!pref("surfaces"), date: new Date(), ...opts };
   const geos = Array.isArray(geoIn) ? geoIn : [geoIn];
+  const logo = o0.logo === false ? null : await logoData(); // logo KiTéOHM dans le cartouche (v50)
   // mise en page commune : calculée sur l'emprise de tous les niveaux réunis
   const merged = { walls: geos.flatMap((g) => g.walls), apps: geos.flatMap((g) => g.apps), rooms: geos.flatMap((g) => g.rooms), fond: geos[0].fond };
   const Lay0 = layoutPlan(geos.length > 1 ? merged : geos[0], o0);
@@ -284,7 +286,8 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     doc.setFillColor(30, 45, 60); doc.rect(kx, by, cartW, 8, "F");
     doc.setTextColor(255); doc.setFont("helvetica", "bold"); doc.setFontSize(9);
     doc.text("PLAN ÉLECTRIQUE — IMPLANTATION", kx + 3, by + 5.3);
-    doc.setFontSize(7); doc.text("KiTéOHM · Oktéo AI", kx + cartW - 3, by + 5.3, { align: "right" });
+    doc.setFontSize(7); doc.text("Oktéo AI", kx + cartW - 3, by + 5.3, { align: "right" });
+    if (logo) { const lw = 30; doc.addImage(logo, "JPEG", kx + cartW - 3 - lw, by + bh - 3 - lw / LOGO_RATIO, lw, lw / LOGO_RATIO); }
     const ch = geo.chantier, d = o.date;
     const rows = [
       ["Chantier", `${ch.nom}${ch.numero ? "  ·  n° " + ch.numero : ""}`],

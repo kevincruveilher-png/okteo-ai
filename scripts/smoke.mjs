@@ -327,10 +327,15 @@ try {
 
   await check("modèle retiré (410) : remplacé automatiquement par un Nemotron qui voit les images", async () => {
     await page.click('#tabs button[data-tab="params"]');
-    await page.fill('.pcard[data-p="nvidia"] .m', "nvidia/nemotron-nano-12b-v2-vl");
-    await page.click('.pcard[data-p="nvidia"] .tst');
-    await page.waitForSelector('.pcard[data-p="nvidia"] .tres.good, .pcard[data-p="nvidia"] .tres.bad');
-    const t = await page.textContent('.pcard[data-p="nvidia"] .tres');
+    // la page Paramètres peut se réafficher juste après l'ouverture (état du serveur local) : on réessaie si la saisie a été effacée
+    let t = "";
+    for (let k = 0; k < 3 && !t.includes("remplacé"); k++) {
+      await page.waitForTimeout(200);
+      await page.fill('.pcard[data-p="nvidia"] .m', "nvidia/nemotron-nano-12b-v2-vl");
+      await page.click('.pcard[data-p="nvidia"] .tst');
+      await page.waitForSelector('.pcard[data-p="nvidia"] .tres.good, .pcard[data-p="nvidia"] .tres.bad');
+      t = await page.textContent('.pcard[data-p="nvidia"] .tres');
+    }
     if (!t.includes("remplacé")) throw new Error(t);
     return (await ev(() => okteoExt.settings.get().models.nvidia)) === "nvidia/nemotron-3.5-super-vl-120b-a12b";
   });
@@ -1281,6 +1286,26 @@ try {
     await page.click('#tabs button[data-tab="plan"]');
     const ok = doc.numPages >= 2 * n && /Boîte LI01/.test(t1) && /PAVILLONNEUR/.test(t1) && /TABLEAU/.test(t1) && /ORDRE DE CABLAGE/.test(t1) && /MODÈLE DE BOÎTE/.test(t1) && /-LI01/.test(t1) && /connecteur/.test(t1) && /raccordements à faire dans l'ordre/.test(t2) && /1\. Terres/.test(t2) && /Contrôle final/.test(await txt(doc.numPages));
     if (!ok) throw new Error(JSON.stringify({ pages: doc.numPages, n, t1: t1.slice(0, 300), t2: t2.slice(0, 300) }));
+    return true;
+  });
+  await check("étiquettes de boîte (v50) : 4 par A4 paysage, nom, en-tête, code ; dossier PDF : garde + plan + tableau + bandes détaillées", async () => {
+    await page.click('#tabs button[data-tab="bandes"]'); await page.waitForSelector(".bands .bd-svg svg");
+    const pdfOf = async (expr) => { const b64 = await ev(async (e) => { const r = eval(e); const u = new Uint8Array(await r.blob.arrayBuffer()); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); }, expr);
+      return pdfjsNode.getDocument({ data: new Uint8Array(Buffer.from(b64, "base64")), verbosity: 0 }).promise; };
+    const txt = async (doc, i) => (await (await doc.getPage(i)).getTextContent()).items.map((x) => x.str).join(" ");
+    await page.click("#bd-lab-all");
+    await page.waitForFunction(() => okteoExt.pages.bandes.ui.lastLabels, null, { timeout: 60000 });
+    const n = await ev(() => okteo.cab.boxes.length);
+    const L = await pdfOf("okteoExt.pages.bandes.ui.lastLabels"), p1 = await L.getPage(1), vp = p1.getViewport({ scale: 1 }), t1 = await txt(L, 1);
+    if (process.env.SHOT) fs.writeFileSync(process.env.SHOT + "/etiquettes.pdf", Buffer.from(await ev(async () => { const u = new Uint8Array(await okteoExt.pages.bandes.ui.lastLabels.blob.arrayBuffer()); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); }), "base64"));
+    await page.click("#bd-dossier");
+    await page.waitForFunction(() => okteoExt.pages.bandes.ui.lastDossier, null, { timeout: 90000 });
+    const D = await pdfOf("okteoExt.pages.bandes.ui.lastDossier"), parts = await ev(() => okteoExt.pages.bandes.ui.lastDossier.parts);
+    if (process.env.SHOT) fs.writeFileSync(process.env.SHOT + "/dossier.pdf", Buffer.from(await ev(async () => { const u = new Uint8Array(await okteoExt.pages.bandes.ui.lastDossier.blob.arrayBuffer()); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); }), "base64"));
+    const d1 = await txt(D, 1), tb = parts.find((p) => /Tableau/.test(p.title)), tTb = tb ? await txt(D, tb.page) : "", bd = parts.find((p) => /Bandes/.test(p.title)), tBd = bd ? await txt(D, bd.page) : "";
+    const ok = L.numPages === Math.ceil(n / 4) && vp.width > vp.height && /LI01/.test(t1) && /PAVILLONNEUR/.test(t1) && /-LI01/.test(t1) && !/ORDRE DE CABLAGE/.test(t1)
+      && /Dossier de cablage/.test(d1) && /Sommaire/.test(d1) && parts.length === 3 && /Tableau electrique/.test(tTb) && /ORDRE DE CABLAGE/.test(tBd) && D.numPages >= 3 + 2 * n;
+    if (!ok) throw new Error(JSON.stringify({ n, pages: L.numPages, w: vp.width, h: vp.height, t1: t1.slice(0, 200), d1: d1.slice(0, 200), parts, dp: D.numPages }));
     return true;
   });
   await check("couleurs par circuit et gaines partagées : une gaine « P… + P… » ; deux circuits 1,5 d'une boîte en rouge/bleu et gris/bleu foncé", async () => ev(async () => {

@@ -582,3 +582,4 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .tb-it.tmod:hover .tb-del{opacity:1}
 .bl-qr{background:#fff;border-radius:4px;padding:2px}
 .bl-qr svg{display:block;width:110px;height:110px}
+.bl-logo{height:22px;width:auto;align-self:center}

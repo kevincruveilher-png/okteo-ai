@@ -72,6 +72,8 @@ Contrôle : réserve de 20 % recalculée avec ces appareils.
   double-clic → onglet Tableau directement (un simple clic doit encore permettre de le sélectionner et de le déplacer). À valider avec Kévin (ou son électricien de référence) : ce qui
 est mis par défaut, et ce qui est fourni par KiTéOHM ou par l'électricien.
 
+## 50 — Étiquettes de boîte et dossier PDF du chantier — FAIT (27/10/2026)
+
 ## 48 — Impression complète du plan
 - Boîtes (faces, numéros de gaine, couleurs des circuits), gaines avec leurs points intermédiaires, liaisons en courbe comme à l'écran.
 - Impression selon le filtre de vues actif, une case par calque dans la fenêtre d'impression.

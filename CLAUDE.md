@@ -258,13 +258,18 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `data-url`) et bandes-pdf (34 mm, bas droite). Tableau : `MODELS[].brand/range` (Resi9 + Drivia), `BRANDS`, `MODS`
   (appareillage modulaire, `{k:"mod", t, w, label}`), `addModular`, `removeItem` ; `.tb-brand.se/.lg`. interact.js :
   clic sans glisser sur un appareil `TAB` → `setTab("tableau")`.
+- v50 : `src/ext/labels-pdf.js` (`buildLabelsPdf(sheets)` : 4 étiquettes 148,5 × 105 par A4 paysage, `schemaSVG(..., {big})`)
+  ; `src/ext/dossier.js` (`buildDossier(api)` = garde + `buildPlanPdf` + `buildTableauPdf` + `buildBandsPdf`, fusion
+  pdf-lib ; `tableauNow`, `downloadBlob`) ; `src/ext/logo.js` (`logoData()` → assets/kiteohm-logo.jpg, `LOGO_RATIO`) ;
+  print.js : logo dans le cartouche (`o.logo === false` pour l'enlever). Onglet Bandes : `#bd-lab-one`, `#bd-lab-all`,
+  `#bd-one`, `#bd-all` (bandes détaillées), `#bd-dossier` ; `ui.lastLabels`, `ui.lastDossier` (tests).
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (52 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (124 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (52 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (125 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

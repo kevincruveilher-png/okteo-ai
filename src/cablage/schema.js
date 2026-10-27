@@ -91,7 +91,8 @@ const cut = (s, n) => (String(s).length > n ? String(s).slice(0, n - 1) + "…" 
 // (pour estomper les autres circuits au clic, comme un calque). color(nom) → couleur CSS ; sides = { A: "côté …" }.
 const FN_TAG = { terre: "PE", neutre: "N", phase: "Ph", retour: "RET", nav1: "N1", nav2: "N2", cmdTL: "CTL", retTL: "RTL", isole: "isolé" };
 const TRACED = new Set(["retour", "nav1", "nav2", "cmdTL", "retTL"]);
-export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font = "Arial, sans-serif" } = {}) {
+export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font = "Arial, sans-serif", big = false } = {}) {
+  const F = big ? 1.28 : 1; // étiquette de boîte (v50) : textes plus gros
   // v47 (feuille de boîte de Kévin) : faces et pièces écrites à l'extérieur, aux quatre bords ; textes plus gros ;
   // plus de Ph / N / PE au bout des fils ; gaine = « LI01.10 » puis « P14 · 4,8 m · Ø16 »
   const X0 = 285, X1 = 715, S = X1 - X0, LANE = 13, TERM = 18;
@@ -103,7 +104,7 @@ export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font =
   // faces et pièces, à l'extérieur, aux quatre bords (sens de pose de la boîte)
   for (const [f, x, y, rot] of [["A", 500, 26, 0], ["B", 982, 500, 90], ["C", 500, 982, 0], ["D", 18, 500, -90]]) {
     const t = `${f}${sides[f] ? " · " + cut(sides[f], 24) : ""}`;
-    h += `<g class="face" data-f="${f}"${rot ? ` transform="rotate(${rot} ${x} ${y})"` : ""}><text x="${x}" y="${y + 9}" text-anchor="middle" font-size="26" font-weight="700" fill="#1f2a36">${esc(t)}</text></g>`;
+    h += `<g class="face" data-f="${f}"${rot ? ` transform="rotate(${rot} ${x} ${y})"` : ""}><text x="${x}" y="${y + 9}" text-anchor="middle" font-size="${26 * F}" font-weight="700" fill="#1f2a36">${esc(t)}</text></g>`;
   }
   const term = new Map();          // borne de chaque fil : { x, y, f, nx, ny } (nx, ny = direction vers l'intérieur)
   const lanes = { A: 0, B: 0, C: 0, D: 0 };
@@ -162,10 +163,10 @@ export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font =
       // faces A et C : titre tourné (comme sur les bandes FTZ), deux lignes côte à côte
       if (f === "A" || f === "C") {
         const y0 = f === "A" ? X0 - 74 : X1 + 74, anc = f === "A" ? "start" : "end";
-        h += `<g ${gAttr} transform="translate(${mid} ${y0}) rotate(-90)"><text x="0" y="-12" text-anchor="${anc}" font-size="19" font-weight="700" fill="#111">${esc(l1)}</text><text x="0" y="5" text-anchor="${anc}" font-size="16" font-weight="600" fill="#222">${esc(who)}</text><text x="0" y="21" text-anchor="${anc}" font-size="15" fill="#333">${esc(len)}</text></g>`;
+        h += `<g ${gAttr} transform="translate(${mid} ${y0}) rotate(-90)"><text x="0" y="${-12 * F}" text-anchor="${anc}" font-size="${19 * F}" font-weight="700" fill="#111">${esc(l1)}</text><text x="0" y="${5 * F}" text-anchor="${anc}" font-size="${16 * F}" font-weight="600" fill="#222">${esc(who)}</text><text x="0" y="${21 * F}" text-anchor="${anc}" font-size="${15 * F}" fill="#333">${esc(len)}</text></g>`;
       }
-      if (f === "B") h += `<g ${gAttr}><text x="${X1 + 76}" y="${mid - 10}" font-size="19" font-weight="700" fill="#111">${esc(l1)}</text><text x="${X1 + 76}" y="${mid + 7}" font-size="16" font-weight="600" fill="#222">${esc(who)}</text><text x="${X1 + 76}" y="${mid + 23}" font-size="15" fill="#333">${esc(len)}</text></g>`;
-      if (f === "D") h += `<g ${gAttr}><text x="${X0 - 76}" y="${mid - 10}" text-anchor="end" font-size="19" font-weight="700" fill="#111">${esc(l1)}</text><text x="${X0 - 76}" y="${mid + 7}" text-anchor="end" font-size="16" font-weight="600" fill="#222">${esc(who)}</text><text x="${X0 - 76}" y="${mid + 23}" text-anchor="end" font-size="15" fill="#333">${esc(len)}</text></g>`;
+      if (f === "B") h += `<g ${gAttr}><text x="${X1 + 76}" y="${mid - 10 * F}" font-size="${19 * F}" font-weight="700" fill="#111">${esc(l1)}</text><text x="${X1 + 76}" y="${mid + 7 * F}" font-size="${16 * F}" font-weight="600" fill="#222">${esc(who)}</text><text x="${X1 + 76}" y="${mid + 23 * F}" font-size="${15 * F}" fill="#333">${esc(len)}</text></g>`;
+      if (f === "D") h += `<g ${gAttr}><text x="${X0 - 76}" y="${mid - 10 * F}" text-anchor="end" font-size="${19 * F}" font-weight="700" fill="#111">${esc(l1)}</text><text x="${X0 - 76}" y="${mid + 7 * F}" text-anchor="end" font-size="${16 * F}" font-weight="600" fill="#222">${esc(who)}</text><text x="${X0 - 76}" y="${mid + 23 * F}" text-anchor="end" font-size="${15 * F}" fill="#333">${esc(len)}</text></g>`;
       pos += (n + 2.2) * L;
     });
   }

@@ -26,6 +26,7 @@ export function createPrintTool({ api }) {
       </div>
       <p class="pr-info"></p>
       <button class="on pr-dl">Télécharger le PDF</button>
+      <button class="pr-dossier" title="Un seul PDF : page de garde (logo), plan, tableau électrique, bandes détaillées de toutes les boîtes">📁 Dossier complet du chantier</button>
       <p class="mut sm">Pour imprimer à l'échelle exacte : dans la fenêtre d'impression, choisir « Taille réelle » (100 %), pas « Ajuster à la page ».</p>
     </div>
     <div class="pr-view"><div class="pr-pages" aria-label="Aperçu du PDF"></div><div class="pr-wait">Préparation…</div></div>
@@ -78,6 +79,12 @@ export function createPrintTool({ api }) {
   const close = () => { back.hidden = true; };
   $(".pr-x").onclick = close;
   back.onclick = (e) => { if (e.target === back) close(); };
+  $(".pr-dossier").onclick = async () => {
+    const b = $(".pr-dossier"); b.disabled = true; b.textContent = "Préparation…";
+    try { const { buildDossier, downloadBlob } = await import("./dossier.js"); const r = await buildDossier(api, { indice: opts.indice }); downloadBlob(r.blob, `${api.ch.nom}${api.ch.numero ? "_" + api.ch.numero : ""}_dossier.pdf`); $(".pr-info").innerHTML += ` · dossier : ${r.pages} pages`; }
+    catch (e) { $(".pr-info").innerHTML += ` · <span class="warn">dossier impossible : ${esc(e.message)}</span>`; }
+    b.disabled = false; b.textContent = "📁 Dossier complet du chantier";
+  };
   $(".pr-dl").onclick = async () => {
     if (!last) await refresh();
     const ch = api.ch, a = document.createElement("a");

@@ -7,6 +7,8 @@ import { getCab } from "../cablage/settings.js";
 import { boxSteps, boxMaterial, boxChecks, boxWires, parseSizes, schemaSVG, FN_SHORT, wireName, orderLines, BOX_MODELS } from "../cablage/schema.js";
 import { code128, barsSVG, boxCode, qrMatrix, qrSVG } from "./barcode.js";
 import { sheetUrl } from "../cablage/bande-code.js";
+import { buildLabelsPdf } from "./labels-pdf.js";
+import { buildDossier, downloadBlob } from "./dossier.js";
 import { pointInPoly } from "../walls/rooms.js";
 import { buildBandsPdf } from "./bandes-pdf.js";
 import { esc } from "./util.js";
@@ -37,6 +39,27 @@ export function mountBandsPage(el, { api }) {
   const done = new Map();          // cases cochées à l'écran (par boîte), le temps de la session
   const chip = (w) => `<span class="wchip"><i style="background:${wireCss(w.color)}"></i>${esc(w.color)} ${fr(w.section, 1)}</span>`;
 
+  // étiquettes à coller (v50) et dossier PDF du chantier
+  async function labels(sheets) {
+    if (busy) return; busy = true;
+    const st = el.querySelector("#bd-st"); if (st) st.textContent = "Préparation des étiquettes…";
+    try {
+      const r = await buildLabelsPdf(sheets); el.__labels = r;
+      downloadBlob(r.blob, `${api.ch.nom}${api.ch.numero ? "_" + api.ch.numero : ""}_etiquettes_${sheets.length === 1 ? sheets[0].box.n : "boites"}.pdf`);
+      if (st) st.textContent = `Étiquettes prêtes : ${r.labels} étiquette${r.labels > 1 ? "s" : ""} sur ${r.pages} feuille${r.pages > 1 ? "s" : ""} A4 (à couper en 4).`;
+    } catch (e) { if (st) st.textContent = "Étiquettes impossibles : " + e.message; }
+    finally { busy = false; }
+  }
+  async function dossier() {
+    if (busy) return; busy = true;
+    const st = el.querySelector("#bd-st"); if (st) st.textContent = "Préparation du dossier…";
+    try {
+      const r = await buildDossier(api); el.__dossier = r;
+      downloadBlob(r.blob, `${api.ch.nom}${api.ch.numero ? "_" + api.ch.numero : ""}_dossier.pdf`);
+      if (st) st.textContent = `Dossier prêt : ${r.pages} pages (${r.parts.map((p) => p.title.split(" (")[0]).join(", ")}).`;
+    } catch (e) { if (st) st.textContent = "Dossier impossible : " + e.message; }
+    finally { busy = false; }
+  }
   async function print(sheets) {
     if (busy) return; busy = true;
     const st = el.querySelector("#bd-st"); if (st) st.textContent = "Préparation du PDF…";
@@ -68,7 +91,8 @@ export function mountBandsPage(el, { api }) {
     el.innerHTML = `<div class="params-in cabpage bands">
       <h2>Bandes — schémas de boîte</h2>
       <div class="bd-pick">${sheets.map((s) => `<button data-b="${s.box.id}" class="${s.box.id === cur ? "on" : ""}" title="${s.box.gaines.length} gaines · ${s.steps.length} raccordements">${esc(s.box.n)}</button>`).join("")}
-        <span class="grow"></span><button id="bd-one" title="Une feuille A4 : schéma, orientation, matériel, puis les raccordements à cocher">🖨 Imprimer ${esc(box.n)}</button><button id="bd-all" title="Toutes les boîtes, une feuille chacune">🖨 Imprimer toutes les boîtes</button><span id="bd-st" class="mut sm"></span></div>
+        <span class="grow"></span><button id="bd-lab-one" class="on" title="Étiquette à coller sur la boîte (148,5 × 105 mm, un quart de A4) : schéma en grand, en-tête, logo, QR code et code barre">🏷 Étiquette ${esc(box.n)}</button><button id="bd-lab-all" title="Les étiquettes de toutes les boîtes, 4 par feuille A4 (traits de coupe)">🏷 Toutes les étiquettes (4 par A4)</button>
+        <button id="bd-one" title="Bande détaillée de cette boîte (PDF) : schéma, ordre de câblage, matériel, raccordements">📄 Bande détaillée ${esc(box.n)}</button><button id="bd-all" title="Bandes détaillées de toutes les boîtes (PDF)">📄 Toutes les bandes détaillées</button><button id="bd-dossier" title="Dossier PDF du chantier : page de garde, plan, tableau, bandes détaillées de toutes les boîtes">📁 Dossier du chantier</button><span id="bd-st" class="mut sm"></span></div>
       <p class="mut sm">${esc(S.level)}${sides.under ? ` · au-dessus de : ${esc(sides.under)}` : ""} · ${box.gaines.length} gaines · ${steps.length} raccordements · ${fr(box.cuivre)} m de fil</p>
       <div class="bd-grid">
         <div class="bd-svgw"><div class="bd-calq" title="Cliquez un circuit (ou un fil du schéma) : les autres s'estompent, comme un calque">Circuits : <button data-cq="" class="${focusC ? "" : "on"}">Tous</button>${box.circuits.map((c) => `<button data-cq="${esc(c)}" class="${focusC === c ? "on" : ""}">${esc(c)}</button>`).join("")}</div>
@@ -82,6 +106,7 @@ export function mountBandsPage(el, { api }) {
           <div class="bl-bot"><label class="sm">Modèle de boîte <select disabled title="Seul modèle connu pour l'instant">${BOX_MODELS.map((m) => `<option>${esc(m.name)}</option>`).join("")}</select></label>
             <label class="sm" title="Simple indication pour la pose : ne change ni le plan ni la pieuvre">Couvercle <select id="bd-cover"><option value="haut" ${S.cover === "haut" ? "selected" : ""}>vers le haut</option><option value="bas" ${S.cover === "bas" ? "selected" : ""}>vers le bas</option></select></label>
             <div class="bl-code" id="bd-code" title="Code barre unique de la boîte : ${esc(S.code)}"></div>
+            <img class="bl-logo" src="assets/kiteohm-logo.png" alt="KiTéOHM">
             <div class="bl-qr" id="bd-qr" title="QR code : scannez-le avec l'appareil photo du téléphone pour ouvrir cette bande (les données sont dans le QR, rien n'est envoyé sur Internet)"></div></div>
           <p class="sm mut" id="bd-qrinfo"></p>
           <h3>Ordre de câblage</h3>
@@ -133,7 +158,10 @@ export function mountBandsPage(el, { api }) {
       info.innerHTML = `📱 Scannez le QR avec le téléphone pour ouvrir cette bande${q.short ? " (version courte : libellés des raccordements abrégés)" : ""}. <a href="${esc(q.url)}" target="_blank" rel="noopener">Ouvrir ici</a>`;
     }).catch((e) => { const info = el.querySelector("#bd-qrinfo"); if (info) info.textContent = "QR code impossible : " + e.message; });
     el.querySelector("#bd-all").onclick = () => print(sheets);
+    el.querySelector("#bd-lab-one").onclick = () => labels([S]);
+    el.querySelector("#bd-lab-all").onclick = () => labels(sheets);
+    el.querySelector("#bd-dossier").onclick = () => dossier();
   }
   render();
-  return { render, get last() { return el.__last; }, print: (all) => print(all ? boxSheets(api) : boxSheets(api).filter((s) => s.box.id === cur)), select: (id) => { cur = id; render(); } };
+  return { render, get last() { return el.__last; }, get lastLabels() { return el.__labels; }, get lastDossier() { return el.__dossier; }, labels: (all) => labels(all ? boxSheets(api) : boxSheets(api).filter((s) => s.box.id === cur)), dossier, print: (all) => print(all ? boxSheets(api) : boxSheets(api).filter((s) => s.box.id === cur)), select: (id) => { cur = id; render(); } };
 }
