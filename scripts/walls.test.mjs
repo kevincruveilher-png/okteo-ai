@@ -140,6 +140,15 @@ console.log("Relevé par l'IA : remise au propre de la réponse");
   check("ouverture loin des murs ignorée, type inconnu ignoré, liaison remise dans le bon sens (commande → lumière)",
     P.openings.length === 1 && P.openings[0].kind === "porte" && P.stats.ouverturesPerdues === 1 && P.devices.length === 2 && P.links.length === 1 && P.devices[P.links[0].c].t === "INT", JSON.stringify({ o: P.openings, d: P.devices, l: P.links }));
 }
+{
+  // v55.2 : réponse recopiée avec des guillemets typographiques ; porte coupée par une jonction en T (mur de 60 cm)
+  const txt = '{“ref”:{“W”:1000,”H”:1000},“murs”:[{“x1”:100,”y1":100,”x2":700,”y2":100,”ep”:20},{“x1”:400,”y1":100,”x2":400,”y2":500,”ep”:7},{“x1”:460,”y1":100,”x2":460,”y2":500,”ep”:7}],“ouvertures”:[{“x”:405,”y”:100,”l”:90,”t”:”porte”}],“pieces”:[],“appareils”:[{“t”:”CVR”,”x”:200,”y”:120,”h”:110},{“t”:”VR”,”x”:200,”y”:100}],“liaisons”:[[0,1]],“remarques”:”l’entrée”}';
+  const raw = parseAiJson(txt), P = aiToPlan(raw, { x0: 0, y0: 0, sx: 0.01, sy: 0.01 });
+  const o = P.openings[0], seg = o && P.walls[o.seg], A = seg && P.nodes[seg.a], B = seg && P.nodes[seg.b], L = seg ? Math.hypot(B.x - A.x, B.y - A.y) : 0;
+  check("guillemets typographiques acceptés ; porte trop près d'une jonction en T recentrée / rétrécie sur son morceau de mur ; hauteur et liaison CVR → volet lues",
+    raw.ref.W === 1000 && P.openings.length === 1 && P.stats.ouverturesAjustees === 1 && o.w <= L - 0.1 + 1e-9 && o.w >= 0.4 && P.devices[0].h === 110 && P.links.length === 1 && P.devices[P.links[0].c].t === "CVR",
+    JSON.stringify({ o, L, s: P.stats, d: P.devices, l: P.links }));
+}
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);
 if (fails.length) process.exit(1);

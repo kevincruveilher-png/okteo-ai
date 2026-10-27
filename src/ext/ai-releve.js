@@ -90,6 +90,7 @@ export function createAiReleve({ api, openParams }) {
       ${row("devices", "Appareils", plan.devices.length, `${plan.links.length} liaisons`, S.app.length)}
       ${plan.remarques ? `<p class="mut sm">Remarque de l'IA : ${esc(plan.remarques)}</p>` : ""}
       ${plan.stats.ouverturesPerdues ? `<p class="warn sm">⚠ ${plan.stats.ouverturesPerdues} ouverture(s) loin de tout mur, ignorée(s).</p>` : ""}
+      ${plan.stats.ouverturesAjustees ? `<p class="mut sm">${plan.stats.ouverturesAjustees} ouverture(s) recentrée(s) ou rétrécie(s) pour tenir sur leur morceau de mur : vérifiez-les sur le plan.</p>` : ""}
       <div class="wrow"><button class="on" id="ai-ok">Ajouter la sélection</button><button id="ai-again" title="Redemander à l'IA (la réponse peut changer)">Refaire</button><button id="ai-no">Annuler</button></div>
       <details class="sm"><summary>Réponse brute de l'IA</summary><pre class="ai-raw">${esc(lastText.slice(0, 4000))}</pre></details>`);
     card.querySelectorAll("[data-k]").forEach((el) => (el.onchange = () => { keep[el.dataset.k] = el.checked; preview(); render(); }));

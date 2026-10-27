@@ -281,6 +281,16 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 55.2 (27/10/2026) — livrée : réponse IA recopiée à la main
+- 1er essai de Kévin avec la nouvelle consigne : 25 murs, 22 ouvertures, 11 pièces, 100 appareils (8 volets + 8 CVR,
+  interphone, chauffe-eau, PAC, moteur de garage), 30 liaisons toutes valides. La réponse est arrivée en texte (pas en
+  fichier) avec des guillemets typographiques « “ ” » : JSON illisible tel quel.
+- `parseAiJson` : si la lecture échoue et que le texte contient “ ” „ ″, ils sont remplacés par des guillemets droits.
+- Ouvertures : une ouverture coupée par une jonction en T (positions estimées par l'IA) est recentrée sur son morceau de
+  mur, ou rétrécie s'il est plus court (40 cm minimum) ; `stats.ouverturesAjustees`, signalé dans l'aperçu. Sur l'essai :
+  22/22 ouvertures placées au lieu de 9/22.
+- Tests : 31 + 58 + 175 + 143 = 407.
+
 ## Version 55.1 (27/10/2026) — livrée : consigne du relevé IA refaite
 - Consigne commune au relevé avec clé et au relevé sans clé (`promptBody`, ai-plan.js) ; `pastePrompt()` = version à
   copier dans une conversation neuve avec le PDF joint (image de la page entière, champ « ref » obligatoire).

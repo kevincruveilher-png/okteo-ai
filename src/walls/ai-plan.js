@@ -78,7 +78,16 @@ ${JSON_FORM.replace("{", '{"ref":{"W":0,"H":0},\n ')}`;
 }
 
 // la réponse peut contenir des ``` ou du texte autour : on prend le premier objet JSON complet
+// v55.2 : guillemets typographiques (“ ” ″, ajoutés par un traitement de texte ou une messagerie) remplacés si besoin
 export function parseAiJson(text) {
+  try { return parseJson(text); }
+  catch (e) {
+    const t = String(text || "");
+    if (!/[“”„″]/.test(t)) throw e;
+    return parseJson(t.replace(/[“”„″]/g, '"'));
+  }
+}
+function parseJson(text) {
   const s = String(text || "").replace(/```(?:json)?/gi, "");
   const i = s.indexOf("{");
   if (i < 0) throw new Error("La réponse de l'IA ne contient pas de données.");
@@ -159,17 +168,22 @@ export function aiToPlan(raw, map, { defEp = 0.2, mergeTol = 0.15, axisTol = 4 }
   for (const o of raw.ouvertures || []) {
     const u = num(o.x), v = num(o.y); if (!ok(u, v)) continue;
     const p = P(u, v), w = Math.min(3.2, Math.max(0.4, num(o.l) > 0 ? num(o.l) / 100 : 0.9));
+    // v55.2 : mur coupé par une jonction en T trop près de l'ouverture (positions de l'IA estimées) → ouverture
+    // recentrée sur le morceau de mur, ou rétrécie s'il est plus court qu'elle (40 cm minimum) ; comptée « ajustée »
     let best = null;
     segs.forEach((s, i) => {
-      const A = nodes[s.a], B = nodes[s.b], L = Math.hypot(B.x - A.x, B.y - A.y); if (L < w) return;
+      const A = nodes[s.a], B = nodes[s.b], L = Math.hypot(B.x - A.x, B.y - A.y);
       const ux = (B.x - A.x) / L, uy = (B.y - A.y) / L;
       const t = (p.x - A.x) * ux + (p.y - A.y) * uy, d = Math.abs((p.x - A.x) * -uy + (p.y - A.y) * ux);
-      if (t < w / 2 || t > L - w / 2 || d > Math.max(0.35, s.ep)) return;
-      if (!best || d < best.d) best = { d, seg: i, t };
+      if (t < -0.05 || t > L + 0.05 || d > Math.max(0.35, s.ep)) return;
+      const w2 = Math.min(w, L - 0.1); if (w2 < 0.4) return;
+      const t2 = Math.min(L - w2 / 2, Math.max(w2 / 2, t)), shift = Math.abs(t2 - t) + (w - w2);
+      if (!best || d + shift < best.d + best.shift) best = { d, shift, seg: i, t: t2, w: w2 };
     });
     if (!best) { stats.ouverturesPerdues++; continue; }
+    if (best.shift > 1e-6) stats.ouverturesAjustees = (stats.ouverturesAjustees || 0) + 1;
     const kind = /fen|win/i.test(o.t || "") ? "fenetre" : /porte|door/i.test(o.t || "") ? "porte" : segs[best.seg].ep < 0.15 ? "porte" : "fenetre";
-    openings.push({ seg: best.seg, t: +best.t.toFixed(3), w: +w.toFixed(3), kind });
+    openings.push({ seg: best.seg, t: +best.t.toFixed(3), w: +best.w.toFixed(3), kind });
   }
 
   // 5. pièces (nom + point) et appareils
