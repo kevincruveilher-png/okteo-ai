@@ -210,6 +210,11 @@ Retour de Kévin : « à première vue très prometteur ». Les vues lui seront 
   pièces) ; proportions entre symboles inchangées (prise > interrupteur, lumière ronde) ; bornes mini / maxi (≥ 2,5 mm
   imprimé, ≥ 12 px écran) ; jamais de taille différente selon l'endroit (zone chargée = décalage d'affichage avec trait
   de rappel, même taille) ; réglage manuel gardé. Aucun effet sur les calculs (positions réelles inchangées).
+- **Noms des pièces (Kévin, 23:32)** :
+  - position modifiable : on glisse le nom à la main dans sa pièce ; la position choisie est gardée (enregistrée avec la
+    pièce, respectée par le placement automatique des étiquettes et à l'impression) ;
+  - taille modifiable, mais commune : changer la taille d'un nom change celle de TOUS les noms de pièces, pour qu'ils
+    soient tous de la même taille (réglage du chantier, à l'écran et à l'impression).
 - Nouvelle vue dans le détail du câblage (onglet Bandes, feuille de boîte) : **les 4 tranches de la boîte** (faces A à D
   vues de face), avec sur chacune le n° de chaque gaine et son aboutissant (repère de l'appareil, pièce), pour aider le
   perceur de boîte. À prévoir aussi dans le PDF des bandes / étiquettes.
