@@ -5,7 +5,8 @@
 import { wiringNow, wireCss, wireSolid, facesSides, fr } from "./cablage-data.js";
 import { getCab } from "../cablage/settings.js";
 import { boxSteps, boxMaterial, boxChecks, boxWires, parseSizes, schemaSVG, FN_SHORT, wireName, orderLines, BOX_MODELS } from "../cablage/schema.js";
-import { code128, barsSVG, boxCode } from "./barcode.js";
+import { code128, barsSVG, boxCode, qrMatrix, qrSVG } from "./barcode.js";
+import { sheetUrl } from "../cablage/bande-code.js";
 import { pointInPoly } from "../walls/rooms.js";
 import { buildBandsPdf } from "./bandes-pdf.js";
 import { esc } from "./util.js";
@@ -80,7 +81,9 @@ export function mountBandsPage(el, { api }) {
           </div>
           <div class="bl-bot"><label class="sm">Modèle de boîte <select disabled title="Seul modèle connu pour l'instant">${BOX_MODELS.map((m) => `<option>${esc(m.name)}</option>`).join("")}</select></label>
             <label class="sm" title="Simple indication pour la pose : ne change ni le plan ni la pieuvre">Couvercle <select id="bd-cover"><option value="haut" ${S.cover === "haut" ? "selected" : ""}>vers le haut</option><option value="bas" ${S.cover === "bas" ? "selected" : ""}>vers le bas</option></select></label>
-            <div class="bl-code" id="bd-code" title="Code barre unique de la boîte : ${esc(S.code)}"></div></div>
+            <div class="bl-code" id="bd-code" title="Code barre unique de la boîte : ${esc(S.code)}"></div>
+            <div class="bl-qr" id="bd-qr" title="QR code : scannez-le avec l'appareil photo du téléphone pour ouvrir cette bande (les données sont dans le QR, rien n'est envoyé sur Internet)"></div></div>
+          <p class="sm mut" id="bd-qrinfo"></p>
           <h3>Ordre de câblage</h3>
           <table class="bd-order"><tbody>${S.order.map((o) => `<tr><td class="c"><b>${o.n}</b></td><td><span class="wchip"><i style="background:${wireCss(o.color)}"></i>${esc(o.color)} ${o.section ? fr(o.section, 1) : ""}</span></td><td class="r">${o.count} fil${o.count > 1 ? "s" : ""}</td><td class="mut sm">${esc(FN_SHORT[o.fn] || o.fn)}</td></tr>`).join("")}</tbody></table>
           <h3>1. Orienter la boîte</h3>
@@ -120,6 +123,15 @@ export function mountBandsPage(el, { api }) {
     el.querySelector("#bd-one").onclick = () => print([S]);
     el.querySelector("#bd-cover").onchange = (e) => { api.setBoxes((api.cab.boxes || []).map((b) => (b.id === box.id ? { ...b, cover: e.target.value } : b))); render(); };
     code128(S.code).then((bits) => { const c = el.querySelector("#bd-code"); if (c) c.innerHTML = barsSVG(bits, S.code, { mod: 1.4, h: 40 }); }).catch(() => {});
+    // QR code de la bande (v49) : la bande compressée dans l'adresse de la page « bande.html » de la version en ligne
+    sheetUrl(S).then(async (q) => {
+      const box = el.querySelector("#bd-qr"), info = el.querySelector("#bd-qrinfo");
+      if (!box) return;
+      if (q.tooBig) { info.textContent = "⚠ Bande trop grande pour un QR code : utilisez la feuille imprimée."; return; }
+      box.innerHTML = qrSVG(await qrMatrix(q.url));
+      box.dataset.url = q.url;
+      info.innerHTML = `📱 Scannez le QR avec le téléphone pour ouvrir cette bande${q.short ? " (version courte : libellés des raccordements abrégés)" : ""}. <a href="${esc(q.url)}" target="_blank" rel="noopener">Ouvrir ici</a>`;
+    }).catch((e) => { const info = el.querySelector("#bd-qrinfo"); if (info) info.textContent = "QR code impossible : " + e.message; });
     el.querySelector("#bd-all").onclick = () => print(sheets);
   }
   render();

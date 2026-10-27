@@ -59,5 +59,7 @@ function aiRelay(env) {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  return { base: "./", plugins: [aiRelay(env)], server: { open: false } };
+  // deux pages : le logiciel (index.html) et la bande de câblage pour téléphone (bande.html, ouverte par le QR code)
+  return { base: "./", plugins: [aiRelay(env)], server: { open: false },
+    build: { rollupOptions: { input: { main: "index.html", bande: "bande.html" } } } };
 });

@@ -1,6 +1,6 @@
 {
   "name": "okteo-ai",
-  "version": "0.47.0",
+  "version": "0.49.0",
   "private": true,
   "description": "Oktéo AI — logiciel de dessin pour bureau d'études de pieuvres électriques (prototype navigateur)",
   "scripts": {
@@ -19,6 +19,7 @@
   "dependencies": {
     "jsbarcode": "3.11.6",
     "jspdf": "2.5.2",
-    "pdfjs-dist": "4.10.38"
+    "pdfjs-dist": "4.10.38",
+    "qrcode": "1.5.4"
   }
 }

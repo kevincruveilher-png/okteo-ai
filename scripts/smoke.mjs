@@ -1254,6 +1254,21 @@ try {
     if (!ok) throw new Error(JSON.stringify({ ...r, cover }));
     return true;
   });
+  await check("QR code de la bande (v49) : affiché dans l'onglet Bandes ; la page téléphone l'ouvre (en-tête, schéma, ordre, raccordements), cases gardées", async () => {
+    await page.click('#tabs button[data-tab="bandes"]'); await page.waitForSelector("#bd-qr svg", { timeout: 15000 });
+    const url = await ev(() => document.querySelector("#bd-qr").dataset.url), steps = await ev(() => document.querySelectorAll(".bd-steps tbody tr").length), bn = await ev(() => document.querySelector(".bd-pick .on").textContent);
+    const p2 = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    await p2.goto(`http://localhost:${APP_PORT}/bande.html` + url.slice(url.indexOf("#")));
+    await p2.waitForSelector(".steps > li");
+    const r = await p2.evaluate(() => ({ h1: document.querySelector("h1").textContent, steps: document.querySelectorAll(".steps > li").length, ord: document.querySelectorAll(".ord tr").length, svg: !!document.querySelector(".sch svg g.face"), wide: document.documentElement.scrollWidth <= innerWidth + 1 }));
+    if (process.env.SHOT) await p2.screenshot({ path: process.env.SHOT + "/bande-telephone.png", fullPage: true });
+    await p2.click(".steps > li:first-child input"); await p2.reload(); await p2.waitForSelector(".steps > li");
+    const kept = await p2.evaluate(() => document.querySelector(".steps > li:first-child input").checked && /1 \/ /.test(document.querySelector(".prog").textContent));
+    await p2.close();
+    const ok = url.startsWith("https://kevincruveilher-png.github.io/okteo-ai/bande.html#b=") && r.h1.includes(bn) && r.steps === steps && r.ord === steps && r.svg && r.wide && kept;
+    if (!ok) throw new Error(JSON.stringify({ len: url.length, steps, bn, r, kept }));
+    return true;
+  });
   await check("impression des schémas : une feuille par boîte + raccordements à cocher, texte lisible (PDF relu)", async () => {
     await page.click('#tabs button[data-tab="bandes"]'); await page.waitForSelector(".bands .bd-svg svg");
     await page.click("#bd-all");
@@ -1470,6 +1485,25 @@ try {
     return true;
   });
   console.log("Tableau (v46)");
+  await check("tableau (v49) : clic sur le tableau du plan = onglet Tableau ; coffret Legrand Drivia avec sa marque ; prise modulaire ajoutée puis retirée", async () => {
+    await page.click('#tabs button[data-tab="plan"]');
+    const t = await ev(() => { okteoExt.panel.close("assistant"); okteo.setTool("sel"); okteo.viewPreset("impl"); const a = okteo.state.app.find((x) => x.t === "TAB"); if (!a) return null; okteo.zoomToBox(a.x - 2, a.y - 2, a.x + 2, a.y + 2); return okteo.toClient(a.x, a.y); });
+    if (!t) throw new Error("pas de tableau sur le plan");
+    await page.mouse.click(t.x, t.y); await page.waitForTimeout(200);
+    const opened = await ev(() => okteo.tab === "tableau" || document.querySelector('#tabs button[data-tab="tableau"]').classList.contains("on"));
+    if (!opened) await page.click('#tabs button[data-tab="tableau"]');
+    await page.waitForSelector("#tableau .tb-box");
+    await page.selectOption("#tb-model", "dv-13x4");
+    const lg = await ev(() => ({ model: okteo.cab.tableau && okteo.cab.tableau.model, brand: document.querySelector("#tableau .tb-cap .tb-brand").textContent.trim(), cls: document.querySelector("#tableau .tb-box").className }));
+    await page.selectOption("#tb-mod", "pc");
+    const pc = await ev(() => document.querySelectorAll("#tableau .tb-it.tmod.m-pc").length);
+    await page.hover("#tableau .tb-it.tmod.m-pc"); await page.click("#tableau .tb-it.tmod.m-pc .tb-del");
+    const gone = await ev(() => document.querySelectorAll("#tableau .tb-it.tmod").length === 0);
+    await ev(() => { okteo.undo(); okteo.undo(); okteo.undo(); });
+    const ok = opened && lg.model === "dv-13x4" && lg.brand === "legrand" && /lg/.test(lg.cls) && pc === 1 && gone;
+    if (!ok) throw new Error(JSON.stringify({ opened, lg, pc, gone }));
+    return true;
+  });
   await check("onglet Tableau : coffret Resi9 dessiné, disjoncteurs glissés d'une rangée à l'autre (un Ctrl+Z), manette = circuit coupé pour l'essai", async () => {
     if (!(await ev(() => (okteo.cab.circuits || []).length))) await ev(() => okteoExt.cablage.auto());
     await page.click('#tabs button[data-tab="tableau"]'); await page.waitForSelector("#tableau .tb-box");

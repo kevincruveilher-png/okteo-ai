@@ -281,6 +281,21 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 49 (27/10/2026) — livrée : bande sur le téléphone (QR code), tableau complet
+- QR code de la bande de câblage : un par boîte, sur la feuille imprimée (en bas à droite, « Bande sur le téléphone »)
+  et dans l'onglet Bandes. Scanné avec l'appareil photo, il ouvre la page `bande.html` de la version en ligne : en-tête
+  (pavillonneur, chantier, n° d'affaire, flèche du tableau), faces et pièces, schéma (agrandissable), ordre de câblage,
+  raccordements à cocher (gardés sur le téléphone), contrôle final. Les données sont dans le QR (JSON réduit, deflate,
+  base64url ; ≈ 1 à 2 Ko) : pas de serveur, rien d'envoyé. Trop gros : libellés abrégés, sinon message. Le QR correspond
+  à la bande au moment de l'impression (réimprimer si le plan change). Code barre gardé pour l'appli de scan.
+- Tableau : coffrets Legrand Drivia (13 et 18 modules, 1 à 4 rangées, réf. 401211…401224) en plus des Resi9 ; nom de la
+  marque en tête du coffret et à côté du choix (dans les couleurs de la marque — pas les logos officiels, à fournir par
+  KiTéOHM si souhaité) ; appareillage modulaire (prise 2P+T, parafoudre type 2 et son disjoncteur, télérupteur,
+  contacteur heures creuses, minuterie, horloge, délesteur, transformateur de sonnette), placé sur la rangée la plus
+  libre, déplaçable, ✕ pour retirer ; « ＋ Télérupteurs du plan » ajoute T1, T2… d'après les allumages à télérupteur.
+- Un clic (sans glisser) sur le tableau du plan ouvre l'onglet Tableau ; le glisser le déplace toujours.
+- Tests : 30 + 52 + 124.
+
 ## Versions 46 et 47 (27/10/2026) — livrées : onglet Tableau, feuille de boîte
 - v46 — onglet « Tableau » (à gauche) : coffret Schneider Resi9 au choix (1 à 4 rangées de 13 ou 18 modules ;
   4 × 13 = R9H13404 par défaut), dessiné module par module. Placement automatique (NF C 15-100 simplifiée) : ID 40 A

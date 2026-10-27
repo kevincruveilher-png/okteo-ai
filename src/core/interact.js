@@ -8,7 +8,7 @@ import { draw, hitBox, hitGaineEnd, hitLock, hitPort, hitRoute, sv } from "./ren
 import { attach, hitApp, hitLink, linkRole, hitNode, hitOpen, hitOpenHandle, hitSeg, projOnSeg, segDistPt, snapAlign, snapToWall, wallMounted } from "./attach.js";
 import { clampOpenings, clearSel, currentGroup, isSel, marqueeSelect, mk, moveGroup, multi, normalizeSel, roomAt, setSingle, startGroupDrag, toggleMulti } from "./groups.js";
 import { showSide } from "./panel.js";
-import { buildTools, hintFor, setHint } from "./controls.js";
+import { buildTools, hintFor, setHint, setTab } from "./controls.js";
 import { allLinks, levelName } from "./levels.js";
 import { essaiPress, lampLit, linkTables } from "./check.js";
 
@@ -300,6 +300,8 @@ export function endPtr() {
     if (d.moved) markDirty();else if (d.clickHit) setSingle(d.clickHit.kind, d.clickHit.id);
     draw();
     showSide();
+    // v49 : un clic (sans glisser) sur le tableau du plan ouvre l'onglet Tableau ; le glisser le déplace toujours
+    if (!d.moved && d.kind === "app" && d.a && d.a.t === "TAB") { setTab("tableau"); setHint(""); }
   }
   if (K.pan) {
     K.pan = null;

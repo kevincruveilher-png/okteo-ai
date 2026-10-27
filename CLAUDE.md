@@ -251,13 +251,20 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `cover` (`box.cover` haut|bas), `arrowSVG` ; `src/ext/barcode.js` (`code128` via jsbarcode CODE128B, `bars`,
   `barsSVG`, `boxCode`) ; bandes-pdf.js page 1 = étiquette. Playwright : garder la version qui correspond au navigateur
   installé (`npm install --no-save playwright@1.63.0` si `npm install` la change).
+- v49 : `src/cablage/bande-code.js` (pur : `packSheet`/`unpackSheet` (feuille réduite), `encodeSheet`/`decodeSheet`
+  (CompressionStream deflate-raw + base64url), `sheetUrl(S)` → `PUBLIC_BASE` + `bande.html#b=…`, `tooBig` > 2 900) ;
+  page téléphone `bande.html` + `src/bande-view.js` + `src/bande.css` (2e entrée Vite : `build.rollupOptions.input`) ;
+  `barcode.js` `qrMatrix` (bibliothèque qrcode 1.5.4, niveau L) / `qrSVG` ; QR dans cablage-bandes (`#bd-qr`,
+  `data-url`) et bandes-pdf (34 mm, bas droite). Tableau : `MODELS[].brand/range` (Resi9 + Drivia), `BRANDS`, `MODS`
+  (appareillage modulaire, `{k:"mod", t, w, label}`), `addModular`, `removeItem` ; `.tb-brand.se/.lg`. interact.js :
+  clic sans glisser sur un appareil `TAB` → `setTab("tableau")`.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (51 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (122 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (52 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (124 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

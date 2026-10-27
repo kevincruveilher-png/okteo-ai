@@ -11,7 +11,8 @@ import { pointInPoly } from "../src/walls/rooms.js";
 import { PACK_DEFAULTS, packFor, missing, placePack, prisesNorme } from "../src/cablage/packs.js";
 import { computeWiring, gaineLength, cableColors } from "../src/cablage/gaines.js";
 import { connectorsFor, boxSteps, boxMaterial, boxChecks, parseSizes, schemaSVG } from "../src/cablage/schema.js";
-import { autoTableau, syncTableau, tableauIssues, protections, moveItem, suggestModel, addBreaker } from "../src/cablage/tableau.js";
+import { autoTableau, syncTableau, tableauIssues, protections, moveItem, suggestModel, addBreaker, addModular, MODELS } from "../src/cablage/tableau.js";
+import { packSheet, unpackSheet, encodeSheet, decodeSheet, sheetUrl } from "../src/cablage/bande-code.js";
 
 let ok = 0; const fails = [];
 const check = (name, cond, info = "") => { if (cond) { ok++; console.log("  ✓ " + name); } else { fails.push(name); console.log("  ✗ " + name + (info ? " : " + info : "")); } };
@@ -271,6 +272,18 @@ console.log("Packs (v40)");
   check("pack : seul ce qui manque est ajouté (un va-et-vient compte pour la commande, un spot pour la lumière) ; séjour : prises selon la norme (1 par 4 m², 5 min, 7 au-delà de 28 m²)",
     n2.map((x) => x.t + x.n).sort().join() === "PC162,RJ451" && !r2.list.some((x) => x.t === "INT" || x.t === "LUM") && prisesNorme(20) === 5 && prisesNorme(31.5) === 8 && prisesNorme(26) === 7 && prisesNorme(30) === 8 && packFor("Pièce de vie", PACK_DEFAULTS).id === "sejour" && packFor("Salle d'eau", PACK_DEFAULTS).id === "sdb",
     JSON.stringify(n2));
+}
+
+console.log("Bande dans un QR code (v49)");
+{
+  const W = computeWiring({ items, links, circuits: C, boxes: P.boxes, levels: ["rdc"], S });
+  const B = W.boxes[0], st = boxSteps(B, parseSizes(S.bornes));
+  const sheet = { box: B, steps: st, sides: { A: "Chambre 1", B: "Séjour", C: "", D: "Tableau" }, level: "RDC", ch: { client: "Maisons Test", nom: "ESSAI", numero: "99999" }, tabAng: 1.2, code: "99999-" + B.n, model: "Boîte pavillonnaire carrée", cover: "haut" };
+  const enc = await encodeSheet(packSheet(sheet)), back = unpackSheet(await decodeSheet(enc)), st2 = boxSteps(back.box, back.sizes);
+  const same = st2.length === st.length && st2.every((x, i) => x.n === st[i].n && x.fn === st[i].fn && x.wires.length === st[i].wires.length && x.wires.every((w, j) => w.color === st[i].wires[j].color && w.gaine === st[i].wires[j].gaine)) && back.head.box === B.n && back.sides.A === "Chambre 1";
+  const u = await sheetUrl(sheet);
+  check("bande compressée puis relue : mêmes raccordements, fils, couleurs et gaines ; adresse assez courte pour un QR code",
+    same && !u.tooBig && /bande\.html#b=[A-Za-z0-9_-]+$/.test(u.url), `${enc.length} caractères, ${u.url.length} dans l'adresse`);
 }
 
 console.log("Tableau électrique (v46)");

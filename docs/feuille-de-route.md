@@ -55,7 +55,7 @@ Spécification complète : `docs/journal.md`, section « feuille de boîte ». E
 - Code barre unique (code 128, identifiant du chantier + nom de la boîte) ; modèle de boîte (pavillonnaire carrée) et couvercle haut / bas en simple mention.
 - Textes plus gros, sans Ph / N / PE ; gaine écrite « LI01.10 · P14 · 4,8 m · Ø16 » ; alimentation avec accolades et bagues 1, 2… sous les bornes.
 
-## Tableau — appareillage modulaire (demande de Kévin, 27/10) — à faire avec ou après la 48
+## 49 — Tableau complet — FAIT (27/10/2026 ; marques en texte, logos officiels à fournir)
 Ajouter au tableau, depuis une liste « ＋ Appareil modulaire », chacun avec sa largeur en modules et son symbole :
 - prise modulaire 2P+T 16 A (2,5 modules, sous un différentiel) ;
 - parafoudre type 2 (2 modules) + son disjoncteur de déconnexion (obligatoire selon la zone, conseillé sinon) ;
@@ -77,7 +77,7 @@ est mis par défaut, et ce qui est fourni par KiTéOHM ou par l'électricien.
 - Impression selon le filtre de vues actif, une case par calque dans la fenêtre d'impression.
 - Rendu vérifié sur le PDF produit, comme pour l'échelle. Placée en dernier : le dessin des boîtes et des gaines peut encore bouger avec le tableau.
 
-## QR code → bande de fabrication sur téléphone / tablette (idée de Kévin, 27/10)
+## 49 — QR code → bande de câblage sur téléphone — FAIT (27/10/2026)
 - Un **QR code** sur la feuille de boîte (à côté du code barre) : scanné avec l'appareil photo du téléphone ou de la
   tablette, il ouvre la version en ligne d'Oktéo directement sur la bande de cette boîte (schéma, ordre de câblage,
   raccordements à cocher), en page adaptée au téléphone.

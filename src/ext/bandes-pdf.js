@@ -3,7 +3,8 @@
 // (pas de flèches ni d'émojis).
 import { schemaSVG, FN_SHORT, wireName } from "../cablage/schema.js";
 import { wireSolid } from "./cablage-data.js";
-import { code128, bars } from "./barcode.js";
+import { code128, bars, qrMatrix } from "./barcode.js";
+import { sheetUrl } from "../cablage/bande-code.js";
 
 let lib = null;
 async function jspdf() { if (!lib) lib = (await import("jspdf")).jsPDF; return lib; }
@@ -94,12 +95,22 @@ export async function buildBandsPdf(pages, { chantier = "", numero = "" } = {}) 
     doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.text(win(`Couvercle vers le ${cover}`), M, 279);
     if (code) {
       try {
-        const bits = await code128(code), mw = 0.3, bw = bits.length * mw, x0 = W - M - bw, y0 = 262;
+        const bits = await code128(code), mw = 0.3, bw = bits.length * mw, x0 = W / 2 - bw / 2 + 4, y0 = 264;
         doc.setFillColor(0);
         bars(bits).forEach(([x, w]) => doc.rect(x0 + x * mw, y0, w * mw, 14, "F"));
         doc.setFont("courier", "normal"); doc.setFontSize(9); doc.text(win(code), x0 + bw / 2, y0 + 18, { align: "center" });
       } catch (e) { /* code barre impossible : la feuille reste utilisable */ }
     }
+    // QR code (v49) : la bande sur le téléphone
+    try {
+      const q = await sheetUrl(P);
+      if (!q.tooBig) {
+        const Q = await qrMatrix(q.url), size = 34, ms = size / Q.n, qx = W - M - size, qy = 246;
+        doc.setFillColor(0);
+        Q.rows.forEach((row, r) => { let c = 0; while (c < Q.n) { if (!row[c]) { c++; continue; } let e = c; while (e < Q.n && row[e]) e++; doc.rect(qx + c * ms, qy + r * ms, (e - c) * ms + 0.01, ms + 0.01, "F"); c = e; } });
+        doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(80); doc.text(win("Bande sur le téléphone"), qx + size / 2, qy + size + 3.5, { align: "center" }); doc.setTextColor(0);
+      }
+    } catch (e) { /* QR impossible : la feuille reste utilisable */ }
 
     // raccordements à cocher
     doc.addPage();
