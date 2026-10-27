@@ -180,6 +180,11 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
   corrections, un Ctrl+Z ; automatique avec une clé) ; consigne enrichie (commandes des points extérieurs, prises de
   plan de travail, nouveaux types, gonds et sens des portes) ; import du sens des portes ; type « porte de garage »
   (grande ouverture sans battant). Test sur le relevé Opus de MAILLARD.
+  Limites de la boucle (Kévin, 00:07) : 2 relectures automatiques au plus (réglable, 0 à 3) ; arrêt dès qu'il ne reste
+  aucune alerte, ou si une relecture ne règle rien (même nombre d'alertes) ; un point déclaré « introuvable » n'est
+  jamais redemandé ; une relecture ne porte que sur les points nouveaux ou non traités ; délai maximal par appel (3 min),
+  sinon arrêt avec message ; bouton « Arrêter » ; compteur « Relecture 1/2 » et coût affichés. Sans clé, chaque
+  relecture est lancée à la main (pas de boucle).
 - **58 — Plan lisible** : taille des symboles calculée d'après le dessin (même taille pour tous) ; aucun chevauchement
   (décalage d'affichage + trait de rappel) ; boîtes plus petites ; noms des pièces déplaçables, taille commune ;
   rotation du fond (90°, 180°, quelques degrés), dessin compris.
