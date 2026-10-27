@@ -149,7 +149,8 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
 ### Pour les tests
 - Invariants sur les 4 chantiers FTZ (DUCOURNEAU, FALGUA E6390, BATELIER, FONTES D2129) : 6 gaines par face,
   diamètres, terre, repères 1…N, prises ≤ 8 / ≤ 6, sens horaire, ronde sans répétition, volets 10 A. Ne pas comparer
-  le nombre de boîtes à FTZ. Il faut les plans PDF de ces chantiers dans `docs/plans/`.
+  le nombre de boîtes à FTZ. Plans et bandes reçus le 27/10 : `docs/chantiers/` (fond scanné sur 3 des 4 plans →
+  relevé fait une fois et figé en `.okteo`, puis câblage et contrôle automatiques).
 
 ### Hors 51–54 (ne pas coder)
 - Tableau (R-050, Q-65 à Q-68) reporté par Kévin ; noter seulement : ID 63 A sur les bandes, pas 40 A.
