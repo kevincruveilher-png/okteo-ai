@@ -236,7 +236,7 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `controlKinds`, `okteo.essai` {press, reset, lit, off, breaker, testAll}, `setEssai(on)`. Préférence `halos`.
   Ext : `controle-ui.js` (compteur `#ctl`, `go/next`, `controlSection` en tête du panneau Câblage), `essai-ui.js`
   (`.essai-card`), packs-ui `openMenu/applyPack` (événement `okteo:pack-menu` envoyé par le bouton `data-h="pack"`
-  du HUD pièce ; Maj+P ; `.pk-menu`). `exportGeometry().rooms[].id`. Visite : 22 étapes.
+  du HUD pièce ; Maj+P ; `.pk-menu`). `exportGeometry().rooms[].id`. Visite : 24 étapes (v51).
   v45.1 : `linkTables` ne compte que les vraies commandes et suit les chaînes de lumières ; alertes `int2`, `nobox` ;
   quadrillage `layers.grille.on=false` par défaut (drapeau `g451` dans les données enregistrées).
 - v46 : `src/cablage/tableau.js` (pur : `MODELS` Resi9, `autoTableau(circuits, {model, area})`, `syncTableau`,
@@ -263,13 +263,21 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   pdf-lib ; `tableauNow`, `downloadBlob`) ; `src/ext/logo.js` (`logoData()` → assets/kiteohm-logo.jpg, `LOGO_RATIO`) ;
   print.js : logo dans le cartouche (`o.logo === false` pour l'enlever). Onglet Bandes : `#bd-lab-one`, `#bd-lab-all`,
   `#bd-one`, `#bd-all` (bandes détaillées), `#bd-dossier` ; `ui.lastLabels`, `ui.lastDossier` (tests).
+- v51 : journal des règles de câblage = référence des règles KiTéOHM. Source : `docs/journal-regles-cablage.md` (tenu avec
+  Kévin) → `npm run regles` (scripts/regles-import.mjs) → `src/cablage/regles-data.js` (généré, ne pas modifier) ;
+  `src/cablage/regles.js` (`getJournal`, `stats`, `totals`, `filterRules`, `ecarts(J, getCab())`, `CAB_RULES`,
+  `propose`/`apply` (historique `local:true`), `autoriserModification`, export/import, `journalForAI`) ;
+  `src/ext/regles-ui.js` (`mountRegles`, section `#ps-regles` de Paramètres : choix du chantier `K.CAB.mode` +
+  `K.CAB.choix {volets, raccordement}`, écarts, tableau `.rg-row`, fiche `.rg-fiche`, `.rg-ask`) ; assistant : action
+  `{"do":"rule",op,id,patch|rule,motif}` → carte `.rg-prop` (`.rg-ok`/`.rg-no`), jamais appliquée sans validation.
+  Note de passation et plan 52–54 : `docs/remarques-dev-journal-regles.md`, feuille de route. Chantiers de test : `docs/chantiers/`.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (30 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (52 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (125 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (52 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/smoke.mjs` (130 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

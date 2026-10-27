@@ -281,6 +281,21 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 51 (27/10/2026) — livrée : journal des règles de câblage dans Paramètres
+- Le journal des règles tenu avec Kévin (`docs/journal-regles-cablage.md`, 52 règles, 78 questions, historique) devient
+  des données du logiciel : `scripts/regles-import.mjs` (`npm run regles`) → `src/cablage/regles-data.js`. Moteur
+  `src/cablage/regles.js` (journal vivant sur ce PC, `okteo.regles.v1` ; une nouvelle base remplace les règles jamais
+  modifiées ici ; export / import JSON ; `autoriserModification()` = point unique du futur code ; `code_valide`).
+- Paramètres → « Journal des règles » : choix du chantier (mode de pieuvre, Plug bloqué tant que R-009 est incomplète ;
+  volets ; hotte et appareils à choix), écarts avec les réglages actuels (départs 18 / 12, diamètre par remplissage au
+  lieu de la somme des sections), compteurs par catégorie (rouge si une règle bloquante est inconnue), filtres, tableau,
+  fiche (paramètres, écarts, choix, certitude, source, dépend de / utilisée par, preuves, questions, historique),
+  questions et historique complets. Chaque réglage du câblage renvoie vers sa règle (R-001…).
+- Modification par l'assistant seulement : action `rule` (modifier, ajouter, archiver, restaurer) → carte avant / après,
+  « Valider » = version + 1 et entrée d'historique, « Refuser » ; proposition invalide ou périmée refusée.
+- Journal corrigé (H-029) : R-075 garde les couleurs, la numérotation suit R-031. Plans et bandes des 4 chantiers de
+  test dans `docs/chantiers/`. Visite : une étape Paramètres. Tests : 30 + 52 + 130.
+
 ## Version 50 (27/10/2026) — livrée : étiquettes de boîte, dossier PDF du chantier, logo KiTéOHM
 - Deux documents (demande de Kévin) : l'**étiquette** imprimée et collée sur la boîte, et la **bande détaillée** qui va
   dans le dossier PDF (pas imprimée).

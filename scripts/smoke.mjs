@@ -28,6 +28,9 @@ const mock = http.createServer((req, res) => {
     let text = "OK";
     if (/nemotron-test/.test(lastText)) text = "<think>brouillon secret</think>Réponse Nemotron.";
     if (/outil pi[eè]ce/i.test(lastText)) text = 'Je lance l\'outil Pièce : glissez un rectangle.\n```okteo\n{"actions":[{"do":"cmd","id":"tool.piece"}]}\n```';
+    else if (/Règle R-002 : je veux la modifier/.test(lastText)) {
+      text = 'Je propose de confirmer R-002.\n```okteo\n{"actions":[{"do":"rule","op":"modifier","id":"R-002","patch":{"certitude":"confirmee","statut":"active"},"motif":"Confirmée par Kévin"},{"do":"rule","op":"modifier","id":"R-004","patch":{"couleur":"x"},"motif":"essai"}]}\n```';
+    }
     else if (/Relève ce plan/.test(lastText)) {
       // relevé par l'IA : une maison rectangulaire coupée en deux pièces, en pixels de l'image envoyée
       const [, W, H] = (lastText.match(/image de (\d+) × (\d+) pixels/) || [0, 1000, 700]).map(Number);
@@ -89,7 +92,7 @@ try {
 
   console.log("Premiers pas (v27)");
   await check("première ouverture : invitation à la visite guidée (non bloquante)", async () => page.isVisible(".tour-invite"));
-  await check("visite guidée : 23 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
+  await check("visite guidée : 24 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
     await page.click("#ti-go");
     const s1 = await page.textContent(".tour-bub .tour-n");
     await page.keyboard.press("ArrowRight");
@@ -97,12 +100,12 @@ try {
       return !document.querySelector(".tour-ring").hidden && r.left <= t.left && r.right >= t.right && r.top <= t.top && r.bottom >= t.bottom; });
     await page.keyboard.press("ArrowLeft");
     const back = await page.textContent(".tour-bub .tour-n");
-    for (let k = 0; k < 23; k++) await page.click("#tour-next");
+    for (let k = 0; k < 24; k++) await page.click("#tour-next");
     const done = await ev(() => document.querySelector(".tour-bub").hidden && okteoExt.panel.state.pane === "steps" && !!document.querySelector(".steps ol li"));
     await ev(() => okteoExt.panel.show("props"));
     await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);
     const again = await page.isVisible(".tour-invite");
-    if (!(s1 === "1 / 23" && lit && back === "1 / 23" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
+    if (!(s1 === "1 / 24" && lit && back === "1 / 24" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
     return true;
   });
 
@@ -518,7 +521,7 @@ try {
     await page.fill(".pset-find", "");
     const back = await ev(() => !document.querySelector("#ps-ia").hidden);
     await page.click('#tabs button[data-tab="plan"]');
-    if (!(secs === "Affichage|Assistant et relevé IA|Câblage|Packs" && r.rows >= 6 && r.ia && r.grp === "Couleurs des fils" && back)) throw new Error(JSON.stringify({ secs, r, back }));
+    if (!(secs === "Affichage|Assistant et relevé IA|Journal des règles de câblage|Câblage|Packs" && r.rows >= 6 && r.ia && r.grp === "Couleurs des fils" && back)) throw new Error(JSON.stringify({ secs, r, back }));
     return true;
   });
 
@@ -1567,6 +1570,94 @@ try {
     await page.click('#panes button[data-pane="props"]');
     return shut && open && shut2 && (await page.isVisible("#sidebody"));
   });
+  console.log("Journal des règles de câblage (v51)");
+  // la page Paramètres défile dans son propre cadre : amener l'élément au centre avant de cliquer
+  const clickIn = async (sel) => { await ev((x) => document.querySelector(x)?.scrollIntoView({ block: "center" }), sel); await page.click(sel, { timeout: 8000 }); };
+  await check("Paramètres → Journal des règles : 52 règles, archivée masquée, catégorie Boîtes en rouge, filtres et recherche", async () => {
+    await ev(() => localStorage.removeItem("okteo.regles.v1"));
+    await page.click('#tabs button[data-tab="params"]');
+    await page.waitForSelector("#ps-regles .rg-rules");
+    await page.fill(".pset-find", "");
+    const r = await ev(() => {
+      const S = document.getElementById("ps-regles");
+      const rows = () => [...S.querySelectorAll(".rg-row")].map((tr) => tr.dataset.id);
+      const o = { intro: /52 règles : 25 actives, 25 à valider, 1 brouillon, 1 archivée/.test(S.textContent), n: rows().length, archHidden: !rows().includes("R-076"),
+        rouge: S.querySelector('.rg-cat[data-cat="boites"]').classList.contains("rouge"), nav: !!document.querySelector('.pset-nav a[data-to="ps-regles"]') };
+      return o;
+    });
+    await page.selectOption("#rg-f-cert", "inconnue");
+    const inc = await ev(() => [...document.querySelectorAll("#ps-regles .rg-row")].map((tr) => tr.dataset.id).join(","));
+    await clickIn("#rg-f-clear");
+    await page.fill("#rg-f-q", "ICTA");
+    const icta = await ev(() => [...document.querySelectorAll("#ps-regles .rg-row")].map((tr) => tr.dataset.id));
+    await clickIn("#rg-f-clear");
+    await clickIn('#ps-regles .rg-cat[data-cat="tableau"]');
+    const tab = await ev(() => [...document.querySelectorAll("#ps-regles .rg-row")].map((tr) => tr.dataset.id).join(","));
+    await clickIn('#ps-regles .rg-cat[data-cat="tableau"]');
+    if (!(r.intro && r.n === 51 && r.archHidden && r.rouge && r.nav && inc === "R-009" && icta.includes("R-074") && tab === "R-050,R-081")) throw new Error(JSON.stringify({ r, inc, icta, tab }));
+    return true;
+  });
+  await check("fiche d'une règle : paramètres, écart avec le logiciel (18 / 12), utilisée par, preuves, questions, historique ; lien depuis un réglage Câblage", async () => {
+    await clickIn('#ps-regles .rg-row[data-id="R-001"]');
+    const f = await ev(() => document.querySelector("#ps-regles .rg-fiche")?.textContent || "");
+    const ec = await ev(() => [...document.querySelectorAll("#ps-regles .rg-ecarts tr")].map((tr) => tr.textContent).join("|"));
+    await clickIn('#cab-set .rg-link[data-rule="R-074"]');
+    await page.waitForTimeout(200);
+    const f2 = await ev(() => document.querySelector("#ps-regles .rg-row.on")?.dataset.id + "|" + (document.querySelector("#ps-regles .rg-fiche")?.textContent || ""));
+    const ok = /departs_max = 12/.test(f) && /Départs par boîte : 18 \(journal : 12\)/.test(f) && /R-088/.test(f) && /Bande DUCOURNEAU/.test(f) && /Q-50/.test(f) && /H-020/.test(f)
+      && /R-001.*12.*18/.test(ec) && /^R-074\|/.test(f2) && /icta20_mm2 = 13,5/.test(f2) && /bloquer/.test(f2);
+    if (!ok) throw new Error(JSON.stringify({ f: f.slice(0, 300), ec, f2: f2.slice(0, 200) }));
+    return true;
+  });
+  await check("choix du chantier : mode de pieuvre, volets, appareils à choix enregistrés dans le chantier (Plug bloqué)", async () => {
+    const plug = await ev(() => document.querySelector('#rg-mode option[value="plug"]').disabled);
+    await page.selectOption("#rg-mode", "equilibre");
+    await page.selectOption("#rg-volets", "boite_a_part");
+    await page.selectOption("#rg-racc", "ligne_directe");
+    const c = await ev(() => ({ mode: okteo.cab.mode, ch: okteo.cab.choix }));
+    await ev(() => okteo.setCab({ mode: "proximite", choix: {} }));
+    if (!(plug && c.mode === "equilibre" && c.ch.volets === "boite_a_part" && c.ch.raccordement === "ligne_directe")) throw new Error(JSON.stringify({ plug, c }));
+    return true;
+  });
+  await check("modifier une règle par l'assistant : avant / après, Valider = journal + historique ; proposition invalide refusée", async () => {
+    const old = await ev(() => JSON.stringify(okteoExt.settings.get()));
+    await ev(() => okteoExt.settings.set({ keys: { anthropic: "sk-test", nvidia: "" }, provider: "anthropic" }));
+    await clickIn('#ps-regles .rg-row[data-id="R-002"]');
+    await clickIn('#ps-regles .rg-ask[data-id="R-002"]');
+    await page.waitForSelector(".as-in textarea", { state: "visible" });
+    const pre = await page.inputValue(".as-in textarea");
+    await page.fill(".as-in textarea", pre + "elle est confirmée.");
+    await page.click(".as-in button[type=submit]");
+    await page.waitForSelector(".rg-prop .rg-ok", { timeout: 8000 });
+    const card = await ev(() => [...document.querySelectorAll(".rg-prop")].map((x) => x.textContent).join("|"));
+    await clickIn(".rg-prop .rg-ok");
+    const after = await ev(async () => { const m = await import("/src/cablage/regles.js"); const J = m.getJournal(); const r = m.ruleById(J, "R-002"); const h = J.history[J.history.length - 1]; return { cert: r.certitude, st: r.statut, v: r.version, h: h.id + "|" + h.regle + "|" + h.action + "|" + h.motif + "|" + h.local }; });
+    const st = await ev(() => document.querySelector(".rg-prop .rg-pst")?.textContent || "");
+    await ev((o) => okteoExt.settings.set(JSON.parse(o)), old);
+    await ev(() => okteoExt.panel.close("assistant"));
+    const ok = /^Règle R-002 : je veux la modifier/.test(pre) && /Modifier R-002/.test(card) && /certitude.*supposee.*confirmee/.test(card) && /Champs inconnus : couleur/.test(card)
+      && after.cert === "confirmee" && after.st === "active" && after.v === 2 && after.h === "H-030|R-002|Modification|Confirmée par Kévin|true" && /validée \(H-030\)/.test(st);
+    if (!ok) throw new Error(JSON.stringify({ pre, card: card.slice(0, 300), after, st }));
+    return true;
+  });
+  await check("journal : export JSON puis import (entrée « Import » dans l'historique), retour à la base", async () => {
+    await ev(() => okteo.setTab("params"));
+    await page.waitForSelector("#ps-regles .rg-rules");
+    const [dl] = await Promise.all([page.waitForEvent("download"), clickIn("#rg-export")]);
+    const txt = await ev(() => document.getElementById("ps-regles")._lastExport);
+    const name = dl.suggestedFilename();
+    const j = JSON.parse(txt);
+    j.rules.find((r) => r.id === "R-004").titre = "Boîtes verrouillées (importé)";
+    await page.setInputFiles("#rg-import", { name: "journal.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(j)) });
+    await page.waitForSelector("#ps-regles .rg-msg:not([hidden])");
+    const r = await ev(async () => { const m = await import("/src/cablage/regles.js"); const J = m.getJournal(); return { t: m.ruleById(J, "R-004").titre, h: J.history[J.history.length - 1].action, conf: m.ruleById(J, "R-002").certitude, msg: document.querySelector("#ps-regles .rg-msg").textContent }; });
+    await ev(async () => { const m = await import("/src/cablage/regles.js"); m.resetJournal(); });
+    const back = await ev(async () => { const m = await import("/src/cablage/regles.js"); return m.ruleById(m.getJournal(), "R-002").certitude; });
+    await ev(() => okteo.setTab("plan"));
+    if (!(/^journal-regles-cablage-\d{8}\.json$/.test(name) && j.okteo === "journal-regles" && j.rules.length === 52 && r.t === "Boîtes verrouillées (importé)" && r.h === "Import" && r.conf === "confirmee" && /Journal importé/.test(r.msg) && back === "supposee")) throw new Error(JSON.stringify({ name, r, back }));
+    return true;
+  });
+
   console.log("Bandeau en encarts, assistant en bas à droite (v41)");
   await check("bandeau : encarts Actions, Vues, Panneaux (Propriétés, Câblage, Packs, Étapes), sans bouton Assistant en haut", async () => ev(() => {
     const labs = [...document.querySelectorAll(".top2 .grp .glab")].map((x) => x.textContent).join("|");

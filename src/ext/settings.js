@@ -7,6 +7,8 @@
 import { CAB_DEFAULTS, CAB_FIELDS, PROTS, SECTIONS, getCab, resetCab, setCab } from "../cablage/settings.js";
 import { esc, store, storeSet } from "./util.js";
 import { getPrefs, setPref, PREFS_DEFAULTS } from "../prefs.js";
+import { mountRegles } from "./regles-ui.js";
+import { CAB_RULES } from "../cablage/regles.js";
 
 // préférences d'affichage : [clé, libellé, aide]
 const PREF_FIELDS = [
@@ -37,7 +39,8 @@ export const settings = {
 };
 
 // ---------- page Paramètres ----------
-export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, openPacks }) {
+export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, openPacks, api, askRule }) {
+  let regles = null;
   const card = (p) => {
     const P = PROVIDERS[p], s = settings.get();
     const env = envKeys[p] ? `<span class="okk">clé trouvée dans .env</span>` : "";
@@ -66,7 +69,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
 
   const SECS = () => [
     ["ps-aff", "Affichage"], ["ps-ia", "Assistant et relevé IA"],
-    ["cab-set", "Câblage"], ...CAB_FIELDS.map(([g], i) => ["ps-cab-" + i, g, true]), ["ps-packs", "Packs"],
+    ["ps-regles", "Journal des règles"], ["cab-set", "Câblage"], ...CAB_FIELDS.map(([g], i) => ["ps-cab-" + i, g, true]), ["ps-packs", "Packs"],
   ];
   function prefHTML() {
     const v = getPrefs();
@@ -93,6 +96,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
         <div class="prov">${provHTML()}</div>
         <p class="mut">Conseil : Claude pour l'analyse du plan (meilleure lecture des images). NVIDIA : Nemotron 3.5 Super VL par défaut (gratuit dans la limite des crédits, voit le plan). Si NVIDIA retire un modèle, Oktéo en choisit un autre tout seul. Un modèle sans « VL » ou « vision » ne lit que la liste des objets, pas l'image.</p>
       </section>
+      <section class="pset-sec" id="ps-regles"></section>
       <section class="pset-sec cab-set" id="cab-set">${cabHTML()}</section>
       <section class="pset-sec" id="ps-packs">
         <h3>Packs</h3>
@@ -103,6 +107,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
         </div>
       </div>
     </div>`;
+    regles = mountRegles(el.querySelector("#ps-regles"), { api, ask: askRule });
     wire();
     if (q) { el.querySelector(".pset-find").value = q; find(q); }
   }
@@ -117,7 +122,8 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
       else if (type === "sec") ctl = `<select data-cab="${k}">${SECTIONS.map((x) => `<option value="${x}" ${x === val ? "selected" : ""}>${String(x).replace(".", ",")}</option>`).join("")}</select>`;
       else if (type === "prot") ctl = `<select data-cab="${k}">${PROTS.map((x) => `<option value="${x}" ${x === val ? "selected" : ""}>${x}</option>`).join("")}</select>`;
       else ctl = `<input data-cab="${k}" ${type === "txt" ? "" : `type="number" step="${type === "int" ? 1 : "any"}" min="0"`} value="${esc(String(val))}">`;
-      return `<label class="cab-row${changed}" title="Valeur de base : ${esc(String(d).replace(".", ","))} ${esc(unit)}"><span>${esc(label)}</span><span class="cab-ctl">${ctl}<span class="mut">${esc(unit)}</span></span></label>`;
+      const rg = (CAB_RULES[k] || []).map((id) => `<a href="#" class="rg-link" data-rule="${id}" title="Voir la règle ${id} dans le journal">${id}</a>`).join("");
+      return `<label class="cab-row${changed}" title="Valeur de base : ${esc(String(d).replace(".", ","))} ${esc(unit)}"><span>${esc(label)}${rg ? ` <span class="rg-links">${rg}</span>` : ""}</span><span class="cab-ctl">${ctl}<span class="mut">${esc(unit)}</span></span></label>`;
     };
     return `<div class="pset-h"><h3>Câblage</h3><button id="cab-reset" title="Remettre toutes les valeurs de base du câblage">Valeurs de base</button></div>
       <p class="mut">Règles de la pieuvre décidées avec le bureau d'études : circuits, couleurs, boîtes, gaines. Une valeur modifiée est surlignée ; l'infobulle donne la valeur de base.</p>
@@ -131,6 +137,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
       if (t === "number" && !(v >= 0)) { c.value = getCab()[k]; return; }
       setCab({ [k]: v }); c.closest(".cab-row").classList.toggle("chg", v !== CAB_DEFAULTS[k]);
     }));
+    box.querySelectorAll(".rg-link").forEach((a) => (a.onclick = (e) => { e.preventDefault(); e.stopPropagation(); regles && regles.open(a.dataset.rule); }));
     box.querySelector("#cab-reset").onclick = () => { resetCab(); box.innerHTML = cabHTML(); wireCab(); };
   }
 
@@ -195,5 +202,5 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
 
   serverStatus().then((st) => { settings.setEnv({ online: !!st.online, anthropic: !!st.anthropic, nvidia: !!st.nvidia }); render(); });
   render();
-  return { render };
+  return { render, get regles() { return regles; } };
 }

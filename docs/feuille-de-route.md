@@ -93,7 +93,7 @@ Références : `docs/remarques-dev-journal-regles.md` (note de passation) et le 
 (`claude/journal-regles-cablage.md` : 52 règles R-001…R-096, questions Q-01…Q-78, historique H-001…H-028).
 Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = « à vérifier » ou doute bloquant.
 
-### 51 — Journal des règles dans Paramètres
+### 51 — Journal des règles dans Paramètres — FAIT (27/10/2026)
 - Les 52 règles en données (JSON dans le code, copie modifiée dans le chantier/localStorage), questions, historique ;
   export / import du journal complet.
 - Tableau filtrable (id, titre, catégorie, pastille de certitude, statut ; filtres + recherche ; compteur par catégorie,

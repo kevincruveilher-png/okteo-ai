@@ -583,3 +583,47 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .bl-qr{background:#fff;border-radius:4px;padding:2px}
 .bl-qr svg{display:block;width:110px;height:110px}
 .bl-logo{height:22px;width:auto;align-self:center}
+
+/* v51 : journal des règles de câblage (Paramètres) */
+.rg-io{display:flex;gap:6px;align-items:center}
+.rg-imp{cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:3px 9px;font-size:12.5px;background:var(--bg)}
+.rg-msg{margin:4px 0 8px;font-size:12.5px;color:var(--ok)}.rg-msg.bad{color:#c0392b}
+.rg-choix{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:end;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:8px 0}
+.rg-choix h4{flex-basis:100%;margin:0}.rg-choix label{display:flex;flex-direction:column;font-size:12px;gap:2px}
+.rg-choix p{flex-basis:100%;margin:2px 0 0}
+.rg-ok{color:var(--ok);font-size:12.5px;margin:6px 0}
+.rg-ecarts{border:1px solid #e8b04a;background:rgba(232,176,74,.1);border-radius:10px;padding:8px 12px;margin:8px 0}
+.rg-ecarts h4{margin:0 0 2px;color:var(--warn)}
+.rg-tab{width:100%;border-collapse:collapse;font-size:12.5px;margin:4px 0}
+.rg-tab th{text-align:left;font-weight:600;color:var(--mut,#777);border-bottom:1px solid var(--line);padding:3px 6px}
+.rg-tab td{border-bottom:1px solid var(--line);padding:4px 6px;vertical-align:top}
+.rg-tab td small{display:block}
+.rg-cats{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 6px}
+.rg-cat{border:1px solid var(--line);border-radius:14px;padding:3px 10px;font-size:12.5px;background:var(--bg)}
+.rg-cat.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.rg-cat.rouge{border-color:#d33;color:#d33}
+.rg-filters{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.rg-filters input{flex:1;min-width:200px}
+.rg-rules .rg-row{cursor:pointer}.rg-rules .rg-row:hover td{background:rgba(47,123,216,.06)}
+.rg-rules .rg-row.on td{background:rgba(47,123,216,.1);font-weight:600}
+.rg-rules .rg-row.arch td{opacity:.55;text-decoration:line-through}
+.rg-blk{color:#d33;font-weight:700}
+.rg-cert{display:inline-block;border-radius:10px;padding:0 8px;font-size:11.5px;color:#fff;white-space:nowrap}
+.rg-cert.confirmee{background:#2e9b4f}.rg-cert.supposee{background:#e08a1e}.rg-cert.inconnue{background:#d33}
+.rg-fiche>td{background:rgba(47,123,216,.04)}
+.rg-fiche-in{padding:4px 4px 8px;font-size:12.5px}.rg-fiche-in p{margin:2px 0 6px}.rg-fiche-in ul{margin:2px 0 6px;padding-left:18px}
+.rg-dl{display:grid;grid-template-columns:110px 1fr;gap:3px 10px;margin:6px 0}.rg-dl dt{color:var(--mut,#777)}.rg-dl dd{margin:0}
+.rg-warn{color:var(--warn)}
+.rg-ref,.rg-link{font-family:ui-monospace,monospace;font-size:11.5px;border:1px solid var(--line);border-radius:6px;padding:0 4px;text-decoration:none;margin-right:3px}
+.rg-links{margin-left:4px;white-space:nowrap}
+.rg-act{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.rg-q{font-family:ui-monospace,monospace;font-size:11.5px;border-radius:6px;padding:0 4px;border:1px solid var(--line)}
+.rg-q.ouverte{border-color:#d33;color:#d33}.rg-q.attente,.rg-q.partielle{border-color:#e08a1e;color:var(--warn)}.rg-q.repondue{border-color:#2e9b4f;color:var(--ok)}
+.rg-more{margin-top:10px}.rg-more summary{cursor:pointer;font-weight:600;font-size:13px}
+.rg-prop{border:1px solid var(--accent);border-radius:10px;padding:6px 8px;margin:8px 0;background:rgba(47,123,216,.05)}
+.rg-prop.bad{border-color:#d33;color:#c0392b;background:none}
+.rg-ph{font-size:12.5px;margin-bottom:2px}
+.rg-av{color:#b03a2e;text-decoration:line-through}.rg-ap{color:var(--ok);font-weight:600}
+.rg-pact{display:flex;gap:6px;margin-top:6px}.rg-pst{margin-top:4px;font-size:12px;font-weight:600}.rg-pst.ok{color:var(--ok)}.rg-pst.no{color:#888}
+.rg-tab td:first-child,.rg-ref,.rg-link{white-space:nowrap}
+.rg-fiche-in p:first-child{margin-top:0}
+#rg-f-clear[hidden]{display:none}

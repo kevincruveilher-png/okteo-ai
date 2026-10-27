@@ -12,6 +12,7 @@ import { settings } from "./settings.js";
 import { planSummary, planImage } from "./plan-data.js";
 import { searchCatalog } from "./palette.js";
 import { esc, md, store, storeSet } from "./util.js";
+import { getJournal, journalForAI, propose, apply, ruleById, CATS } from "../cablage/regles.js";
 
 const MAX_KEEP = 40, MAX_SEND = 12;
 
@@ -44,8 +45,17 @@ Types d'action :
 {"do":"zoom","ids":["r2"]}  centre la vue sur des objets ou des pièces
 {"do":"rename","room":"r1","name":"Chambre 1"}  renomme une pièce
 {"do":"delete","ids":["a7"]}  supprime (l'utilisateur devra toujours confirmer)
+{"do":"rule","op":"modifier","id":"R-001","patch":{"parametres":{"departs_max":12},"certitude":"confirmee","statut":"active"},"motif":"…"}  propose de modifier une règle du journal
+{"do":"rule","op":"ajouter","rule":{"titre":"…","categorie":"boites","description":"…","source":"…"},"motif":"…"}  propose une règle nouvelle
+{"do":"rule","op":"archiver"|"restaurer","id":"R-0xx","motif":"…"}
+Une action "rule" n'est JAMAIS appliquée directement : l'utilisateur voit l'avant / après et valide (règle du journal). Mets-la dans "actions" dès qu'on te demande de changer une règle.
 Tu ne peux pas encore dessiner de murs ni poser d'appareils toi-même : si on te le demande, explique comment faire et active l'outil (ou propose-le).
-N'écris le bloc que s'il contient au moins une action ou une suggestion, et n'écris rien après.`;
+N'écris le bloc que s'il contient au moins une action ou une suggestion, et n'écris rien après.
+
+JOURNAL DES RÈGLES DE CÂBLAGE (référence unique des règles KiTéOHM ; id | catégorie | statut/certitude/si_doute | titre | description | paramètres) :
+${journalForAI(getJournal())}
+Catégories : ${Object.keys(CATS).join(", ")}. Certitudes : confirmee, supposee, inconnue. Statuts : active, a_valider, desactivee, brouillon, archivee. si_doute : bloquer, avertir.
+Règles du journal : on ne modifie une règle qu'à la demande de l'utilisateur, avec un motif ; une règle supprimée est archivée ; une règle sans source reste brouillon ; quand l'utilisateur confirme une règle, passe certitude à "confirmee" et statut à "active". Ne jamais inventer une règle absente : en cas de doute, pose la question.`;
 }
 
 const ANALYSE_PROMPT = `Analyse ce plan : image jointe (fond de plan + dessin) et données JSON du plan actuel.
@@ -108,7 +118,8 @@ export function createAssistant(el, { api, getCatalog, openParams }) {
         if (m.role === "log") return `<div class="as-log">${esc(m.text)}</div>`;
         const sug = (m.suggest || []).map((a, i) => btn(a, i, mi)).join("");
         const meta = m.meta ? `<div class="as-meta">${esc(m.meta)}</div>` : "";
-        return `<div class="as-msg a ${m.error ? "err" : ""}">${md(m.text)}${sug ? `<div class="as-sugs">${sug}</div>` : ""}${meta}</div>`;
+        const rules = (m.rules || []).map((x, i) => ruleCard(x, i, mi)).join("");
+        return `<div class="as-msg a ${m.error ? "err" : ""}">${md(m.text)}${rules}${sug ? `<div class="as-sugs">${sug}</div>` : ""}${meta}</div>`;
       }).join("");
     }
     if (busy) msgsEl.insertAdjacentHTML("beforeend", `<div class="as-msg a busy"><span class="dots"><i></i><i></i><i></i></span> ${esc(busy)}</div>`);
@@ -119,6 +130,7 @@ export function createAssistant(el, { api, getCatalog, openParams }) {
     msgsEl.querySelectorAll(".as-chip").forEach((b) => (b.onclick = () => ask(b.textContent)));
     msgsEl.querySelectorAll(".as-params").forEach((b) => (b.onclick = openParams));
     msgsEl.querySelectorAll("a.obj").forEach((a) => (a.onclick = (e) => { e.preventDefault(); const id = a.dataset.obj; if (!api.zoomTo([id])) return; api.select([id]); }));
+    msgsEl.querySelectorAll(".rg-ok, .rg-no").forEach((b) => (b.onclick = () => decide(+b.dataset.scope, +b.dataset.i, b.classList.contains("rg-ok"))));
     msgsEl.querySelectorAll(".as-sug").forEach((b) => (b.onclick = () => {
       const m = hist[+b.dataset.scope]; const a = m?.suggest?.[+b.dataset.i]; if (!a) return;
       if (a.do === "delete") { api.select(a.ids || []); api.deleteSelection(); log(`✓ Supprimé : ${(a.ids || []).join(", ")}`); m.suggest.splice(+b.dataset.i, 1); save(); render(); return; }
@@ -126,6 +138,29 @@ export function createAssistant(el, { api, getCatalog, openParams }) {
     }));
   }
   function log(text) { hist.push({ role: "log", text }); save(); render(); }
+
+  // ---------- propositions de modification du journal des règles ----------
+  const shown = (v) => (v == null ? "—" : Array.isArray(v) ? v.join(" ; ") : typeof v === "object" ? Object.entries(v).map(([k, x]) => `${k} = ${x}`).join(", ") : String(v));
+  function ruleCard(x, i, mi) {
+    if (x.error) return `<div class="rg-prop bad">✗ Proposition impossible${x.id ? " (" + esc(x.id) + ")" : ""} : ${esc(x.error)}</div>`;
+    const P = x.prop, OP = { modifier: "Modifier", ajouter: "Ajouter", archiver: "Archiver", restaurer: "Restaurer" }[P.op];
+    const rows = P.op === "ajouter" ? P.champs.map((k) => `<tr><td>${esc(k)}</td><td class="mut">—</td><td>${esc(shown(P.apres[k]))}</td></tr>`).join("")
+      : P.champs.map((k) => `<tr><td>${esc(k)}</td><td class="rg-av">${esc(shown(P.avant[k]))}</td><td class="rg-ap">${esc(shown(P.apres[k]))}</td></tr>`).join("");
+    const st = x.state === "attente" ? `<div class="rg-pact"><button class="rg-ok on" data-scope="${mi}" data-i="${i}">✓ Valider</button><button class="rg-no" data-scope="${mi}" data-i="${i}">Refuser</button></div>`
+      : `<div class="rg-pst ${x.state === "refusée" ? "no" : "ok"}">${esc(x.state)}</div>`;
+    return `<div class="rg-prop"><div class="rg-ph">${OP} <b>${esc(P.id)}</b> · ${esc(P.titre || "")}</div>
+      <table class="rg-tab"><tr><th>Champ</th><th>Avant</th><th>Après</th></tr>${rows}</table>
+      <div class="mut sm">Motif : ${esc(P.motif)}</div>${st}</div>`;
+  }
+  function decide(mi, i, ok) {
+    const x = hist[mi]?.rules?.[i]; if (!x || x.state !== "attente") return;
+    if (!ok) { x.state = "refusée"; log(`Proposition sur ${x.prop.id} refusée : le journal ne change pas.`); return; }
+    const J = getJournal(), P = x.prop, r = ruleById(J, P.id);
+    // la règle a changé depuis la proposition : on ne valide pas un avant périmé
+    if (P.op !== "ajouter" && (!r || P.champs.some((k) => JSON.stringify(r[k]) !== JSON.stringify(P.avant[k])))) { x.state = "périmée (la règle a changé depuis)"; log(`✗ ${P.id} a changé depuis la proposition : redemandez la modification.`); return; }
+    try { const { entry } = apply(J, P); x.state = `validée (${entry.id})`; log(`✓ ${P.id} ${P.op === "ajouter" ? "créée" : P.op === "archiver" ? "archivée" : P.op === "restaurer" ? "restaurée" : "modifiée"} : entrée ${entry.id} de l'historique.`); }
+    catch (e) { x.state = "attente"; log("✗ " + e.message); }
+  }
 
   // ---------- actions ----------
   function describe(a) {
@@ -174,12 +209,16 @@ export function createAssistant(el, { api, getCatalog, openParams }) {
       while (convo.length && convo[0].role !== "user") convo.shift();
       const r = await chat({ system: systemPrompt(api, getCatalog()), messages: convo, maxTokens: image ? 2500 : 1500, think: !!image });
       const p = parseReply(r.text);
-      const sug = p.suggest.slice(0, 8);
+      const sug = p.suggest.filter((a) => a.do !== "rule").slice(0, 8);
+      // règles du journal : jamais appliquées directement → carte avant / après à valider
+      const rules = [...p.actions, ...p.suggest].filter((a) => a.do === "rule").map((a) => {
+        try { return { prop: propose(getJournal(), a), state: "attente" }; } catch (e) { return { error: e.message, id: a.id || "" }; }
+      });
       // une suppression demandée en action devient un bouton à confirmer
       p.actions.filter((a) => a.do === "delete").forEach((a) => sug.push({ ...a, label: `Confirmer : supprimer ${(a.ids || []).length} objet(s)` }));
-      hist.push({ role: "assistant", text: p.text || "(fait)", suggest: sug, meta: `${PROVIDERS[r.provider].name} · ${r.model} · ${(r.ms / 1000).toFixed(1)} s${image && !r.sawImage ? " · ce modèle ne voit pas les images" : ""}${r.switched ? ` · « ${r.switched} » retiré, remplacé automatiquement` : ""}` });
+      hist.push({ role: "assistant", text: p.text || "(fait)", suggest: sug, rules: rules.length ? rules : undefined, meta: `${PROVIDERS[r.provider].name} · ${r.model} · ${(r.ms / 1000).toFixed(1)} s${image && !r.sawImage ? " · ce modèle ne voit pas les images" : ""}${r.switched ? ` · « ${r.switched} » retiré, remplacé automatiquement` : ""}` });
       busy = false; save(); render();
-      for (const a of p.actions.filter((a) => a.do !== "delete")) { const t = runAction(a); if (t) hist.push({ role: "log", text: t }); }
+      for (const a of p.actions.filter((a) => a.do !== "delete" && a.do !== "rule")) { const t = runAction(a); if (t) hist.push({ role: "log", text: t }); }
       if (p.actions.length) { save(); render(); }
     } catch (e) {
       busy = false;
@@ -216,5 +255,7 @@ export function createAssistant(el, { api, getCatalog, openParams }) {
   el.querySelector(".as-clear").onclick = () => { hist = []; save(); render(); };
 
   paintProv(); render();
-  return { ask, analyse, focus: () => ta.focus(), get history() { return hist; } };
+  // texte préparé dans la zone de saisie (ex. « Règle R-001 : … » depuis le journal des règles)
+  const prefill = (t) => { ta.value = t; ta.focus(); ta.setSelectionRange(t.length, t.length); };
+  return { ask, analyse, prefill, focus: () => ta.focus(), get history() { return hist; } };
 }

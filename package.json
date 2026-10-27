@@ -1,6 +1,6 @@
 {
   "name": "okteo-ai",
-  "version": "0.50.0",
+  "version": "0.51.0",
   "private": true,
   "description": "Oktéo AI — logiciel de dessin pour bureau d'études de pieuvres électriques (prototype navigateur)",
   "scripts": {
@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "deploy": "node scripts/deploy.mjs",
     "check": "node scripts/syntax.mjs && node scripts/walls.test.mjs && node scripts/cablage.test.mjs && node scripts/smoke.mjs",
-    "test:murs": "node scripts/walls.test.mjs"
+    "test:murs": "node scripts/walls.test.mjs",
+    "regles": "node scripts/regles-import.mjs"
   },
   "devDependencies": {
     "playwright": "^1.47.0",

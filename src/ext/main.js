@@ -69,7 +69,8 @@ function start() {
   // ---------- pages pleine largeur (remplacent la zone de dessin quand leur onglet est actif) ----------
   const stage = document.querySelector(".stage");
   const pages = {
-    params: { el: document.getElementById("params"), mount: (el) => mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, openPacks: () => { api.setTab("plan"); panel.show("packs"); } }), ui: null },
+    params: { el: document.getElementById("params"), mount: (el) => mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, openPacks: () => { api.setTab("plan"); panel.show("packs"); }, api,
+      askRule: (id) => { api.setTab("plan"); panel.show("assistant"); assistant.prefill(`Règle ${id} : je veux la modifier — `); } }), ui: null },
     chantiers: { el: document.getElementById("chantiers"), mount: (el) => mountChantiers(el, { api }), ui: null },
     boites: { el: document.getElementById("boites"), mount: (el) => mountBoxesPage(el, { api }), ui: null },
     lignes: { el: document.getElementById("lignes"), mount: (el) => mountDirectPage(el, { api }), ui: null },
