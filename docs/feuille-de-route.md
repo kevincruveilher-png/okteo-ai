@@ -88,6 +88,73 @@ est mis par défaut, et ce qui est fourni par KiTéOHM ou par l'électricien.
 - Plus tard, avec une sauvegarde partagée : QR court (n° d'affaire + boîte) qui va chercher la dernière version.
 - Le code barre Code 128 reste pour l'appli de scan / contrôle du poids de l'atelier.
 
+## 51 à 54 — Règles de câblage KiTéOHM (note du 27/10/2026)
+Références : `docs/remarques-dev-journal-regles.md` (note de passation) et le journal des règles du projet
+(`claude/journal-regles-cablage.md` : 52 règles R-001…R-096, questions Q-01…Q-78, historique H-001…H-028).
+Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = « à vérifier » ou doute bloquant.
+
+### 51 — Journal des règles dans Paramètres
+- Les 52 règles en données (JSON dans le code, copie modifiée dans le chantier/localStorage), questions, historique ;
+  export / import du journal complet.
+- Tableau filtrable (id, titre, catégorie, pastille de certitude, statut ; filtres + recherche ; compteur par catégorie,
+  catégorie rouge si une règle `bloquer` est inconnue) ; fiche d'une règle (dépend de / utilisée par, choix, historique).
+- Choix du chantier en tête : mode de pieuvre (Proximité, Équilibrée, Par pièce, Plug = bloqué), volets (boîte à part /
+  mélangés), hotte et appareils à choix (boîte / ligne directe / à choisir).
+- Modification par l'assistant seulement : action `rule` avant / après, validation, entrée d'historique,
+  `autoriserModification(action, regle)` (toujours autorisé pour l'instant), champ `code_valide`.
+- Chaque réglage du moteur (Paramètres → Câblage) pointe vers sa règle.
+
+### 52 — Moteur aligné sur les règles confirmées
+- R-001 : 12 départs hors alimentation (au lieu de 18), 6 gaines par face alimentation comprise ; R-088 face pleine →
+  face voisine, sans alerte ; plus de face libre = doute bloquant.
+- R-077 : n° de gaine `.01` = alimentation puis strictement horaire (A, B, C, D) à partir de l'alimentation.
+- R-074 : diamètre par somme des sections (≤ 7,5 mm² ICTA 16, ≤ 13,5 mm² ICTA 20, au-delà doute bloquant), à la
+  place du remplissage en surface ; capacités réglables.
+- R-075 / R-030 : une terre dans l'alimentation, de la plus grande section de la gaine ; R-031 garde la numérotation
+  (terres n° 1) : les numéros de R-075 (R 1 / B 2, GR 3…) sont ceux de FTZ, seules les couleurs sont reprises.
+- R-020 / R-021 / R-085 : rouge 1,5 = phase des lumières seulement, gris = prises seulement ; 2e circuit prises =
+  mêmes couleurs + bague ; 8 prises / circuit, 6 en cuisine.
+- R-072 / R-023 : ronde orange, violet, noir, marron, ivoire ; couleurs imposées d'abord (marron du câble 3G), puis
+  va-et-vient, puis simples ; pas de répétition tant qu'une couleur est libre dans la boîte ; répétition = bague au n°
+  de l'allumage, jamais dans une même gaine (sinon doute bloquant).
+- R-093 : télérupteur au tableau, BP = phase + commande (neutre seulement si voyant/domotique, R-083).
+- R-095 : BOUCHON automatique sur les gaines à câble extérieur (bande + décompte).
+- R-089 à R-092 : contrôles des liaisons interdites (spécialisé en gaine partagée, phase/neutre partagés, VV coupé,
+  prise SDB sur cuisine, sections mélangées dans une borne).
+- Longueur totale de la boîte sous son nom (bande, étiquette, dossier).
+- Chaque résultat garde la règle qui l'a produit et sa certitude ; « à vérifier » imprimé sur la bande si non confirmée.
+
+### 53 — Doutes, précontrôle et étude
+- Précontrôle avant « Câbler » (bouton et assistant) : règles utiles au chantier et leur certitude ; « Je ne peux pas
+  câbler : il manque N règles » si un point bloquant est ouvert.
+- Doutes : marqueur sur le plan (comme les halos), compteur, liste cliquable, rapport de câblage.
+- Trace de l'étude enregistrée dans le chantier : 9 étapes (lecture, mode, boîtes, circuits, allumages, gaines,
+  raccordements, tableau, contrôle), états ✓ ◐ ? ✕ ✎, alternatives avec score (longueur totale de gaine, boîtes,
+  départs — critère provisoire, Q-77).
+- Vues : bande des 9 étapes, « Où ça coince » (avec « Proposer une modification de la règle »), « Pourquoi ? » au
+  clic sur une gaine / un fil / une boîte, statistiques par règle.
+
+### 54 — Nouveaux appareils, volets roulants, lignes directes
+- Types (R-084) : radiateur, sèche-serviette, caisson et commande VMC, prises spécialisées nommées (four, LL, LV, SL),
+  plaque 6 mm², chauffe-eau, prises extérieures, interphones, antenne et TV, équipotentielles principale et locale,
+  volet roulant, CVR, Velux, Aqua Air (alimentation + pilotage), bouche motorisée (YSYT sans gaine), moteur de garage,
+  prise extérieure 4G1,5, interrupteur de coupure, climatisation, G EXT ; câble/fils et section modifiables.
+- Volets (R-079, R-087, R-094, R-096) : circuit dédié gris / bleu clair 1,5, 10 A, 50 W par moteur ; filaire (CVR,
+  marron + noir de la ronde) ou connecté, au choix par volet ; boîte selon le mode de pieuvre.
+- R-003 / R-082 / R-084 : tout le courant faible en ligne directe, gaine verte Ø20 ; jamais avec le courant fort.
+- R-086 : raccordement « boîte / ligne directe / à choisir » par appareil (doute tant que « à choisir »).
+- Tableau des lignes directes : étiquette, longueur, gaine, fil, aboutissant, total par diamètre.
+- Restent à préciser : AIG2 (gaine aiguillée Ø40).
+
+### Pour les tests
+- Invariants sur les 4 chantiers FTZ (DUCOURNEAU, FALGUA E6390, BATELIER, FONTES D2129) : 6 gaines par face,
+  diamètres, terre, repères 1…N, prises ≤ 8 / ≤ 6, sens horaire, ronde sans répétition, volets 10 A. Ne pas comparer
+  le nombre de boîtes à FTZ. Il faut les plans PDF de ces chantiers dans `docs/plans/`.
+
+### Hors 51–54 (ne pas coder)
+- Tableau (R-050, Q-65 à Q-68) reporté par Kévin ; noter seulement : ID 63 A sur les bandes, pas 40 A.
+- Plug de pieuvre (R-009) : bloqué tant que Q-42 / Q-44 manquent.
+
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.
 - Export SPV pour Counter.
