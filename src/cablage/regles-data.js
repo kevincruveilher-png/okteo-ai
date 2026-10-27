@@ -1,6 +1,6 @@
 // Généré par scripts/regles-import.mjs depuis docs/journal-regles-cablage.md — ne pas modifier à la main.
 export const REGLES_BASE = {
- "version": "2026-10-27.35",
+ "version": "2026-10-27.36",
  "rules": [
   {
    "id": "R-001",
@@ -468,7 +468,7 @@ export const REGLES_BASE = {
    "id": "R-021",
    "titre": "Circuit de prises",
    "categorie": "circuits",
-   "description": "prises en 1,5 mm², fils gris / bleu foncé, 8 prises au plus par circuit. **Le gris est la phase des circuits prises, et uniquement d'eux.**",
+   "description": "prises en 1,5 mm², fils gris / bleu foncé, 8 prises au plus par circuit. **Le gris est la phase des circuits prises et des circuits de volets roulants, et uniquement d'eux** ; le neutre les distingue : bleu foncé pour les prises, bleu clair pour les volets (R-079).",
    "details": [
     "Pourquoi : cette séparation des phases évite les erreurs de câblage. Elle s'applique quel que soit le nombre de circuits dans la boîte, y compris pour un 2e circuit (R-085)."
    ],
@@ -484,13 +484,15 @@ export const REGLES_BASE = {
    "si_doute": "avertir",
    "statut": "active",
    "source": "v38 (correction : la bande LI05 avait du 2,5 rouge / bleu), Kévin 27/10/2026.",
-   "note": "Kévin, 27/10/2026, Q-64",
+   "note": "Kévin, 27/10/2026, Q-64 et Q-82",
    "precise": "",
    "questions_liees": [
-    "Q-64"
+    "Q-64",
+    "Q-82"
    ],
    "noeud": "chantier/circuits/R-021",
    "depends_on": [
+    "R-079",
     "R-085"
    ],
    "choix": null,
@@ -1041,7 +1043,7 @@ export const REGLES_BASE = {
    "id": "R-079",
    "titre": "Volets roulants",
    "categorie": "appareils",
-   "description": "Boîte dédiée (LI05 : 6 moteurs, 7 gaines) sur un circuit dédié, une gaine ICTA 16 par moteur : gris (phase) 11, bleu clair (neutre) 12, terre 9. Aucune commande filaire ; repère VRn.",
+   "description": "Boîte dédiée (LI05 : 6 moteurs, 7 gaines) sur un circuit dédié, une gaine ICTA 16 par moteur : gris (phase), bleu clair (neutre), vert/jaune (terre) — couleurs validées par Kévin le 27/10/2026 (Q-82) ; numéros de raccordement selon R-031. Repère VRn ; commande filaire ou connectée : R-096.",
    "details": [
     "Décision de Kévin (27/10/2026, Q-51) : **option du chantier** — boîte à part ou volets mélangés aux autres boîtes (ou ligne directe selon le cas). Pas de maximum de moteurs fixé par le logiciel : la limite vient de la norme NF C 15-100 (R-087)."
    ],
@@ -1049,17 +1051,20 @@ export const REGLES_BASE = {
    "action": "",
    "parametres": {},
    "parametres_texte": "",
-   "certitude": "supposee",
+   "certitude": "confirmee",
    "si_doute": "avertir",
-   "statut": "a_valider",
-   "source": "Journal des règles, 27/10/2026",
-   "note": "",
+   "statut": "active",
+   "source": "Kévin, 27/10/2026, Q-51 et Q-82",
+   "note": "Kévin, 27/10/2026, Q-51 et Q-82",
    "precise": "",
    "questions_liees": [
-    "Q-51"
+    "Q-51",
+    "Q-82"
    ],
    "noeud": "chantier/appareils/R-079",
    "depends_on": [
+    "R-031",
+    "R-096",
     "R-087"
    ],
    "choix": [
@@ -1075,7 +1080,7 @@ export const REGLES_BASE = {
    "version": 1,
    "cree_le": "2026-10-27",
    "modifie_le": "2026-10-27",
-   "modifie_par": "IA (à valider par Kévin)"
+   "modifie_par": "Kévin"
   },
   {
    "id": "R-080",
@@ -2501,21 +2506,21 @@ export const REGLES_BASE = {
    "id": "Q-82",
    "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
    "question": "Volets roulants : les bandes FTZ ont une phase grise (GR 11) et un neutre bleu clair (B 12). Or R-021 dit « le gris est la phase des prises, et uniquement d'elles ». Le gris des volets est-il une exception voulue ?",
-   "reponse": "Oui (bandes) : appliqué, marqué « à vérifier »",
+   "reponse": "Oui : volets en bleu clair + gris + vert/jaune, validé ; R-021 modifiée",
    "suppose": "",
    "si_doute": "",
-   "statut": "ouverte",
-   "statut_texte": "ouverte"
+   "statut": "repondue",
+   "statut_texte": "répondue"
   },
   {
    "id": "Q-83",
    "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
    "question": "Radiateurs à fil pilote : FTZ met le fil pilote en noir (C1 à C3) et en ivoire (C4) sur DUCOURNEAU. Une couleur par zone de chauffage, ou une seule couleur ?",
-   "reponse": "noir pour tous",
+   "reponse": "Peut-être une couleur par zone de chauffage (Kévin, pas sûr) ; noir pour tous en attendant, à vérifier",
    "suppose": "",
    "si_doute": "",
-   "statut": "ouverte",
-   "statut_texte": "ouverte"
+   "statut": "attente",
+   "statut_texte": "en attente (collègue qualifié)"
   },
   {
    "id": "Q-84",
@@ -2524,8 +2529,8 @@ export const REGLES_BASE = {
    "reponse": "16 A, à vérifier",
    "suppose": "",
    "si_doute": "",
-   "statut": "ouverte",
-   "statut_texte": "ouverte"
+   "statut": "attente",
+   "statut_texte": "en attente (collègue qualifié)"
   }
  ],
  "history": [
@@ -2912,6 +2917,17 @@ export const REGLES_BASE = {
    "apres": "Trois questions ouvertes",
    "motif": "Cas rencontrés en ajoutant les appareils de R-084 (mise à jour 54)",
    "par": "IA",
+   "code_valide": null
+  },
+  {
+   "id": "H-036",
+   "date": "27/10/2026",
+   "regle": "R-021, R-079, Q-82 à Q-84",
+   "action": "Modification",
+   "avant": "R-021 : gris = prises seulement ; R-079 à valider",
+   "apres": "R-021 : gris = phase des prises et des volets (neutre bleu clair pour les volets) ; R-079 confirmée ; Q-83 et Q-84 en attente d'un collègue plus qualifié",
+   "motif": "Réponse de Kévin du 27/10/2026 (18:39)",
+   "par": "IA (validée par Kévin)",
    "code_valide": null
   }
  ]

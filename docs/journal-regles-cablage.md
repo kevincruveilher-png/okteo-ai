@@ -218,8 +218,8 @@ Les règles `active` · `confirmee` sont validées par Kévin. Les règles `a_va
 - Description : éclairage en 1,5 mm², fils rouge / bleu. **Le rouge 1,5 est la phase des circuits lumières, et uniquement d'eux.**
 - Source : v38 (bande LI05 EVRARD), Kévin 27/10/2026.
 
-**R-021 · Circuit de prises** — `active` · `confirmee` (Kévin, 27/10/2026, Q-64)
-- Description : prises en 1,5 mm², fils gris / bleu foncé, 8 prises au plus par circuit. **Le gris est la phase des circuits prises, et uniquement d'eux.**
+**R-021 · Circuit de prises** — `active` · `confirmee` (Kévin, 27/10/2026, Q-64 et Q-82)
+- Description : prises en 1,5 mm², fils gris / bleu foncé, 8 prises au plus par circuit. **Le gris est la phase des circuits prises et des circuits de volets roulants, et uniquement d'eux** ; le neutre les distingue : bleu foncé pour les prises, bleu clair pour les volets (R-079).
 - Pourquoi : cette séparation des phases évite les erreurs de câblage. Elle s'applique quel que soit le nombre de circuits dans la boîte, y compris pour un 2e circuit (R-085).
 - Paramètres : `section = 1.5`, `prises_max = 8`
 - Source : v38 (correction : la bande LI05 avait du 2,5 rouge / bleu), Kévin 27/10/2026.
@@ -320,8 +320,8 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 **R-078 · Longueurs** — `a_valider`
 - Affichées au 0,1 m (de 2,10 à 8,10 m dans les boîtes). Le sens de l'arrondi n'est pas visible : Q-07.
 
-**R-079 · Volets roulants** — `a_valider`
-- Boîte dédiée (LI05 : 6 moteurs, 7 gaines) sur un circuit dédié, une gaine ICTA 16 par moteur : gris (phase) 11, bleu clair (neutre) 12, terre 9. Aucune commande filaire ; repère VRn.
+**R-079 · Volets roulants** — `active` · `confirmee` (Kévin, 27/10/2026, Q-51 et Q-82)
+- Boîte dédiée (LI05 : 6 moteurs, 7 gaines) sur un circuit dédié, une gaine ICTA 16 par moteur : gris (phase), bleu clair (neutre), vert/jaune (terre) — couleurs validées par Kévin le 27/10/2026 (Q-82) ; numéros de raccordement selon R-031. Repère VRn ; commande filaire ou connectée : R-096.
 - Décision de Kévin (27/10/2026, Q-51) : **option du chantier** — boîte à part ou volets mélangés aux autres boîtes (ou ligne directe selon le cas). Pas de maximum de moteurs fixé par le logiciel : la limite vient de la norme NF C 15-100 (R-087).
 
 **R-080 · Liaison équipotentielle** — `a_valider`
@@ -740,11 +740,13 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | Q-79 | Plaque de cuisson en 6 mm² (3 fils = 18 mm²) : FTZ la met en ICTA 20, au-delà des 13,5 mm² de R-074. Quel diamètre pour les lignes directes de grosse section (6 et 10 mm²) ? | Exception : B + R + V/J 6 mm² en ICTA 20 (R-074) ; 10 mm² : Q-81 | répondue |
 | Q-80 | Terres de sections différentes (2,5 de l'alimentation, 1,5 des appareils) sur la borne n° 1 : autorisé (R-092 parle des circuits) ? | Oui : seules les terres se câblent ensemble malgré leur section (R-092) | répondue |
 | Q-81 | Ligne B + R + V/J en 10 mm² (3 × 10 mm²) : ICTA 25 (même tolérance que la plaque 6 mm² en ICTA 20) ou ICTA 32 (règle du tiers de la section de la gaine) ? | ICTA 25 (Kévin, 15:52) | répondue |
-| Q-82 | Volets roulants : les bandes FTZ ont une phase grise (GR 11) et un neutre bleu clair (B 12). Or R-021 dit « le gris est la phase des prises, et uniquement d'elles ». Le gris des volets est-il une exception voulue ? | Oui (bandes) : appliqué, marqué « à vérifier » | ouverte |
-| Q-83 | Radiateurs à fil pilote : FTZ met le fil pilote en noir (C1 à C3) et en ivoire (C4) sur DUCOURNEAU. Une couleur par zone de chauffage, ou une seule couleur ? | noir pour tous | ouverte |
-| Q-84 | Calibres non relevés sur les tableaux : moteur de garage, climatisation, prise extérieure 4G1,5, G EXT (16 A supposé). Quels calibres ? | 16 A, à vérifier | ouverte |
+| Q-82 | Volets roulants : les bandes FTZ ont une phase grise (GR 11) et un neutre bleu clair (B 12). Or R-021 dit « le gris est la phase des prises, et uniquement d'elles ». Le gris des volets est-il une exception voulue ? | Oui : volets en bleu clair + gris + vert/jaune, validé ; R-021 modifiée | répondue |
+| Q-83 | Radiateurs à fil pilote : FTZ met le fil pilote en noir (C1 à C3) et en ivoire (C4) sur DUCOURNEAU. Une couleur par zone de chauffage, ou une seule couleur ? | Peut-être une couleur par zone de chauffage (Kévin, pas sûr) ; noir pour tous en attendant, à vérifier | en attente (collègue qualifié) |
+| Q-84 | Calibres non relevés sur les tableaux : moteur de garage, climatisation, prise extérieure 4G1,5, G EXT (16 A supposé). Quels calibres ? | 16 A, à vérifier | en attente (collègue qualifié) |
 
 ## 6. Prochaine étape
+
+**Questions en suspens (« en attente », collègue plus qualifié)** : certaines questions ne sont pas à la portée de Kévin ; elles restent ouvertes, le logiciel garde la valeur supposée et la marque « à vérifier », sans jamais la reposer comme si elle était tranchée (Q-83, Q-84).
 
 **Questions encore ouvertes (état au 27/10/2026, 14:30)**
 - Q-42, Q-44 : Plug de pieuvre (chaîne de boîtes, chantier concerné), en attente d'un chantier de ce type.
@@ -796,3 +798,4 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | H-033 | 27/10/2026 | R-074 | Modification | 10 mm² : en attente | Exception : B + R + V/J 10 mm² en ICTA 25 ; Q-81 répondue | Réponse de Kévin du 27/10/2026 (15:52) | IA (validée par Kévin) | — |
 | H-034 | 27/10/2026 | R-094, R-097, Q-26, Q-77 | Modification et création | Q-26, Q-77 ouvertes ; AIG2 à préciser | Critère « plus économique » confirmé ; règles communes à tous les pavillonneurs ; R-097 gaine aiguillée en attente | Réponses de Kévin du 27/10/2026 (15:55) | IA (validée par Kévin) | — |
 | H-035 | 27/10/2026 | Q-82 à Q-84 | Création | — | Trois questions ouvertes | Cas rencontrés en ajoutant les appareils de R-084 (mise à jour 54) | IA | — |
+| H-036 | 27/10/2026 | R-021, R-079, Q-82 à Q-84 | Modification | R-021 : gris = prises seulement ; R-079 à valider | R-021 : gris = phase des prises et des volets (neutre bleu clair pour les volets) ; R-079 confirmée ; Q-83 et Q-84 en attente d'un collègue plus qualifié | Réponse de Kévin du 27/10/2026 (18:39) | IA (validée par Kévin) | — |

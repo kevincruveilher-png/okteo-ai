@@ -65,10 +65,10 @@ for (const name of Object.keys(CHANTIERS_FTZ)) {
       return okG && okB;
     }));
     // 8. R-020 / R-021 : rouge = phase des lumières seulement, gris = phase des prises seulement
-    check(tag + "R-020 / R-021 : phase rouge 1,5 seulement pour l'éclairage (et la cuisine 2,5), phase grise seulement pour les prises (et les volets, R-079)", G.every((g) => g.wires.every((w) => {
+    check(tag + "R-020 / R-021 : phase rouge 1,5 seulement pour l'éclairage (et la cuisine 2,5), phase grise seulement pour les prises (et les volets, R-021 / R-079)", G.every((g) => g.wires.every((w) => {
       if (w.fn !== "phase" || !w.circuit) return true;
       const c = C.find((x) => x.n === w.circuit);
-      // (volets : gris / bleu clair comme sur les bandes FTZ, R-079 — à confirmer avec R-021, question Q-82)
+      // (volets : gris / bleu clair, R-079 et R-021 confirmées par Kévin, Q-82)
       return (w.color === "gris") === (c.kind === "prises" || c.kind === "volets") && (w.color !== "rouge" || c.kind === "eclairage" || c.kind === "cuisine");
     })));
     // lumières extérieures : câble 3G et bouchon (R-014, R-095) ; retour marron (R-072)

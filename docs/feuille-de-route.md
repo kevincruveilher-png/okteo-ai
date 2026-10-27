@@ -165,6 +165,12 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
 - Tableau (R-050, Q-65 à Q-68) reporté par Kévin ; noter seulement : ID 63 A sur les bandes, pas 40 A.
 - Plug de pieuvre (R-009) : bloqué tant que Q-42 / Q-44 manquent.
 
+## Notes du 27/10/2026 (18:39), pour la prochaine mise à jour
+- Q-82 répondue : volets bleu clair + gris + vert/jaune validés ; R-021 et R-079 confirmées (journal H-036).
+- Q-83 (couleur du fil pilote, peut-être par zone de chauffage) et Q-84 (calibres) : en attente d'un collègue plus
+  qualifié. Le logiciel garde la valeur supposée « à vérifier ». Idée : dans le journal, un filtre « en attente » et
+  la mention « à voir avec un collègue » sur la fiche, pour que ces questions ne soient pas reposées à Kévin.
+
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.
 - Export SPV pour Counter.
