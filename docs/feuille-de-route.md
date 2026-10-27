@@ -172,6 +172,32 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
   la mention « à voir avec un collègue » sur la fiche, pour que ces questions ne soient pas reposées à Kévin.
   → Fait avec la 48 (bouton « ⏳ En attente » du journal).
 
+## Notes du 27/10/2026 (23:19), 1er essai réel du relevé IA (Opus) puis câblage — pour la prochaine mise à jour
+Retour de Kévin : « à première vue très prometteur ». Les vues lui seront transmises.
+
+**Relevé IA (Opus, consigne v55.1)**
+- Deux décisions non prises par l'IA : la lampe des WC sans son interrupteur ; la lampe du garage à laquelle il manquait
+  un va-et-vient. Les alertes orange du contrôle des appareils ont permis de corriger très vite (à garder tel quel).
+- Portes mal ajustées :
+  - la porte de garage est une grande porte (sectionnelle / basculante) : prévoir une ouverture adaptée (type « porte
+    de garage », grande largeur, sans arc de battant) ;
+  - le sens des portes (charnière, côté d'ouverture) est souvent faux : la consigne doit demander le côté des gonds
+    et le côté où la porte s'ouvre, et l'import doit les reprendre (aujourd'hui l'ouverture est posée sans sens).
+- À noter au comparatif des moteurs du journal (essai Opus du 27/10, chiffres de la réponse : 25 murs, 22 ouvertures,
+  11 pièces, 100 appareils, 30 liaisons ; 22/22 ouvertures placées après la v55.2).
+
+**Câblage des boîtes : lisibilité**
+- Le câblage des boîtes a l'air correct, mais le tracé des circuits est ambigu : les fils se chevauchent dans le schéma
+  de la boîte (lignes qui se croisent et se superposent, capture LI05) ; difficile de voir rapidement qui va avec qui.
+  À revoir : tracés sans superposition, couloirs séparés, croisements réduits, mise en avant d'un circuit au survol.
+- Numéros de gaine dans le sens **anti-horaire** (au lieu d'horaire) : ainsi, sur chaque face, ils se lisent de gauche à
+  droite. Changement de la règle R-077 (confirmée « strictement horaire », Q-52) demandé par Kévin : à passer dans le
+  journal (modification de R-077 + entrée d'historique) puis dans le moteur (gaines.js), les bandes, les étiquettes,
+  l'impression (n° autour des boîtes, v48) et les tests (chantiers.test.mjs : sens horaire).
+- Nouvelle vue dans le détail du câblage (onglet Bandes, feuille de boîte) : **les 4 tranches de la boîte** (faces A à D
+  vues de face), avec sur chacune le n° de chaque gaine et son aboutissant (repère de l'appareil, pièce), pour aider le
+  perceur de boîte. À prévoir aussi dans le PDF des bandes / étiquettes.
+
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.
 - Export SPV pour Counter.
