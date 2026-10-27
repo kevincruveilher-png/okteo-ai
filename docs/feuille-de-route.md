@@ -128,7 +128,10 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
 - R-074 : exceptions dans `gaineFor` (lignes directes) : B + R + V/J 6 mm² → ICTA 20, 10 mm² → ICTA 25 (Q-79, Q-81).
 - R-092 : terres de sections différentes autorisées sur la borne n° 1 (déjà le cas dans le contrôle, retirer la mention
   « à confirmer »).
-- `npm run regles` après la mise à jour du journal (H-031 à H-033).
+- Q-77 confirmé : score des alternatives = longueur totale de gaine, puis boîtes, puis départs (53, comparaison des modes).
+- Q-26 confirmé : règles communes à tous les pavillonneurs (pas de réglage par pavillonneur).
+- R-097 : type « gaine aiguillée en attente » (AIG, ligne directe sans fil, Ø40 modifiable) à ajouter avec la 54.
+- `npm run regles` après la mise à jour du journal (H-031 à H-034 ; 53 règles).
 
 ### 53 — Doutes, précontrôle et étude
 - Précontrôle avant « Câbler » (bouton et assistant) : règles utiles au chantier et leur certitude ; « Je ne peux pas
@@ -150,7 +153,7 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
 - R-003 / R-082 / R-084 : tout le courant faible en ligne directe, gaine verte Ø20 ; jamais avec le courant fort.
 - R-086 : raccordement « boîte / ligne directe / à choisir » par appareil (doute tant que « à choisir »).
 - Tableau des lignes directes : étiquette, longueur, gaine, fil, aboutissant, total par diamètre.
-- Restent à préciser : AIG2 (gaine aiguillée Ø40).
+- Gaine aiguillée en attente (R-097) : type AIG, ligne directe sans fil, Ø40 par défaut.
 
 ### Pour les tests
 - Invariants sur les 4 chantiers FTZ (DUCOURNEAU, FALGUA E6390, BATELIER, FONTES D2129) : 6 gaines par face,

@@ -87,7 +87,7 @@ Nouveaux champs :
 - Mode de pieuvre : Proximité | Équilibrée | Par pièce | Plug de pieuvre (R-009, R-085)
 - Volets roulants : boîte à part | mélangés aux autres boîtes (R-079)
 - Hotte et appareils à choix : boîte | ligne directe | à choisir (R-086)
-- Pavillonneur : règles communes (aucune différence constatée sur 4 pavillonneurs : IMMO CONSTRUCTION, ALPHA CONSTRUCTIONS, MAISONS LARA, POLYGONE 46 ; Q-26 à confirmer)
+- Pavillonneur : règles communes à tous (confirmé par Kévin le 27/10/2026, Q-26 ; aucune différence constatée sur IMMO CONSTRUCTION, ALPHA CONSTRUCTIONS, MAISONS LARA, POLYGONE 46)
 
 **Regroupement par catégorie (repère de lecture)**
 - Boîtes : R-001, R-002, R-004 à R-009, R-088, R-089, R-090, R-091, R-094
@@ -96,7 +96,7 @@ Nouveaux champs :
 - Gaines : R-010 à R-014, R-060, R-073 à R-075, R-077, R-078, R-095
 - Raccordements : R-030, R-031, R-080
 - Tableau : R-050, R-081
-- Appareils et lignes directes : R-003, R-079, R-082, R-084, R-086, R-096
+- Appareils et lignes directes : R-003, R-079, R-082, R-084, R-086, R-096, R-097
 
 L'IA modifie la bibliothèque comme le reste : proposition avant / après, validation de Kévin, historique, code de modification plus tard.
 
@@ -405,7 +405,7 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 **R-094 · Boîtes de volets roulants selon le mode de pieuvre** — `active` · `confirmee` (Kévin, 27/10/2026, Q-71)
 - **Proximité** : le logiciel choisit la solution la plus économique (boîtes de volets multiples, ou volets mélangés aux autres boîtes, selon la longueur de fil et de gaine).
 - **Équilibrée** : une seule boîte pour tous les volets.
-- Critère de « plus économique » (provisoire, Q-77 ouverte) : plus petite longueur totale de gaine, puis moins de boîtes, puis moins de départs.
+- Critère de « plus économique » (confirmé par Kévin le 27/10/2026, Q-77) : plus petite longueur totale de gaine, puis moins de boîtes, puis moins de départs. C'est aussi le score des alternatives dans l'étude (section 3 ter).
 - Par pièce et Plug de pieuvre : non précisé (doute, `avertir`).
 - Précise R-079.
 
@@ -417,6 +417,13 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 - Chaque volet roulant est soit **filaire** (commande CVR : l'alimentation gris + bleu clair, plus deux fils de commande marron et noir pris dans la ronde de couleurs, R-072), soit **connecté** (micromodule : gris + bleu clair + V/J seulement). Le choix se fait par volet sur le plan.
 - Pour un volet filaire, la gaine du CVR et la gaine du moteur portent les deux mêmes fils de commande ; chaque couple a ses propres numéros.
 - Source : bande BATELIER JEAN LOUIS (CVR3 à CVR5, VR1 et VR2 connectés).
+
+---
+
+**R-097 · Gaine aiguillée en attente** — `active` · `confirmee` (Kévin, 27/10/2026)
+- Description : une gaine vide, aiguillée, laissée en attente (fibre, réseau…) est un appareil à poser sur le plan ; elle part en ligne directe du tableau, sans fil.
+- Paramètres : `diametre = 40` (vu sur DUCOURNEAU, AIG2 : Ø40, 1,2 m), modifiable par appareil.
+- Source : bande DUCOURNEAU (lignes directes), réponse de Kévin du 27/10/2026 (15:55).
 
 ---
 
@@ -476,7 +483,7 @@ Chaque question est suivie ici : `ouverte` → `répondue` → règle créée ou
 ### G. Portée des règles
 | N° | Question | Supposé aujourd'hui | Si doute |
 |---|---|---|---|
-| Q-26 | Une règle peut-elle changer selon le pavillonneur ou le chantier (ex. norme, section) ? Lesquelles ? | règles communes | avertir |
+| Q-26 | Une règle peut-elle changer selon le pavillonneur ou le chantier (ex. norme, section) ? Lesquelles ? | Oui : règles communes à tous les pavillonneurs (Kévin, 15:55) | répondue |
 | Q-27 | Que doit faire le logiciel s'il n'y a aucune solution (trop de départs, gaine trop pleine) : s'arrêter, ajouter une boîte, ou te demander ? | te demander | bloquer |
 | Q-28 | Qui valide une règle nouvelle : toi seul ? | toi seul | — |
 
@@ -549,7 +556,7 @@ Questions du registre éclairées par la bande :
 | EQ3 ; EQ1, EQ2 | Équipotentielle principale ; locale | 10 mm² ICTA 20 ; 2,5 V/J en boîte | Nouveaux types |
 | HOTTE1 | Hotte | Circuit cuisine 2,5, en boîte | Prise cuisine |
 | VR1 à VR6 | Moteur de volet roulant | Boîte dédiée, GR / B / V/J | Nouveau type « Volet roulant » |
-| AIG2 | Gaine aiguillée Ø40 | 1,2 m | À préciser |
+| AIG2 | Gaine aiguillée Ø40 | 1,2 m | Gaine vide en attente, appareil à poser (R-097) |
 
 Décisions de Kévin du 27/10/2026 : toutes les propositions acceptées (R-084). Chauffe-eau, prises extérieures et interphones : câble ou fils modifiable. TV et antenne : gaine verte Ø20. Hotte : en boîte ou en ligne directe selon le cas (Q-60). Volet roulant : selon l'option du chantier (R-079). Reste « à préciser » : AIG2 (gaine aiguillée Ø40).
 
@@ -724,7 +731,7 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 
 | N° | Question | Ma lecture | Statut |
 |---|---|---|---|
-| Q-77 | « Plan expé pieuvre » : que compare cette expérimentation (mode de pieuvre, longueur totale de gaine par boîte) ? Les longueurs par boîte sont-elles le « score » des alternatives dans l'étude (arbre d'étude, section 3 ter) ? | Oui : le score d'un mode est la longueur totale de gaine, avec le nombre de boîtes et de départs | ouverte (reformulée à 14:25) |
+| Q-77 | « Plan expé pieuvre » : que compare cette expérimentation (mode de pieuvre, longueur totale de gaine par boîte) ? Les longueurs par boîte sont-elles le « score » des alternatives dans l'étude (arbre d'étude, section 3 ter) ? | Oui : le score d'un mode est la longueur totale de gaine, avec le nombre de boîtes et de départs | répondue : critère confirmé par Kévin (15:55) : longueur totale de gaine, puis nombre de boîtes, puis départs |
 | Q-78 | Valides-tu les nouveaux types : interrupteur de coupure (ligne directe 1,5 R + N), climatisation (4G1,5 ICTA 20), et G EXT en 3G1,5 ICTA 16 ou 3G2,5 ICTA 20 selon le chantier ? | Oui ; G EXT selon le choix du chantier | répondue : types acceptés (R-084 étendue) |
 
 ### P. Questions issues du développement (mise à jour 52, 27/10/2026)
@@ -737,12 +744,9 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 ## 6. Prochaine étape
 
 **Questions encore ouvertes (état au 27/10/2026, 14:30)**
-- Q-77 : critère de « plus économique » (longueur totale de gaine, puis boîtes, puis départs ?).
 - Q-42, Q-44 : Plug de pieuvre (chaîne de boîtes, chantier concerné), en attente d'un chantier de ce type.
 - Q-65 à Q-68 : tableau (regroupement d'éclairages, types de différentiels A et AC, calibre 63 A ou 40 A, parafoudre et prises du coffret, convecteurs par disjoncteur), reportées par Kévin.
 - Registre d'origine Q-01 à Q-28 : jamais refermé formellement ; plusieurs sont éclairées par les bandes (Q-12 : volets gris / bleu clair ; Q-16 : R-071 ; Q-23 : R-081) et sont à repasser une à une avec Kévin.
-- Q-26 : règles communes à tous les pavillonneurs (aucune différence constatée sur 4 pavillonneurs), à confirmer.
-- AIG2 : gaine aiguillée Ø40 « à préciser » (section J).
 
 **Suite**
 1. Kévin répond aux questions (dans l'ordre qu'il veut) ; chaque réponse devient une règle `confirmee`.
@@ -787,3 +791,4 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | H-031 | 27/10/2026 | R-074 | Modification | Au-delà de 13,5 mm² : doute | Exception : plaque B + R + V/J 6 mm² en ICTA 20 ; Q-79 répondue, Q-81 ouverte (10 mm²) | Réponse de Kévin du 27/10/2026 (15:50) | IA (validée par Kévin) | — |
 | H-032 | 27/10/2026 | R-092 | Modification | Sections jamais mélangées sur une borne | Sauf les terres, raccordées ensemble quelle que soit leur section ; Q-80 répondue | Réponse de Kévin du 27/10/2026 (15:50) | IA (validée par Kévin) | — |
 | H-033 | 27/10/2026 | R-074 | Modification | 10 mm² : en attente | Exception : B + R + V/J 10 mm² en ICTA 25 ; Q-81 répondue | Réponse de Kévin du 27/10/2026 (15:52) | IA (validée par Kévin) | — |
+| H-034 | 27/10/2026 | R-094, R-097, Q-26, Q-77 | Modification et création | Q-26, Q-77 ouvertes ; AIG2 à préciser | Critère « plus économique » confirmé ; règles communes à tous les pavillonneurs ; R-097 gaine aiguillée en attente | Réponses de Kévin du 27/10/2026 (15:55) | IA (validée par Kévin) | — |
