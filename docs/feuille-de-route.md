@@ -445,6 +445,10 @@ Décisions (Claude) :
   (APP 6/6, CVR 8/8, LUM 12/12, INT 10/10, VR 8/8, RJ45 7/7, TV 2/2, AQA 2/2, TAB, MGAR, CETH ; PC16 30/31 + 1 PC20
   « 16Asp H:1.20m » ; VV 13/12 ; BPS + SON en plus ; interphone manquant), 33 liaisons toutes valables (33 au relevé
   corrigé), aucune lumière sans commande ; décompte en tête des remarques comme demandé. → la méthode imposée règle les oublis.
+- Essai 4 (21:15, Opus effort fort, même consigne) : 10 min, 104 appareils, 33 liaisons valables ; mêmes écarts (VV 14,
+  BPS + SON en plus, interphone absent ; la prise « 16A sp H:1.20m » lue cette fois CETH) ; 102 appareils sur 104 au même
+  endroit que l'essai moyen (écart moyen 4 px ≈ 4 cm). → effort moyen suffisant. Interphone absent des deux relevés et
+  BPS / SON présents dans les deux : à vérifier par Kévin sur le plan.
 - FAIT en 0.64.1 : consigne avec méthode imposée et alerte « basse définition » (point 1 ci-dessous). Reste le point 2.
 - À faire (proposé à Kévin, 20:36) : (1) au collage / à la réponse, alerte si `ref.W` < 3 000 px (« relevé fait en basse
   définition, appareils probablement oubliés ») ; (2) la relecture v61 ne voit que les incohérences de ce qui a été
