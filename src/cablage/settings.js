@@ -6,6 +6,8 @@ export const CAB_DEFAULTS = {
   departsFace: 6,          // R-001 : gaines par face (A, B, C, D), alimentation comprise
   bornes: "2,3,4,5,6,8,10,12",    // connecteurs rapides disponibles (nombre d'entrées), pour le schéma de boîte
   piecesMinDeparts: 3,     // mode « par pièce » : une pièce avec moins de départs rejoint la pièce voisine
+  coutBoite: 25,           // v62 : mode Économique : une boîte de plus « coûte » autant que ce cuivre (m de fil : boîte, connecteurs, alimentation, pose)
+  gaineLongue: 12,         // v62 : note « belle pieuvre » : gaine d'appareil longue au-delà de cette longueur (m)
   // longueurs
   hsp: 2.5,                // hauteur sous plafond (m)
   traversee: 0.3,          // plancher / isolation à traverser entre la boîte et le haut du mur (m)
@@ -94,7 +96,9 @@ export const CAB_FIELDS = [
     "Couleurs écrites sur les bandes et les schémas de boîte (règles KiTéOHM)."],
   ["Boîtes", [["departsMax", "Départs par boîte, sans l'alimentation", "gaines", "int"], ["departsFace", "Gaines par face (A, B, C, D), alimentation comprise", "gaines", "int"],
     ["bornes", "Connecteurs rapides disponibles (nombre d'entrées, séparés par des virgules)", "", "txt"],
-    ["piecesMinDeparts", "Pieuvre par pièce : gaines d'appareils minimum pour qu'une pièce ait sa boîte (sinon elle rejoint la voisine)", "départs", "int"]],
+    ["piecesMinDeparts", "Pieuvre par pièce : gaines d'appareils minimum pour qu'une pièce ait sa boîte (sinon elle rejoint la voisine)", "départs", "int"],
+    ["coutBoite", "Pieuvre économique : une boîte de plus vaut autant que ce cuivre (boîte, connecteurs, alimentation, pose)", "m de fil", "num"],
+    ["gaineLongue", "Note « belle pieuvre » : une gaine d'appareil est longue au-delà de", "m", "num"]],
     "Capacité d'une boîte et connecteurs utilisés pour les raccordements."],
   ["Gaines et câbles", [["icta16", "ICTA 16 : somme des sections des fils au plus", "mm²", "num"], ["icta20", "ICTA 20 : somme des sections des fils au plus (au-delà : doute)", "mm²", "num"],
     ["memeEndroit", "Appareils au même endroit (une seule gaine) : distance maximum", "m", "num"],

@@ -366,13 +366,22 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `meta.temps {be, ia, days}` via `CHS.update`, 15 s par tick si activité < 2 min ; `iaUsage(api)` = jetons
   `rapport[].tin/tout` de `cab.releves` ; `estimateReleve`, `coutTemps`) ; prefs `prixIn`, `prixOut`, `tauxHoraire`
   (Paramètres `#ps-couts`, `[data-cost]`). `chat()` renvoie `usage` ; `recordReleve(..., {usage})`.
+- v62 (0.63.1, après la 63) : `src/cablage/qualite.js` (pur : `CRITERES`, `POIDS` {commun, proximite, equilibre, piece},
+  `intrusions(groups)` (appareil au fond de l'enveloppe d'une autre boîte et nettement plus près d'elle), `mesures(W, {items,
+  boxes, S})` → {croise, terr, cuivre, gaine, boites, equil, longues, pieces} (boîte des volets sans territoire), `noter(list)`
+  → [{note, ok, pen}], `noteOf`) ; boites.js `wiresOf(a)`, `spotPts(..., cu)` (poids = fils), `levelCost` (cuivre +
+  `coutBoite` par boîte + `TERR_COST` par intrusion), `absorbSmall` (boîtes < 3 départs), `voletsBalanced` (`VOLETS_SPAN`),
+  `MODES.proximite` = « Économique » ; réglages `coutBoite` 25, `gaineLongue` 12 ; ext `compareModes` → `r.q`, `r.note`,
+  `noteNow(api, W)` (cablage-data.js), `.cmp-note` ; étude : alternatives `note`. Impression : print.js `rotateGeo(geo, deg)`
+  (option `rot` de `buildPlanPdf`, `rotImage` pour le fond, boîtes `b.rot` → `portW`), print-ui case `sensVue`
+  (`#pr-rotwrap`), dossier `rot: api.viewRot`.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (41 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (69 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (13 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (161 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (75 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (14 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (162 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

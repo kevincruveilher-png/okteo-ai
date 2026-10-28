@@ -24,6 +24,47 @@ function gaineCtrl(b, a, k = 0.15) { return { x: (b.x + a.x) / 2 - (a.y - b.y) *
 let lib = null;
 async function jspdf() { if (!lib) lib = (await import("jspdf")).jsPDF; return lib; }
 
+// v62 : plan imprimé dans le sens de la vue (rotation de la vue, okteo.viewRot) : toute la géométrie tourne autour de
+// l'origine (même formule que l'écran : rotate(deg) en SVG, sens horaire, y vers le bas) ; les textes restent droits,
+// les appliques gardent leur dos au mur, les boîtes tournent avec le plan (faces A–D comme à l'écran)
+export function rotateGeo(geo, deg) {
+  const d = ((+deg || 0) % 360 + 360) % 360;
+  if (!d) return geo;
+  const t = (d * Math.PI) / 180, c = Math.cos(t), s = Math.sin(t);
+  const R = (p) => (p ? { ...p, x: p.x * c - p.y * s, y: p.x * s + p.y * c } : p), V = (v) => (v ? { ...v, x: v.x * c - v.y * s, y: v.x * s + v.y * c } : v);
+  const RL = (L) => (L || []).map(R);
+  const g = { ...geo, rot: d };
+  g.walls = (geo.walls || []).map(RL);
+  g.joints = RL(geo.joints);
+  g.openings = (geo.openings || []).map((o) => ({ ...o, j1: R(o.j1), j2: R(o.j2), n: V(o.n), ...(o.hinge ? { hinge: R(o.hinge), leaf: R(o.leaf), arc: RL(o.arc) } : {}) }));
+  g.wallDims = (geo.wallDims || []).map((w) => ({ ...R(w), ang: w.ang + t }));
+  g.limits = (geo.limits || []).map((l) => ({ a: R(l.a), b: R(l.b) }));
+  g.rooms = (geo.rooms || []).map((r) => ({ ...r, poly: RL(r.poly), label: R(r.label) }));
+  g.apps = (geo.apps || []).map((a) => {
+    const w = a.wall ? { ...a.wall, ux: a.wall.ux * c - a.wall.uy * s, uy: a.wall.ux * s + a.wall.uy * c } : null;
+    return { ...R(a), rot: a.rot ? a.rot + d : 0, wall: w };
+  });
+  g.links = (geo.links || []).map((l) => ({ a: R(l.a), b: R(l.b) }));
+  g.dims = (geo.dims || []).map((x) => ({ ...x, a: R(x.a), b: R(x.b) }));
+  g.boxes = (geo.boxes || []).map((b) => ({ ...R(b), rot: d, deps: b.deps.map((dp) => ({ ...dp, ends: dp.ends.map((e) => ({ ...R(e), route: RL(e.route) })) })) }));
+  if (geo.fond) {
+    const F = geo.fond, P = [{ x: F.x, y: F.y }, { x: F.x + F.w, y: F.y }, { x: F.x, y: F.y + F.h }, { x: F.x + F.w, y: F.y + F.h }].map(R);
+    const x0 = Math.min(...P.map((p) => p.x)), y0 = Math.min(...P.map((p) => p.y));
+    g.fond = { ...F, x: x0, y: y0, w: Math.max(...P.map((p) => p.x)) - x0, h: Math.max(...P.map((p) => p.y)) - y0, rot: d, w0: F.w, h0: F.h };
+  }
+  return g;
+}
+// image du fond tournée (canvas) : même sens que la géométrie ; coins vides en blanc
+async function rotImage(dataUrl, deg) {
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl; });
+  const t = (deg * Math.PI) / 180, c = Math.abs(Math.cos(t)), s = Math.abs(Math.sin(t)), k = Math.min(1, 4000 / Math.max(img.width, img.height));
+  const w = img.width * k, h = img.height * k, cv = document.createElement("canvas");
+  cv.width = Math.round(w * c + h * s); cv.height = Math.round(w * s + h * c);
+  const x = cv.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, cv.width, cv.height);
+  x.translate(cv.width / 2, cv.height / 2); x.rotate(t); x.drawImage(img, -w / 2, -h / 2, w, h);
+  return cv.toDataURL("image/jpeg", 0.85);
+}
+
 export function extentOf(geo) {
   const pts = [...geo.walls.flat(), ...geo.apps.map((a) => ({ x: a.x, y: a.y })), ...geo.rooms.flatMap((r) => r.poly)];
   if (!pts.length && geo.fond) pts.push({ x: geo.fond.x, y: geo.fond.y }, { x: geo.fond.x + geo.fond.w, y: geo.fond.y + geo.fond.h });
@@ -59,7 +100,7 @@ async function toDataURL(url) {
 // geoIn : une géométrie (exportGeometry) ou une liste (un niveau par page, même format et même échelle)
 export async function buildPlanPdf(geoIn, opts = {}) {
   const o0 = { fond: false, cotes: true, reperes: true, liaisons: true, nomenclature: true, pieces: true, murs: true, ouvertures: true, appareils: true, boites: false, gaines: false, circuits: false, gaineNos: null, surfaces: !!pref("surfaces"), date: new Date(), ...opts };
-  const geos = Array.isArray(geoIn) ? geoIn : [geoIn];
+  const geos = (Array.isArray(geoIn) ? geoIn : [geoIn]).map((g) => rotateGeo(g, o0.rot || 0));
   const logo = o0.logo === false ? null : await logoData(); // logo KiTéOHM dans le cartouche (v50)
   // mise en page commune : calculée sur l'emprise de tous les niveaux réunis
   const merged = { walls: geos.flatMap((g) => g.walls), apps: geos.flatMap((g) => g.apps), rooms: geos.flatMap((g) => g.rooms), fond: geos[0].fond };
@@ -148,7 +189,8 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     doc.rect(area.x, area.y, area.w, area.h, null); doc.clip(); doc.discardPath();
     if (o.fond && geo.fond) {
       try {
-        const img = await toDataURL(geo.fond.url);
+        let img = await toDataURL(geo.fond.url);
+        if (geo.fond.rot) img = await rotImage(img, geo.fond.rot);
         doc.setGState(new doc.GState({ opacity: 0.3 }));
         doc.addImage(img, "JPEG", X(geo.fond.x), Y(geo.fond.y), geo.fond.w * f, geo.fond.h * f, undefined, "FAST");
         doc.setGState(new doc.GState({ opacity: 1 }));
@@ -266,7 +308,10 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     }
     // gaines (v48) : du point d'accroche de la boîte à l'appareil, en arc ou par les points de passage tracés à la main,
     // couleur du circuit ; l'alimentation (vers le tableau) en pointillés gris
-    const portOf = (b, d) => portXY(b, BSm, b.N, d.face, d.slot);
+    // v62 : boîte tournée avec le plan : le point d'accroche tourne autour du centre de la boîte
+    const rotV = (b, dx, dy) => { const t = ((b.rot || 0) * Math.PI) / 180, c = Math.cos(t), s = Math.sin(t); return [dx * c - dy * s, dx * s + dy * c]; };
+    const portW = (b, f2, i) => { const P = portXY({ x: 0, y: 0 }, BSm, b.N, f2, i), [dx, dy] = rotV(b, P.x, P.y); return { x: b.x + dx, y: b.y + dy }; };
+    const portOf = (b, d) => portW(b, d.face, d.slot);
     // courbures choisies boîte par boîte (seuls les croisements dans une même boîte sont interdits)
     const bows = new Map();
     if (o.gaines) boxes.forEach((b) => {
@@ -297,23 +342,24 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     if (o.boites) boxes.forEach((b) => {
       const bx = X(b.x), by = Y(b.y), nos = (o.gaineNos || {})[b.id] || {};
       doc.setFillColor(255, 255, 255); doc.setDrawColor(20, 20, 20); doc.setLineWidth(0.35);
-      doc.rect(bx - BS / 2, by - BS / 2, BS, BS, "FD");
+      if (b.rot) { const C = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u2, v2]) => rotV(b, u2 * BS / 2, v2 * BS / 2)); doc.lines(C.slice(1).map((p, i) => [p[0] - C[i][0], p[1] - C[i][1]]), bx + C[0][0], by + C[0][1], [1, 1], "FD", true); }
+      else doc.rect(bx - BS / 2, by - BS / 2, BS, BS, "FD");
       doc.setTextColor(20, 20, 20); doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(6, pt(BS * 0.28)));
       doc.text(String(b.n), bx, by - BS / 2 - 3, { align: "center", baseline: "bottom" });
       doc.setFont("helvetica", "normal"); doc.setFontSize(Math.max(4, pt(BS * 0.14))); doc.setTextColor(140, 140, 140);
-      [["A", 0, -1], ["B", 1, 0], ["C", 0, 1], ["D", -1, 0]].forEach(([fc, dx, dy]) => doc.text(fc, bx + dx * BS * 0.3, by + dy * BS * 0.3, { align: "center", baseline: "middle" }));
+      [["A", 0, -1], ["B", 1, 0], ["C", 0, 1], ["D", -1, 0]].forEach(([fc, dx, dy]) => { const [rx, ry] = rotV(b, dx, dy); doc.text(fc, bx + rx * BS * 0.3, by + ry * BS * 0.3, { align: "center", baseline: "middle" }); });
       const used = new Map(b.deps.filter((d) => d.face && d.slot != null).map((d) => [d.face + d.slot, d]));
       const out = { A: [0, -1], B: [1, 0], C: [0, 1], D: [-1, 0] };
       // rang d'un point dans sa suite de points voisins occupés (0, 1, 2…) : les n° alternent sur deux lignes
       const runIdx = (fc, i) => { let k = 0; while (i - k - 1 >= 0 && used.has(fc + (i - k - 1))) k++; return k; };
       for (const fc of ["A", "B", "C", "D"]) for (let i = 0; i < b.N; i++) {
-        const Pw = portXY(b, BSm, b.N, fc, i), px = X(Pw.x), py = Y(Pw.y), d = used.get(fc + i);
+        const Pw = portW(b, fc, i), px = X(Pw.x), py = Y(Pw.y), d = used.get(fc + i);
         const c = d ? (d.tab ? [20, 20, 20] : rgb((d.ends[0] || {}).color) || [130, 130, 130]) : null;
         doc.setLineWidth(0.12); doc.setDrawColor(...(c || [150, 150, 150])); doc.setFillColor(...(c || [255, 255, 255]));
         doc.circle(px, py, d ? 0.55 : 0.4, "FD");
         const no = d && (d.tab ? nos.tab : d.ends.map((e) => nos[e.key]).find(Boolean));
         if (no) {
-          const [ox, oy] = out[fc], vert = fc === "B" || fc === "D";
+          const [ox, oy] = rotV(b, ...out[fc]).map((v) => Math.round(v * 1e6) / 1e6), vert = Math.abs(ox) > Math.abs(oy);
           // n° sur un petit fond blanc, pour rester lisible par-dessus les gaines
           // (toujours horizontal : sur les faces B et D, les n° voisins se suivent sans se chevaucher)
           doc.setFont("helvetica", "bold"); doc.setFontSize(4);

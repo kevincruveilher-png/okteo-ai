@@ -49,5 +49,13 @@ check("v59 / v61.1 : gaines tracées boîte par boîte : au plus 1 croisement da
   Tr.gaines > 70 && Tr.intra <= 1, JSON.stringify(Tr));
 check("aucun doute bloquant", !D.doutes.some((d) => d.bloquant), D.doutes.map((d) => d.rule).join(","));
 
+// v62 : mode Économique (le moins de cuivre, sans petites boîtes ni territoires mêlés) sur le même chantier
+const OUT2 = path.join(os.tmpdir(), "okteo-maillard-eco.json");
+execFileSync(process.execPath, ["scripts/chantier-wiring.mjs", "docs/chantiers/MAILLARD_kevin.okteo", OUT2, "--recable", "--connecte", "--mode=proximite"], { stdio: "pipe" });
+const E = JSON.parse(fs.readFileSync(OUT2, "utf8")), eDep = E.boxes.map((b) => appG(b).length);
+console.log("MAILLARD Économique : " + E.boxes.map((b) => `${b.n} ${appG(b).length}`).join(" · ") + ` départs ; fil ${E.totals.cuivre} m (Équilibrée ${D.totals.cuivre} m)`);
+check("v62 Économique : moins de cuivre que l'Équilibrée, au plus une boîte de plus que le BE, aucune boîte de moins de 3 départs, aucun croisement dans une boîte",
+  E.totals.cuivre < D.totals.cuivre && E.boxes.length <= BE.boites + 1 && eDep.every((n) => n >= 3) && (E.traces || {}).intra === 0, JSON.stringify({ eDep, cu: E.totals.cuivre, intra: (E.traces || {}).intra }));
+
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);
 if (fails.length) process.exit(1);

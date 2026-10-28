@@ -1,5 +1,5 @@
 // Fenêtre « Imprimer / PDF » : réglages (format, orientation, échelle, options), aperçu du PDF, téléchargement.
-import { buildPlanPdf, layoutPlan } from "./print.js";
+import { buildPlanPdf, layoutPlan, rotateGeo } from "./print.js";
 import { esc, store, storeSet } from "./util.js";
 import { pdfjs } from "./fond-import.js";
 import { wiringNow } from "./cablage-data.js";
@@ -33,6 +33,7 @@ export function createPrintTool({ api }) {
         <label><input type="checkbox" data-k="fond"> Fond de plan (estompé)</label>
       </div>
       <div class="pr-ck">
+        <label id="pr-rotwrap" title="Le plan imprimé est tourné comme la vue à l'écran (boutons de rotation en bas du plan) ; décoché : plan dans le sens du PDF d'origine"><input type="checkbox" data-k="sensVue"> Dans le sens de la vue (<span id="pr-rotv">0</span>°)</label>
         <label><input type="checkbox" data-k="nomenclature"> Page 2 : nomenclature</label>
       </div>
       <p class="pr-info"></p>
@@ -76,10 +77,11 @@ export function createPrintTool({ api }) {
     const nos = opts.boites ? gaineNos() : null;   // d'abord le calcul des gaines : le plan suit leur découpage (v56)
     const geo = all ? api.allLevelsGeometry() : api.exportGeometry();
     if (all && opts.fond) for (const g of geo) g.fond = await api.levelFond(g.levelId);
-    const L = layoutPlan(all ? { walls: geo.flatMap((g) => g.walls), apps: geo.flatMap((g) => g.apps), rooms: geo.flatMap((g) => g.rooms), fond: geo[0].fond } : geo, opts);
+    const rot = opts.sensVue ? api.viewRot || 0 : 0, rg = (all ? geo : [geo]).map((g) => rotateGeo(g, rot));
+    const L = layoutPlan(all ? { walls: rg.flatMap((g) => g.walls), apps: rg.flatMap((g) => g.apps), rooms: rg.flatMap((g) => g.rooms), fond: rg[0].fond } : rg[0], opts);
     $(".pr-info").innerHTML = `${L.paper} ${L.orient} · <b>1:${L.scale}</b> · ${L.fits ? "le plan tient dans le cadre" : `<span class="warn">le plan dépasse : choisissez un plus grand format ou une plus petite échelle</span>`}`;
     try {
-      const r = await buildPlanPdf(geo, { ...opts, gaineNos: nos });
+      const r = await buildPlanPdf(geo, { ...opts, gaineNos: nos, rot });
       if (my !== seq) return;
       last = r; if (url) URL.revokeObjectURL(url); url = URL.createObjectURL(r.blob);
       await preview(r.blob, my);
@@ -129,6 +131,7 @@ export function createPrintTool({ api }) {
     if (e.key === "Escape" && !back.hidden) close();
   });
   // le niveau imprimé est celui qui est ouvert
-  function open() { if (api.tab !== "plan") api.setTab("plan"); opts.niveau = api.level.name; fromView(); $("#pr-lvwrap").hidden = api.levels.length < 2; if (api.levels.length < 2) opts.levels = "cur"; fill(); back.hidden = false; refresh(); }
+  function open() { if (api.tab !== "plan") api.setTab("plan"); opts.niveau = api.level.name; fromView();
+    const vr = api.viewRot || 0; $("#pr-rotwrap").hidden = !vr; $("#pr-rotv").textContent = String(vr).replace(".", ","); opts.sensVue = !!vr; $("#pr-lvwrap").hidden = api.levels.length < 2; if (api.levels.length < 2) opts.levels = "cur"; fill(); back.hidden = false; refresh(); }
   return { open, close, get last() { return last; } };
 }

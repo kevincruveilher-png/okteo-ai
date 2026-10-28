@@ -1442,14 +1442,15 @@ try {
     if (!(cut.marks > 0 && btn && after === 0 && back > 0)) throw new Error(JSON.stringify({ cut, btn, after, back }));
     return true;
   });
-  await check("modes de pieuvre (v39) : comparatif proximité / équilibrée / par pièce (mini-plans, chiffres), « Appliquer », un seul Ctrl+Z", async () => {
+  await check("modes de pieuvre (v39) : comparatif économique / équilibrée / par pièce (v62 : note « belle pieuvre », mini-plans, chiffres), « Appliquer », un seul Ctrl+Z", async () => {
     await page.click('#tabs button[data-tab="plan"]');
     await ev(() => okteoExt.panel.show("cablage")); await page.waitForTimeout(200);
     const before = await ev(() => ({ mode: okteo.cab.mode || "proximite", boxes: JSON.stringify(okteo.cab.boxes.map((b) => [b.x, b.y])) }));
     await page.click("#bx-cmp");
     await page.waitForSelector(".cmpcard [data-apply]", { timeout: 60000 });
     const r = await ev(() => [...document.querySelectorAll(".cmp-col")].map((c) => ({ mode: c.dataset.mode, boxes: c.querySelectorAll(".cmp-svg rect").length, rows: c.querySelectorAll(".cmp-t tr").length,
-      fil: +(c.querySelectorAll(".cmp-t tr")[2].children[1].textContent.replace(/\s/g, "").replace(",", ".")), ecart: +(c.querySelectorAll(".cmp-t tr")[5].children[1].textContent.replace(",", ".")), best: c.querySelectorAll(".best").length })));
+      fil: +(c.querySelectorAll(".cmp-t tr")[5].children[1].textContent.replace(/\s/g, "").replace(",", ".")), ecart: +(c.querySelectorAll(".cmp-t tr")[8].children[1].textContent.replace(",", ".")), best: c.querySelectorAll(".best").length,
+      note: parseInt(c.querySelector(".cmp-t tr.cmp-note td.num").textContent, 10), h: c.querySelector("h3").textContent })));
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/modes.png" });
     await page.click('.cmpcard [data-apply="piece"]');
     const after = await ev(() => ({ mode: okteo.cab.mode, boxes: JSON.stringify(okteo.cab.boxes.map((b) => [b.x, b.y])), card: !!document.querySelector(".cmpcard") }));
@@ -1457,7 +1458,7 @@ try {
     const back = await ev(() => ({ mode: okteo.cab.mode || "proximite", boxes: JSON.stringify(okteo.cab.boxes.map((b) => [b.x, b.y])) }));
     await page.click('#tabs button[data-tab="bandes"]'); await page.waitForSelector(".bands .bd-svg svg");
     const P = r.find((x) => x.mode === "proximite"), E = r.find((x) => x.mode === "equilibre");
-    const ok = r.length === 3 && r.every((x) => x.boxes > 0 && x.rows === 7 && x.fil > 0) && E.boxes <= P.boxes && r.some((x) => x.best > 0)
+    const ok = r.length === 3 && r.every((x) => x.boxes > 0 && x.rows === 11 && x.fil > 0 && x.note >= 0 && x.note <= 100) && /Économique/.test(P.h) && E.boxes <= P.boxes && r.some((x) => x.best > 0)
       && after.mode === "piece" && !after.card && after.boxes !== before.boxes && back.mode === before.mode && back.boxes === before.boxes;
     if (!ok) throw new Error(JSON.stringify({ r, before: before.mode, after: after.mode, back: back.mode }));
     return true;
@@ -2161,6 +2162,22 @@ try {
     if (!(/rotate\(90\)/.test(r.tr) && r.up && r.img && sel && r0.rot === 0 && !/rotate/.test(r0.tr))) throw new Error(JSON.stringify({ r, sel, r0 }));
     return true;
   });
+  await check("v62 : impression dans le sens de la vue (case cochée d'office si la vue est tournée) : plan tourné d'un quart de tour, textes droits", async () => {
+    await ev(() => { okteo.rotateView(90, true); okteo.fit(); });
+    await page.keyboard.press("Control+p");
+    await page.waitForFunction(() => okteoExt.printer.last && !document.querySelector(".pr-wait:not([hidden])"), null, { timeout: 30000 });
+    await page.waitForTimeout(300);
+    const r = await ev(async () => {
+      const P = await import("/src/ext/print.js"), g = okteo.exportGeometry(), q = P.rotateGeo(g, 90), a = g.apps[0], b = q.apps[0];
+      const e0 = P.extentOf(g), e1 = okteoExt.printer.last.layout.ext;
+      return { vis: !document.getElementById("pr-rotwrap").hidden, on: document.querySelector('[data-k="sensVue"]').checked, rot: Math.abs(b.x + a.y) < 1e-9 && Math.abs(b.y - a.x) < 1e-9,
+        sw: Math.abs((e1.x1 - e1.x0) - (e0.y1 - e0.y0)) < 1e-6 && Math.abs((e1.y1 - e1.y0) - (e0.x1 - e0.x0)) < 1e-6, pages: okteoExt.printer.last.pages };
+    });
+    await page.keyboard.press("Escape");
+    await ev(() => { okteo.rotateView(0, true); okteo.fit(); });
+    if (!(r.vis && r.on && r.rot && r.sw && r.pages >= 1)) throw new Error(JSON.stringify(r));
+    return true;
+  });
 
   console.log("Bandeau en encarts, assistant en bas à droite (v41)");
   await check("bandeau : encarts Actions, Vues, Panneaux (Propriétés, Câblage, Packs, Étapes), sans bouton Assistant en haut", async () => ev(() => {
@@ -2208,14 +2225,15 @@ try {
     if (!open) throw new Error("carte non ouverte");
     return true;
   });
-  await check("Mode IA : câbler, alertes listées, dossier PDF complet", async () => {
+  await check("Mode IA : câbler, alertes listées, note « belle pieuvre », dossier PDF complet", async () => {
     await page.click("#ia-cab");
     await page.waitForFunction(() => (okteo.cab.boxes || []).length > 0 && document.querySelector('#iapane .ia-step[data-s="5"].done'), null, { timeout: 15000 });
     const n = await ev(() => ({ li: document.querySelectorAll("#ia-alerts li").length, ctl: okteo.control.length }));
     await page.click("#ia-dossier");
     await page.waitForFunction(() => okteoExt.iaMode.lastDossier, null, { timeout: 90000 });
     const d = await ev(() => ({ pages: okteoExt.iaMode.lastDossier.pages, size: okteoExt.iaMode.lastDossier.blob.size }));
-    if (!(n.li >= n.ctl && d.pages >= 3 && d.size > 10000)) throw new Error(JSON.stringify({ n, d }));
+    const note = await ev(() => /belle pieuvre \d+\/100/.test(document.querySelector('#iapane .ia-step[data-s="7"]').textContent));
+    if (!(n.li >= n.ctl && d.pages >= 3 && d.size > 10000 && note)) throw new Error(JSON.stringify({ n, d, note }));
     return true;
   });
   await check("coûts : jetons IA (relevé avec clé) et temps BE chiffrés d'après les prix et le coût horaire de Paramètres", async () => {

@@ -91,7 +91,7 @@ async function coverPdf(api, parts) {
 export async function buildDossier(api, { indice = "A" } = {}) {
   const parts = [];
   const geo = api.allLevelsGeometry();
-  const plan = await buildPlanPdf(geo.length > 1 ? geo : geo[0], { nomenclature: true, indice, niveau: geo[0] && geo[0].level });
+  const plan = await buildPlanPdf(geo.length > 1 ? geo : geo[0], { nomenclature: true, indice, niveau: geo[0] && geo[0].level, rot: api.viewRot || 0 });   // v62 : sens de la vue
   parts.push({ title: geo.length > 1 ? `Plan (${geo.length} niveaux) et nomenclature` : "Plan et nomenclature", blob: plan.blob });
   const tb = tableauNow(api);
   if (tb) parts.push({ title: "Tableau electrique", blob: (await buildTableauPdf(tb, { chantier: api.ch, colors: api.circuitColors || [] })).blob });

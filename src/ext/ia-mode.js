@@ -8,7 +8,7 @@ import { settings } from "./settings.js";
 import { pref, setPref } from "../prefs.js";
 import { esc } from "./util.js";
 import { describe } from "./controle-ui.js";
-import { wiringNow } from "./cablage-data.js";
+import { wiringNow, noteNow } from "./cablage-data.js";
 import { cabler } from "./etude-ui.js";
 import { buildDossier, downloadBlob } from "./dossier.js";
 import { hpState, poserHorsPlan } from "./horsplan-ui.js";
@@ -96,7 +96,7 @@ export function createIaMode({ api, aiReleve, recheck, ctl }) {
         <ul class="ia-alerts" id="ia-alerts">${A.list.slice(0, 40).map((a, i) => `<li data-i="${i}" class="g${a.grave}"><span class="k">${esc(a.title)}</span> <b>${esc(a.who)}</b><br><span class="mut sm">${esc(a.what)}</span>
           <span class="ia-acts">${a.src === "ctl" && LINK_KINDS.has(a.it.kind) && rel ? `<button class="mini" data-a="rk" data-i="${i}" title="Faire relire ce point par l'IA">✦ Relire</button>` : ""}<button class="mini" data-a="be" data-i="${i}" title="Corriger dans l'interface complète">Mode BE</button></span></li>`).join("")}</ul>${A.list.length > 40 ? `<p class="mut sm">… et ${A.list.length - 40} autres.</p>` : ""}`
         : `<p class="mut sm">${apps.length ? "Rien à signaler." : "Après le relevé."}</p>`)}
-      ${step(7, "Résultat", boxes ? "done" : "wait", boxes ? `<p class="sm">${boxes} boîte${boxes > 1 ? "s" : ""}${A.W ? ` · ${A.W.totals.gaines} gaines · ${String(A.W.totals.gaine).replace(".", ",")} m de gaine · ${String(A.W.totals.cuivre).replace(".", ",")} m de fil · ${(A.W.direct || []).length} lignes directes` : ""}${pct ? ` · IA ${pct.pct} %` : ""}</p>
+      ${step(7, "Résultat", boxes ? "done" : "wait", boxes ? `<p class="sm">${boxes} boîte${boxes > 1 ? "s" : ""}${A.W ? ` · ${A.W.totals.gaines} gaines · ${String(A.W.totals.gaine).replace(".", ",")} m de gaine · ${String(A.W.totals.cuivre).replace(".", ",")} m de fil · ${(A.W.direct || []).length} lignes directes` : ""}${pct ? ` · IA ${pct.pct} %` : ""}${(() => { const N = noteNow(api, A.W); return N ? ` · <b title="Note « belle pieuvre » : croisements dans une boîte ${N.q.croise}, appareils chez la boîte voisine ${N.q.terr}, gaines longues ${N.q.longues}">belle pieuvre ${N.note}/100${N.ok ? "" : " ✗"}</b>` : ""; })()}</p>
         <div class="ia-row"><button class="on" id="ia-dossier" title="Dossier PDF complet : garde, plan, tableau, bandes de toutes les boîtes">📁 Dossier PDF</button><button id="ia-rep" title="Rapport de l'analyse IA : ce qui a été corrigé ou non trouvé">Rapport IA</button></div>` : `<p class="mut sm">Après le câblage.</p>`)}
       <section class="ia-cost" id="ia-cost"><h4>Coûts du chantier</h4>
         <p class="sm">IA : ${U.tokens ? `<b>${fmtTok(U.tokens)}</b> jetons (${U.calls} appel${U.calls > 1 ? "s" : ""})${U.txt ? " · <b>" + U.txt + "</b>" : ""}` : "aucun appel avec clé"}${U.paste ? ` · ${U.paste} étape${U.paste > 1 ? "s" : ""} en copier / coller (non comptée${U.paste > 1 ? "s" : ""})` : ""}</p>

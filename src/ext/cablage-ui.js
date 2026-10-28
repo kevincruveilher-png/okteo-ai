@@ -147,9 +147,9 @@ export function createCablagePane({ api, panel, ctl }) {
     const mode = api.cab.mode || "proximite";
     const head = `<div class="cab-h" style="margin-top:14px"><b>Boîtes</b> <span class="mut sm">max ${getCab().departsMax} départs sans l'alimentation, ${getCab().departsFace} gaines par face (A haut, B droite, C bas, D gauche)</span></div>
       <div class="bx-mode"><label title="Comment les boîtes sont constituées au prochain placement automatique">Pieuvre : <select id="bx-mode">${Object.entries(MODES).map(([k, v]) => `<option value="${k}" ${k === mode ? "selected" : ""}>${v}</option>`).join("")}</select></label>
-        <button id="bx-cmp" title="Calcule les trois modes (proximité, équilibrée, par pièce) et les compare : mini-plans, fil, gaine, boîtes, départs. Puis « Appliquer ».">Comparer les 3 modes</button></div>${voletsHTML()}`;
+        <button id="bx-cmp" title="Calcule les trois modes (économique, équilibrée, par pièce) et les compare : note « belle pieuvre », mini-plans, fil, gaine, boîtes, départs. Puis « Appliquer ».">Comparer les 3 modes</button></div>${voletsHTML()}`;
     const tabWarn = hasTab ? "" : `<p class="warn sm">⚠ Pas de tableau sur le plan : les boîtes sont placées sans tenir compte de leur alimentation et les longueurs vers le tableau manquent. <button id="bx-tab">Poser le tableau</button></p>`;
-    if (!B.length) return `${head}${tabWarn}<p class="mut sm">Oktéo place les boîtes selon le mode choisi — proximité (le moins de cuivre), équilibrée (boîtes régulières) ou par pièce —, une commande et ses lumières toujours dans la même boîte ; vous pouvez ensuite les déplacer à la souris.</p>
+    if (!B.length) return `${head}${tabWarn}<p class="mut sm">Oktéo place les boîtes selon le mode choisi — économique (le moins de cuivre), équilibrée (le moins de boîtes, comme le BE) ou par pièce —, une commande et ses lumières toujours dans la même boîte ; vous pouvez ensuite les déplacer à la souris.</p>
       <button class="on" id="bx-auto">Placer les boîtes automatiquement</button>`;
     const W = wiringNow(api), lvName = new Map(api.levels.map((l) => [l.id, l.name]));
     const rows = W.boxes.map((b) => {

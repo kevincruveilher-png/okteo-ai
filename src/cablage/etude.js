@@ -88,7 +88,7 @@ export function buildTrace(inp) {
     add(c.kind === "circ" ? 4 : c.kind === "nobox" ? 3 : c.kind === "split" ? 5 : 1, { rule, state: c.kind === "split" ? "bloque" : "doute", text: `${what} : ${c.ids.map((id) => by.get(id)?.rep || id).join(", ")}`, ids: c.ids, question: "Corriger le plan (liaisons, commandes)" });
   }
   // 2. mode de pieuvre et alternatives (score Q-77)
-  const alts = alternatives.map((a) => ({ mode: a.mode, name: a.name, score: scoreOf(a.W), chosen: a.mode === mode })).sort((a, b) => cmpScore(a.score, b.score));
+  const alts = alternatives.map((a) => ({ mode: a.mode, name: a.name, score: scoreOf(a.W), chosen: a.mode === mode, note: a.note ? a.note.note : null, noteOk: a.note ? a.note.ok : true })).sort((a, b) => cmpScore(a.score, b.score));
   alts.forEach((a, i) => { a.rank = i + 1; });
   const ch = alts.find((a) => a.chosen), best = alts[0];
   add(2, { rule: "R-094", state: "applique", text: `Mode choisi : ${ch ? ch.name : mode}${best && ch && best.mode !== ch.mode ? ` — la solution la plus économique est « ${best.name} » (${(ch.score.gaine - best.score.gaine).toFixed(1).replace(".", ",")} m de gaine en moins)` : best && ch ? " — c'est aussi la solution la plus économique" : ""}` });

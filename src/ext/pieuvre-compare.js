@@ -1,13 +1,14 @@
-// Comparatif des modes de pieuvre (v39) : proximité (le moins de cuivre), équilibrée (boîtes régulières, comme le bureau
-// d'études), par pièce. Pour chacun : un mini-plan du niveau ouvert (pièces, boîtes, gaines vers les appareils), les
+// Comparatif des modes de pieuvre (v39 ; v62 : note « belle pieuvre » commune, qualite.js) : économique (le moins de
+// cuivre), équilibrée (le moins de boîtes, parts égales, comme le bureau d'études), par pièce. Pour chacun : un mini-plan du niveau ouvert (pièces, boîtes, gaines vers les appareils), les
 // chiffres (boîtes, circuits, fil, gaine, départs par boîte) et un bouton pour l'appliquer (un seul Ctrl+Z).
 import { compareModes } from "./cablage-data.js";
 import { esc } from "./util.js";
+import { CRITERES } from "../cablage/qualite.js";
 
 const DESC = {
-  proximite: "Chaque boîte prend les appareils les plus proches, peu importe la pièce : le moins de cuivre possible.",
-  equilibre: "La maison partagée en parts de départs à peu près égales : des boîtes régulières, qui plaisent à l'œil.",
-  piece: "Une boîte par pièce ; les petites pièces (WC, dégagement…) rejoignent leur voisine.",
+  proximite: "Le moins de cuivre (longueur de chaque gaine × nombre de fils), sans mêler les territoires des boîtes ; volets avec les boîtes voisines si c'est moins de cuivre.",
+  equilibre: "Comme le BE : le moins de boîtes, parts de départs égales ; une boîte pour les volets (deux s'ils sont aux deux bouts de la maison).",
+  piece: "Une boîte par pièce (les petites pièces rejoignent leur voisine) ; chaque volet dans la boîte de sa pièce.",
 };
 const COL = ["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#9a6324", "#469990", "#808000"];
 const fr = (v, d = 0) => (v == null || !isFinite(v) ? "—" : Number(v).toFixed(d).replace(".", ","));
@@ -47,14 +48,15 @@ export function createCompare({ api, apply }) {
       try { res = compareModes(api); } catch (e) { card.innerHTML += `<p class="warn sm">Comparaison impossible : ${esc(e.message)}</p>`; return; }
       const cur = api.cab.mode || "proximite";
       const best = (key, max = false) => { const v = res.map((r) => r.m[key]); const b = max ? Math.max(...v) : Math.min(...v); return (r) => r.m[key] === b; };
-      const rows = [["boites", "Boîtes", 0, null], ["circuits", "Circuits (hors lignes directes)", 0, null], ["cuivre", "Fil (m)", 0, best("cuivre")], ["gaine", "Gaine (m)", 0, best("gaine")],
-        ["dep", "Départs par boîte", 0, null], ["ecart", "Écart des départs (régularité)", 1, best("ecart")], ["pieces", "Pièces par boîte (max)", 0, best("pieces")]];
+      const rows = [["note", "Belle pieuvre (note sur 100)", 0, best("note", true)], ["croise", "Croisements dans une boîte (interdit)", 0, null], ["terr", "Appareils chez la boîte voisine", 0, best("terr")], ["boites", "Boîtes", 0, null], ["circuits", "Circuits (hors lignes directes)", 0, null], ["cuivre", "Fil (m)", 0, best("cuivre")], ["gaine", "Gaine (m)", 0, best("gaine")],
+        ["dep", "Départs par boîte", 0, null], ["ecart", "Écart des départs (régularité)", 1, best("ecart")], ["longues", "Gaines longues", 0, best("longues")], ["pieces", "Pièces par boîte (max)", 0, best("pieces")]];
+      const why = (r) => CRITERES.filter((c) => r.note && r.note.pen[c.k] > 0).map((c) => `${c.lab} : −${String(r.note.pen[c.k]).replace(".", ",")}`).join("\n") || "aucun point retiré";
       const val = (r, k, d) => (k === "dep" ? `${r.m.depMin} à ${r.m.depMax}` : fr(r.m[k], d));
       card.innerHTML = `<div class="cmp-h"><b>Comparer les modes de pieuvre</b><span class="mut sm">les boîtes verrouillées 🔒 restent en place · en vert : le meilleur</span><button class="wx" title="Fermer (Échap)">✕</button></div>
         <div class="cmp-grid">${res.map((r) => `<div class="cmp-col${r.mode === cur ? " cur" : ""}" data-mode="${r.mode}">
           <h3>${esc(r.name)}${r.mode === cur ? ` <span class="mut sm">(mode actuel)</span>` : ""}</h3><p class="sm mut">${esc(DESC[r.mode])}</p>
           ${miniPlan(api, r)}
-          <table class="gt cmp-t">${rows.map(([k, lab, d, isBest]) => `<tr><td>${lab}</td><td class="num${isBest && isBest(r) ? " best" : ""}">${val(r, k, d)}</td></tr>`).join("")}</table>
+          <table class="gt cmp-t">${rows.map(([k, lab, d, isBest]) => `<tr${k === "note" ? ` class="cmp-note" title="${esc(why(r))}"` : ""}><td>${lab}</td><td class="num${isBest && isBest(r) ? " best" : ""}${k === "croise" && r.m.croise ? " warn" : ""}">${k === "note" && r.note && !r.note.ok ? val(r, k, d) + " ✗" : val(r, k, d)}</td></tr>`).join("")}</table>
           ${r.issues.length ? `<p class="warn sm" title="${esc(r.issues.join("\n"))}">⚠ ${r.issues.length} alerte${r.issues.length > 1 ? "s" : ""}</p>` : `<p class="ok sm">✓ aucune alerte</p>`}
           <button class="on" data-apply="${r.mode}" title="Placer les boîtes de ce mode (les circuits suivent) — Ctrl+Z pour revenir">Appliquer « ${esc(r.name)} »</button></div>`).join("")}</div>`;
       card.querySelector(".wx").onclick = close;

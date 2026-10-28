@@ -281,6 +281,30 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 62 (28/10/2026) — livrée : types d'implantation des boîtes revus, note « belle pieuvre », impression dans le sens de la vue
+Version du logiciel : 0.63.1 (livrée après la 63). Demandé par Kévin (28/10, 08:38–08:46), décisions laissées à Claude.
+- **Note « belle pieuvre »** sur 100, la même pour tous les modes (`src/cablage/qualite.js`) : aucun croisement de
+  gaines dans une même boîte (obligatoire : sinon ✗ et 40 au plus) ; pas d'appareil d'une boîte au milieu de ceux d'une
+  autre (« chez la voisine » ; la boîte des volets, qui fait le tour de la maison, n'a pas de territoire) ; cuivre et
+  gaine comparés à la meilleure proposition ; boîtes en plus ; départs équilibrés ; gaines de plus de 12 m ; pièces par
+  boîte. Affichée dans « Comparer les modes » (détail des points retirés en infobulle), l'étude et le mode IA.
+- **Économique** (ancien « Proximité », même clé pour les chantiers enregistrés) : le moins de **cuivre** = longueur de
+  chaque gaine × nombre de fils (rectification de Kévin) ; une boîte de plus vaut 25 m de fil (réglage « coutBoite »,
+  Paramètres → Câblage → Boîtes) ; territoires séparés ; les boîtes de moins de 3 départs sont fondues dans leurs voisines
+  quand c'est moins cher. MAILLARD : 6 boîtes (avant : 10, dont trois de 1 ou 2 départs), 1 195 m de fil contre 1 234 m
+  en Équilibrée.
+- **Équilibrée** (comme le BE) : inchangée (le moins de boîtes, parts égales) ; boîte des volets coupée en deux seulement
+  si les volets sont aux deux bouts de la maison (plus de 14 m) et que ça fait gagner plus de 40 % de gaine. MAILLARD
+  garde une seule boîte de volets, comme le BE.
+- **Par pièce** : chaque volet dans la boîte de sa pièce, sans l'alerte « pas de règle ».
+- **Journal des règles** : Q-86 (Q-77 revu : le moins de cuivre et la note « belle pieuvre ») et Q-87 (volets en Par
+  pièce et en Équilibrée) proposées à Kévin ; R-094 annotée « supposé, à valider ». L'étude garde le rang Q-77 en
+  attendant sa réponse et affiche la note à côté.
+- **Impression dans le sens de la vue** : si la vue est tournée, la fenêtre Imprimer coche « Dans le sens de la vue » ;
+  tout le plan tourne (murs, portes, pièces, appareils, boîtes avec leurs faces, gaines, cotes, fond), les textes restent
+  droits. Le dossier PDF suit la vue aussi.
+- Tests : 75 vérifications du câblage (+6), 14 sur MAILLARD (+1 : mode Économique), 162 Playwright (+1).
+
 ## Version 63 (28/10/2026) — livrée : Mode IA et coûts du chantier
 Version du logiciel : 0.63.0. Demandé par Kévin (28/10, 15:46–16:40) : garder l'interface complète (Mode BE) et pouvoir
 basculer sur une interface légère centrée sur l'IA, le moins de clics possible, avec alertes et résultat.

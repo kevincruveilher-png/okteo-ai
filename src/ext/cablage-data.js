@@ -4,6 +4,7 @@ import { placeBoxes, buildUnits, MODES } from "../cablage/boites.js";
 import { computeWiring } from "../cablage/gaines.js";
 import { circuitsByBox, computeCircuits } from "../cablage/circuits.js";
 import { pointInPoly } from "../walls/rooms.js";
+import { mesures, noter, noteOf } from "../cablage/qualite.js";
 
 // appareil à l'extérieur : ni sur lui ni à 12 cm autour, aucune pièce (un appareil intérieur posé contre un mur
 // touche sa pièce ; un appareil sur la façade est de l'autre côté du mur)
@@ -56,17 +57,30 @@ export function compareModes(api) {
   const keepIds = (api.cab.boxes || []).filter((b) => b.locked).map((b) => b.id);
   const base = (api.cab.circuits || []).length ? api.cab.circuits : computeCircuits(items, links, S);
   const ext = markExterior(api, items), levels = api.levels.map((l) => l.id);
-  return Object.entries(MODES).map(([mode, name]) => {
+  const res = Object.entries(MODES).map(([mode, name]) => {
     const r = autoBoxes(api, keepIds, 0, mode, base);
     const circuits = S.circuitsParBoite ? circuitsByBox(items, links, r.boxes, S) : base;
     const W = computeWiring({ items: ext, links, circuits, boxes: r.boxes, levels, S });
     const dep = W.boxes.map((b) => b.gaines.length);
     const mean = dep.reduce((s, v) => s + v, 0) / (dep.length || 1);
-    return { mode, name, boxes: r.boxes, circuits, W, issues: [...r.issues, ...W.issues.filter((x) => !/télérupteur au tableau|sans commande|ne commande aucune/.test(x))],
+    const q = mesures(W, { items, boxes: r.boxes, S });
+    return { mode, name, boxes: r.boxes, circuits, W, q, issues: [...r.issues, ...W.issues.filter((x) => !/télérupteur au tableau|sans commande|ne commande aucune/.test(x))],
       m: { boites: r.boxes.length, circuits: circuits.filter((c) => !c.direct && c.kind !== "comm").length, cuivre: W.totals.cuivre, gaine: W.totals.gaine,
         depMin: Math.min(...dep), depMax: Math.max(...dep), ecart: +Math.sqrt(dep.reduce((s, v) => s + (v - mean) ** 2, 0) / (dep.length || 1)).toFixed(1),
+        croise: q.croise, terr: q.terr, longues: q.longues,
         pieces: (() => { const n = r.boxes.map((b) => new Set(b.apps.map((id) => items.find((a) => a.id === id)?.room).filter(Boolean)).size); return n.length ? Math.max(...n) : 0; })() } };
   });
+  // v62 : note « belle pieuvre » commune, les propositions comparées entre elles
+  const N = noter(res.map((r) => r.q));
+  res.forEach((r, i) => { r.note = N[i]; r.m.note = N[i].note; });
+  return res;
+}
+// v62 : note « belle pieuvre » de la pieuvre actuelle du chantier (sans comparaison : cuivre, gaine et boîtes non relatifs)
+export function noteNow(api, W = null) {
+  if (!(api.cab.boxes || []).length) return null;
+  try { W = W || wiringNow(api); } catch { return null; }
+  const q = mesures(W, { items: api.allApps(), boxes: api.cab.boxes, S: cabS(api) });
+  return { q, ...noteOf(q) };
 }
 
 // couleur d'affichage d'un fil d'après son nom (réglages « Couleurs des fils »)

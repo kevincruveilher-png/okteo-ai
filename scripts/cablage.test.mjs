@@ -8,7 +8,8 @@ import { detectDevices, pageTexts } from "../src/walls/devices.js";
 import { gaineFor } from "../src/cablage/gaine.js";
 import { computeCircuits, checkCircuits, circuitsByBox, isCuisine } from "../src/cablage/circuits.js";
 import { CAB_DEFAULTS as S } from "../src/cablage/settings.js";
-import { placeBoxes, buildUnits, faceToward, portLayout, portXY, minBoxes } from "../src/cablage/boites.js";
+import { placeBoxes, buildUnits, faceToward, portLayout, portXY, minBoxes, wiresOf, MODES } from "../src/cablage/boites.js";
+import { intrusions, noter, mesures, POIDS } from "../src/cablage/qualite.js";
 import { pointInPoly } from "../src/walls/rooms.js";
 import { PACK_DEFAULTS, packFor, missing, placePack, prisesNorme } from "../src/cablage/packs.js";
 import { computeWiring, gaineLength, cableColors } from "../src/cablage/gaines.js";
@@ -430,6 +431,41 @@ console.log("Tableau électrique (v46)");
   const inc = ["A", "B", "C", "D"].every((f, i) => f === alimF || faces[i].every((v, k) => !k || v > faces[i][k - 1]));
   check("tranches (v60) : 4 faces vues de l'extérieur, un trou par gaine, n° croissants de gauche à droite (R-077), diamètre et appareil au bout",
     (T.match(/class="tranche"/g) || []).length === 4 && (T.match(/class="trou" data-no/g) || []).length === B.gaines.filter((g) => g.slot != null).length && inc && /Tranche A · Chambre 1/.test(T) && /Ø(16|20)/.test(T) && /Tableau/.test(T), JSON.stringify({ faces, alimF }));
+}
+
+console.log("Types d'implantation et note « belle pieuvre » (v62)");
+{
+  const sq = (cx, cy) => [-1, 0, 1].flatMap((dx) => [-1, 0, 1].map((dy) => ({ x: cx + dx * 1.5, y: cy + dy * 1.5 })));
+  const A = { x: 0, y: 0, pts: sq(0, 0) }, B = { x: 10, y: 0, pts: sq(10, 0) };
+  check("territoires : deux boîtes séparées = 0 appareil chez la voisine ; un appareil de B au milieu de A = 1",
+    intrusions([A, B]) === 0 && intrusions([A, { ...B, pts: [...B.pts, { x: 0.2, y: 0.1 }] }]) === 1);
+  const m = { croise: 0, terr: 0, cuivre: 1000, gaine: 500, boites: 6, equil: 0.2, longues: 0, pieces: 1.5 };
+  const N = noter([m, { ...m, cuivre: 1100 }, { ...m, croise: 1 }]);
+  check("note : sur 100 ; 10 % de cuivre en plus = note plus basse ; un croisement dans une boîte = ✗ et 40 au plus",
+    N[0].note > N[1].note && N[0].ok && !N[2].ok && N[2].note <= 40 && N[0].note <= 100 && N[0].note > 60, JSON.stringify(N.map((n) => n.note)));
+  check("Économique : fils par gaine (INT 2, prise 3, va-et-vient 3, PC20 en ligne 2,5 B+R+V/J : 3) ; le mode s'appelle « Économique »",
+    wiresOf({ t: "INT" }) === 2 && wiresOf({ t: "PC16" }) === 3 && wiresOf({ t: "VV" }) === 3 && wiresOf({ t: "PC20" }) === 3 && MODES.proximite === "Économique" && POIDS.proximite.cuivre > POIDS.equilibre.cuivre);
+  // maison de 26 m : tableau au milieu, prises et lumières partout, volets aux deux bouts (ou groupés)
+  const house = (far) => {
+    const it = [{ id: "tb", t: "TAB", x: 13, y: 0, lv: "rdc" }];
+    for (let i = 0; i < 14; i++) it.push({ id: "p" + i, t: "PC16", x: 1 + i * 1.8, y: (i % 2) * 6, lv: "rdc", room: "R" + Math.floor(i / 4) });
+    for (let i = 0; i < 6; i++) { it.push({ id: "l" + i, t: "LUM", x: 2 + i * 4, y: 3, lv: "rdc", room: "R" + Math.floor(i / 2) }, { id: "i" + i, t: "INT", x: 2.5 + i * 4, y: 5.8, lv: "rdc", room: "R" + Math.floor(i / 2) }); }
+    for (let i = 0; i < 6; i++) it.push({ id: "v" + i, t: "VR", x: far ? (i < 3 ? 0.5 + i : 23 + i) : 11 + i, y: 6, h: 220, lv: "rdc", room: "R" + (far ? (i < 3 ? 0 : 3) : 2) });
+    const links = [0, 1, 2, 3, 4, 5].map((i) => ({ c: "i" + i, l: "l" + i }));
+    const C = computeCircuits(it, links, S);
+    return { it, links, C };
+  };
+  const vbox = (r, it) => r.boxes.filter((b) => b.apps.length && b.apps.every((id) => it.find((a) => a.id === id).t === "VR")).length;
+  const H1 = house(true), H2 = house(false);
+  const e1 = placeBoxes(H1.it, H1.links, H1.C, { rdc: { x: 13, y: 0 } }, S, { mode: "equilibre" }), e2 = placeBoxes(H2.it, H2.links, H2.C, { rdc: { x: 13, y: 0 } }, S, { mode: "equilibre" });
+  check("Équilibrée : une boîte de volets (R-094) ; deux si les volets sont aux deux bouts de la maison (proposé, Q-87)", vbox(e2, H2.it) === 1 && vbox(e1, H1.it) === 2, `${vbox(e2, H2.it)} / ${vbox(e1, H1.it)}`);
+  const pc = placeBoxes(H1.it, H1.links, H1.C, { rdc: { x: 13, y: 0 } }, S, { mode: "piece" });
+  check("Par pièce : chaque volet dans la boîte de sa pièce, sans alerte « pas de règle »", !pc.issues.some((x) => /par pièce/.test(x)) && vbox(pc, H1.it) === 0
+    && H1.it.filter((a) => a.t === "VR").every((v) => { const b = pc.boxes.find((x) => x.apps.includes(v.id)); return b.apps.some((id) => { const a = H1.it.find((q) => q.id === id); return a.t !== "VR" && a.room === v.room; }); }));
+  const ex = placeBoxes(H1.it, H1.links, H1.C, { rdc: { x: 13, y: 0 } }, S, { mode: "proximite" });
+  const W1 = computeWiring({ items: H1.it, links: H1.links, circuits: circuitsByBox(H1.it, H1.links, ex.boxes, S), boxes: ex.boxes, levels: ["rdc"], S });
+  const q1 = mesures(W1, { items: H1.it, boxes: ex.boxes, S });
+  check("Économique : aucune boîte de moins de 3 départs, aucun croisement dans une boîte, territoires séparés", W1.boxes.every((b) => b.gaines.filter((g) => g.kind === "app").length >= 3) && q1.croise === 0 && q1.terr === 0, JSON.stringify(q1));
 }
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);

@@ -1,6 +1,6 @@
 // Généré par scripts/regles-import.mjs depuis docs/journal-regles-cablage.md — ne pas modifier à la main.
 export const REGLES_BASE = {
- "version": "2026-10-28.41",
+ "version": "2026-10-28.42",
  "rules": [
   {
    "id": "R-001",
@@ -1571,7 +1571,8 @@ export const REGLES_BASE = {
    "details": [
     "**Équilibrée** : une seule boîte pour tous les volets. En mode Équilibrée, le choix des boîtes vise **le moins de boîtes possible**, comme le BE (Kévin, 28/10/2026, 00:32 ; bande MAILLARD : 5 boîtes de 11 à 15 départs + 1 boîte de volets) ; le critère « plus petite longueur de gaine d'abord » (Q-77) reste celui du mode Proximité.",
     "Critère de « plus économique » (confirmé par Kévin le 27/10/2026, Q-77) : plus petite longueur totale de gaine, puis moins de boîtes, puis moins de départs. C'est aussi le score des alternatives dans l'étude (section 3 ter).",
-    "Par pièce et Plug de pieuvre : non précisé (doute, `avertir`).",
+    "Par pièce : chaque volet dans la boîte de sa pièce (supposé par le logiciel depuis la mise à jour 62, à valider : Q-87). Plug de pieuvre : non précisé (doute, `avertir`).",
+    "Équilibrée, volets aux deux bouts de la maison : deux boîtes de volets si cela évite de traverser toute la maison (supposé depuis la mise à jour 62, à valider : Q-87).",
     "Précise R-079."
    ],
    "condition": "",
@@ -1586,7 +1587,8 @@ export const REGLES_BASE = {
    "precise": "",
    "questions_liees": [
     "Q-71",
-    "Q-77"
+    "Q-77",
+    "Q-87"
    ],
    "noeud": "chantier/boites/R-094",
    "depends_on": [
@@ -2635,6 +2637,26 @@ export const REGLES_BASE = {
    "si_doute": "",
    "statut": "attente",
    "statut_texte": "en attente (Thibault)"
+  },
+  {
+   "id": "Q-86",
+   "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
+   "question": "Mise à jour 62 (Kévin, 28/10/2026, 08:45 : « économique, c'est le moins de cuivre ») : le critère Q-77 « plus petite longueur totale de gaine, puis boîtes, puis départs » devient-il « le moins de cuivre (longueur de chaque gaine × nombre de fils), dans la limite d'une belle pieuvre » ? Proposition de note « belle pieuvre » commune à tous les modes : aucun croisement de gaines dans une même boîte (obligatoire), pas d'appareil d'une boîte au milieu de ceux d'une autre, cuivre, gaine, nombre de boîtes (une boîte de plus vaut 25 m de fil, réglable), départs équilibrés, gaines de plus de 12 m, pièces par boîte",
+   "reponse": "Mode Économique = le moins de cuivre (avec le coût d'une boîte) ; l'étude garde le rang Q-77 et affiche la note à côté",
+   "suppose": "",
+   "si_doute": "",
+   "statut": "ouverte",
+   "statut_texte": "ouverte (proposée par Claude)"
+  },
+  {
+   "id": "Q-87",
+   "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
+   "question": "Volets roulants selon le mode (R-094) : en Par pièce, chaque volet dans la boîte de sa pièce ? En Équilibrée, deux boîtes de volets quand les volets sont aux deux bouts de la maison (plus de 14 m entre les extrêmes et 40 % de gaine en moins) ?",
+   "reponse": "Oui aux deux (MAILLARD reste à une boîte de volets, comme le BE)",
+   "suppose": "",
+   "si_doute": "",
+   "statut": "ouverte",
+   "statut_texte": "ouverte (proposée par Claude)"
   }
  ],
  "history": [
@@ -3087,6 +3109,17 @@ export const REGLES_BASE = {
    "apres": "R-073 : commande + prises dans une gaine, sans ICTA 25 dans les boîtes ; R-094 : mode Équilibrée = le moins de boîtes ; R-096 : filaire / connecté décidé par le BE ; R-100 : équipements hors plan, registre (MAILLARD)",
    "motif": "Comparaison Oktéo / BE sur MAILLARD, réponses de Kévin du 28/10/2026 (00:32)",
    "par": "IA (validée par Kévin)",
+   "code_valide": null
+  },
+  {
+   "id": "H-042",
+   "date": "28/10/2026",
+   "regle": "R-094, Q-77, Q-86, Q-87",
+   "action": "Proposition",
+   "avant": "Q-86, Q-87 ouvertes",
+   "apres": "Mise à jour 62 : mode Économique = le moins de cuivre, note « belle pieuvre » commune ; volets en Par pièce dans la boîte de leur pièce, deux boîtes de volets en Équilibrée si les volets sont aux deux bouts de la maison (supposés, à valider)",
+   "motif": "Réponses de Kévin du 28/10/2026 (08:38–08:46), décisions laissées à Claude",
+   "par": "IA (à valider par Kévin)",
    "code_valide": null
   }
  ]

@@ -8,11 +8,21 @@
 // on place donc des « unités » indivisibles (un allumage complet, ou une prise seule).
 
 import { packAlim } from "./gaine.js";
-import { isVolet, sansCvr } from "./appareils.js";
+import { isVolet, sansCvr, lignesOf, parseFils } from "./appareils.js";
+import { intrusions } from "./qualite.js";
 import { pointInPoly, labelPoint } from "../walls/rooms.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
 const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+// v62 : nombre de fils (approché) de la gaine d'un appareil, pour le mode Économique (le moins de cuivre = longueur de
+// chaque gaine × nombre de fils, Kévin 28/10 08:45) ; le calcul exact des fils vient ensuite (gaines.js)
+const FILS = { INT: 2, BP: 2, VV: 3, CVR: 4, VR: 3, VEL: 3, EQL: 1 };
+export function wiresOf(a) {
+  if (FILS[a.t]) return FILS[a.t];
+  const L = lignesOf(a);
+  const n = (L || []).reduce((s, l) => s + (l.fils ? parseFils(l.fils).length : 0), 0);
+  return n || 3;
+}
 export const FACES = ["A", "B", "C", "D"];
 
 // face d'une gaine qui part de la boîte vers le point p : A = vers le haut du plan (y plus petit), puis sens horaire
@@ -121,7 +131,7 @@ export function buildUnits(items, links, circuits) {
   boxed.forEach((a) => { const r = find(a.id); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(a); });
   return [...groups.values()].map((g) => ({
     ids: g.map((a) => a.id), lv: g[0].lv, x: g.reduce((s, a) => s + a.x, 0) / g.length, y: g.reduce((s, a) => s + a.y, 0) / g.length,
-    pts: g.map((a) => ({ x: a.x, y: a.y })), circuits: [...new Set(g.map((a) => circOf.get(a.id)?.id).filter(Boolean))],
+    pts: g.map((a) => ({ x: a.x, y: a.y, f: wiresOf(a) })), circuits: [...new Set(g.map((a) => circOf.get(a.id)?.id).filter(Boolean))],
     volet: g.every((a) => isVolet(a.t)),
     // pièce de l'unité (mode « par pièce ») : celle de la majorité de ses lumières, sinon de ses appareils
     room: majority(g.filter((a) => LIGHT.has(a.t) && a.room).map((a) => a.room)) || majority(g.filter((a) => a.room).map((a) => a.room)) || null,
@@ -158,16 +168,50 @@ function median(pts, start) {
 // coût en cuivre d'une boîte : longueurs horizontales boîte → appareils (pondérées par le nombre de fils ≈ 3)
 // + alimentations depuis le tableau (une par circuit, 3 fils)
 // points desservis par une boîte : les appareils au même endroit (≤ near) partagent une gaine → un seul point
-function spotPts(units, near = 0.3) {
+// v62 : `cu` = poids de chaque point = nombre de fils de sa gaine (mode Économique), sinon 1
+function spotPts(units, near = 0.3, cu = false) {
   const out = [];
-  for (const u of units) for (const p of u.pts) if (!out.some((q) => d2(p, q) <= near + 1e-9)) out.push(p);
+  for (const u of units) for (const p of u.pts) {
+    const q = out.find((o) => d2(p, o) <= near + 1e-9);
+    if (q) { if (cu) q.w = Math.max(q.w, p.f || 3); } else out.push(cu ? { x: p.x, y: p.y, w: p.f || 3 } : { x: p.x, y: p.y });
+  }
   return out;
 }
 function boxCost(box, units, tab, near) {
   let c = 0;
-  for (const p of spotPts(units, near)) c += d2(box, p) * 3;
+  for (const p of spotPts(units, near, true)) c += d2(box, p) * p.w;   // v62 : longueur × fils de chaque gaine
   if (tab) { const nc = new Set(units.flatMap((u) => u.circuits)).size; c += d2(box, tab) * (2 * nc + 1); }   // phase + neutre par circuit, une terre
   return c;
+}
+// territoires mêlés d'une répartition (même niveau) : points d'une boîte au fond du territoire d'une autre
+const terrOf = (boxes, S) => intrusions(boxes.map((b) => ({ x: b.x, y: b.y, pts: spotPts(b.units, S.memeEndroit ?? 0.3) })));
+// v62 : une boîte « belle pieuvre » coûte en cuivre ce qu'elle coûte, plus une pénalité par appareil chez le voisin
+export const TERR_COST = 8;
+// une boîte de plus (boîte, connecteurs, alimentation, pose) comptée comme ce poids de cuivre (m de fil) : réglage
+// `coutBoite` (25 m de base : avec 0,5 m, MAILLARD avait 10 boîtes dont trois de 1 ou 2 départs pour 0,3 % de cuivre en moins)
+const boxCostOf = (S) => (S.coutBoite != null ? +S.coutBoite : 25);
+const levelCost = (r, tab, S) => r.reduce((s, b) => s + boxCost(b, b.units, tab, S.memeEndroit ?? 0.3), 0) + r.length * boxCostOf(S) + TERR_COST * terrOf(r, S);
+// v62 : petites boîtes (moins de 3 départs) : leurs unités vont dans les boîtes voisines qui ont de la place, si le
+// total (cuivre + boîtes + territoires) baisse
+function absorbSmall(boxes, tab, S) {
+  let B = boxes.map((b) => ({ ...b, units: b.units.slice() }));
+  for (let again = true; again && B.length > 1;) {
+    again = false;
+    const small = B.filter((b) => departsOf(b.units, S) < 3).sort((p, q) => departsOf(p.units, S) - departsOf(q.units, S));
+    for (const sb of small) {
+      const rest = B.filter((b) => b !== sb).map((b) => ({ ...b, units: b.units.slice() }));
+      let ok = true;
+      for (const u of sb.units) {
+        const to = rest.slice().sort((p, q) => d2(p, u) - d2(q, u)).find((b) => boxOk({ ...b, units: [...b.units, u] }, tab, S));
+        if (!to) { ok = false; break; }
+        to.units.push(u);
+      }
+      if (!ok) continue;
+      rest.forEach((b) => { const p = median([...spotPts(b.units, S.memeEndroit ?? 0.3, true), ...(tab ? [{ x: tab.x, y: tab.y, w: 2 * new Set(b.units.flatMap((u) => u.circuits)).size + 1 }] : [])], b); b.x = p.x; b.y = p.y; });
+      if (rest.every((b) => boxOk(b, tab, S)) && levelCost(rest, tab, S) < levelCost(B, tab, S)) { B = rest; again = true; break; }
+    }
+  }
+  return B;
 }
 
 // placement pour un niveau : regroupement avec capacité, k boîtes, plusieurs essais ; renvoie [{x, y, units}]
@@ -181,9 +225,9 @@ function placeLevel(units, tab, S, tries = 4, kFixed = 0) {
   const k0 = kFixed ? Math.max(kmin, kFixed) : kmin, k1 = kFixed ? k0 : kmin + tries;
   for (let k = k0; k <= k1; k++) {
     for (let seed = 0; seed < 3; seed++) {
-      const r = cluster(units, k, tab, S, seed);
+      const r0 = cluster(units, k, tab, S, seed), r = r0 && !kFixed ? absorbSmall(r0, tab, S) : r0;
       if (!r) continue;
-      const cost = r.reduce((s, b) => s + boxCost(b, b.units, tab, S.memeEndroit ?? 0.3), 0) + r.length * 0.5;   // une boîte de plus coûte un peu
+      const cost = levelCost(r, tab, S);   // cuivre, boîtes, territoires bien séparés (v62)
       if (!best || cost < best.cost) best = { cost, boxes: r };
     }
     if (best && (kFixed || k > kmin + 1)) break;
@@ -222,8 +266,8 @@ function cluster(units, k, tab, S, seed) {
     if (reseed && it < 24) continue;
     const moved = boxes.map((b) => {
       if (!b.units.length) return 0;
-      const pts = spotPts(b.units, S.memeEndroit ?? 0.3);
-      if (tab) pts.push({ x: tab.x, y: tab.y, w: (2 * new Set(b.units.flatMap((u) => u.circuits)).size + 1) / 3 });
+      const pts = spotPts(b.units, S.memeEndroit ?? 0.3, true);   // v62 : pondéré par les fils de chaque gaine
+      if (tab) pts.push({ x: tab.x, y: tab.y, w: 2 * new Set(b.units.flatMap((u) => u.circuits)).size + 1 });
       const np = median(pts, b); const m = d2(np, b); b.x = np.x; b.y = np.y; return m;
     });
     if (Math.max(...moved) < 0.01) break;
@@ -260,6 +304,20 @@ function bisect(units, k, S) {
   while (i < U.length - 1 && acc + w(U[i]) / 2 < tot * kL / k) acc += w(U[i++]);
   i = Math.max(1, Math.min(U.length - 1, i));
   return [...bisect(U.slice(0, i), kL, S), ...bisect(U.slice(i), k - kL, S)];
+}
+// v62 : boîte des volets en mode Équilibrée (R-094 : une seule) ; coupée en deux seulement si les volets sont aux deux
+// bouts de la maison (plus de VOLETS_SPAN m entre les extrêmes) et que deux boîtes font gagner plus de 40 % de gaine
+// (alimentations comprises) : on évite ainsi de traverser toute la maison (proposé à Kévin, Q-87)
+export const VOLETS_SPAN = 14;
+function voletsBalanced(LV, tab, S) {
+  const one = { ...seat(LV, tab, S, false), units: LV };
+  if (!boxOk(one, tab, S)) return placeLevel(LV, tab, S, 4, 0);
+  const pts = spotPts(LV, S.memeEndroit ?? 0.3);
+  let span = 0; for (const p of pts) for (const q of pts) span = Math.max(span, d2(p, q));
+  if (span <= VOLETS_SPAN || LV.length < 2) return [one];
+  const len = (B) => B.reduce((s, b) => s + spotPts(b.units, S.memeEndroit ?? 0.3).reduce((t, p) => t + d2(b, p), 0) + (tab ? d2(b, tab) : 0), 0);
+  const two = bisect(LV, 2, S).filter((P) => P.length).map((P) => ({ ...seat(P, tab, S, false), units: P }));
+  return two.length === 2 && two.every((b) => boxOk(b, tab, S)) && len(two) < 0.6 * len([one]) ? two : [one];
 }
 function placeLevelBalanced(units, tab, S, k0) {
   if (!units.length) return [];
@@ -312,7 +370,8 @@ function placeLevelRooms(units, tab, S, roomsLv) {
 // count = nombre total de boîtes voulu (boîtes gardées comprises), 0 = automatique
 // mode (v39) : "proximite" (le moins de cuivre, défaut), "equilibre" (parts égales), "piece" (une boîte par pièce ;
 // rooms = {[niveau]: [{name, poly}]})
-export const MODES = { proximite: "Proximité", equilibre: "Équilibrée", piece: "Par pièce" };
+// v62 : « proximite » s'appelle Économique (le moins de cuivre) ; la clé reste pour les chantiers déjà enregistrés
+export const MODES = { proximite: "Économique", equilibre: "Équilibrée", piece: "Par pièce" };
 export function placeBoxes(items0, links, circuits, tabs, S0, { keep = [], count = 0, mode = "proximite", rooms = {}, volets = "" } = {}) {
   const items = sansCvr(items0, S0);
   const secOf = new Map(circuits.map((c) => [c.id, c.section || 1.5]));
@@ -370,10 +429,11 @@ export function placeBoxes(items0, links, circuits, tabs, S0, { keep = [], count
         const cost = (B) => (B || []).reduce((s2, b) => s2 + boxCost(b, b.units, tabOf(lv), S.memeEndroit ?? 0.3), 0) + (B || []).length * 0.5;
         const mix = placeMode(L, lv, want[lv] || 0), sep = [...(placeLevel(LV, tabOf(lv), S, 4, 0) || []), ...(placeMode(LO, lv, 0) || [])];
         apart = !!sep.length && (!mix || cost(sep) < cost(mix));
-      } else if (mode === "piece") issues.push("Volets roulants en mode « par pièce » : pas de règle (R-094) — volets mélangés aux autres boîtes, à vérifier");
+      }
+      // v62 : par pièce = chaque volet dans la boîte de sa pièce (proposé à Kévin, Q-87) : mélangés
     }
     if (apart) {
-      const rv = mode === "equilibre" ? (boxOk({ ...seat(LV, tabOf(lv), S, false), units: LV }, tabOf(lv), S) ? [{ ...seat(LV, tabOf(lv), S, false), units: LV }] : placeLevel(LV, tabOf(lv), S, 4, 0)) : placeLevel(LV, tabOf(lv), S, 4, 0);
+      const rv = mode === "equilibre" ? voletsBalanced(LV, tabOf(lv), S) : placeLevel(LV, tabOf(lv), S, 4, 0);
       const ro = placeMode(LO, lv, want[lv] ? Math.max(1, want[lv] - (rv || []).length) : 0);
       r = rv && ro ? [...ro, ...rv] : null;
     } else r = placeMode(L, lv, want[lv] || 0);
