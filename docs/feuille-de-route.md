@@ -395,6 +395,12 @@ Décisions (Claude) :
   « parcours » : plan → relevé IA → relecture automatique → hors plan → câbler → résultat), une seule liste d'alertes
   (contrôle, relecture, étude) avec action directe, résultat = bandes / dossier / rapport IA ; barres d'outils, vues,
   panneaux et onglets détaillés masqués ; bascule Mode BE / Mode IA à tout moment, mêmes données.
+- Réponses de Kévin (16:26) : un technicien BE fait tourner tout le logiciel ; la vue simplifiée sert à se concentrer
+  sur l'IA ; toujours avec une clé ; résultat = dossier PDF complet ; retouche = passage en mode BE.
+- **Coût IA par chantier** (question de Kévin) : jetons réels renvoyés par l'API à chaque appel (relevé + relectures ;
+  aujourd'hui seules les relectures sont comptées) cumulés dans le chantier et le rapport IA ; estimation avant de lancer
+  (image + consigne + réponse attendue) ; coût en € si on saisit le prix par million de jetons dans Paramètres (prix non
+  écrits dans le code : ils changent).
 - Ergonomie (propositions de Claude) : une seule fenêtre de travail à la fois (les cartes ne s'empilent plus) ; un seul
   compteur « à vérifier » (contrôle + doutes) ; panneau Câblage allégé ; onglets Boîtes / Lignes directes / Bandes
   réunis ; textes d'aide longs remplacés par des infobulles (?).
