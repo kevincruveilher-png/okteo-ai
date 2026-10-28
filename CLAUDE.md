@@ -358,6 +358,8 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   (Étude `#et-ia`, `#et-ia-copy`, `.ia-pass`), carte `#rk-rep`, `#rk-again`.
 - v61.1 : render `levelBows` par boîte (`K.bowCache` = Map boxId → {sig, map}, gelé pendant glisser et molette
   `K.wheelAt`) ; view `pxPerVB` sur `K.svSize` (ResizeObserver `K.svObs`, mis à jour par `syncVB`).
+- v61.1 : render `levelBows` par boîte (`K.bowCache` = Map boxId → {sig, map}, gelé pendant glisser et molette
+  `K.wheelAt`) ; view `pxPerVB` sur `K.svSize` (ResizeObserver `K.svObs`, mis à jour par `syncVB`).
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
