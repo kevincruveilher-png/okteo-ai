@@ -325,6 +325,20 @@ Question posée : qu'est-ce qui, sur un plan, dit que les volets sont connectés
   vues de face), avec sur chacune le n° de chaque gaine et son aboutissant (repère de l'appareil, pièce), pour aider le
   perceur de boîte. À prévoir aussi dans le PDF des bandes / étiquettes.
 
+## Notes du 28/10/2026 (08:37), réponses de Kévin — pour les prochaines mises à jour
+- **Relecture ciblée étendue et plus fine** : toutes les détections d'erreurs du logiciel génèrent la consigne
+  (pièces non fermées, ouvertures recentrées, appareils hors pièce, doutes de l'étude, en plus des liaisons) ; consigne
+  plus précise par type d'erreur (ce qu'il faut regarder, où, quels candidats). Kévin : « c'est le seul moyen d'alerte
+  que nous avons » → précision de Claude : pour l'IA oui ; pour le dessinateur il y a aussi le contrôle permanent
+  (compteur ⚠, halos) et les doutes de l'étude.
+- **Impression dans le sens de la vue tournée** : à intégrer dans une prochaine mise à jour (option « comme à l'écran »).
+- **Croisements de gaines — règle précisée par Kévin** : les gaines d'une MÊME boîte ne doivent JAMAIS se croiser
+  (contrainte stricte, aujourd'hui 1 cas sur MAILLARD) ; deux gaines de boîtes différentes peuvent se croiser (permis).
+  → Le tracé ne cherche plus à éviter les croisements entre boîtes ; le zéro croisement dans une boîte est garanti
+  (points d'accroche + tracé, sinon détour) et signalé s'il est impossible (gaine épinglée à la main).
+  → Améliorer le choix d'implantation des boîtes : le placement (modes proximité / équilibrée / par pièce) doit éviter
+  les boîtes dont les gaines se croiseraient (appareils d'une boîte « entremêlés » avec ceux d'une autre).
+
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.
 - Export SPV pour Counter.
