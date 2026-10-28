@@ -423,6 +423,9 @@ Décisions (Claude) :
   Proposé : un objet « obstacle » dessiné sur le plan (rectangle ou polygone, avec son type) ; les boîtes ne s'y posent
   pas, les gaines le contournent (points de passage automatiques) ; une traversée de mur coupe-feu compte comme un doute
   « à vérifier ».
+- Réponse de Kévin (20:07) : rien à ajouter ; il ne sait pas exactement quels obstacles reviennent, mais veut pouvoir
+  **matérialiser un obstacle** sur le plan. → Mise à jour 65 : contour de la maison + outil Obstacle (types proposés
+  ci-dessus, liste modifiable), en attente du « go ».
 
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.
