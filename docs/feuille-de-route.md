@@ -440,6 +440,11 @@ Décisions (Claude) :
 - Cause probable : définition de l'image (symboles de quelques pixels) et réponse sans vérification par la légende.
 - À essayer (ajout en tête de consigne donné à Kévin) : page rendue à 200 dpi au moins, lecture par quarts de page,
   légende lue d'abord, décompte par type à la fin. Si c'est mieux : l'intégrer à `pastePrompt` / `aiPrompt`.
+- Durée de l'essai : 3 min (1er essai Opus : 9 min) → l'IA a pris un raccourci (image basse définition, sans zoom).
+- À faire (proposé à Kévin, 20:36) : (1) au collage / à la réponse, alerte si `ref.W` < 3 000 px (« relevé fait en basse
+  définition, appareils probablement oubliés ») ; (2) la relecture v61 ne voit que les incohérences de ce qui a été
+  relevé, pas les oublis : ajouter des points « familles absentes » (volet sans CVR à côté, pas de TAB, cuisine sans
+  plaque / four, maison sans interphone ni TV…) envoyés à l'IA comme zones à rechercher.
 
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.
