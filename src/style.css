@@ -695,3 +695,12 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 /* v60 : perçage des tranches (onglet Bandes) */
 .bands .bd-tranches{max-width:900px;margin:6px 0 16px}
 .bands .bd-tranches svg{width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff}
+/* v61 : relecture étendue et rapport de l'analyse IA */
+.rk-list .rk-k{display:inline-block;font-size:11px;padding:0 5px;border-radius:6px;background:color-mix(in srgb,var(--accent2) 14%,var(--panel));margin-right:3px}
+.rk-ok b{color:var(--ok)} .rk-no b{color:#b05a00} .rk-wait b{color:var(--mut)}
+.et-iasec{margin:12px 0;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--panel)}
+.et-iasec h3{display:flex;align-items:center;gap:8px}
+.ia-rep{margin-top:4px}
+.ia-pass{margin:6px 0;border:1px solid var(--line);border-radius:8px;padding:5px 8px}
+.ia-pass summary{cursor:pointer;font-size:13px}
+.ia-rows td{font-size:12.5px;vertical-align:top;padding:3px 6px}

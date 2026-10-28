@@ -1,6 +1,7 @@
 // Étude du câblage (v53) : onglet « Étude », doutes sur le plan et compteur, « Pourquoi ? » au clic sur une boîte ou une
 // gaine, commande « Câbler le chantier » (précontrôle d'abord : rien n'est câblé si une règle bloquante manque),
 // rapport de câblage (PDF) et statistiques par règle (toutes les études de ce PC).
+import { reportHTML, reportText } from "./ai-recheck-ui.js";
 import { getCab } from "../cablage/settings.js";
 import { getJournal } from "../cablage/regles.js";
 import { computeCircuits, checkCircuits, circuitsByBox } from "../cablage/circuits.js";
@@ -96,6 +97,7 @@ export function mountEtudePage(el, { api, askRule }) {
             ${d.question ? `<span class="q">Question : ${esc(d.question)}</span>` : ""}
             <span>${d.box || (d.ids && d.ids.length) ? `<button data-a="see" data-i="${i}" title="Montrer sur le plan">Voir</button>` : ""}${d.rule && d.state !== "corrige" ? ` <button data-a="prop" data-i="${i}" title="L'assistant prépare un avant / après de la règle, avec ce cas comme preuve">Proposer une modification de la règle</button>` : ""}</span></li>`).join("") || "<li class=mut>Rien : toutes les règles utilisées sont confirmées et aucun doute.</li>"}</ul></div>
       </div>
+      <section class="et-iasec" id="et-ia"><h3>Analyse IA du relevé <span class="mut sm">relevé, relectures ciblées, ce qui a été modifié ou non trouvé</span><span class="grow"></span><button id="et-ia-copy" title="Copier le rapport en texte (pour un mail ou le BE)">📋 Copier le rapport</button></h3>${reportHTML(api)}</section>
       <details class="rg-more" id="et-stats"><summary>Statistiques par règle (${stats.etudes} chantier${stats.etudes > 1 ? "s" : ""} câblé${stats.etudes > 1 ? "s" : ""} sur ce PC)</summary>
         ${stats.rules.length ? `<table class="rg-tab"><tr><th>Règle</th><th>Appliquée</th><th>Supposée</th><th>Doutes</th><th>Blocages</th><th>Corrigée à la main</th><th>Signal</th></tr>${stats.rules.map((r) => `<tr><td><a href="#" data-rule="${r.id}">${r.id}</a></td><td>${r.app}</td><td>${r.suppose}</td><td>${r.doute}</td><td>${r.bloque}</td><td>${r.corrige}</td><td class="warn">${esc(r.signal)}</td></tr>`).join("")}</table>
           <table class="rg-tab"><tr><th>Mode</th><th>Étudié</th><th>Retenu</th><th>Le plus économique</th><th>Signal</th></tr>${stats.modes.map((m) => `<tr><td>${esc(m.name)}</td><td>${m.etudie}</td><td>${m.retenu}</td><td>${m.meilleur}</td><td class="warn">${esc(m.signal)}</td></tr>`).join("")}</table>
@@ -108,6 +110,8 @@ export function mountEtudePage(el, { api, askRule }) {
     el.querySelectorAll(".et-step").forEach((b) => (b.onclick = () => { cur = +b.dataset.n; render(); }));
     el.querySelectorAll("[data-rule]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); api.setTab("params"); setTimeout(() => window.okteoExt?.pages?.params?.ui?.regles?.open(a.dataset.rule), 80); }));
     el.querySelector("#et-cabler").onclick = () => { const r = cabler(api); msg = r.text; render(); };
+    const iac = el.querySelector("#et-ia-copy");
+    if (iac) iac.onclick = async () => { const t = reportText(api); el.__iaText = t; try { await Promise.race([navigator.clipboard.writeText(t), new Promise((_, no) => setTimeout(() => no(new Error("délai")), 1500))]); iac.textContent = "✓ Rapport copié"; } catch { iac.textContent = "Copie impossible : sélectionnez le rapport"; } };
     el.querySelector("#et-report").onclick = async () => { const r = await buildReport(api, tr); el.__report = r; downloadBlob(r.blob, `${api.ch.nom}${api.ch.numero ? "_" + api.ch.numero : ""}_rapport_cablage.pdf`); };
     const ex = el.querySelector("#et-stats-exp");
     if (ex) ex.onclick = () => downloadBlob(new Blob([JSON.stringify({ okteo: "etudes", ...store(KEY, {}) }, null, 1)], { type: "application/json" }), "etudes-cablage.json");

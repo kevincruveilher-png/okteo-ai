@@ -281,6 +281,30 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 61 (28/10/2026) — livrée : relecture ciblée étendue et plus fine, rapport de l'analyse IA
+Version du logiciel : 0.61.0.
+- Toutes les erreurs détectées après un relevé IA sont relues par l'IA (`recheckPoints(ctx)`), dans cet ordre :
+  liaisons (lumière sans commande, commande sans lumière, va-et-vient seul, deux interrupteurs), pièce nommée non
+  fermée par les murs, type vague (SC, PC20 sans usage), appareil hors des pièces (sauf appareils normalement dehors),
+  doublon (même type à moins de 15 cm), doutes écrits par l'IA au relevé (« remarques »), prise de cuisine sans hauteur
+  écrite, ouverture recentrée par le logiciel, ouverture loin des murs, porte sans sens (8 au plus) ; 20 points au plus.
+- Question propre à chaque erreur (quoi regarder, où, ce qui est plausible) ; repères O1… pour les ouvertures, X1… pour
+  les ouvertures perdues ; rubriques de réponse selon les erreurs : liaisons, ajouts (tout type du relevé), types,
+  deplacer, supprimer, hauteurs, ouvertures, portes, murs, introuvable.
+- Corrections appliquées en un seul Ctrl+Z (API : `updateApps`, `placeOpening`, `addWalls` avec coupe en T, pièces
+  recalculées avec leurs noms quand un mur est ajouté, `openingsInfo`). L'IA modifie directement (Kévin), tout est
+  visible dans l'aperçu.
+- Avec clé : Claude reçoit en plus une image agrandie (4 m) autour de chaque point (8 au plus), annoncée dans la consigne.
+- Rapport de l'analyse IA (Kévin, 08:49) : gardé dans le chantier (`cab.releves[niveau]` : pièces, ouvertures perdues,
+  remarques, points introuvables, rapport) ; pour chaque relecture, chaque point « corrigé », « modifié, toujours
+  signalé », « introuvable » (avec la raison) ou « sans réponse », le détail (avant → après) et le % de réussite
+  (corrigés / signalés), « sous réserve du contrôle BE » ; moteur, jetons, zooms. Carte après « Appliquer » et onglet
+  Étude, section « Analyse IA du relevé » (« Copier le rapport »).
+- Consigne du relevé : n° de la page du fond importé, « ignore les autres pages » (plan du BE en page 2), « ignore les
+  annotations ajoutées à la main », doutes appareil par appareil. Marques du relevé pour la relecture : ouverture
+  ajustée, porte dont le sens est lu, ouverture du relevé IA, prise sans hauteur écrite, ouvertures perdues gardées.
+- Tests : 41 + 69 + 176 + 13 + 156 = 455.
+
 ## Version 60 (28/10/2026) — livrée : boîte pour le câbleur et le perceur
 Version du logiciel : 0.60.0.
 - Schéma de boîte sans fils superposés (schema.js `routeInside`) : un connecteur par raccordement tracé (retours,

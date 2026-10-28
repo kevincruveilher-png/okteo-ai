@@ -48,7 +48,7 @@ const mock = http.createServer((req, res) => {
     else if (/Relecture ciblée/.test(lastText)) {
       // v57 : relecture ciblée : chaque point est relié au premier repère proche
       const L = [];
-      for (const m of lastText.matchAll(/^\d+\. (\S+) \([^\n]*\n\s+Repères proches : (\S+) \(/gm)) L.push([m[2], m[1]]);
+      for (const m of lastText.matchAll(/^\d+\. \[[^\]]+\] (\S+) \([^\n]*\n\s+Repères proches : (\S+) \(/gm)) L.push([m[2], m[1]]);
       text = JSON.stringify({ liaisons: L, ajouts: [], introuvable: [], remarques: hasImage ? "image reçue" : "" });
     }
     else if (/Analyse ce plan/.test(lastText)) {
@@ -719,6 +719,78 @@ try {
     if (!ok) throw new Error(JSON.stringify({ cons, P, A, back, n0 }));
     return true;
   });
+  await check("relecture étendue (v61) : pièce non fermée, type vague, ouverture perdue, porte sans sens, doutes de l'IA → corrections de chaque sorte, rapport avec % de réussite (onglet Étude), un Ctrl+Z", async () => {
+    const before = await ev(() => ({ app: okteo.state.app.length, segs: okteo.state.segs.length }));
+    const rep = { ref: { W: 1000, H: 1000 }, murs: [{ x1: 200, y1: 200, x2: 800, y2: 200, ep: 20 }, { x1: 800, y1: 200, x2: 800, y2: 700, ep: 20 }, { x1: 800, y1: 700, x2: 200, y2: 700, ep: 20 }, { x1: 200, y1: 700, x2: 200, y2: 200, ep: 20 }],
+      ouvertures: [{ x: 500, y: 700, l: 90, t: "porte" }, { x: 500, y: 900, l: 120, t: "fenetre" }], pieces: [{ nom: "Chambre essai", x: 500, y: 450 }, { nom: "Cellier essai", x: 900, y: 450 }],
+      appareils: [{ t: "SC", x: 300, y: 300 }, { t: "PC16", x: 700, y: 650, h: 30 }], liaisons: [], remarques: "la sortie de câble est peut-être un chauffe-eau" };
+    await ev(() => okteoExt.aiReleve.pastePanel());
+    await page.fill("#ai-paste", JSON.stringify(rep));
+    await page.click("#ai-read");
+    await page.waitForSelector("#ai-ok", { timeout: 15000 });
+    await page.click("#ai-ok");
+    await ev(() => okteoExt.recheck.open());
+    await page.waitForSelector("#rk-copy", { timeout: 10000 });
+    const list = await page.textContent(".rkcard .rk-list");
+    await page.click("#rk-copy");
+    await page.waitForFunction(() => !/Copier la relecture/.test(document.querySelector("#rk-copy").textContent), null, { timeout: 5000 });
+    const txt = await ev(() => okteoExt.recheck.copied);
+    const info = await ev(() => ({ door: okteo.openingsInfo().find((o) => o.kind === "porte"), sc: okteo.allApps().find((a) => a.t === "SC") }));
+    const corr = { types: [{ rep: info.sc.rep, t: "CETH" }], portes: [{ rep: info.door.rep, gx: 54, gy: 70, vx: 50, vy: 66 }], ouvertures: [{ rep: "X1", x: 50, y: 20, l: 120, t: "fenetre" }],
+      introuvable: [{ rep: "Cellier essai", pourquoi: "c'est une note hors du plan" }], remarques: "c'est bien un chauffe-eau" };
+    await page.fill("#rk-paste", JSON.stringify(corr));
+    await page.click("#rk-read");
+    await page.waitForSelector("#rk-ok", { timeout: 5000 });
+    await page.click("#rk-ok");
+    await page.waitForSelector("#rk-rep", { timeout: 5000 });
+    const card = await page.textContent(".rkcard");
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/relecture-rapport.png" });
+    const A = await ev(() => ({ ceth: okteo.state.app.some((a) => a.t === "CETH"), door: okteo.state.openings.find((o) => o.kind === "porte"), nOp: okteo.state.openings.length, rap: (okteo.cab.releves[okteo.level.id].rapport || []).length }));
+    await page.click("#rk-rep");
+    await page.waitForSelector("#et-ia .ia-pass", { timeout: 10000 });
+    const et = await page.textContent("#et-ia");
+    if (process.env.SHOT) { await page.$eval("#et-ia", (e) => e.scrollIntoView()); await (await page.$("#et-ia")).screenshot({ path: process.env.SHOT + "/rapport-ia.png" }); }
+    await page.click('#tabs button[data-tab="plan"]');
+    await page.keyboard.press("Control+z"); await page.keyboard.press("Control+z");
+    const back = await ev(() => ({ app: okteo.state.app.length, segs: okteo.state.segs.length }));
+    const r = { list, card: card.slice(0, 300), A, et: et.slice(0, 300), back, before };
+    const ok = /pièce non fermée/.test(list) && /type à préciser/.test(list) && /ouverture loin des murs/.test(list) && /sens de porte non lu/.test(list) && /doute signalé par l'IA/.test(list)
+      && /« Cellier essai »/.test(txt) && /"portes"/.test(txt) && /chauffe-eau/.test(txt)
+      && A.ceth && A.door.aiSens && A.nOp === 2 && A.rap === 2 && /points corrigés \(\d+ %\)/.test(card) && /sous réserve du contrôle BE/.test(card) && /introuvable/.test(card)
+      && /4\/5 points corrigés \(80 %\)/.test(card) && /Réussite des relectures : 4\/5 points corrigés/.test(et) && /Relecture 1/.test(et) && back.app === before.app && back.segs === before.segs;
+    if (!ok) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("relecture étendue (v61) : mur qui manque donné par l'IA → la pièce se ferme et prend son nom (jonctions recollées), un Ctrl+Z", async () => {
+    const before = await ev(() => ({ rooms: okteo.state.rooms.length, segs: okteo.state.segs.length }));
+    const rep = { ref: { W: 1000, H: 1000 }, murs: [{ x1: 200, y1: 200, x2: 800, y2: 200, ep: 20 }, { x1: 800, y1: 200, x2: 800, y2: 700, ep: 20 }, { x1: 800, y1: 700, x2: 200, y2: 700, ep: 20 }, { x1: 200, y1: 700, x2: 200, y2: 200, ep: 20 },
+      { x1: 800, y1: 200, x2: 950, y2: 200, ep: 20 }, { x1: 950, y1: 200, x2: 950, y2: 700, ep: 20 }], ouvertures: [], pieces: [{ nom: "Séjour essai", x: 500, y: 450 }, { nom: "Cellier essai", x: 875, y: 450 }],
+      appareils: [{ t: "PC16", x: 300, y: 690, h: 30 }], liaisons: [] };
+    await ev(() => okteoExt.aiReleve.pastePanel());
+    await page.fill("#ai-paste", JSON.stringify(rep));
+    await page.click("#ai-read");
+    await page.waitForSelector("#ai-ok", { timeout: 15000 });
+    await page.click("#ai-ok");
+    const mid = await ev(() => okteo.state.rooms.map((r) => r.name).sort().join(","));
+    await ev(() => { okteoExt.recheck.done.clear(); return okteoExt.recheck.open(); });
+    await page.waitForSelector("#rk-paste", { timeout: 10000 });
+    const list = await page.textContent(".rkcard .rk-list");
+    await page.fill("#rk-paste", JSON.stringify({ murs: [{ x1: 95, y1: 70, x2: 80, y2: 70, ep: 20, pour: "Cellier essai" }] }));
+    await page.click("#rk-read");
+    await page.waitForSelector("#rk-ok", { timeout: 5000 });
+    await page.click("#rk-ok");
+    await page.waitForSelector("#rk-close", { timeout: 5000 });
+    const card = await page.textContent(".rkcard");
+    const after = await ev(() => okteo.state.rooms.map((r) => r.name).sort().join(","));
+    await page.click("#rk-close");
+    await page.keyboard.press("Control+z");
+    const undone = await ev(() => okteo.state.rooms.map((r) => r.name).sort().join(","));
+    await page.keyboard.press("Control+z");
+    const back = await ev(() => ({ rooms: okteo.state.rooms.length, segs: okteo.state.segs.length }));
+    const r = { mid, list, after, undone, card: card.slice(0, 200), back, before };
+    if (!(mid === "Séjour essai" && /pièce non fermée/.test(list) && /Cellier essai/.test(list) && after === "Cellier essai,Séjour essai" && /1\/1 points corrigés \(100 %\)/.test(card) && undone === "Séjour essai" && back.segs === before.segs && back.rooms === before.rooms)) throw new Error(JSON.stringify(r));
+    return true;
+  });
   // v57 : relecture ciblée (sans clé : copier / coller ; avec clé : boucle limitée)
   const rkSetup = () => ev(() => {
     const xs = okteo.state.nodes.map((n) => n.x).concat(okteo.state.app.map((a) => a.x)), ys = okteo.state.nodes.map((n) => n.y).concat(okteo.state.app.map((a) => a.y));
@@ -736,7 +808,7 @@ try {
     await page.waitForFunction(() => !/Copier la relecture/.test(document.querySelector("#rk-copy").textContent), null, { timeout: 5000 });
     const txt = await ev(() => okteoExt.recheck.copied);
     const reps = await ev((ids) => ids.map((id) => okteo.allApps().find((a) => a.id === id).rep), ids);
-    const cons = /Relecture ciblée/.test(txt) && txt.includes(reps[0]) && txt.includes("Repères proches : " + reps[1]) && /POURCENTAGE de la page 1 du PDF joint/.test(txt);
+    const cons = /Relecture ciblée/.test(txt) && txt.includes(reps[0]) && txt.includes("Repères proches : " + reps[1]) && /POURCENTAGE de la page \d+ du PDF joint/.test(txt);
     await page.fill("#rk-paste", JSON.stringify({ liaisons: [[reps[1], reps[0]]], ajouts: [], introuvable: [] }));
     await page.click("#rk-read");
     await page.waitForSelector("#rk-ok", { timeout: 5000 });
@@ -757,6 +829,8 @@ try {
     const log = await ev((ids) => okteoExt.recheck.loop({ max: 2, ids }), ids);
     const reqs = seen.slice(n0).filter((r) => r.url === "/v1/messages");
     const img = reqs[0] && reqs[0].body.messages[0].content.some((c) => c.type === "image");
+    // v61 : zooms autour des points en plus du plan entier, chacun annoncé dans la consigne
+    const nImg = reqs[0] ? reqs[0].body.messages[0].content.filter((c) => c.type === "image").length : 0, zoomTxt = reqs[0] ? reqs[0].body.messages[0].content.map((c) => c.text || "").join(" ") : "";
     const linked = await ev((ids) => okteo.state.lia.some((l) => l.c === ids[1] && l.l === ids[0]), ids);
     const card = await page.textContent(".rkcard");
     // un point « introuvable » : marqué sur l'appareil, plus jamais demandé
@@ -770,6 +844,7 @@ try {
     const log2 = await ev((ids) => { okteoExt.recheck.done.clear(); return okteoExt.recheck.loop({ max: 2, ids }); }, ids2);
     const asked = seen.length - n1;
     await ev((ids) => { okteo.removeApps(ids); okteoExt.recheck.close(); }, ids2);
+    if (!(nImg >= 2 && /Zoom 1 : 4 m autour du point 1/.test(zoomTxt) && /Zoom 1 : image agrandie/.test(zoomTxt))) throw new Error("zooms : " + nImg + " " + zoomTxt.slice(0, 200));
     const r = { log, reqs: reqs.length, img, linked, card: /Relecture terminée/.test(card), flag, log2, asked };
     if (!log || log.passes !== 1 || log.tokens !== 1200 || !/plus rien/.test(log.why) || reqs.length !== 1 || !img || !linked || !r.card || flag !== "pas de commande dessinée" || asked !== 0 || log2.passes !== 0) throw new Error(JSON.stringify(r));
     return true;

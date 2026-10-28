@@ -10,7 +10,7 @@ import { pageLabels } from "../src/walls/labels.js";
 import { detectDevices, pageTexts } from "../src/walls/devices.js";
 import { solveDigits, readDigits } from "../src/walls/digits.js";
 import { parseAiJson, aiToPlan, pastePrompt } from "../src/walls/ai-plan.js";
-import { recheckPoints, recheckPrompt, parseCorrections, shouldContinue } from "../src/walls/ai-recheck.js";
+import { recheckPoints, recheckPrompt, parseCorrections, recheckReport, shouldContinue } from "../src/walls/ai-recheck.js";
 
 const data = new Uint8Array(fs.readFileSync(new URL("../docs/plans/EVRARD_04949_plan.pdf", import.meta.url)));
 const doc = await pdfjs.getDocument({ data, verbosity: 0 }).promise;
@@ -169,19 +169,52 @@ console.log("Relevé par l'IA : remise au propre de la réponse");
     { id: "a3", t: "LUM", x: 10, y: 5, rep: "L1", room: "WC" }, { id: "a4", t: "LUM", x: 15, y: 5, rep: "L2", room: "Chambre", aiNo: "aucune commande" }, { id: "a5", t: "PC16", x: 2.5, y: 9 }];
   const issues = [{ kind: "lum", ids: ["a1"], lv: "rdc" }, { kind: "lum", ids: ["a3"], lv: "rdc" }, { kind: "lum", ids: ["a4"], lv: "rdc" }, { kind: "circ", ids: ["a5"], lv: "rdc" }];
   const done = new Set(["lum:a3"]);
-  const Pts = recheckPoints(apps, issues, { frame, done });
-  const all = recheckPoints(apps, issues, { frame });
+  const Pts = recheckPoints({ apps, issues }, { frame, done });
+  const all = recheckPoints({ apps, issues }, { frame });
   const txt = recheckPrompt(all, { mode: "paste" });
   check("relecture : seuls les points nouveaux (pas déjà demandés, pas « introuvable ») ; position en % de la page ; repères proches ; consigne courte",
     Pts.length === 1 && Pts[0].points[0].rep === "S1" && Pts[0].points[0].x === 10 && Pts[0].points[0].y === 98 && Pts[0].near[0].rep === "I1" && all.length === 2
-      && /S1 \(spot, hors pièce\) à x = 10 %, y = 98 %/.test(txt) && /"introuvable"/.test(txt) && txt.length < 2500, JSON.stringify(Pts));
+      && /S1 \(spot, hors pièce\) à x = 10 %, y = 98 %/.test(txt) && /"introuvable"/.test(txt) && txt.length < 3000, JSON.stringify(Pts));
   const C = parseCorrections('Voici : {"liaisons":[["I1","S1"],["L1","N1"],["X9","L1"]],"ajouts":[{"t":"INT","x":50,"y":40,"h":110,"pour":"L1","rep":"N1"},{"t":"FOUR","x":1,"y":1}],"introuvable":[{"rep":"L1","pourquoi":"pas de commande dessinée"}]}', { apps, frame, points: all });
-  check("corrections : liaison existante, ajout relié (sens remis commande → lumière), type non autorisé et repère inconnu signalés, introuvable gardé",
-    C.links.length === 2 && C.links[0].c === "a2" && C.links[0].l === "a1" && C.links[1].c === "add:0" && C.links[1].l === "a3" && C.adds.length === 1 && Math.abs(C.adds[0].x - 10) < 1e-9 && Math.abs(C.adds[0].y - 4) < 1e-9 && C.adds[0].h === 110
-      && C.errors.length === 2 && C.nope.length === 1 && C.nope[0].id === "a3" && !C.silent.length, JSON.stringify(C));
+  check("corrections : liaison existante, ajout relié (sens remis commande → lumière), tout type du relevé accepté en ajout, repère inconnu signalé, introuvable gardé",
+    C.links.length === 2 && C.links[0].c === "a2" && C.links[0].l === "a1" && C.links[1].c === "add:0" && C.links[1].l === "a3" && C.adds.length === 2 && C.adds[1].t === "FOUR" && Math.abs(C.adds[0].x - 10) < 1e-9 && Math.abs(C.adds[0].y - 4) < 1e-9 && C.adds[0].h === 110
+      && C.errors.length === 1 && C.nope.length === 1 && C.nope[0].id === "a3" && !C.silent.length, JSON.stringify(C));
   const st = [shouldContinue({ pass: 1, max: 2, before: 5, after: 2, changed: 3 }), shouldContinue({ pass: 2, max: 2, before: 2, after: 1, changed: 1 }), shouldContinue({ pass: 1, max: 2, before: 2, after: 0, changed: 2 }), shouldContinue({ pass: 1, max: 3, before: 2, after: 2, changed: 0 })];
   check("boucle : continue si ça progresse ; arrêt à la limite, quand plus rien n'est à revoir, ou quand une relecture ne corrige rien",
     st[0].go && !st[1].go && /limite/.test(st[1].why) && !st[2].go && /plus rien/.test(st[2].why) && !st[3].go && /rien corrigé/.test(st[3].why), JSON.stringify(st));
+}
+{
+  // v61 : marques posées au relevé pour la relecture : ouverture perdue gardée, porte sans sens, hauteur non écrite
+  const P0 = aiToPlan({ murs: [{ x1: 100, y1: 100, x2: 900, y2: 100, ep: 20 }], ouvertures: [{ x: 300, y: 100, l: 90, t: "porte" }, { x: 500, y: 600, l: 120, t: "fenetre" }, { x: 700, y: 100, l: 90, t: "porte", gx: 745, gy: 100 }],
+    appareils: [{ t: "PC16", x: 200, y: 110 }, { t: "PC16", x: 250, y: 110, h: 110 }] }, { x0: 0, y0: 0, sx: 0.01, sy: 0.01 });
+  check("relevé : ouverture loin des murs gardée pour la relecture (position, largeur), porte sans sens repérée, prise sans hauteur écrite repérée",
+    P0.lost.length === 1 && Math.abs(P0.lost[0].x - 5) < 1e-9 && P0.lost[0].kind === "fenetre" && !P0.openings[0].sens && P0.openings[1].sens && P0.devices[0].hNo && !P0.devices[1].hNo, JSON.stringify({ lost: P0.lost, o: P0.openings, d: P0.devices }));
+  // v61 : relecture étendue à toutes les erreurs détectées ; corrections de chaque sorte ; rapport et % de réussite
+  const frame = { x0: 0, y0: 0, w: 20, h: 10 };
+  const apps = [{ id: "sc1", t: "SC", x: 4, y: 2, rep: "SC1", room: "Garage" }, { id: "p1", t: "PC16", x: 8, y: 3, rep: "P1", room: "Cuisine", hNo: true },
+    { id: "p2", t: "PC16", x: 12, y: 3, rep: "P2", room: "Séjour" }, { id: "p3", t: "PC16", x: 12.05, y: 3.05, rep: "P3", room: "Séjour" },
+    { id: "i9", t: "INT", x: 19.5, y: 9.5, rep: "I9", room: null, out: true }, { id: "ap1", t: "APP", x: 0.1, y: 5, rep: "AP1", room: null, out: true }];
+  const openings = [{ id: "o1", rep: "O1", kind: "porte", w: 0.9, x: 6, y: 5, adj: true, sens: false }, { id: "o2", rep: "O2", kind: "fenetre", w: 1.2, x: 2, y: 0, sens: true }];
+  const ctx = { apps, issues: [], openings, missing: [{ name: "Cellier", x: 15, y: 8 }], lost: [{ x: 10, y: 9.9, w: 0.8, kind: "fenetre" }], remarques: "doute sur le chauffe-eau du garage", kitchen: (r) => /Cuisine/.test(r || "") };
+  const P = recheckPoints(ctx, { frame }), K = P.map((x) => x.kind);
+  const txt = recheckPrompt(P, { mode: "paste", page: 3 });
+  check("relecture étendue : pièce non fermée, type vague, appareil hors pièce (pas l'applique), doublon, doutes de l'IA, hauteur en cuisine, ouverture recentrée, ouverture perdue, porte sans sens ; liaisons d'abord, portes en dernier",
+    ["piece", "type", "hors", "doublon", "rem", "haut", "ouv", "perdue", "porte"].every((k, i) => K[i] === k) && K.length === 9 && !P.some((x) => x.ids.includes("ap1"))
+      && /page 3 du PDF joint/.test(txt) && ["\"types\"", "\"deplacer\"", "\"supprimer\"", "\"hauteurs\"", "\"ouvertures\"", "\"portes\"", "\"murs\""].every((r) => txt.includes(r)) && /O1 \(porte/.test(txt) && /X1 \(fenêtre/.test(txt) && /« Cellier »/.test(txt) && /doute sur le chauffe-eau/.test(txt), K.join(","));
+  const nope = recheckPoints({ ...ctx, nope: new Set(["piece:Cellier", "rem"]) }, { frame }).map((x) => x.kind);
+  check("un point dit introuvable (ou les remarques déjà reprises) n'est jamais redemandé", !nope.includes("piece") && !nope.includes("rem") && nope.length === 7, nope.join(","));
+  const C = parseCorrections(JSON.stringify({ types: [{ rep: "SC1", t: "CETH" }], deplacer: [{ rep: "I9", x: 50, y: 50 }], supprimer: [{ rep: "P3", pourquoi: "doublon" }], hauteurs: [{ rep: "P1", h: 110, pt: true }],
+    ouvertures: [{ rep: "O1", x: 31, y: 50, l: 80, t: "porte" }, { rep: "X1", x: 50, y: 99, l: 80, t: "fenetre" }], portes: [{ rep: "O1", gx: 32, gy: 50, vx: 30, vy: 55 }],
+    murs: [{ x1: 70, y1: 60, x2: 70, y2: 100, ep: 7, pour: "Cellier" }], remarques: "chauffe-eau confirmé" }), { apps, openings, frame, points: P });
+  const R = recheckReport(P, C, new Set());
+  const R2 = recheckReport(P, C, new Set(["type:sc1"]));
+  check("corrections de chaque sorte (type, déplacement, suppression, hauteur et plan de travail, ouvertures replacée et posée, sens de porte, mur) ; rapport : tous corrigés = 100 %, un point encore signalé = « modifié, toujours signalé »",
+    C.types[0].t === "CETH" && Math.abs(C.moves[0].x - 10) < 1e-9 && C.dels[0].id === "p3" && C.heights[0].h === 110 && C.heights[0].pt === true && C.opens.length === 2 && C.opens[1].lost === 0 && Math.abs(C.opens[0].w - 0.8) < 1e-9
+      && C.doors[0].g && C.doors[0].v && Math.abs(C.walls[0].ep - 0.07) < 1e-9 && C.walls[0].pour === "Cellier" && !C.errors.length && R.pct === 100 && R.ok === 9
+      && R2.rows.find((r) => r.key === "type:sc1").state === "modifié, toujours signalé" && R2.pct === 89, JSON.stringify({ R: R.rows.map((r) => r.state), e: C.errors }));
+  const C2 = parseCorrections('{"introuvable":[{"rep":"Cellier","pourquoi":"c\'est un placard"}]}', { apps, openings, frame, points: P });
+  const R3 = recheckReport(P, C2, new Set(P.map((x) => x.key).filter((k) => k !== "piece:Cellier")));
+  check("rapport : point introuvable (avec la raison), points sans réponse ; % = corrigés / signalés", R3.rows[0].state === "introuvable" && /placard/.test(R3.rows[0].detail) && R3.rows.filter((r) => r.state === "sans réponse").length === 8 && R3.pct === 0 && C2.nopeKeys[0].key === "piece:Cellier", JSON.stringify(R3.rows.map((r) => r.state)));
 }
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);

@@ -136,7 +136,10 @@ export async function chat({ system, messages, maxTokens = 1800, provider, model
     const msgs = messages.map((m) => ({
       role: m.role,
       content: m.image
-        ? [{ type: "image", source: { type: "base64", media_type: m.image.type, data: m.image.data } }, { type: "text", text: m.text }]
+        ? [{ type: "image", source: { type: "base64", media_type: m.image.type, data: m.image.data } },
+          // v61 : images supplémentaires (zooms de la relecture ciblée), chacune précédée de son nom
+          ...(m.images || []).flatMap((im) => [{ type: "text", text: im.label || "Image" }, { type: "image", source: { type: "base64", media_type: im.type, data: im.data } }]),
+          { type: "text", text: m.text }]
         : m.text,
     }));
     const body = await anthropicCall(key, { model, max_tokens: maxTokens, system, messages: msgs });

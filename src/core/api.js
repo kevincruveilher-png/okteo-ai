@@ -211,7 +211,8 @@ window.okteo = {
       ...(a.pt === true || a.pt === false ? { pt: a.pt } : {}),
       // v57 : équipement hors plan (ajouté d'après le devis, à vérifier) ; point que l'IA n'a pas trouvé en relecture
       ...(a.hp ? { hp: true } : {}),
-      ...(a.aiNo ? { aiNo: a.aiNo } : {})
+      ...(a.aiNo ? { aiNo: a.aiNo } : {}),
+      ...(a.hNo ? { hNo: true } : {})
     }));
     const out = [];
     for (const l of CH.levels) out.push(...(l.id === K.LV.cur ? one(l.id) : withLevel(l.id, () => one(l.id))));
@@ -347,6 +348,7 @@ window.okteo = {
       };
       if (d.pt) na.pt = true; // v57 : prise de plan de travail relevée
       if (d.hp) na.hp = true; // v57 : équipement hors plan (à vérifier avec le devis)
+      if (d.hNo) na.hNo = true; // v61 : hauteur non écrite sur le plan (relecture ciblée)
       if (p.seg) {
         na.seg = p.seg;
         attach(na);
@@ -388,6 +390,111 @@ window.okteo = {
   // v59 : croisements de gaines qui restent sur le niveau ouvert
   gaineCrossings() {
     return gaineCrossings();
+  },
+  // v61 : murs ajoutés par la relecture IA : [{a:{x,y}, b:{x,y}, ep}] ; chaque bout se colle à un sommet (≤ 0,3 m) ou
+  // coupe le mur touché (jonction en T, ouvertures gardées sur le bon morceau). Renvoie le nombre de murs ajoutés.
+  addWalls(list = []) {
+    snapshot();
+    const near = 0.3;
+    const at = (p) => {
+      let best = null;
+      for (const n of state.nodes) { const d = Math.hypot(n.x - p.x, n.y - p.y); if (d <= near && (!best || d < best.d)) best = { d, n }; }
+      if (best) return best.n.id;
+      // sur un mur : coupe en T
+      for (const sg of state.segs) {
+        if (sg.virt) continue;
+        const A = nodeById(sg.a), B = nodeById(sg.b);
+        if (!A || !B) continue;
+        const L = Math.hypot(B.x - A.x, B.y - A.y), ux = (B.x - A.x) / L, uy = (B.y - A.y) / L, t = (p.x - A.x) * ux + (p.y - A.y) * uy;
+        if (t < near || t > L - near || Math.abs((p.x - A.x) * -uy + (p.y - A.y) * ux) > near) continue;
+        const k = node(A.x + ux * t, A.y + uy * t), s2 = { ...sg, id: uidS(), a: k.id, b: sg.b };
+        delete s2.virt;
+        sg.b = k.id;
+        state.segs.push(s2);
+        state.openings.filter((o) => o.seg === sg.id && o.t > t).forEach((o) => { o.seg = s2.id; o.t = +(o.t - t).toFixed(3); });
+        state.app.filter((ap) => ap.seg === sg.id).forEach((ap) => reattach(ap));
+        return k.id;
+      }
+      return node(p.x, p.y).id;
+    };
+    let n = 0;
+    for (const w of list) {
+      if (!w || !w.a || !w.b || Math.hypot(w.b.x - w.a.x, w.b.y - w.a.y) < 0.2) continue;
+      const a = at(w.a), b = at(w.b);
+      if (a === b || state.segs.some((sg) => (sg.a === a && sg.b === b) || (sg.a === b && sg.b === a))) continue;
+      state.segs.push({ id: uidS(), a, b, ...(w.ep ? { ep: +w.ep.toFixed(3) } : {}) });
+      n++;
+    }
+    clampOpenings();
+    markDirty();
+    draw();
+    showSide();
+    return n;
+  },
+  // v61 : ouvertures du niveau ouvert, avec repère O1, O2… (relecture ciblée) : centre, largeur, type, marques
+  openingsInfo() {
+    return state.openings.map((o, i) => {
+      const sg = segById(o.seg), A = sg && nodeById(sg.a), B = sg && nodeById(sg.b);
+      if (!A || !B) return null;
+      const L = Math.hypot(B.x - A.x, B.y - A.y) || 1;
+      return { id: o.id, rep: "O" + (i + 1), kind: o.kind, w: o.w, x: A.x + (B.x - A.x) / L * o.t, y: A.y + (B.y - A.y) / L * o.t, adj: !!o.aiAdj, sens: !!o.aiSens || o.kind !== "porte" || !o.aiRel };
+    }).filter(Boolean);
+  },
+  // v61 : corrections d'appareils (tous niveaux) : [{id, t?, x?, y?, h?, pt?}] ; un appareil mural déplacé se recolle à son mur
+  updateApps(list = []) {
+    const idx = appIndex();
+    snapshot();
+    let n = 0;
+    for (const u of list) {
+      const e = idx.get(u.id);
+      if (!e) continue;
+      const a = e.a;
+      if (u.t && TYPES[u.t]) a.t = u.t;
+      if (u.h != null && u.h > 0) { a.h = u.h; delete a.hNo; }
+      if (u.pt === true || u.pt === false) a.pt = u.pt;
+      if (u.x != null && u.y != null) {
+        if (e.lv === K.LV.cur) { const p = wallMounted(a.t) ? snapToWall(u.x, u.y) : null; a.x = +(p ? p.x : u.x).toFixed(3); a.y = +(p ? p.y : u.y).toFixed(3); delete a.seg; delete a.wa; if (p && p.seg) { a.seg = p.seg; attach(a); } }
+        else { a.x = u.x; a.y = u.y; }
+      }
+      n++;
+    }
+    markDirty();
+    draw();
+    showSide();
+    return n;
+  },
+  // v61 : pose (ou replace) une ouverture sur le mur le plus proche du point {x, y} (≤ 0,6 m) ; g / v = montant des gonds
+  // et point de l'arc (sens de la porte). Renvoie l'id, ou null s'il n'y a pas de mur assez près.
+  placeOpening({ id = null, x, y, w = 0.9, kind = "porte", g = null, v = null } = {}) {
+    let best = null;
+    for (const sg of state.segs) {
+      if (sg.virt) continue;
+      const A = nodeById(sg.a), B = nodeById(sg.b);
+      if (!A || !B) continue;
+      const L = Math.hypot(B.x - A.x, B.y - A.y);
+      if (L < 0.5) continue;
+      const ux = (B.x - A.x) / L, uy = (B.y - A.y) / L, t = (x - A.x) * ux + (y - A.y) * uy, d = Math.abs((x - A.x) * -uy + (y - A.y) * ux);
+      if (t < 0 || t > L || d > 0.6) continue;
+      if (!best || d < best.d) best = { sg, A, B, L, t, d };
+    }
+    if (!best) return null;
+    snapshot();
+    const W = Math.min(Math.max(0.4, w), best.L - 0.1), t = Math.min(best.L - W / 2, Math.max(W / 2, best.t));
+    let o = id ? state.openings.find((q) => q.id === id) : null;
+    if (!o) { o = { id: uidO(), hinge: "g", swing: "int" }; state.openings.push(o); }
+    Object.assign(o, { seg: best.sg.id, t: +t.toFixed(3), w: +W.toFixed(3), kind: ["porte", "fenetre", "garage"].includes(kind) ? kind : o.kind || "porte" });
+    delete o.aiAdj;
+    if (g || v) {
+      const L = best.L, ux = (best.B.x - best.A.x) / L, uy = (best.B.y - best.A.y) / L;
+      if (g) o.hinge = (g.x - best.A.x) * ux + (g.y - best.A.y) * uy > o.t ? "d" : "g";
+      if (v) { const c = { x: best.A.x + ux * o.t, y: best.A.y + uy * o.t }; o.swing = (v.x - c.x) * -uy + (v.y - c.y) * ux > 0 ? "ext" : "int"; }
+      o.aiSens = true;
+    }
+    clampOpenings();
+    markDirty();
+    draw();
+    showSide();
+    return o.id;
   },
   // v57 : marques d'un appareil (tous niveaux) : hp (hors plan), aiNo (introuvable pour l'IA, jamais redemandé), pt
   setAppFlags(id, patch = {}) {
@@ -504,7 +611,10 @@ window.okteo = {
       w: o.w,
       kind: o.kind,
       hinge: o.hinge === "d" ? "d" : "g",   // v57 : gond et sens relevés par l'IA
-      swing: o.swing === "ext" ? "ext" : "int"
+      swing: o.swing === "ext" ? "ext" : "int",
+      ...(o.adj ? { aiAdj: true } : {}),    // v61 : recentrée / rétrécie au relevé (relecture ciblée)
+      ...(o.sens ? { aiSens: true } : {}),  // v61 : sens de la porte lu par l'IA
+      ...(o.ai ? { aiRel: true } : {})      // v61 : ouverture du relevé IA (seules celles-là sont relues)
     }));
     state.app.forEach(a => {
       if (!a.seg || !segById(a.seg)) reattach(a);

@@ -347,13 +347,22 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   triées par `slot` sur chaque face ; `trancheOrder(box, f, n)` (vue de l'extérieur = rang décroissant), `tranchesSVG(box,
   {sides, n})` (`g.tranche[data-f]`, `g.trou[data-no]`, `circle.trou.libre`) ; Bandes `.bd-tranches`, `#bd-tr-h` ; bandes-pdf
   page 2 « perçage des tranches » (`svgToPng(svg, px, py)`) ; bande-code : 10e élément de gaine = `slot` ; bande-view `.tr`.
+- v61 : ai-recheck.js `recheckPoints(ctx {apps (a.out), issues, openings, missing, lost, remarques, nope, kitchen}, {frame,
+  done, max 20, maxDoors 8})` (sortes `RECHECK_KINDS`, ordre `ORDER`, `EXT_OK`), `recheckPrompt(P, {mode, page, zoom})`
+  (rubriques selon les sortes), `parseCorrections` → {links, adds, types, moves, dels, heights, opens, doors, walls, nope,
+  nopeKeys, acts Map clé → textes, errors, count}, `recheckReport(points, C, still)` → {rows, total, ok, pct} ; ai-plan.js
+  `doorSense`, openings `ai`/`adj`/`sens`, `plan.lost`, devices `hNo`, `pastePrompt({page})`. Cœur : openings `aiRel`,
+  `aiAdj`, `aiSens` ; apps `hNo` ; API `openingsInfo()`, `updateApps(list)`, `placeOpening({id, x, y, w, kind, g, v})`,
+  `addWalls(list)`. ext : ai-recheck-ui.js `recordReleve` (appelé par ai-releve add), `releveOf`, `cab.releves[lv]`
+  {pieces, lost, remarques, nope, rapport[]}, `zooms` (Claude : `images` en plus dans `chat`), `reportHTML`/`reportText`
+  (Étude `#et-ia`, `#et-ia-copy`, `.ia-pass`), carte `#rk-rep`, `#rk-again`.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
-Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (36 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (69 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (13 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (154 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (41 vérifications : relevé des murs, des pièces et des
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (69 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (13 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (156 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

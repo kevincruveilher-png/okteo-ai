@@ -8,6 +8,7 @@ import { aiPrompt, pastePrompt, parseAiJson, aiToPlan } from "../walls/ai-plan.j
 import { findRooms, nameRooms, labelPoint, pointInPoly } from "../walls/rooms.js";
 import { autoScale } from "./pdf-page.js";
 import { esc } from "./util.js";
+import { recordReleve } from "./ai-recheck-ui.js";
 
 const SYSTEM = "Tu es dessinateur au bureau d'études électricité d'un fabricant de pieuvres électriques pour maisons individuelles. Tu relèves des plans avec précision et tu réponds uniquement en JSON.";
 
@@ -111,6 +112,8 @@ export function createAiReleve({ api, openParams }) {
         if (list.length) done.push(`${api.addRooms(list, { replace: true })} pièces`);
       }
       if (keep.devices && plan.devices.length) { const r = api.importDevices(plan.devices, plan.links, { replace: true }); devAdded = true; done.push(`${r.appareils} appareils, ${r.liaisons} liaisons`); }
+      // v61 : ce que la relecture ciblée et son rapport doivent savoir (pièces nommées, ouvertures perdues, remarques)
+      recordReleve(api, keep.walls ? plan : { ...plan, lost: [] }, { mode: lastMode, info: meta, counts: { murs: keep.walls ? plan.walls.length : 0, ouvertures: keep.walls ? plan.openings.length : 0, pieces: plan.pieces.length, appareils: keep.devices ? plan.devices.length : 0, liaisons: keep.devices ? plan.links.length : 0 } });
     });
     card.hidden = true; plan = null;
     api.setHint(`Relevé IA ajouté : ${done.join(", ") || "rien"}. Ctrl+Z annule tout l'ajout.`);
@@ -158,7 +161,7 @@ export function createAiReleve({ api, openParams }) {
     card.querySelector("#ai-read").onclick = () => { const t = ta.value.trim(); if (t) fromPaste(t); };
     card.querySelector("#ai-x").onclick = close;
     card.querySelector("#ai-copy").onclick = async (e) => {
-      const b = e.currentTarget, txt = pastePrompt();
+      const b = e.currentTarget, txt = pastePrompt({ page: (api.ch.fond && api.ch.fond.page) || 1 });
       copied = txt;
       let ok = false;
       // presse-papiers refusé ou sans réponse (1,5 s) : la consigne est mise dans la zone de texte, sélectionnée

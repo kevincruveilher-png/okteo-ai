@@ -54,7 +54,8 @@ ${types}
   INT, VV ou BP vers LUM, APP ou SPOT ; CVR vers VR ou VEL.
   Un allumage commandé de plusieurs endroits : chaque VV (ou BP) est relié à TOUTES les lumières qu'il commande. Une commande qui allume plusieurs lumières : une liaison par lumière.
   Points extérieurs (appliques, spots en façade, terrasse) : leur commande est presque toujours À L'INTÉRIEUR, près de la porte ou de la baie la plus proche, souvent dans un boîtier double avec une autre commande ; suis le trait de liaison. Chaque lumière doit avoir sa commande ; sinon dis-le dans "remarques".
-- N'invente rien : ce que tu ne vois pas reste absent. Mets dans "remarques" ce qui est douteux.`;
+- Ignore les annotations ajoutées à la main sur le plan (écritures manuscrites, surlignages, traits de feutre, tampons) : ne relève que le dessin et les symboles de l'électricité.
+- N'invente rien : ce que tu ne vois pas reste absent. Mets dans "remarques" ce qui est douteux, appareil par appareil.`;
 }
 const JSON_FORM = `{"murs":[{"x1":0,"y1":0,"x2":0,"y2":0,"ep":20}],
  "ouvertures":[{"x":0,"y":0,"l":90,"t":"porte","gx":0,"gy":0,"vx":0,"vy":0},{"x":0,"y":0,"l":240,"t":"garage"}],
@@ -72,9 +73,9 @@ Réponds UNIQUEMENT avec ce JSON (sans texte autour) :
 ${JSON_FORM}`;
 }
 // relevé sans clé (v36) : consigne à copier dans une conversation neuve avec le PDF joint ; la réponse se colle dans Oktéo
-export function pastePrompt() {
-  return `Voici le plan d'une maison individuelle (PDF joint, page 1).
-${promptBody(`- Fais une image de TOUTE la page 1 (sans rognage). Coordonnées en PIXELS de cette image (origine en haut à gauche, x vers la droite, y vers le bas), nombres entiers. Donne la taille de cette image dans "ref" (W = largeur, H = hauteur en pixels) : sans "ref", la réponse ne peut pas être placée.
+export function pastePrompt({ page = 1 } = {}) {
+  return `Voici le plan d'une maison individuelle (PDF joint, page ${page}). Ignore les autres pages du PDF (plan du bureau d'études, notices).
+${promptBody(`- Fais une image de TOUTE la page ${page} (sans rognage). Coordonnées en PIXELS de cette image (origine en haut à gauche, x vers la droite, y vers le bas), nombres entiers. Donne la taille de cette image dans "ref" (W = largeur, H = hauteur en pixels) : sans "ref", la réponse ne peut pas être placée.
 - Mesure les positions sur l'image (pas à l'estime) : les murs doivent tomber sur les murs du plan.`)}
 
 Réponds UNIQUEMENT avec ce JSON (sans texte autour) :
@@ -109,6 +110,14 @@ function parseJson(text) {
 const num = (v) => (typeof v === "number" ? v : parseFloat(v));
 const ok = (...v) => v.every((x) => Number.isFinite(x));
 
+// v61 : sens d'une porte sur le mur A→B, centre à t (m depuis A) : gond du côté du montant g, ouverture du côté du point v
+export function doorSense(A, B, t, g, v) {
+  const L = Math.hypot(B.x - A.x, B.y - A.y) || 1, ux = (B.x - A.x) / L, uy = (B.y - A.y) / L;
+  let hinge = "g", swing = "int";
+  if (g) hinge = (g.x - A.x) * ux + (g.y - A.y) * uy > t ? "d" : "g";
+  if (v) { const c = { x: A.x + ux * t, y: A.y + uy * t }; swing = (v.x - c.x) * -uy + (v.y - c.y) * ux > 0 ? "ext" : "int"; }
+  return { hinge, swing };
+}
 // Réponse de l'IA → { nodes, walls, openings } (format du relevé automatique), pieces, devices, links, stats
 export function aiToPlan(raw, map, { defEp = 0.2, mergeTol = 0.15, axisTol = 4 } = {}) {
   const P = (u, v) => ({ x: map.x0 + u * map.sx, y: map.y0 + v * map.sy });
@@ -168,7 +177,7 @@ export function aiToPlan(raw, map, { defEp = 0.2, mergeTol = 0.15, axisTol = 4 }
   segs = segs.filter((s) => { const key = Math.min(s.a, s.b) + "-" + Math.max(s.a, s.b); if (seen.has(key)) return false; seen.add(key); return true; });
 
   // 4. ouvertures : posées sur le mur le plus proche (distance le long du mur depuis son 1er sommet)
-  const openings = [];
+  const openings = [], lost = [];
   for (const o of raw.ouvertures || []) {
     const u = num(o.x), v = num(o.y); if (!ok(u, v)) continue;
     const p = P(u, v), w = Math.min(3.2, Math.max(0.4, num(o.l) > 0 ? num(o.l) / 100 : 0.9));
@@ -184,19 +193,18 @@ export function aiToPlan(raw, map, { defEp = 0.2, mergeTol = 0.15, axisTol = 4 }
       const t2 = Math.min(L - w2 / 2, Math.max(w2 / 2, t)), shift = Math.abs(t2 - t) + (w - w2);
       if (!best || d + shift < best.d + best.shift) best = { d, shift, seg: i, t: t2, w: w2 };
     });
-    if (!best) { stats.ouverturesPerdues++; continue; }
+    if (!best) { stats.ouverturesPerdues++; lost.push({ ...p, w, kind: /gar|sect|bascul/i.test(o.t || "") ? "garage" : /fen|win/i.test(o.t || "") ? "fenetre" : "porte" }); continue; }
     if (best.shift > 1e-6) stats.ouverturesAjustees = (stats.ouverturesAjustees || 0) + 1;
     const kind = /gar|sect|bascul/i.test(o.t || "") ? "garage" : /fen|win/i.test(o.t || "") ? "fenetre" : /porte|door/i.test(o.t || "") ? "porte" : segs[best.seg].ep < 0.15 ? "porte" : "fenetre";
     // v57 : gond (côté du montant gx, gy) et sens (côté du point vx, vy) relevés par l'IA ; sinon gauche / intérieur
-    let hinge = "g", swing = "int";
+    let hinge = "g", swing = "int", sens = false;
     if (kind === "porte") {
-      const A = nodes[segs[best.seg].a], B = nodes[segs[best.seg].b], L = Math.hypot(B.x - A.x, B.y - A.y) || 1, ux = (B.x - A.x) / L, uy = (B.y - A.y) / L;
       const g = ok(num(o.gx), num(o.gy)) ? P(num(o.gx), num(o.gy)) : null, v = ok(num(o.vx), num(o.vy)) ? P(num(o.vx), num(o.vy)) : null;
-      if (g) hinge = (g.x - A.x) * ux + (g.y - A.y) * uy > best.t ? "d" : "g";
-      if (v) { const c = { x: A.x + ux * best.t, y: A.y + uy * best.t }; swing = (v.x - c.x) * -uy + (v.y - c.y) * ux > 0 ? "ext" : "int"; }
-      if (g || v) stats.portesOrientees = (stats.portesOrientees || 0) + 1;
+      ({ hinge, swing } = doorSense(nodes[segs[best.seg].a], nodes[segs[best.seg].b], best.t, g, v));
+      if (g || v) { sens = true; stats.portesOrientees = (stats.portesOrientees || 0) + 1; }
     }
-    openings.push({ seg: best.seg, t: +best.t.toFixed(3), w: +best.w.toFixed(3), kind, hinge, swing });
+    // v61 : marques pour la relecture ciblée : ouverture recentrée / rétrécie (adj), porte dont le sens a été lu (sens)
+    openings.push({ seg: best.seg, t: +best.t.toFixed(3), w: +best.w.toFixed(3), kind, hinge, swing, ai: true, ...(best.shift > 1e-6 ? { adj: true } : {}), ...(sens ? { sens: true } : {}) });
   }
 
   // 5. pièces (nom + point) et appareils
@@ -207,7 +215,7 @@ export function aiToPlan(raw, map, { defEp = 0.2, mergeTol = 0.15, axisTol = 4 }
     const t = String(d.t || "").toUpperCase(), u = num(d.x), v = num(d.y);
     if (!AI_TYPES[t] || !ok(u, v)) return;
     const h = num(d.h);   // hauteur écrite sur le plan (cm), gardée si plausible
-    devIdx[i] = devices.length; devices.push({ t, ...P(u, v), ...(h > 0 && h <= 300 ? { h: Math.round(h) } : {}), ...(t === "PC16" && (d.pt === true || d.pt === "true") ? { pt: true } : {}) });
+    devIdx[i] = devices.length; devices.push({ t, ...P(u, v), ...(h > 0 && h <= 300 ? { h: Math.round(h) } : { hNo: true }), ...(t === "PC16" && (d.pt === true || d.pt === "true") ? { pt: true } : {}) });
   });
   const links = [];
   (raw.liaisons || []).forEach((l) => {
@@ -226,7 +234,7 @@ export function aiToPlan(raw, map, { defEp = 0.2, mergeTol = 0.15, axisTol = 4 }
     nodes: used.map((n) => ({ x: +n.x.toFixed(3), y: +n.y.toFixed(3) })),
     walls: segs.map((s) => ({ a: re.get(s.a), b: re.get(s.b), ep: +s.ep.toFixed(3) })),
     openings,
-    pieces, devices, links,
+    pieces, devices, links, lost,
     remarques: String(raw.remarques || "").slice(0, 600),
     stats,
   };

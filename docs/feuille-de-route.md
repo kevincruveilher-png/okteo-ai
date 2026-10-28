@@ -339,7 +339,7 @@ Question posée : qu'est-ce qui, sur un plan, dit que les volets sont connectés
   → Améliorer le choix d'implantation des boîtes : le placement (modes proximité / équilibrée / par pièce) doit éviter
   les boîtes dont les gaines se croiseraient (appareils d'une boîte « entremêlés » avec ceux d'une autre).
 
-## Mise à jour 61 — relecture ciblée étendue et plus fine (définie avec Kévin, 28/10/2026, 08:47–08:49)
+## Mise à jour 61 — FAIT (28/10/2026, 0.61.0) — relecture ciblée étendue et plus fine (définie avec Kévin, 28/10/2026, 08:47–08:49)
 - Points envoyés à l'IA en plus des liaisons : pièce nommée non fermée, ouverture recentrée / rétrécie / loin des murs,
   porte sans sens, appareil hors pièce, type vague (SC) ou peu probable, prise de cuisine sans hauteur, doublons,
   doutes écrits par l'IA dans « remarques ». Repères O1, O2… pour les ouvertures. Question propre à chaque erreur.
