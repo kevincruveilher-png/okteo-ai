@@ -2,7 +2,7 @@
 // dans Paramètres → Câblage. Enregistrés sur ce PC (localStorage), communs à tous les chantiers.
 export const CAB_DEFAULTS = {
   // boîtes
-  departsMax: 12,          // R-001 : départs par boîte SANS l'alimentation (gaines vers les appareils)
+  departsMax: 16,          // R-001 : départs par boîte SANS l'alimentation (gaines vers les appareils) — v56 : 16 (BE)
   departsFace: 6,          // R-001 : gaines par face (A, B, C, D), alimentation comprise
   bornes: "2,3,4,5,6,8,10,12",    // connecteurs rapides disponibles (nombre d'entrées), pour le schéma de boîte
   piecesMinDeparts: 3,     // mode « par pièce » : une pièce avec moins de départs rejoint la pièce voisine
@@ -53,15 +53,16 @@ export const CAB_DEFAULTS = {
 };
 
 // v38 : anciens réglages enregistrés avec les valeurs de base de l'époque → remplacés par les nouvelles valeurs de base
-const CAB_V = 3;
-// v52 : départs par boîte 18 (alimentation comprise) → 12 sans l'alimentation (R-001)
-const OLD_DEFAULTS = { secPrises: 2.5, protPrises: 20, couleursCommande: "orange, marron, noir, ivoire", departsMax: 18 };
+const CAB_V = 4;
+// v52 : départs par boîte 18 (alimentation comprise) → 12 sans l'alimentation (R-001) ; v56 : 12 → 16 (H-038)
+// valeur ou liste de valeurs de base d'autrefois : un réglage encore égal à l'une d'elles reprend la nouvelle valeur de base
+const OLD_DEFAULTS = { secPrises: 2.5, protPrises: 20, couleursCommande: "orange, marron, noir, ivoire", departsMax: [18, 12] };
 
 const KEY = "okteo.cablage.v1";
 export function getCab() {
   let v = {};
   try { v = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch { v = {}; }
-  if ((v._v || 1) < CAB_V) for (const [k, old] of Object.entries(OLD_DEFAULTS)) if (v[k] === old) delete v[k];
+  if ((v._v || 1) < CAB_V) for (const [k, old] of Object.entries(OLD_DEFAULTS)) if ([].concat(old).includes(v[k])) delete v[k];
   return { ...CAB_DEFAULTS, ...v, _v: CAB_V };
 }
 export function setCab(patch) {

@@ -28,7 +28,7 @@ const CAT_OF_HEADING = { "Boîtes": "boites", "Gaines": "gaines", "Circuits et c
 
 // ---------- compléments (valeurs chiffrées réglables, choix) ----------
 const PLUS = {
-  "R-001": { parametres: { departs_max: 12, gaines_par_face_max: 6 } },
+  "R-001": { parametres: { departs_max: 16, gaines_par_face_max: 6 } },
   "R-011": { parametres: { marge_pct: 10 } },
   "R-020": { parametres: { section: 1.5, couleurs: "rouge/bleu" } },
   "R-021": { parametres: { section: 1.5, prises_max: 8, couleurs: "gris/bleu foncé" } },

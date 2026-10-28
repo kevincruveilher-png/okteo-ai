@@ -73,12 +73,13 @@ export function createPrintTool({ api }) {
     const my = ++seq;
     $(".pr-wait").hidden = false;
     const all = opts.levels === "all" && api.levels.length > 1;
+    const nos = opts.boites ? gaineNos() : null;   // d'abord le calcul des gaines : le plan suit leur découpage (v56)
     const geo = all ? api.allLevelsGeometry() : api.exportGeometry();
     if (all && opts.fond) for (const g of geo) g.fond = await api.levelFond(g.levelId);
     const L = layoutPlan(all ? { walls: geo.flatMap((g) => g.walls), apps: geo.flatMap((g) => g.apps), rooms: geo.flatMap((g) => g.rooms), fond: geo[0].fond } : geo, opts);
     $(".pr-info").innerHTML = `${L.paper} ${L.orient} · <b>1:${L.scale}</b> · ${L.fits ? "le plan tient dans le cadre" : `<span class="warn">le plan dépasse : choisissez un plus grand format ou une plus petite échelle</span>`}`;
     try {
-      const r = await buildPlanPdf(geo, { ...opts, gaineNos: opts.boites ? gaineNos() : null });
+      const r = await buildPlanPdf(geo, { ...opts, gaineNos: nos });
       if (my !== seq) return;
       last = r; if (url) URL.revokeObjectURL(url); url = URL.createObjectURL(r.blob);
       await preview(r.blob, my);

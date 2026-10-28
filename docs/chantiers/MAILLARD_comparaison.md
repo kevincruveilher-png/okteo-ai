@@ -55,3 +55,17 @@ En lignes directes, cela donne 20 lignes du BE absentes chez nous, et 4 lignes e
 2. Choix des boîtes : **le moins de boîtes possible** (comme le BE), ou **le moins de gaine** (Q-77 aujourd'hui) ?
 3. **Volets** : sur ce plan, les commandes de volet sont-elles des télécommandes radio ? Qu'est-ce qui décide « connecté » ou « filaire » ?
 4. **Une commande et des prises au même endroit** : jamais dans la même gaine (comme le BE) ?
+
+## 5. Après la mise à jour 56 (28/10/2026)
+Recâblage complet avec les nouvelles règles : 16 départs, mode Équilibrée qui cherche le moins de boîtes, volets connectés comme le BE, prises de plan de travail et étiquettes RJ. Test automatique : `scripts/maillard.test.mjs`.
+- **6 boîtes, comme le BE** : 5 boîtes + 1 boîte de volets.
+  - Départs : 9, 13, 15, 14, 11 et 8 chez Oktéo ; 11, 15, 13, 15, 14 et 8 au BE.
+  - LI02 garde ses 9 départs : c'est la boîte posée et verrouillée à la main par Kévin.
+- **Boîte des volets identique au BE** : 8 moteurs en gris + bleu clair + vert/jaune ICTA 16, sans commande câblée.
+- **Circuits** : 17 contre 24 avant (2 ou 3 par boîte + volets + spécialisés). Le BE en a 12 parce qu'il ajoute les équipements hors plan à des circuits existants.
+- **Contenu des gaines** : prises, lumières, commandes et câbles extérieurs comme le BE. Aucune gaine ICTA 25. Aucun doute bloquant.
+- **Lignes directes communes** : identiques (RJ1 à RJ7, TV1, TV2, interphone, moteur).
+- **Restent à faire en 57** :
+  - les équipements hors plan (R-100) ;
+  - les doutes du relevé (chauffe-eau, 2e Aqua Air) ;
+  - les prises de plan de travail du relevé : leurs hauteurs ne sont pas relevées, il faut les marquer à la main ou les ajouter à la consigne IA.

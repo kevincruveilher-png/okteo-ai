@@ -4,9 +4,9 @@ import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import { extractSegments } from "../src/walls/extract.js";
 import { detectDevices, pageTexts } from "../src/walls/devices.js";
 import { gaineFor } from "../src/cablage/gaine.js";
-import { computeCircuits, checkCircuits, circuitsByBox } from "../src/cablage/circuits.js";
+import { computeCircuits, checkCircuits, circuitsByBox, isCuisine } from "../src/cablage/circuits.js";
 import { CAB_DEFAULTS as S } from "../src/cablage/settings.js";
-import { placeBoxes, buildUnits, faceToward, portLayout, portXY } from "../src/cablage/boites.js";
+import { placeBoxes, buildUnits, faceToward, portLayout, portXY, minBoxes } from "../src/cablage/boites.js";
 import { pointInPoly } from "../src/walls/rooms.js";
 import { PACK_DEFAULTS, packFor, missing, placePack, prisesNorme } from "../src/cablage/packs.js";
 import { computeWiring, gaineLength, cableColors } from "../src/cablage/gaines.js";
@@ -65,10 +65,10 @@ const boxedIds = new Set(C.filter((c) => !c.direct && c.kind !== "comm").flatMap
 const inBox = new Map(); P.boxes.forEach((b) => b.apps.forEach((id) => inBox.set(id, [...(inBox.get(id) || []), b.n])));
 check("chaque appareil d'un circuit à boîte est dans exactement une boîte", [...boxedIds].every((id) => (inBox.get(id) || []).length === 1) && !P.issues.length, P.issues.join(" ; "));
 console.log("    boîtes :", W.boxes.map((b) => `${b.n} ${b.gaines.length} départs (A${b.gaines.filter((g) => g.face === "A").length} B${b.gaines.filter((g) => g.face === "B").length} C${b.gaines.filter((g) => g.face === "C").length} D${b.gaines.filter((g) => g.face === "D").length})`).join(" · "), `· cuivre ${W.totals.cuivre} m · gaine ${W.totals.gaine} m`);
-check("R-001 : au plus 12 départs par boîte (sans l'alimentation) et 6 gaines par face (alimentation comprise)", W.boxes.every((b) => b.gaines.filter((g) => g.kind === "app").length <= 12 && ["A", "B", "C", "D"].every((f) => b.gaines.filter((g) => g.face === f).length <= 6)));
-check("R-077 : .01 = alimentation, puis numéros strictement dans le sens horaire (face, point)", W.boxes.every((b) => {
+check("R-001 : au plus 16 départs par boîte (sans l'alimentation) et 6 gaines par face (alimentation comprise)", W.boxes.every((b) => b.gaines.filter((g) => g.kind === "app").length <= S.departsMax && S.departsMax === 16 && ["A", "B", "C", "D"].every((f) => b.gaines.filter((g) => g.face === f).length <= 6)));
+check("R-077 : .01 = alimentation, puis numéros strictement dans le sens anti-horaire (face, point)", W.boxes.every((b) => {
   const G = b.gaines, M = S.departsFace, per = 4 * M, pos = (g) => "ABCD".indexOf(g.face) * M + g.slot, p0 = pos(G[0]);
-  return G[0].kind === "alim" && G[0].no.endsWith(".01") && G.every((g, i) => i === 0 || (pos(g) - p0 + per) % per > (pos(G[i - 1]) - p0 + per) % per);
+  return G[0].kind === "alim" && G[0].no.endsWith(".01") && G.every((g, i) => i === 0 || (p0 - pos(g) + per) % per > (p0 - pos(G[i - 1]) + per) % per);
 }), W.boxes.map((b) => b.gaines.map((g) => g.face + g.slot).join(" ")).join(" | "));
 check("R-074 : diamètre = somme des sections (≤ 7,5 → 16, ≤ 13,5 → 20) ; R-075 : une terre dans l'alimentation, de la plus forte section", W.boxes.every((b) => b.gaines.every((g) => g.diam === (g.sum <= 7.5 ? 16 : 20) && g.sum <= 13.5) && b.gaines.flatMap((g) => g.wires).filter((w) => w.fn === "terre" && b.gaines.find((g) => g.wires.includes(w)).kind === "alim").length === 1));
 check("longueur totale de la boîte = somme de ses gaines", W.boxes.every((b) => Math.abs(b.longueur - b.gaines.reduce((s, g) => s + g.length, 0)) < 0.01 && b.longueur > 0));
@@ -144,7 +144,8 @@ console.log("Règles KiTéOHM (v38) : circuits par boîte, ronde harmonisée, t�
   const inC = new Set(CB.flatMap((c) => c.apps));
   check("circuits par boîte : tous les appareils restent dans un circuit (lignes directes et RJ45 inchangées)", powered.every((a) => inC.has(a.id)) && CB.some((c) => c.kind === "comm"));
   // cuisine : 2,5 mm², circuit à part ; commandes au même endroit = même circuit
-  const ck = [0, 1, 2].map((i) => ({ id: "k" + i, t: "PC16", x: 50 + i, y: 50, lv: "rdc", room: "Cuisine", rep: "PK" + i }));
+  // v56 (R-098) : prises de plan de travail = posées à 1,10 m ; une prise basse de la cuisine reste sur un circuit prises
+  const ck = [0, 1, 2].map((i) => ({ id: "k" + i, t: "PC16", x: 50 + i, y: 50, h: 110, lv: "rdc", room: "Cuisine", rep: "PK" + i }));
   const cmd2 = [{ id: "m1", t: "INT", x: 60, y: 60, lv: "rdc", rep: "I71" }, { id: "m2", t: "INT", x: 60.1, y: 60, lv: "rdc", rep: "I72" }];
   const lamps = Array.from({ length: 9 }, (_, i) => ({ id: "l" + i, t: "SPOT", x: 61 + i * 0.5, y: 61, lv: "rdc", rep: "S" + i }));
   const its = [...ck, ...cmd2, ...lamps], lk = [...lamps.slice(0, 5).map((l) => ({ c: "m1", l: l.id })), ...lamps.slice(5).map((l) => ({ c: "m2", l: l.id }))];
@@ -152,6 +153,48 @@ console.log("Règles KiTéOHM (v38) : circuits par boîte, ronde harmonisée, t�
   const cu = CK.find((c) => c.kind === "cuisine"), circOfId = (id) => CK.find((c) => c.apps.includes(id));
   check("prises de cuisine : circuit à part en 2,5 mm² / 20 A ; deux commandes au même endroit sur le même circuit (phase commune), même au-delà de 8 points",
     cu && cu.section === 2.5 && cu.prot === 20 && cu.apps.length === 3 && circOfId("m1") === circOfId("m2"), CK.map((c) => `${c.kind}:${c.apps.length}`).join(" "));
+  // R-073 (v56) : commande et prise au même endroit partagent une gaine, sauf si elle devrait passer en ICTA 25
+  {
+    const V = [];
+    const its3 = [{ id: "p", t: "PC16", x: 0, y: 0, lv: "rdc", rep: "P1" }, { id: "tb", t: "TAB", x: -3, y: 0, lv: "rdc" }];
+    for (let k = 0; k < 3; k++) { its3.push({ id: "va" + k, t: "VV", x: 0.05 * k, y: 0.05, lv: "rdc", rep: "VV" + k }, { id: "vb" + k, t: "VV", x: 5, y: k, lv: "rdc", rep: "VV" + k + "A" }, { id: "l" + k, t: "LUM", x: 3, y: k, lv: "rdc", rep: "L" + k }); V.push({ c: "va" + k, l: "l" + k }, { c: "vb" + k, l: "l" + k }); }
+    const its4 = its3.slice(0, 2).concat([{ id: "i1", t: "INT", x: 0.05, y: 0.05, lv: "rdc", rep: "I1" }, { id: "l9", t: "LUM", x: 3, y: 3, lv: "rdc", rep: "L9" }]);
+    const one = (its, lk) => { const Cc = computeCircuits(its, lk, S); return computeWiring({ items: its, links: lk, circuits: Cc, boxes: [{ id: "bb", n: "LI09", lv: "rdc", x: 1.5, y: 1, apps: its.filter((a) => a.t !== "TAB").map((a) => a.id) }], levels: ["rdc"], S }).boxes[0].gaines; };
+    const big = one(its3, V), small = one(its4, [{ c: "i1", l: "l9" }]);
+    const gP = big.find((g) => (g.appIds || []).includes("p")), gS = small.find((g) => (g.appIds || []).includes("p"));
+    check("R-073 : prise + 3 va-et-vient au même endroit → gaines séparées (pas d'ICTA 25 en boîte) ; prise + interrupteur → une gaine",
+      gP && !gP.appIds.includes("va0") && big.every((g) => g.diam <= 20) && gS && gS.appIds.includes("i1"), JSON.stringify(big.map((g) => [g.appIds, g.diam])));
+  }
+  // v56 : volets connectés (R-096), sonnette sur l'éclairage, îlot, bouton de sonnette, total des lignes directes (R-099)
+  {
+    const it = [{ id: "tb", t: "TAB", x: -2, y: 0, lv: "rdc" }, { id: "vr", t: "VR", x: 3, y: 0, h: 220, lv: "rdc", rep: "VR1" }, { id: "cv", t: "CVR", x: 2.5, y: 0.3, h: 110, lv: "rdc", rep: "CVR1" },
+      { id: "so", t: "SON", x: 1, y: 2, h: 200, lv: "rdc", rep: "SON1" }, { id: "in", t: "INT", x: 1.5, y: 1, lv: "rdc", rep: "I1" }, { id: "lu", t: "LUM", x: 2, y: 2, lv: "rdc", rep: "L1" },
+      { id: "il", t: "ILOT", x: 4, y: 3, lv: "rdc", rep: "ILOT1" }, { id: "bp", t: "BPS", x: 0, y: 3, h: 110, lv: "rdc", rep: "BPS1" }, { id: "k1", t: "BOUCHE", x: 2, y: 4, lv: "rdc", rep: "K1" }, { id: "rj", t: "RJ45", x: 3, y: 4, lv: "rdc", rep: "R1" }];
+    const lk = [{ c: "cv", l: "vr" }, { c: "in", l: "lu" }];
+    const run = (S2) => { const Cc = computeCircuits(it, lk, S2); const box = [{ id: "b1", n: "LI01", lv: "rdc", x: 1.5, y: 1, apps: ["vr", "cv", "so", "in", "lu"] }]; return { Cc, W: computeWiring({ items: it, links: lk, circuits: Cc, boxes: box, levels: ["rdc"], S: S2 }) }; };
+    const fil = run({ ...S, commandeVolet: "filaire" }), con = run({ ...S, commandeVolet: "connecte", voletsConnectes: true }), nc = run({ ...S });
+    const gOf = (W, id) => W.boxes[0].gaines.find((g) => (g.appIds || []).includes(id));
+    const letters = (g) => g.wires.map((w) => w.color).sort().join(",");
+    const son = gOf(fil.W, "so"), sonC = fil.Cc.find((c) => c.apps.includes("so"));
+    const dl = (W, t) => W.direct.find((d) => d.appId === it.find((a) => a.t === t).id);
+    check("R-096 : volets connectés → commande de volet non câblée, moteur en gris + bleu clair + vert/jaune ; non choisi → filaire et doute « à vérifier »",
+      !gOf(con.W, "cv") && letters(gOf(con.W, "vr")) === "bleu clair,gris,vert/jaune" && !!gOf(fil.W, "cv") && gOf(fil.W, "vr").wires.length === 5
+      && nc.W.doutes.some((d) => d.rule === "R-096" && !d.bloquant) && !fil.W.doutes.some((d) => d.rule === "R-096"), JSON.stringify([letters(gOf(con.W, "vr")), gOf(fil.W, "vr")?.wires.length]));
+    check("sonnette (v56) : dans la boîte, sur le circuit éclairage, gaine rouge + bleu + vert/jaune",
+      son && sonC && sonC.kind === "eclairage" && letters(son) === "bleu,rouge,vert/jaune", son ? letters(son) : "absente");
+    check("îlot et bouton de sonnette en lignes directes (1,5 GR+BF+V/J ICTA 16 ; 1P 9/10 ICTA 16) ; RJ45 étiquetée RJ1 ; total R-099 avec les YSYT",
+      dl(fil.W, "ILOT").fil === "1,5 GR+BF+V/J" && dl(fil.W, "ILOT").diam === 16 && dl(fil.W, "BPS").fil === "1P 9/10" && dl(fil.W, "BPS").diam === 16 && dl(fil.W, "RJ45").etiquette === "RJ1"
+      && fil.W.directTotals.YSYT === 1 && fil.W.directTotals["ICTA 20"] === 1 && fil.W.directVertes === 1, JSON.stringify(fil.W.directTotals));
+  }
+  // R-098 : reconnaissance automatique et choix à la main
+  {
+    const base = { t: "PC16", lv: "rdc", y: 0 };
+    const pl = { id: "pl", t: "PLAQ", x: 0, y: 0, lv: "rdc" };
+    const A = { ...base, id: "a", x: 2, h: 110, room: "Pièce de vie" }, B = { ...base, id: "b", x: 2, h: 30, room: "Cuisine" }, Cc = { ...base, id: "c", x: 8, h: 110, room: "Pièce de vie" }, D = { ...base, id: "d", x: 2, h: 30, room: "Pièce de vie", pt: true }, E = { ...base, id: "e", x: 2, h: 110, room: "Cuisine", pt: false };
+    const its2 = [pl, A, B, Cc, D, E];
+    check("R-098 : prise de plan de travail = 1,00–1,30 m en cuisine ou à moins de 3 m d'un appareil de cuisine (cuisine ouverte) ; choix à la main prioritaire",
+      isCuisine(A, S, its2) && !isCuisine(B, S, its2) && !isCuisine(Cc, S, its2) && isCuisine(D, S, its2) && !isCuisine(E, S, its2));
+  }
   // harmonisation : 3 boîtes avec un allumage simple (et une avec un va-et-vient posé avant) → retour orange partout pour l'allumage simple
   const H = [], HL = [], HB = [];
   for (let k = 0; k < 3; k++) {
@@ -264,8 +307,9 @@ console.log("Modes de pieuvre (v39)");
   const deps = (r) => computeWiring({ items, links, circuits: C, boxes: r.boxes, levels: ["rdc"], S }).boxes.map((b) => b.gaines.length);
   const dP = deps(prox), dE = deps(eq), spread = (d) => Math.max(...d) - Math.min(...d);
   const allIn = (r) => { const s = new Set(r.boxes.flatMap((b) => b.apps)); return buildUnits(items, links, C).every((u) => u.ids.every((id) => s.has(id))) && r.boxes.flatMap((b) => b.apps).length === s.size; };
-  check("pieuvre équilibrée : même nombre de boîtes que la proximité, départs plus réguliers, tous les appareils placés, ≤ 18 départs et ≤ 6 par face",
-    eq.boxes.length === prox.boxes.length && spread(dE) <= spread(dP) && allIn(eq) && dE.every((n) => n <= 18) && !eq.issues.length, `proximité ${dP.join("/")} · équilibrée ${dE.join("/")}`);
+  const appDeps = (r) => computeWiring({ items, links, circuits: C, boxes: r.boxes, levels: ["rdc"], S }).boxes.map((b) => b.gaines.filter((g) => g.kind === "app").length);
+  check("pieuvre équilibrée (v56, R-094) : le moins de boîtes possible (≤ proximité, minimum des départs ou une de plus pour les faces), tous les appareils placés, ≤ 16 départs et ≤ 6 par face",
+    eq.boxes.length <= prox.boxes.length && eq.boxes.length <= minBoxes(buildUnits(items, links, C), S) + 1 && allIn(eq) && appDeps(eq).every((n) => n <= 16) && !eq.issues.length, `proximité ${dP.join("/")} · équilibrée ${dE.join("/")} · min ${minBoxes(buildUnits(items, links, C), S)} · ${eq.issues.join(";")}`);
   // par pièce : 3 pièces (dont une petite) + un appareil extérieur
   const sq = (x0, y0, x1, y1) => [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }];
   const rooms = { rdc: [{ name: "Séjour", poly: sq(0, 0, 6, 5) }, { name: "Chambre", poly: sq(6, 0, 10, 4) }, { name: "WC", poly: sq(6, 4, 7.5, 5) }] };

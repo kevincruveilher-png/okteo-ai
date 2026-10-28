@@ -69,7 +69,7 @@ export function totals(J) {
 const norm = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 // questions en suspens (v48) : statut « en attente » (d'un chantier, ou d'un collègue plus qualifié : `collegue`)
 export function pendingQuestions(J) {
-  return J.questions.filter((q) => q.statut === "attente").map((q) => ({ ...q, collegue: /coll[eè]gue/i.test(q.statut_texte || "") }));
+  return J.questions.filter((q) => q.statut === "attente").map((q) => ({ ...q, collegue: !/chantier/i.test(q.statut_texte || "") }));
 }
 export function filterRules(J, { cat = "", cert = "", statut = "", q = "", attente = false } = {}) {
   const words = norm(q).split(/\s+/).filter(Boolean);

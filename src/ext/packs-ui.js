@@ -85,7 +85,7 @@ export function createPacksPane({ api, panel }) {
       name = boxName(n);
       const lab = R.room.label || R.room.poly[0];
       B.push({ id, n: name, lv: api.level.id, x: +(+lab.x).toFixed(2), y: +(+lab.y).toFixed(2), apps: ids, locked: true, pack: R.pack ? R.pack.id : null });
-      const S = getCab();
+      const S = { ...getCab(), voletsConnectes: ((api.cab || {}).choix || {}).commandeVolet === "connecte" };
       api.setCab({ boxes: B, ...(S.circuitsParBoite ? { circuits: circuitsByBox(api.allApps(), api.allLinks(), B, S) } : {}) });
     }
     return name;

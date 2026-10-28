@@ -28,8 +28,9 @@ const HINT = {
   MGAR: "moteur de porte de garage / portail", ICOUP: "interrupteur de coupure", PCEXT: "prise extérieure",
   GEXT: "prise de garage extérieure (G EXT)", PX4: "prise extérieure pilotée (4G1,5)", VR: "moteur de volet roulant (à la fenêtre)",
   VEL: "Velux / fenêtre de toit motorisée", CVR: "commande de volet roulant (inverseur montée / descente)",
-  INTERCO: "interphone / visiophone / sonnette", TV: "prise TV (antenne)", ANT: "antenne / parabole",
+  INTERCO: "interphone / visiophone", TV: "prise TV (antenne)", ANT: "antenne / parabole",
   EQP: "équipotentielle principale", EQL: "équipotentielle locale (salle de bain)", AIG: "gaine aiguillée en attente (fibre, réseau)",
+  ILOT: "prises de l'îlot central de cuisine", BPS: "bouton poussoir de sonnette (à l'entrée)", SON: "sonnette / carillon",
 };
 export const AI_TYPES = { ...BASE_TYPES, ...Object.fromEntries(Object.entries(APPAREILS).map(([k, v]) => [k, HINT[k] || v.n])) };
 const LIGHT = new Set(["LUM", "APP", "SPOT"]), CMD = new Set(["INT", "VV", "BP"]), VOLET = new Set(["VR", "VEL"]);

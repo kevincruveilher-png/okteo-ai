@@ -48,7 +48,7 @@ export function mountDirectPage(el, { api }) {
       <table class="gt dl-tab"><thead><tr><th>Étiquette</th><th>Longueur (m)</th><th>Gaine</th><th>Fil</th><th>Aboutissant</th><th>Circuit</th><th>Vérif</th></tr></thead>
       <tbody>${fort.map(([g, i]) => row(g, i)).join("")}
       ${faible.length ? `<tr class="dl-sep"><td colspan="7"><b>Courant faible</b> <span class="mut sm">gaine verte Ø20, jamais avec le courant fort (R-003, R-084)</span></td></tr>${faible.map(([g, i]) => row(g, i)).join("")}` : ""}</tbody></table>
-      <p class="dl-tot"><b>Total de gaines :</b> ${Object.entries(tot).map(([k, n]) => `${n} × ${esc(k)}`).join(" · ")} · <b>${W.direct.length}</b> en tout</p>`}
+      <p class="dl-tot" title="Règle R-099 : comme la feuille du BE, les gaines vertes comptent avec les ICTA 20 et les liaisons sans gaine (YSYT) sont dans le total"><b>Total de gaines :</b> ${Object.entries(tot).sort(([p], [q]) => p.localeCompare(q, "fr", { numeric: true })).map(([k, n]) => `${n} × ${esc(k)}${k === "ICTA 20" && W.directVertes ? ` (dont ${W.directVertes} vertes)` : ""}`).join(" · ")} · <b>${W.direct.length}</b> en tout</p>`}
       ${W.issues.filter((x) => /^Pas de tableau|Ligne directe|raccordement à choisir/.test(x)).map((x) => `<p class="warn sm">⚠ ${esc(x)}</p>`).join("")}</div>`;
     el.querySelectorAll("[data-v]").forEach((c) => (c.onchange = () => { const i = +c.dataset.v; if (c.checked) done.add(i); else done.delete(i); }));
   }

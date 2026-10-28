@@ -173,7 +173,7 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
   → Fait avec la 48 (bouton « ⏳ En attente » du journal).
 
 ## Plan des mises à jour 56 à 60 (révisé le 28/10/2026, 00:34) — une à la fois, sur « go »
-- **56 — Câblage aligné sur le BE** (moteur, règles H-037 à H-041) : R-001 16 départs ; R-077 anti-horaire ; mode
+- **56 — Câblage aligné sur le BE — FAIT (28/10/2026, 0.56.0)** (moteur, règles H-037 à H-041) : R-001 16 départs ; R-077 anti-horaire ; mode
   Équilibrée = le moins de boîtes (R-094) ; R-098 prises de plan de travail (repère sur la prise, reconnaissance par la
   hauteur) ; R-073 pas d'ICTA 25 en boîte ; types îlot, BPS, sonnette ; volets : jamais « extérieurs », choix
   filaire / connecté demandé au câblage (R-096) ; étiquettes et total des lignes directes comme le BE (R-099) ;

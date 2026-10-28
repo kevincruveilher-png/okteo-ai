@@ -6,7 +6,7 @@ import { getJournal } from "../cablage/regles.js";
 import { computeCircuits, checkCircuits, circuitsByBox } from "../cablage/circuits.js";
 import { STEPS, ETATS, precontrole, contextOf, buildTrace, whyBox, whyGaine, whyWire, statsOf, scoreOf } from "../cablage/etude.js";
 import { MODES } from "../cablage/boites.js";
-import { wiringNow, autoBoxes, compareModes } from "./cablage-data.js";
+import { wiringNow, autoBoxes, compareModes, cabS } from "./cablage-data.js";
 import { esc, store, storeSet } from "./util.js";
 import { downloadBlob } from "./dossier.js";
 
@@ -16,7 +16,7 @@ const st = (s) => `<span class="et-st ${s}" title="${esc(ETATS[s]?.t || s)}">${E
 
 // tout ce qu'il faut pour l'étude, sur l'état actuel du chantier (rien n'est modifié)
 export function etudeNow(api, { alternatives = true } = {}) {
-  const S = getCab(), J = getJournal(), items = api.allApps(), links = api.allLinks(), C = api.cab.circuits || [], B = api.cab.boxes || [];
+  const S = cabS(api), J = getJournal(), items = api.allApps(), links = api.allLinks(), C = api.cab.circuits || [], B = api.cab.boxes || [];
   const W = B.length && C.length ? wiringNow(api) : null;
   const mode = api.cab.mode || "proximite";
   const ctx = contextOf({ items, links, circuits: C, boxes: B, mode, W });
@@ -28,7 +28,7 @@ export function etudeNow(api, { alternatives = true } = {}) {
 // « Câbler le chantier » : précontrôle, puis circuits (si aucun), boîtes (les boîtes verrouillées ou déplacées à la main
 // restent), circuits par boîte, trace de l'étude enregistrée dans le chantier — un seul Ctrl+Z. Renvoie un compte rendu.
 export function cabler(api) {
-  const S = getCab(), J = getJournal(), items = api.allApps(), links = api.allLinks(), mode = api.cab.mode || "proximite";
+  const S = cabS(api), J = getJournal(), items = api.allApps(), links = api.allLinks(), mode = api.cab.mode || "proximite";
   if (!items.filter((a) => a.t !== "TAB").length) return { ok: false, text: "Je ne peux pas câbler : le plan n'a pas encore d'appareils." };
   const C0 = (api.cab.circuits || []).length ? api.cab.circuits : computeCircuits(items, links, S);
   const pc = precontrole(J, contextOf({ items, links, circuits: C0, boxes: api.cab.boxes || [], mode, W: null }));

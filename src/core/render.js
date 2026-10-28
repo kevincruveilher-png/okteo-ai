@@ -715,7 +715,7 @@ export function circuitMap() {
   });
   // appareils qui devraient être dans un circuit (pas le tableau, pas les bouches VMC non câblées)
   // (v54 : ni l'équipotentielle locale, raccordée à la terre de sa boîte, ni une hotte dont le raccordement reste à choisir)
-  m.__need = a => !["TAB", "VMC", "EQL"].includes(a.t) && !(a.t === "HOTTE" && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "a_choisir");
+  m.__need = a => !["TAB", "VMC", "EQL"].includes(a.t) && !(a.t === "CVR" && (K.CAB.choix || {}).commandeVolet === "connecte") && !(a.t === "HOTTE" && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "a_choisir");
   // partent en ligne directe du tableau (ou du coffret) : pas d'alerte rouge avant la répartition
   m.__direct = a => ["RJ45", "PC20", "SC"].includes(a.t) || (APPAREILS[a.t] && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "direct");
   return m;
@@ -732,7 +732,10 @@ export function boxLayout(b, pm = pmNow()) {
   b.apps.forEach(id => {
     const a = byId[id];
     if (!a) return;
-    const sp = spots.find(g => g.some(o => dist(o.x, o.y, a.x, a.y) <= near + 1e-9));
+    // v56 : même découpage que le calcul des gaines (R-073 : une gaine qui passerait en ICTA 25 est coupée en deux) ;
+    // K.gaineGroups[box] = { appId: 1er appareil de sa gaine }, transmis par l'onglet Câblage (okteo.setGaineGroups)
+    const gk = (K.gaineGroups || {})[b.id];
+    const sp = spots.find(g => g.some(o => dist(o.x, o.y, a.x, a.y) <= near + 1e-9) && (!gk || !gk[a.id] || !gk[g[0].id] || gk[a.id] === gk[g[0].id]));
     if (sp) sp.push(a); else spots.push([a]);
   });
   const deps = spots.map(G => ({ id: G[0].id, keys: G.map(a => a.id), apps: G, t: G[0], p: (G.map(a => R[a.id]).find(r => r && r.length) || [])[0] || G[0] }));

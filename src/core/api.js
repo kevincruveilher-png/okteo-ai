@@ -205,7 +205,9 @@ window.okteo = {
       // v54 : variante de raccordement, raccordement (hotte : celui de l'appareil, sinon le choix du chantier), puissance
       ...(a.var ? { var: a.var } : {}),
       ...(a.t === "HOTTE" ? { racc: a.racc || (K.CAB.choix || {}).raccordement || "a_choisir" } : {}),
-      ...(a.p != null ? { p: a.p } : {})
+      ...(a.p != null ? { p: a.p } : {}),
+      // v56 (R-098) : prise de plan de travail choisie à la main (true / false) ; absent = reconnue automatiquement
+      ...(a.pt === true || a.pt === false ? { pt: a.pt } : {})
     }));
     const out = [];
     for (const l of CH.levels) out.push(...(l.id === K.LV.cur ? one(l.id) : withLevel(l.id, () => one(l.id))));
@@ -250,6 +252,15 @@ window.okteo = {
   },
   setPreview(p) {
     K.preview = p || null;
+    draw();
+  },
+  // v56 : appareils regroupés par gaine (calcul des gaines) : { boxId: { appId: 1er appareil de la gaine } }, pour que les
+  // points d'accroche du plan suivent les gaines calculées ; redessin seulement si le découpage change
+  setGaineGroups(m) {
+    const sig = JSON.stringify(m || {});
+    if (sig === K.gaineGroupsSig) return;
+    K.gaineGroupsSig = sig;
+    K.gaineGroups = m || {};
     draw();
   },
   // doutes du câblage affichés sur le plan (v53) : [{key, x, y, lv, bloquant, text}]

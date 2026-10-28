@@ -1,20 +1,20 @@
 // Généré par scripts/regles-import.mjs depuis docs/journal-regles-cablage.md — ne pas modifier à la main.
 export const REGLES_BASE = {
- "version": "2026-10-27.36",
+ "version": "2026-10-28.41",
  "rules": [
   {
    "id": "R-001",
    "titre": "Départs par boîte",
    "categorie": "boites",
-   "description": "une boîte accepte 12 départs au plus, sans compter l'alimentation ; 6 gaines au plus par face, alimentation comprise (faces A à D, dans le sens horaire). Règle non fixée sur les chantiers de Kévin : il garde celle de Claude (27/10/2026, Q-50), avec une limite abaissée de 18 à 12 départs le 27/10/2026 (12:00). Conséquence : la boîte LI03 de la bande DUCOURNEAU (18 départs) ne rentrerait plus dans une seule boîte.",
+   "description": "une boîte accepte 16 départs au plus, sans compter l'alimentation ; 6 gaines au plus par face, alimentation comprise (faces A à D). Règle non fixée sur les chantiers de Kévin : il garde celle de Claude (27/10/2026, Q-50), avec une limite abaissée de 18 à 12 départs le 27/10/2026 (12:00), puis portée à 16 le 28/10/2026 (00:01) après la comparaison avec les bandes du BE (MAILLARD : jusqu'à 15 départs, LI02 et LI04). Conséquence : la boîte LI03 de la bande DUCOURNEAU (18 départs) ne rentre toujours pas dans une seule boîte.",
    "details": [],
    "condition": "",
    "action": "",
    "parametres": {
-    "departs_max": 12,
+    "departs_max": 16,
     "gaines_par_face_max": 6
    },
-   "parametres_texte": "`departs_max = 12` (hors alimentation), `gaines_par_face_max = 6` (alimentation comprise), réglables",
+   "parametres_texte": "`departs_max = 16` (hors alimentation), `gaines_par_face_max = 6` (alimentation comprise), réglables",
    "certitude": "confirmee",
    "si_doute": "avertir",
    "statut": "active",
@@ -541,7 +541,9 @@ export const REGLES_BASE = {
    "titre": "Couleurs de la ronde (retours et navettes)",
    "categorie": "circuits",
    "description": "retours et navettes en orange, violet, noir, marron, ivoire. Même ordre partout dans une boîte, les allumages les plus fréquents du chantier d'abord.",
-   "details": [],
+   "details": [
+    "Le violet est bien utilisé chez KiTéOHM (Kévin, 28/10/2026, 00:01), même si la bande MAILLARD du BE n'en a pas : la ronde reste inchangée."
+   ],
    "condition": "",
    "action": "",
    "parametres": {},
@@ -857,7 +859,9 @@ export const REGLES_BASE = {
    "titre": "Gaine partagée",
    "categorie": "gaines",
    "description": "Les fils des appareils au même endroit sont réunis dans une gaine, avec la phase R 1 et la terre comptées une seule fois (P13+I5+V4 = 7 fils). Libellé : prises, puis interrupteurs, puis va-et-vient.",
-   "details": [],
+   "details": [
+    "Une commande et des prises au même endroit peuvent partager une gaine (Kévin, 28/10/2026, 00:32), **mais on évite les gaines ICTA 25 dans les boîtes** : si le regroupement demande plus qu'une ICTA 20, les appareils repartent dans des gaines séparées (prises d'un côté, commandes de l'autre). « Pas évident » : à revoir sur les prochains chantiers."
+   ],
    "condition": "",
    "action": "",
    "parametres": {},
@@ -987,7 +991,7 @@ export const REGLES_BASE = {
    "id": "R-077",
    "titre": "Numéro de gaine",
    "categorie": "gaines",
-   "description": "NomBoîte.NN ; .01 = alimentation ; les autres **strictement** dans le sens horaire (A, B, C, D) à partir de l'alimentation. Les inversions vues dans FTZ (LI01.06/.07, LI03.06, LI03.10) ne sont pas à reproduire.",
+   "description": "NomBoîte.NN ; .01 = alimentation ; les autres **strictement** dans le sens **anti-horaire** à partir de l'alimentation, pour que les numéros se lisent de gauche à droite sur chaque face. Les inversions vues dans FTZ (LI01.06/.07, LI03.06, LI03.10) ne sont pas à reproduire. FTZ et le BE numérotent dans le sens horaire : écart voulu.",
    "details": [],
    "condition": "",
    "action": "",
@@ -996,8 +1000,8 @@ export const REGLES_BASE = {
    "certitude": "confirmee",
    "si_doute": "avertir",
    "statut": "active",
-   "source": "Kévin, 27/10/2026, Q-52",
-   "note": "Kévin, 27/10/2026, Q-52",
+   "source": "Kévin, 27/10/2026, Q-52 ; sens changé le 27/10/2026, 23:19",
+   "note": "Kévin, 27/10/2026, Q-52 ; sens changé le 27/10/2026, 23:19",
    "precise": "",
    "questions_liees": [
     "Q-52"
@@ -1210,7 +1214,8 @@ export const REGLES_BASE = {
    "details": [
     "Pour chaque type, la nature du raccordement (câble ou fils) et la section sont **modifiables**.",
     "Courant faible (TV, antenne, RJ45) : gaine verte Ø20 (ICTA_V20 dans FTZ), pour tous les chantiers (Kévin, 27/10/2026 : les anciens chantiers en ICTA 16 sont abandonnés). Types ajoutés le 27/10/2026 (Q-74) : module Aqua Air (alimentation 3G2,5 et pilotage 3×1,5), bouche de diffusion motorisée (YSYT 2×1 souple, sans gaine), prise extérieure 4G1,5, Velux motorisé (dans la boîte des volets, comme un volet), moteur de garage (ligne directe 1,5 GR + BF + V/J), interrupteur de coupure (ligne directe ICTA 16, 1,5 R + N), climatisation (4G1,5 ICTA 20), G EXT en 3G1,5 ICTA 16 ou 3G2,5 ICTA 20 selon le chantier.",
-    "Hotte : en boîte (circuit cuisine) ou en ligne directe, « ça dépend » (Q-60). Moteur de volet roulant : boîte ou ligne directe selon l'option du chantier (R-079)."
+    "Hotte : en boîte (circuit cuisine) ou en ligne directe, « ça dépend » (Q-60). Moteur de volet roulant : boîte ou ligne directe selon l'option du chantier (R-079).",
+    "Types ajoutés le 28/10/2026 (bande MAILLARD du BE, Kévin 00:01) : **îlot** (prises de l'îlot central en ligne directe, 1,5 GR + BF + V/J, ICTA 16 ; pas de disjoncteur propre : branché au tableau sur le disjoncteur d'un circuit prises, avis de Kévin du 28/10/2026, 00:13 — ses prises comptent dans les 8 de ce circuit, supposé) ; **bouton poussoir de sonnette** BPS (ligne directe, câble 1P 9/10, ICTA 16) ; **sonnette** SON (carillon dans une boîte, gaine 1,5 R + B + V/J, ICTA 16)."
    ],
    "condition": "",
    "action": "",
@@ -1564,7 +1569,7 @@ export const REGLES_BASE = {
    "categorie": "boites",
    "description": "**Proximité** : le logiciel choisit la solution la plus économique (boîtes de volets multiples, ou volets mélangés aux autres boîtes, selon la longueur de fil et de gaine).",
    "details": [
-    "**Équilibrée** : une seule boîte pour tous les volets.",
+    "**Équilibrée** : une seule boîte pour tous les volets. En mode Équilibrée, le choix des boîtes vise **le moins de boîtes possible**, comme le BE (Kévin, 28/10/2026, 00:32 ; bande MAILLARD : 5 boîtes de 11 à 15 départs + 1 boîte de volets) ; le critère « plus petite longueur de gaine d'abord » (Q-77) reste celui du mode Proximité.",
     "Critère de « plus économique » (confirmé par Kévin le 27/10/2026, Q-77) : plus petite longueur totale de gaine, puis moins de boîtes, puis moins de départs. C'est aussi le score des alternatives dans l'étude (section 3 ter).",
     "Par pièce et Plug de pieuvre : non précisé (doute, `avertir`).",
     "Précise R-079."
@@ -1630,7 +1635,8 @@ export const REGLES_BASE = {
    "categorie": "appareils",
    "description": "Chaque volet roulant est soit **filaire** (commande CVR : l'alimentation gris + bleu clair, plus deux fils de commande marron et noir pris dans la ronde de couleurs, R-072), soit **connecté** (micromodule : gris + bleu clair + V/J seulement). Le choix se fait par volet sur le plan.",
    "details": [
-    "Pour un volet filaire, la gaine du CVR et la gaine du moteur portent les deux mêmes fils de commande ; chaque couple a ses propres numéros."
+    "Pour un volet filaire, la gaine du CVR et la gaine du moteur portent les deux mêmes fils de commande ; chaque couple a ses propres numéros.",
+    "Qui décide : le **BE**, chantier par chantier (Kévin, 28/10/2026, 00:32) ; le plan ne le dit pas (MAILLARD : 8 commandes de volet dessinées, volets connectés chez le BE). Le logiciel demande le choix pour le chantier (réglage des choix) et ne le déduit pas du plan."
    ],
    "condition": "",
    "action": "",
@@ -1682,6 +1688,94 @@ export const REGLES_BASE = {
    "precise": "",
    "questions_liees": [],
    "noeud": "chantier/appareils/R-097",
+   "depends_on": [],
+   "choix": null,
+   "preuves": [],
+   "version": 1,
+   "cree_le": "2026-10-27",
+   "modifie_le": "2026-10-27",
+   "modifie_par": "Kévin"
+  },
+  {
+   "id": "R-098",
+   "titre": "Prises de plan de travail",
+   "categorie": "circuits",
+   "description": "dans la cuisine, seules les prises du plan de travail (et la hotte, quand elle va en boîte : R-086) sont sur le circuit cuisine 2,5 mm² rouge / bleu (R-022, 6 au plus) ; les autres prises de la pièce restent sur un circuit prises 1,5 mm² gris / bleu foncé (R-021).",
+   "details": [
+    "Le repère est porté par la prise elle-même (« prise de plan de travail »), pas par le nom de la pièce : une cuisine ouverte dans une pièce de vie est ainsi traitée comme une cuisine fermée.",
+    "Reconnaissance automatique (Kévin, 28/10/2026, 00:13 : « fixons cette règle et nous verrons sur les prochains chantiers ») : une prise posée entre 1,00 m et 1,30 m de hauteur, dans une pièce de cuisine OU à moins de 3 m d'un appareil de cuisine (plaque, hotte, four, lave-vaisselle), est marquée « plan de travail ». Le marquage reste modifiable prise par prise. À revoir sur les prochains chantiers."
+   ],
+   "condition": "",
+   "action": "",
+   "parametres": {},
+   "parametres_texte": "",
+   "certitude": "confirmee",
+   "si_doute": "avertir",
+   "statut": "active",
+   "source": "bande MAILLARD du BE (P28 à P31 + hotte en 2,5 ; P19 et P27, même pièce, en 1,5), réponse de Kévin du 28/10/2026 (00:01).",
+   "note": "Kévin, 28/10/2026, 00:01",
+   "precise": "",
+   "questions_liees": [],
+   "noeud": "chantier/circuits/R-098",
+   "depends_on": [
+    "R-086",
+    "R-022",
+    "R-021"
+   ],
+   "choix": null,
+   "preuves": [],
+   "version": 1,
+   "cree_le": "2026-10-27",
+   "modifie_le": "2026-10-27",
+   "modifie_par": "Kévin"
+  },
+  {
+   "id": "R-100",
+   "titre": "Équipements hors plan",
+   "categorie": "appareils",
+   "description": "une partie des lignes et appareils ne figure pas sur le plan électrique ; le BE les ajoute d'après le chantier et le **devis** (cuisine équipée, VMC, équipotentielles, antenne, sonnette…). Le journal tient le compte, chantier par chantier, de ces équipements (registre ci-dessous). Un équipement présent sur la plupart des chantiers est proposé par défaut sur les suivants, marqué « à vérifier avec le devis » (jamais ajouté sans le dire) ; les autres restent à ajouter à la main.",
+   "details": [
+    "Seuil de proposition : à fixer quand le registre aura plusieurs chantiers (supposé : présent sur 80 % des chantiers comptés).",
+    "Registre (nombre de lignes par chantier) :"
+   ],
+   "condition": "",
+   "action": "",
+   "parametres": {},
+   "parametres_texte": "",
+   "certitude": "supposee",
+   "si_doute": "avertir",
+   "statut": "active",
+   "source": "Kévin, 28/10/2026, 00:32 : « ils ne sont pas sur le plan ; tiens un compte de ces gaines »",
+   "note": "Kévin, 28/10/2026, 00:32 : « ils ne sont pas sur le plan ; tiens un compte de ces gaines »",
+   "precise": "",
+   "questions_liees": [],
+   "noeud": "chantier/appareils/R-100",
+   "depends_on": [],
+   "choix": null,
+   "preuves": [],
+   "version": 1,
+   "cree_le": "2026-10-27",
+   "modifie_le": "2026-10-27",
+   "modifie_par": "IA (à valider par Kévin)"
+  },
+  {
+   "id": "R-099",
+   "titre": "Total des gaines des lignes directes",
+   "categorie": "appareils",
+   "description": "le total des gaines du tableau des lignes directes compte aussi les liaisons sans gaine (YSYT des bouches motorisées) ; les gaines vertes V20 sont comptées avec les ICTA 20. Exemple MAILLARD : 10 ICTA 16 + 15 ICTA 20 (dont 10 V20) + 7 YSYT = 32.",
+   "details": [],
+   "condition": "",
+   "action": "",
+   "parametres": {},
+   "parametres_texte": "",
+   "certitude": "confirmee",
+   "si_doute": "avertir",
+   "statut": "active",
+   "source": "bande MAILLARD du BE (page « Lignes directes »).",
+   "note": "Kévin, 28/10/2026, 00:01",
+   "precise": "",
+   "questions_liees": [],
+   "noeud": "chantier/appareils/R-099",
    "depends_on": [],
    "choix": null,
    "preuves": [],
@@ -2531,6 +2625,16 @@ export const REGLES_BASE = {
    "si_doute": "",
    "statut": "attente",
    "statut_texte": "en attente (collègue qualifié)"
+  },
+  {
+   "id": "Q-85",
+   "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
+   "question": "Module Aqua Air : la bande MAILLARD du BE n'a qu'une ligne directe (alimentation 3G2,5 ICTA 20) ; R-084 (Q-74) ajoute une ligne de pilotage 3×1,5 ICTA 16. Une ligne ou deux ?",
+   "reponse": "Deux lignes (R-084), à vérifier",
+   "suppose": "",
+   "si_doute": "",
+   "statut": "attente",
+   "statut_texte": "en attente (Thibault)"
   }
  ],
  "history": [
@@ -2927,6 +3031,61 @@ export const REGLES_BASE = {
    "avant": "R-021 : gris = prises seulement ; R-079 à valider",
    "apres": "R-021 : gris = phase des prises et des volets (neutre bleu clair pour les volets) ; R-079 confirmée ; Q-83 et Q-84 en attente d'un collègue plus qualifié",
    "motif": "Réponse de Kévin du 27/10/2026 (18:39)",
+   "par": "IA (validée par Kévin)",
+   "code_valide": null
+  },
+  {
+   "id": "H-037",
+   "date": "27/10/2026",
+   "regle": "R-077",
+   "action": "Modification",
+   "avant": "Sens horaire depuis l'alimentation",
+   "apres": "Sens anti-horaire depuis l'alimentation (.01 reste l'alimentation) : numéros lus de gauche à droite sur chaque face",
+   "motif": "Demande de Kévin du 27/10/2026 (23:19, précisée à 23:21)",
+   "par": "IA (validée par Kévin)",
+   "code_valide": null
+  },
+  {
+   "id": "H-038",
+   "date": "28/10/2026",
+   "regle": "R-001",
+   "action": "Modification",
+   "avant": "12 départs hors alimentation",
+   "apres": "16 départs hors alimentation",
+   "motif": "Bande MAILLARD du BE (jusqu'à 15 départs), réponse de Kévin du 28/10/2026 (00:01)",
+   "par": "IA (validée par Kévin)",
+   "code_valide": null
+  },
+  {
+   "id": "H-039",
+   "date": "28/10/2026",
+   "regle": "R-023, R-084, R-098, R-099, Q-85",
+   "action": "Modification et création",
+   "avant": "—",
+   "apres": "Violet confirmé dans la ronde ; types îlot, BPS, sonnette ; R-098 prises de plan de travail ; R-099 total des gaines des lignes directes ; Q-85 (Aqua Air) en attente de Thibault",
+   "motif": "Comparaison avec la bande MAILLARD du BE, réponses de Kévin du 28/10/2026 (00:01)",
+   "par": "IA (validée par Kévin)",
+   "code_valide": null
+  },
+  {
+   "id": "H-040",
+   "date": "28/10/2026",
+   "regle": "R-098, R-084",
+   "action": "Modification",
+   "avant": "—",
+   "apres": "R-098 : reconnaissance des prises de plan de travail (1,00–1,30 m, cuisine ou près d'un appareil de cuisine) ; îlot sur le disjoncteur d'un circuit prises",
+   "motif": "Réponses de Kévin du 28/10/2026 (00:13)",
+   "par": "IA (validée par Kévin)",
+   "code_valide": null
+  },
+  {
+   "id": "H-041",
+   "date": "28/10/2026",
+   "regle": "R-073, R-094, R-096, R-100",
+   "action": "Modification et création",
+   "avant": "—",
+   "apres": "R-073 : commande + prises dans une gaine, sans ICTA 25 dans les boîtes ; R-094 : mode Équilibrée = le moins de boîtes ; R-096 : filaire / connecté décidé par le BE ; R-100 : équipements hors plan, registre (MAILLARD)",
+   "motif": "Comparaison Oktéo / BE sur MAILLARD, réponses de Kévin du 28/10/2026 (00:32)",
    "par": "IA (validée par Kévin)",
    "code_valide": null
   }

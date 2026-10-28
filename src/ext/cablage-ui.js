@@ -7,7 +7,7 @@
 import { computeCircuits, checkCircuits, circuitsByBox } from "../cablage/circuits.js";
 import { getCab, SECTIONS, PROTS } from "../cablage/settings.js";
 import { esc } from "./util.js";
-import { wiringNow, autoBoxes, removeBoxPlan, fr } from "./cablage-data.js";
+import { wiringNow, autoBoxes, removeBoxPlan, fr, cabS } from "./cablage-data.js";
 import { buildUnits, MODES } from "../cablage/boites.js";
 import { createCompare } from "./pieuvre-compare.js";
 import { controlSection, wireControlSection } from "./controle-ui.js";
@@ -21,7 +21,7 @@ export function createCablagePane({ api, panel, ctl }) {
   const fr = (v) => String(v).replace(".", ",");
 
   function data() {
-    const S = getCab(), items = api.allApps(), C = api.cab.circuits || [];
+    const S = cabS(api), items = api.allApps(), C = api.cab.circuits || [];
     return { S, items, C, chk: checkCircuits(C, items, S), byId: new Map(items.map((a) => [a.id, a])) };
   }
   function auto() {
@@ -44,7 +44,7 @@ export function createCablagePane({ api, panel, ctl }) {
   } });
   document.addEventListener("okteo:compare-modes", () => compare.open());
   function commitBoxes(boxes) {
-    const S = getCab();
+    const S = cabS(api);
     if (S.circuitsParBoite && (api.cab.circuits || []).length) api.setCab({ boxes, circuits: circuitsByBox(api.allApps(), api.allLinks(), boxes, S) });
     else api.setBoxes(boxes);
   }
@@ -133,13 +133,20 @@ export function createCablagePane({ api, panel, ctl }) {
     wire();
   }
 
+  // v56 (R-096) : commande des volets = choix du BE pour le chantier (le plan ne le dit pas) ; affiché s'il y a des volets
+  function voletsHTML() {
+    if (!api.allApps().some((a) => a.t === "VR" || a.t === "VEL" || a.t === "CVR")) return "";
+    const v = (api.cab.choix || {}).commandeVolet || "";
+    return `<div class="bx-mode"><label title="Choix du bureau d'études pour ce chantier (règle R-096). Connectée : les commandes de volet du plan ne sont pas câblées, chaque moteur reçoit gris + bleu clair + vert/jaune.">Volets : <select id="bx-cvol">
+      <option value=""${!v ? " selected" : ""}>commande à choisir (câblés en filaire)</option><option value="filaire"${v === "filaire" ? " selected" : ""}>commande filaire (CVR câblées)</option><option value="connecte"${v === "connecte" ? " selected" : ""}>connectés (moteurs seuls)</option></select></label></div>`;
+  }
   // ---------- boîtes ----------
   function boxesHTML() {
     const B = api.cab.boxes || [], hasTab = api.allApps().some((a) => a.t === "TAB");
     const mode = api.cab.mode || "proximite";
     const head = `<div class="cab-h" style="margin-top:14px"><b>Boîtes</b> <span class="mut sm">max ${getCab().departsMax} départs sans l'alimentation, ${getCab().departsFace} gaines par face (A haut, B droite, C bas, D gauche)</span></div>
       <div class="bx-mode"><label title="Comment les boîtes sont constituées au prochain placement automatique">Pieuvre : <select id="bx-mode">${Object.entries(MODES).map(([k, v]) => `<option value="${k}" ${k === mode ? "selected" : ""}>${v}</option>`).join("")}</select></label>
-        <button id="bx-cmp" title="Calcule les trois modes (proximité, équilibrée, par pièce) et les compare : mini-plans, fil, gaine, boîtes, départs. Puis « Appliquer ».">Comparer les 3 modes</button></div>`;
+        <button id="bx-cmp" title="Calcule les trois modes (proximité, équilibrée, par pièce) et les compare : mini-plans, fil, gaine, boîtes, départs. Puis « Appliquer ».">Comparer les 3 modes</button></div>${voletsHTML()}`;
     const tabWarn = hasTab ? "" : `<p class="warn sm">⚠ Pas de tableau sur le plan : les boîtes sont placées sans tenir compte de leur alimentation et les longueurs vers le tableau manquent. <button id="bx-tab">Poser le tableau</button></p>`;
     if (!B.length) return `${head}${tabWarn}<p class="mut sm">Oktéo place les boîtes selon le mode choisi — proximité (le moins de cuivre), équilibrée (boîtes régulières) ou par pièce —, une commande et ses lumières toujours dans la même boîte ; vous pouvez ensuite les déplacer à la souris.</p>
       <button class="on" id="bx-auto">Placer les boîtes automatiquement</button>`;
@@ -214,6 +221,7 @@ export function createCablagePane({ api, panel, ctl }) {
     const n = $("#bx-no"); if (n) n.onclick = () => { askBox = false; render(); };
     const t = $("#bx-tab"); if (t) t.onclick = () => { api.setTool("TAB"); api.setHint("Cliquez sur le plan à l'emplacement du tableau (TD)."); };
     const fx = $("#cb-fixsplit"); if (fx) fx.onclick = fixSplits;
+    const cv = $("#bx-cvol"); if (cv) cv.onchange = () => { api.setCab({ choix: { ...(api.cab.choix || {}), commandeVolet: cv.value } }); api.setHint(cv.value === "connecte" ? "Volets connectés : les commandes de volet ne sont plus câblées (recalculez les circuits et les boîtes : « Câbler le chantier »)." : "Volets en commande filaire : les commandes de volet sont câblées avec leurs volets."); };
     const md = $("#bx-mode"); if (md) md.onchange = () => { api.setCab({ mode: md.value }); api.setHint(`Pieuvre « ${MODES[md.value]} » : appliquée au prochain placement (« ${(api.cab.boxes || []).length ? "Replacer les boîtes…" : "Placer les boîtes"} »). « Comparer les 3 modes » pour voir avant de choisir.`); };
     const cp = $("#bx-cmp"); if (cp) cp.onclick = () => compare.open();
     el.querySelectorAll(".bx-row").forEach((r) => {
@@ -243,7 +251,7 @@ export function createCablagePane({ api, panel, ctl }) {
     const n = $("#cb-no"); if (n) n.onclick = () => { ask = null; render(); };
     const o = $("#cb-orph"); if (o) o.onclick = () => { const { chk } = data(); api.select(chk.orphans); };
     const nw = $("#cb-new"); if (nw) nw.onclick = () => {
-      const kind = $("#cb-kind").value, S = getCab(), ids = selectedApps();
+      const kind = $("#cb-kind").value, S = cabS(api), ids = selectedApps();
       const sec = { eclairage: [S.secEclairage, S.protEclairage], prises: [S.secPrises, S.protPrises], specialise: [S.secSpecialise, S.protSpecialise], comm: [null, null] }[kind];
       let C = api.cab.circuits.map((c) => ({ ...c, apps: c.apps.filter((id) => !ids.includes(id)) })).filter((c) => c.apps.length);
       C.push({ id: "c" + Date.now().toString(36), kind, label: `${KIND[kind]} (nouveau)`, apps: ids, section: sec[0], prot: sec[1], direct: kind === "specialise" || kind === "comm" });

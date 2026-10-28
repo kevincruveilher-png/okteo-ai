@@ -281,6 +281,28 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 56 (28/10/2026) — livrée : câblage aligné sur le bureau d'études (MAILLARD)
+Version du logiciel : 0.56.0. Règles du journal H-037 à H-041 (réponses de Kévin des 27 et 28/10).
+- R-001 : 16 départs par boîte hors alimentation (réglage `departsMax` 16, anciens 12 et 18 remplacés : `CAB_V` 4).
+- R-077 : numéros de gaine .01 = alimentation puis sens anti-horaire (chaque tranche lue de gauche à droite de l'extérieur).
+- R-094 : mode Équilibrée = le moins de boîtes possible (parts égales en départs, une boîte de plus seulement si les faces
+  ne tiennent pas) ; Proximité inchangé (moins de gaine).
+- R-098 : prise de plan de travail = circuit cuisine 2,5 (avec la hotte en boîte) ; reconnue à 1,00–1,30 m en cuisine
+  ou à moins de 3 m d'une plaque / hotte / four / lave-vaisselle ; Propriétés « Prise de plan de travail » (auto / oui /
+  non, `a.pt`). Les autres prises de la cuisine restent en 1,5.
+- R-073 : commande + prises au même endroit dans une gaine, sauf si elle passerait en ICTA 25 (alors coupée en deux) ;
+  le plan suit ce découpage (`okteo.setGaineGroups`, appelé par `wiringNow`).
+- Nouveaux types : îlot (ligne directe 1,5 GR+BF+V/J), bouton de sonnette BPS (1P 9/10), sonnette SON (en boîte, sur
+  le circuit éclairage).
+- R-096 : commande des volets filaire / connectée = choix du BE pour le chantier (`K.CAB.choix.commandeVolet`, panneau
+  Câblage « Volets » et choix du chantier du journal) ; connectés = commandes non câblées ; non choisi = filaire +
+  doute « à vérifier ». Moteurs de volet jamais « extérieurs » (plus de câble 5G1,5).
+- Lignes directes : RJ45 étiquetées RJ1… ; total R-099 (ICTA 16, ICTA 20 vertes comprises, YSYT).
+- Journal : « à voir avec Thibault » pour Q-85 (questions en attente d'un collègue nommé).
+- Test de référence MAILLARD (`scripts/maillard.test.mjs`, outil `scripts/chantier-wiring.mjs`) : 6 boîtes comme le
+  BE, boîte des volets identique, contenu des gaines et lignes directes communes identiques.
+- Tests : 31 + 63 + 175 + 12 + 145 = 426.
+
 ## Version 55.2 (27/10/2026) — livrée : réponse IA recopiée à la main
 - 1er essai de Kévin avec la nouvelle consigne : 25 murs, 22 ouvertures, 11 pièces, 100 appareils (8 volets + 8 CVR,
   interphone, chauffe-eau, PAC, moteur de garage), 30 liaisons toutes valides. La réponse est arrivée en texte (pas en

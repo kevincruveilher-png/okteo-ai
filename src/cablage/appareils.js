@@ -15,6 +15,9 @@
 export const LETTRES = { B: "bleu", BF: "bleu foncé", R: "rouge", GR: "gris", N: "noir", M: "marron", IV: "ivoire", O: "orange", V: "violet", "V/J": "vert/jaune" };
 export const COULEUR_LETTRE = Object.fromEntries(Object.entries(LETTRES).map(([k, v]) => [v, k]));
 
+// v56 (R-096) : volets connectés (choix du BE pour le chantier) : les commandes de volet (CVR) dessinées sur le plan ne
+// sont pas câblées ; chaque moteur reçoit seulement gris + bleu clair + vert/jaune
+export const sansCvr = (items, S) => (S && S.voletsConnectes ? items.filter((a) => a.t !== "CVR") : items);
 export const GROUPES = ["Chauffage et ventilation", "Cuisine et spécialisés", "Extérieur", "Volets roulants", "Courant faible", "Terre et attentes"];
 
 export const APPAREILS = {
@@ -45,6 +48,11 @@ export const APPAREILS = {
   ANT: { n: "Antenne", r: "ANT", h: null, lab: "ANT", groupe: "Courant faible", faible: true, racc: "direct", lignes: [{ cable: "17 VATC", gaine: "V20" }] },
   EQP: { n: "Équipotentielle principale", r: "EQ", h: 30, lab: "EQ", groupe: "Terre et attentes", racc: "direct", lignes: [{ fils: "10 V/J", gaine: 20 }] },
   EQL: { n: "Équipotentielle locale (salle de bain)", r: "EQ", h: 30, lab: "EQL", groupe: "Terre et attentes", racc: "boite", terre: 2.5 },
+  // v56 (bande MAILLARD du BE, Kévin 28/10/2026) : îlot (prises en ligne directe, sur le disjoncteur d'un circuit prises,
+  // sans disjoncteur propre), bouton poussoir de sonnette (1 paire 9/10), sonnette (carillon en boîte, circuit éclairage)
+  ILOT: { n: "Îlot (prises de l'îlot central)", r: "ILOT", h: 30, lab: "ILO", groupe: "Cuisine et spécialisés", racc: "direct", lignes: [{ fils: "1,5 GR+BF+V/J", gaine: 16 }], note: "sur le disjoncteur d'un circuit prises (pas de disjoncteur propre)" },
+  BPS: { n: "Bouton poussoir de sonnette", r: "BPS", h: 110, lab: "BPS", groupe: "Courant faible", mural: true, faible: true, racc: "direct", lignes: [{ cable: "1P 9/10", gaine: 16 }] },
+  SON: { n: "Sonnette (carillon)", r: "SON", h: 200, lab: "SON", groupe: "Courant faible", mural: true, racc: "boite", eclairage: true },
   AIG: { n: "Gaine aiguillée en attente", r: "AIG", h: null, lab: "AIG", groupe: "Terre et attentes", racc: "direct", lignes: [{ fils: "", gaine: 40 }] },
 };
 // lignes directes des types qui existaient déjà (R-082, R-084 : RJ45 en gaine verte Ø20)

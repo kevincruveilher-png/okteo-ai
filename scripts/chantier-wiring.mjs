@@ -1,5 +1,5 @@
 // Calcule le câblage Oktéo d'un chantier .okteo (boîtes, gaines, fils, lignes directes) et l'écrit en JSON.
-// Usage : node scripts/chantier-wiring.mjs <chantier.okteo> <sortie.json> [--recable] [--departs=16]
+// Usage : node scripts/chantier-wiring.mjs <chantier.okteo> <sortie.json> [--recable] [--departs=16] [--connecte] [--mode=equilibre]
 //   --recable : refait circuits + boîtes avec les règles actuelles (comme « Câbler le chantier ») avant le calcul.
 // Réglages de câblage : ceux de base (le fichier .okteo ne contient pas les réglages du PC).
 import { createServer } from "vite";
@@ -26,6 +26,8 @@ try {
   await page.waitForFunction(() => window.okteo && window.okteoExt && okteo.state.app.length > 0, null, { timeout: 60000 });
   const out = await page.evaluate(async (recable) => {
     const m = await import("/src/ext/cablage-data.js");
+    if (recable.connecte) okteo.setCab({ choix: { ...(okteo.cab.choix || {}), commandeVolet: "connecte" } });
+    if (recable.mode) okteo.setCab({ mode: recable.mode });
     if (recable.departs) { const st = await import("/src/cablage/settings.js"); st.setCab({ ...st.getCab(), departsMax: recable.departs }); }
     if (recable.on) { const e = await import("/src/ext/etude-ui.js"); await e.cabler(okteo); }
     const W = m.wiringNow(okteo);
@@ -35,7 +37,7 @@ try {
         wires: g.wires.map((w) => ({ fn: w.fn, color: w.color, section: w.section, n: w.n, bague: w.bague || null, circuit: w.circuit || null })) })) }));
     return { chantier: okteo.ch.nom, mode: okteo.cab.mode, circuits: okteo.cab.circuits.map((c) => ({ n: c.n, kind: c.kind, section: c.section, prot: c.prot, direct: c.direct, apps: c.apps.length })),
       apps, links: okteo.allLinks(), boxes, direct: W.direct, directTotals: W.directTotals, doutes: W.doutes, issues: W.issues, totals: W.totals };
-  }, { on: flags.includes("--recable"), departs: +((flags.find((f) => f.startsWith("--departs=")) || "").split("=")[1] || 0) });
+  }, { on: flags.includes("--recable"), connecte: flags.includes("--connecte"), mode: (flags.find((f) => f.startsWith("--mode=")) || "").split("=")[1] || "", departs: +((flags.find((f) => f.startsWith("--departs=")) || "").split("=")[1] || 0) });
   fs.writeFileSync(OUT, JSON.stringify(out, null, 1));
   console.log(`${out.boxes.length} boîtes, ${out.boxes.reduce((s, b) => s + b.gaines.length, 0)} gaines, ${out.direct.length} lignes directes → ${OUT}`);
   if (errors.length) console.log("erreurs de la page :", errors.join(" | "));

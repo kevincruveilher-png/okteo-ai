@@ -6,7 +6,7 @@
 // - communication (RJ45) : lignes directes vers le coffret de communication (pas de circuit de puissance).
 // Entrée : items [{id, t, x, y, lv, lvName, room, rep}], links [{c, l}], réglages (cablage/settings.js).
 
-import { APPAREILS, raccOf, isVolet } from "./appareils.js";
+import { APPAREILS, raccOf, isVolet, sansCvr } from "./appareils.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
 // v54 : appareil en ligne directe protégé par un disjoncteur (type du journal des règles), ligne sans disjoncteur
@@ -29,9 +29,25 @@ function voletChunks(list, S) {
 }
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 // prise de cuisine : prise 16 A dans une pièce dont le nom contient un des mots du réglage « motsCuisine »
-export function isCuisine(a, S) {
+export function isCuisineRoom(a, S) {
   const room = String(a.room || "").toLowerCase();
   return !!room && String(S.motsCuisine ?? "cuisine").split(",").map((w) => w.trim().toLowerCase()).filter(Boolean).some((w) => room.includes(w));
+}
+// v56 (R-098) : prise de plan de travail = seule prise du circuit cuisine 2,5 (avec la hotte en boîte). Repère porté par
+// la prise : a.pt = true / false (choisi à la main), sinon reconnu : prise posée entre 1,00 m et 1,30 m, dans une pièce
+// de cuisine OU à moins de 3 m d'un appareil de cuisine (plaque, hotte, four, lave-vaisselle) du même niveau
+export const APP_CUISINE = new Set(["PLAQ", "HOTTE", "FOUR", "LV"]);
+export function planTravailAuto(a, S, items = []) {
+  if (a.t !== "PC16") return false;
+  const h = +a.h;
+  if (!(h >= (S.ptHmin ?? 100) && h <= (S.ptHmax ?? 130))) return false;
+  if (isCuisineRoom(a, S)) return true;
+  return items.some((o) => APP_CUISINE.has(o.t) && (o.lv ?? null) === (a.lv ?? null) && Math.hypot(o.x - a.x, o.y - a.y) <= (S.ptDist ?? 3));
+}
+export function isCuisine(a, S, items = []) {
+  if (a.t !== "PC16") return false;
+  if (a.pt === true || a.pt === false) return a.pt;
+  return planTravailAuto(a, S, items);
 }
 
 // ordre de proche en proche (part du coin haut-gauche), pour garder des circuits compacts
@@ -49,7 +65,8 @@ function chain(list) {
 }
 const centroid = (L) => ({ x: L.reduce((s, p) => s + p.x, 0) / L.length, y: L.reduce((s, p) => s + p.y, 0) / L.length });
 
-export function computeCircuits(items, links, S) {
+export function computeCircuits(items0, links, S) {
+  const items = sansCvr(items0, S);
   const byId = new Map(items.map((a) => [a.id, a]));
   const levels = [...new Set(items.map((a) => a.lv))];
   const lvName = (lv) => (items.find((a) => a.lv === lv) || {}).lvName || lv;
@@ -58,7 +75,8 @@ export function computeCircuits(items, links, S) {
 
   // ---------- éclairage ----------
   // allumages : lumières reliées par une même commande (union-find sur les liaisons)
-  const lights = items.filter((a) => LIGHT.has(a.t));
+  // (v56 : la sonnette en boîte suit le circuit éclairage, comme sur la bande MAILLARD du BE)
+  const lights = items.filter((a) => LIGHT.has(a.t) || (APPAREILS[a.t] || {}).eclairage);
   const par = new Map(lights.map((a) => [a.id, a.id])), find = (x) => (par.get(x) === x ? x : (par.set(x, find(par.get(x))), par.get(x)));
   const lightsOf = new Map();                                 // commande → lumières
   for (const l of links) { if (!byId.has(l.c) || !byId.has(l.l) || !LIGHT.has(byId.get(l.l).t)) continue; if (!lightsOf.has(l.c)) lightsOf.set(l.c, []); lightsOf.get(l.c).push(l.l); }
@@ -96,10 +114,10 @@ export function computeCircuits(items, links, S) {
   }
   // ---------- prises 16 A (cuisine à part : 2,5 mm², 6 max) ----------
   for (const lv of levels) {
-    const P = chain(items.filter((a) => a.t === "PC16" && a.lv === lv && !isCuisine(a, S)));
+    const P = chain(items.filter((a) => a.t === "PC16" && a.lv === lv && !isCuisine(a, S, items)));
     let k = 0;
     for (let i = 0; i < P.length; i += S.maxPrises) add("prises", `Prises ${lvName(lv)} ${++k}`, P.slice(i, i + S.maxPrises).map((a) => a.id), { section: S.secPrises, prot: S.protPrises });
-    const Q = chain(items.filter((a) => a.lv === lv && ((a.t === "PC16" && isCuisine(a, S)) || hotteBoite(a)))), mc = S.maxPrisesCuisine || 6;
+    const Q = chain(items.filter((a) => a.lv === lv && ((a.t === "PC16" && isCuisine(a, S, items)) || hotteBoite(a)))), mc = S.maxPrisesCuisine || 6;
     k = 0;
     for (let i = 0; i < Q.length; i += mc) add("cuisine", `Prises cuisine ${lvName(lv)}${Q.length > mc ? " " + ++k : ""}`, Q.slice(i, i + mc).map((a) => a.id), { section: S.secCuisine || 2.5, prot: S.protCuisine || 20 });
   }
@@ -168,7 +186,8 @@ export function checkCircuits(circuits, items, S) {
 // au-delà des limites de la norme. Les allumages restent entiers, et les commandes posées au même endroit restent sur
 // le même circuit (phase commune). Ce qui n'est dans aucune boîte (lignes directes, RJ45, appareils sans boîte) :
 // répartition habituelle (computeCircuits). Numéros : C1, C2… boîte par boîte (éclairage, prises, cuisine), puis le reste.
-export function circuitsByBox(items, links, boxes, S) {
+export function circuitsByBox(items0, links, boxes, S) {
+  const items = sansCvr(items0, S);
   const byId = new Map(items.map((a) => [a.id, a]));
   const direct = (a) => a.t === "PC20" || a.t === "RJ45" || (a.t === "SC" && S.scSpecialise) || a.t === "VMC" || a.t === "TAB" || directBreaker(a) || directNoBreaker(a) || (a.t === "HOTTE" && !hotteBoite(a));
   const near = S.memeEndroit ?? 0.3;
@@ -180,7 +199,7 @@ export function circuitsByBox(items, links, boxes, S) {
     const ids = new Set(apps.map((a) => a.id));
     // éclairage : allumages (lumières + commandes reliées), fusionnés si leurs commandes sont au même endroit
     const par = new Map(), find = (x) => { if (!par.has(x)) par.set(x, x); return par.get(x) === x ? x : (par.set(x, find(par.get(x))), par.get(x)); };
-    const LC = apps.filter((a) => LIGHT.has(a.t) || CMD.has(a.t));
+    const LC = apps.filter((a) => LIGHT.has(a.t) || CMD.has(a.t) || (APPAREILS[a.t] || {}).eclairage);
     for (const l of links) if (ids.has(l.c) && ids.has(l.l)) par.set(find(l.c), find(l.l));
     const cm = LC.filter((a) => CMD.has(a.t));
     for (let i = 0; i < cm.length; i++) for (let j = i + 1; j < cm.length; j++) if (cm[i].lv === cm[j].lv && dist(cm[i], cm[j]) <= near + 1e-9) par.set(find(cm[i].id), find(cm[j].id));
@@ -197,9 +216,9 @@ export function circuitsByBox(items, links, boxes, S) {
     // prises : par paquets de la limite de la norme ; cuisine à part
     // au-delà de la limite : circuits à parts égales (9 prises → 5 + 4, pas 8 + 1)
     const chunk = (L, max, kind, lab, sec, prot) => { const sz = Math.ceil(L.length / Math.max(1, Math.ceil(L.length / max))); for (let i = 0, k = 0; i < L.length; i += sz) out.push({ kind, label: `${lab} ${b.n}${L.length > max ? " · " + ++k : ""}`, apps: L.slice(i, i + sz).map((a) => a.id), section: sec, prot, box: b.id }); };
-    const P = chain(apps.filter((a) => (a.t === "PC16" && !isCuisine(a, S)) || (a.t === "SC" && !S.scSpecialise)));
+    const P = chain(apps.filter((a) => (a.t === "PC16" && !isCuisine(a, S, items)) || (a.t === "SC" && !S.scSpecialise)));
     chunk(P, S.maxPrises, "prises", "Prises", S.secPrises, S.protPrises);
-    const Q = chain(apps.filter((a) => (a.t === "PC16" && isCuisine(a, S)) || hotteBoite(a)));
+    const Q = chain(apps.filter((a) => (a.t === "PC16" && isCuisine(a, S, items)) || hotteBoite(a)));
     chunk(Q, S.maxPrisesCuisine || 6, "cuisine", "Prises cuisine", S.secCuisine || 2.5, S.protCuisine || 20);
     // volets roulants de la boîte : circuit dédié (R-079), coupé selon la puissance admissible (R-087)
     const V = apps.filter((a) => isVolet(a.t));

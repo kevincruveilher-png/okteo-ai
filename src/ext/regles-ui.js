@@ -10,6 +10,7 @@ import { esc, md } from "./util.js";
 import { downloadBlob } from "./dossier.js";
 
 const VOLETS = { "": "à choisir", boite_a_part: "Boîte à part", melanges: "Mélangés aux autres boîtes" };
+const CVOL = { "": "Commande des volets : à choisir (BE)", filaire: "Filaire (commandes CVR câblées)", connecte: "Connectée (moteurs seuls : gris + bleu clair + V/J)" };
 const RACC = { a_choisir: "À choisir (doute signalé)", boite: "En boîte (circuit cuisine)", ligne_directe: "En ligne directe" };
 const CHOIX_LIB = { mode_pieuvre: "Mode de pieuvre", volets: "Volets roulants", raccordement: "Raccordement", liaison_boites: "Liaison entre boîtes",
   repartition_circuits: "Répartition des circuits", commande_volet: "Commande du volet" };
@@ -37,9 +38,10 @@ export function mountRegles(el, { api, ask }) {
       <label>Mode de pieuvre <select id="rg-mode">${Object.entries(MODES).map(([k, l]) => `<option value="${k}" ${(cab.mode || "proximite") === k ? "selected" : ""}>${esc(l)}</option>`).join("")}
         <option value="plug" disabled>Plug de pieuvre — bloqué (R-009 incomplète)</option></select></label>
       <label>Volets roulants <select id="rg-volets">${Object.entries(VOLETS).map(([k, l]) => `<option value="${k}" ${(ch.volets || "") === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
+      <label title="R-096 : choix du bureau d'études pour le chantier ; le plan ne le dit pas">Commande des volets <select id="rg-cvol">${Object.entries(CVOL).map(([k, l]) => `<option value="${k}" ${(ch.commandeVolet || "") === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
       <label>Hotte et appareils à choix <select id="rg-racc">${Object.entries(RACC).map(([k, l]) => `<option value="${k}" ${(ch.raccordement || "a_choisir") === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
       <p class="mut sm">Pavillonneur : règles communes à tous (aucune différence sur 4 pavillonneurs, Q-26 à confirmer). Le mode de pieuvre sert
-      dès maintenant au placement des boîtes ; volets et appareils à choix seront utilisés par le câblage avec les volets roulants (mise à jour 54).</p>
+      au placement des boîtes ; volets, commande des volets et appareils à choix sont utilisés par le câblage.</p>
     </div>`;
   }
   function ecartsHTML(J) {
@@ -94,8 +96,8 @@ export function mountRegles(el, { api, ask }) {
   // question en suspens : à voir avec un collègue plus qualifié, ou en attente d'un chantier (jamais reposée à Kévin)
   function waitTag(q) {
     if (q.statut !== "attente") return "";
-    const col = /coll[eè]gue/i.test(q.statut_texte || "");
-    return ` <span class="rg-wait${col ? " col" : ""}" title="${col ? "Hors de portée de Kévin : la valeur supposée reste « à vérifier » jusqu'à la réponse d'un collègue plus qualifié" : "En attente d'un chantier de ce type"}">${col ? "à voir avec un collègue" : "en attente d'un chantier"}</span>`;
+    const col = !/chantier/i.test(q.statut_texte || "");   // en attente d'un collègue (Thibault…) sauf « en attente du chantier »
+    return ` <span class="rg-wait${col ? " col" : ""}" title="${col ? "Hors de portée de Kévin : la valeur supposée reste « à vérifier » jusqu'à la réponse d'un collègue plus qualifié" : "En attente d'un chantier de ce type"}">${col ? "à voir avec " + ((q.statut_texte || "").match(/\(([A-ZÉ][\wéèêë-]+)\)/) || [, "un collègue"])[1].replace(/^collègue qualifié$/, "un collègue") : "en attente d'un chantier"}</span>`;
   }
   function questionsHTML(J) {
     const ord = { ouverte: 0, attente: 1, partielle: 2, reportee: 3, repondue: 4 };
@@ -137,7 +139,7 @@ export function mountRegles(el, { api, ask }) {
     if (which === "ecarts") { el.querySelector(".rg-ecarts-box").innerHTML = ecartsHTML(getJournal()); wireEcarts(); }
     if (which === "choix") {
       const cab = (api && api.cab) || {}, ch = cab.choix || {}, set = (id, v) => { const x = el.querySelector(id); if (x && x.value !== v && document.activeElement !== x) x.value = v; };
-      set("#rg-mode", cab.mode || "proximite"); set("#rg-volets", ch.volets || ""); set("#rg-racc", ch.raccordement || "a_choisir");
+      set("#rg-mode", cab.mode || "proximite"); set("#rg-volets", ch.volets || ""); set("#rg-cvol", ch.commandeVolet || ""); set("#rg-racc", ch.raccordement || "a_choisir");
     }
   }
   function wireEcarts() { el.querySelectorAll(".rg-ecarts [data-open]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); openRule(a.dataset.open); })); }
@@ -189,6 +191,7 @@ export function mountRegles(el, { api, ask }) {
       m.onchange = () => api.setCab({ mode: m.value });
       v.onchange = () => api.setCab({ choix: { ...(api.cab.choix || {}), volets: v.value } });
       r.onchange = () => api.setCab({ choix: { ...(api.cab.choix || {}), raccordement: r.value } });
+      const cv = el.querySelector("#rg-cvol"); cv.onchange = () => api.setCab({ choix: { ...(api.cab.choix || {}), commandeVolet: cv.value } });
     }
   }
 

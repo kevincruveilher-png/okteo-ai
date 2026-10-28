@@ -7,11 +7,14 @@ import { pointInPoly } from "../walls/rooms.js";
 
 // appareil à l'extérieur : ni sur lui ni à 12 cm autour, aucune pièce (un appareil intérieur posé contre un mur
 // touche sa pièce ; un appareil sur la façade est de l'autre côté du mur)
+// réglages du câblage + choix du chantier qui changent le calcul (v56 : volets connectés, R-096)
+export function cabS(api) { const cv = ((api.cab || {}).choix || {}).commandeVolet || ""; return { ...getCab(), commandeVolet: cv, voletsConnectes: cv === "connecte" }; }
 export function markExterior(api, items) {
   const geos = new Map(), at = (lv) => { if (!geos.has(lv)) geos.set(lv, (api.exportGeometry(lv).rooms || []).filter((r) => r.poly && r.poly.length > 2)); return geos.get(lv); };
   const D = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
   return items.map((a) => {
-    if (a.t === "TAB") return a;
+    // v56 : un moteur de volet (ou de Velux) est posé dans le mur, à la fenêtre : jamais « extérieur » (fils, pas câble)
+    if (a.t === "TAB" || a.t === "VR" || a.t === "VEL") return a;
     const R = at(a.lv);
     if (!R.length) return a;
     const inside = D.some(([dx, dy]) => R.some((r) => pointInPoly(a.x + dx * 0.12, a.y + dy * 0.12, r.poly)));
@@ -20,8 +23,15 @@ export function markExterior(api, items) {
 }
 
 export function wiringNow(api) {
-  const S = getCab(), items = markExterior(api, api.allApps()), links = api.allLinks();
-  return computeWiring({ items, links, circuits: api.cab.circuits || [], boxes: api.cab.boxes || [], levels: api.levels.map((l) => l.id), S });
+  const S = cabS(api), items = markExterior(api, api.allApps()), links = api.allLinks();
+  const W = computeWiring({ items, links, circuits: api.cab.circuits || [], boxes: api.cab.boxes || [], levels: api.levels.map((l) => l.id), S });
+  // v56 : le plan suit le découpage des gaines (une gaine coupée en deux par R-073 = deux points d'accroche)
+  if (api.setGaineGroups) {
+    const m = {};
+    W.boxes.forEach((b) => { const g = (m[b.id] = {}); b.gaines.forEach((x) => (x.appIds || []).forEach((id) => (g[id] = x.appIds[0]))); });
+    api.setGaineGroups(m);
+  }
+  return W;
 }
 
 // placement automatique des boîtes (tous niveaux) ; le tableau (ou, sur un autre niveau, sa projection) attire les boîtes
@@ -32,7 +42,7 @@ export function roomsByLevel(api) {
   return out;
 }
 export function autoBoxes(api, keepIds = [], count = 0, mode = (api.cab.mode || "proximite"), circuits = api.cab.circuits || []) {
-  const S = getCab(), items = api.allApps(), links = api.allLinks();
+  const S = cabS(api), items = api.allApps(), links = api.allLinks();
   const tab = items.find((a) => a.t === "TAB");
   const tabs = {}; api.levels.forEach((l) => { if (tab) tabs[l.id] = { x: tab.x, y: tab.y }; });
   const keep = (api.cab.boxes || []).filter((b) => keepIds.includes(b.id));
@@ -42,7 +52,7 @@ export function autoBoxes(api, keepIds = [], count = 0, mode = (api.cab.mode || 
 // comparatif des modes de pieuvre (v39) : pour chacun, les boîtes, les circuits qui en découlent et les chiffres
 // (boîtes, circuits, cuivre, gaine, départs par boîte, alertes) ; les boîtes verrouillées restent en place partout
 export function compareModes(api) {
-  const S = getCab(), items = api.allApps(), links = api.allLinks();
+  const S = cabS(api), items = api.allApps(), links = api.allLinks();
   const keepIds = (api.cab.boxes || []).filter((b) => b.locked).map((b) => b.id);
   const base = (api.cab.circuits || []).length ? api.cab.circuits : computeCircuits(items, links, S);
   const ext = markExterior(api, items), levels = api.levels.map((l) => l.id);

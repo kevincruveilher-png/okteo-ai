@@ -8,7 +8,7 @@
 // on place donc des « unités » indivisibles (un allumage complet, ou une prise seule).
 
 import { packAlim } from "./gaine.js";
-import { isVolet } from "./appareils.js";
+import { isVolet, sansCvr } from "./appareils.js";
 import { pointInPoly, labelPoint } from "../walls/rooms.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
@@ -210,7 +210,7 @@ function seat(units, tab, S, pull = true) {
   return median(pts, c);
 }
 
-// mode « équilibrée » (v39) : la maison découpée en k parts de départs à peu près égaux, par coupes successives selon
+// mode « équilibrée » (v39 ; v56 : le moins de boîtes possible) : la maison découpée en k parts de départs à peu près égaux, par coupes successives selon
 // le plus grand côté (comme le fait le bureau d'études : des boîtes régulières, « qui plaisent à l'œil ») ; les allumages
 // restent entiers ; chaque boîte au milieu de sa part (sans attraction du tableau)
 function bisect(units, k, S) {
@@ -218,7 +218,7 @@ function bisect(units, k, S) {
   const xs = units.map((u) => u.x), ys = units.map((u) => u.y);
   const ax = Math.max(...xs) - Math.min(...xs) >= Math.max(...ys) - Math.min(...ys) ? "x" : "y";
   const U = units.slice().sort((p, q) => p[ax] - q[ax]);
-  const w = (u) => u.ids.length + 0.5, tot = U.reduce((s, u) => s + w(u), 0), kL = Math.floor(k / 2);
+  const w = (u) => departsOf([u], S) + 0.1, tot = U.reduce((s, u) => s + w(u), 0), kL = Math.floor(k / 2);   // v56 : parts égales en départs
   let acc = 0, i = 0;
   while (i < U.length - 1 && acc + w(U[i]) / 2 < tot * kL / k) acc += w(U[i++]);
   i = Math.max(1, Math.min(U.length - 1, i));
@@ -276,7 +276,8 @@ function placeLevelRooms(units, tab, S, roomsLv) {
 // mode (v39) : "proximite" (le moins de cuivre, défaut), "equilibre" (parts égales), "piece" (une boîte par pièce ;
 // rooms = {[niveau]: [{name, poly}]})
 export const MODES = { proximite: "Proximité", equilibre: "Équilibrée", piece: "Par pièce" };
-export function placeBoxes(items, links, circuits, tabs, S0, { keep = [], count = 0, mode = "proximite", rooms = {}, volets = "" } = {}) {
+export function placeBoxes(items0, links, circuits, tabs, S0, { keep = [], count = 0, mode = "proximite", rooms = {}, volets = "" } = {}) {
+  const items = sansCvr(items0, S0);
   const secOf = new Map(circuits.map((c) => [c.id, c.section || 1.5]));
   const S = { ...S0, alimCount: (ids) => (ids.size ? packAlim([...ids].map((id) => ({ id, section: secOf.get(id) || 1.5 })), S0).length : 0) };
   const all = buildUnits(items, links, circuits), exist = new Set(items.map((a) => a.id));
@@ -311,10 +312,9 @@ export function placeBoxes(items, links, circuits, tabs, S0, { keep = [], count 
   }
   const placeMode = (L, lv, k) => {
     if (mode === "piece") return placeLevelRooms(L, tabs[lv] || null, S, rooms[lv]);
-    if (mode === "equilibre") {
-      const kp = k || (placeLevel(L, tabs[lv] || null, S, 4, 0) || []).length || minBoxes(L, S);
-      return placeLevelBalanced(L, tabs[lv] || null, S, kp);
-    }
+    // v56 (R-094, H-041) : en mode équilibrée, le moins de boîtes possible (comme le BE) : on part du minimum de boîtes
+    // permis par les départs, et on n'en ajoute que si les parts ne tiennent pas (départs ou gaines par face)
+    if (mode === "equilibre") return placeLevelBalanced(L, tabs[lv] || null, S, k || minBoxes(L, S));
     return placeLevel(L, tabs[lv] || null, S, 4, k || 0);
   };
   const tabOf = (lv) => tabs[lv] || null;

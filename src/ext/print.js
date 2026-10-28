@@ -285,6 +285,8 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       [["A", 0, -1], ["B", 1, 0], ["C", 0, 1], ["D", -1, 0]].forEach(([fc, dx, dy]) => doc.text(fc, bx + dx * BS * 0.3, by + dy * BS * 0.3, { align: "center", baseline: "middle" }));
       const used = new Map(b.deps.filter((d) => d.face && d.slot != null).map((d) => [d.face + d.slot, d]));
       const out = { A: [0, -1], B: [1, 0], C: [0, 1], D: [-1, 0] };
+      // rang d'un point dans sa suite de points voisins occupés (0, 1, 2…) : les n° alternent sur deux lignes
+      const runIdx = (fc, i) => { let k = 0; while (i - k - 1 >= 0 && used.has(fc + (i - k - 1))) k++; return k; };
       for (const fc of ["A", "B", "C", "D"]) for (let i = 0; i < b.N; i++) {
         const Pw = portXY(b, BSm, b.N, fc, i), px = X(Pw.x), py = Y(Pw.y), d = used.get(fc + i);
         const c = d ? (d.tab ? [20, 20, 20] : rgb((d.ends[0] || {}).color) || [130, 130, 130]) : null;
@@ -296,7 +298,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
           // n° sur un petit fond blanc, pour rester lisible par-dessus les gaines
           // (toujours horizontal : sur les faces B et D, les n° voisins se suivent sans se chevaucher)
           doc.setFont("helvetica", "bold"); doc.setFontSize(4);
-          const w = doc.getTextWidth(no) + 0.3, h = 1.45, tx = px + ox * (vert ? w / 2 + 0.75 : 0), ty = py + oy * (vert ? 0 : 1.55 + (i % 2 && used.has(fc + (i - 1)) ? 1.5 : 0)); // voisin occupé : décalé d'un cran
+          const w = doc.getTextWidth(no) + 0.3, h = 1.45, tx = px + ox * (vert ? w / 2 + 0.75 : 0), ty = py + oy * (vert ? 0 : 1.55 + (runIdx(fc, i) % 2 ? 1.5 : 0)); // points voisins occupés : un sur deux décalé d'un cran
           doc.setFillColor(255, 255, 255); doc.rect(tx - w / 2, ty - h / 2, w, h, "F");
           doc.setTextColor(...(c || [0, 0, 0]));
           doc.text(no, tx, ty, { align: "center", baseline: "middle" });

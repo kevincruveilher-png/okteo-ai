@@ -1,6 +1,6 @@
 // Câblage d'Oktéo sur 4 chantiers réels (v52) : contenu relevé sur les bandes FTZ (scripts/fixtures/chantiers-ftz.mjs),
 // câblé par Oktéo dans les 3 modes de pieuvre, puis contrôle des règles vérifiées à la main par Kévin sur ces chantiers
-// (journal des règles, note de passation section 3). On ne compare PAS le nombre de boîtes à FTZ (12 départs chez nous).
+// (journal des règles, note de passation section 3). On ne compare PAS le nombre de boîtes à FTZ (16 départs chez nous, v56).
 import { CHANTIERS_FTZ, buildChantier } from "./fixtures/chantiers-ftz.mjs";
 import { computeCircuits, circuitsByBox } from "../src/cablage/circuits.js";
 import { placeBoxes } from "../src/cablage/boites.js";
@@ -33,8 +33,8 @@ for (const name of Object.keys(CHANTIERS_FTZ)) {
     const pIss = P.issues.filter((x) => !/R-094/.test(x));   // volets en mode « par pièce » : pas de règle, signalé (avertir)
     check(tag + "chaque appareil dans exactement une boîte, aucun allumage coupé, aucun doute bloquant", boxedOk && !pIss.length && !W.splits.length && !W.doutes.some((d) => d.bloquant),
       [...P.issues, ...W.doutes.map((d) => d.text)].join(" ; "));
-    // 1. R-001 : 12 départs (sans l'alimentation), 6 gaines par face (alimentation comprise)
-    check(tag + "R-001 : ≤ 12 départs par boîte, ≤ 6 gaines par face", B.every((b) => b.gaines.filter((g) => g.kind === "app").length <= 12 && FACES.every((f) => b.gaines.filter((g) => g.face === f).length <= 6) && b.gaines.every((g) => FACES.includes(g.face))));
+    // 1. R-001 : 16 départs (sans l'alimentation, v56), 6 gaines par face (alimentation comprise)
+    check(tag + "R-001 : ≤ 16 départs par boîte, ≤ 6 gaines par face", B.every((b) => b.gaines.filter((g) => g.kind === "app").length <= 16 && FACES.every((f) => b.gaines.filter((g) => g.face === f).length <= 6) && b.gaines.every((g) => FACES.includes(g.face))));
     // 2. R-074 : diamètre par la somme des sections
     check(tag + "R-074 : ≤ 7,5 mm² → ICTA 16, ≤ 13,5 mm² → ICTA 20", G.every((g) => g.diam === (g.sum <= 7.5 + 1e-9 ? 16 : g.sum <= 13.5 + 1e-9 ? 20 : null) && g.diam != null),
       G.filter((g) => g.diam == null).map((g) => g.no + " " + g.sum).join(", "));
@@ -49,11 +49,11 @@ for (const name of Object.keys(CHANTIERS_FTZ)) {
     check(tag + "R-081 : circuits C1…Cn dans l'ordre des boîtes, éclairage puis prises puis cuisine", boxed.every((c, i) => c.n === "C" + (i + 1)) && order.every((o, i) => i === 0 || o > order[i - 1] || (o === order[i - 1] && rank[boxed[i].kind] >= rank[boxed[i - 1].kind])));
     // 5. R-021 / R-022 : 8 prises par circuit, 6 en cuisine (hotte comprise)
     check(tag + "R-021 / R-022 : ≤ 8 prises par circuit, ≤ 6 en cuisine", C.every((c) => (c.kind !== "prises" || c.apps.length <= 8) && (c.kind !== "cuisine" || c.apps.length <= 6)));
-    // 6. R-077 : .01 = alimentation, puis strictement dans le sens horaire
+    // 6. R-077 : .01 = alimentation, puis strictement dans le sens anti-horaire (v56)
     const M = S.departsFace, per = 4 * M, pos = (g) => FACES.indexOf(g.face) * M + g.slot;
-    check(tag + "R-077 : .01 = alimentation, numéros strictement dans le sens horaire", B.every((b) => {
+    check(tag + "R-077 : .01 = alimentation, numéros strictement dans le sens anti-horaire", B.every((b) => {
       const L = b.gaines, p0 = pos(L[0]);
-      return L[0].id === "alim:0" && L.every((g, i) => g.no === `${b.n}.${String(i + 1).padStart(2, "0")}` && (i === 0 || (pos(g) - p0 + per) % per > (pos(L[i - 1]) - p0 + per) % per));
+      return L[0].id === "alim:0" && L.every((g, i) => g.no === `${b.n}.${String(i + 1).padStart(2, "0")}` && (i === 0 || (p0 - pos(g) + per) % per > (p0 - pos(L[i - 1]) + per) % per));
     }));
     // 7. R-072 : jamais deux allumages de la même couleur dans une gaine ; pas de répétition dans la boîte sans bague
     const gid = (k) => String(k || "").replace(/^(R|V1|V2|K)/, "");
@@ -109,8 +109,8 @@ for (const name of Object.keys(CHANTIERS_FTZ)) {
   console.log("Lignes directes DUCOURNEAU : " + W.direct.length + " lignes · " + Object.entries(W.directTotals).map(([k, n]) => n + " × " + k).join(" · "));
   check("DUCOURNEAU : les 28 lignes directes ont la gaine et le fil de la feuille FTZ (sauf la couleur du fil pilote de C4 : ivoire chez FTZ, question Q-83)", !diff.length && W.direct.length === 28,
     diff.map(([rep]) => { const d = W.direct.find((x) => x.etiquette === rep); return rep + " " + (d ? gnorm(d) + " " + d.fil : "absente"); }).join(" ; "));
-  const t = W.directTotals, n16 = t["ICTA 16"] || 0, n20 = (t["ICTA 20"] || 0) + (t["ICTA 20 V (verte)"] || 0), aig = t["gaine aiguillée Ø40"] || 0;
-  check("DUCOURNEAU : total par gaine identique à FTZ (11 ICTA 16, 16 ICTA 20 dont la verte, 1 gaine aiguillée)", n16 === lignesTotal.ICTA16 && n20 === lignesTotal.ICTA20 && aig === lignesTotal.AIG, JSON.stringify(t));
+  const t = W.directTotals, n16 = t["ICTA 16"] || 0, n20 = t["ICTA 20"] || 0, aig = t["ICTA 40"] || 0;
+  check("DUCOURNEAU : total par gaine identique à FTZ (11 ICTA 16, 16 ICTA 20 dont les vertes, R-099 ; 1 gaine aiguillée)", n16 === lignesTotal.ICTA16 && n20 === lignesTotal.ICTA20 && aig === lignesTotal.AIG && W.directVertes > 0, JSON.stringify(t));
   check("courant faible jamais dans une boîte ni avec le courant fort (R-003) : TV, antenne, RJ45 en gaine verte", W.direct.filter((d) => d.faible).every((d) => d.gaine === "V20" || d.gaine === 20) && !W.boxes.some((b) => b.gaines.some((g) => (g.appIds || []).some((id) => /^(RJ45|TV|ANT|INTERCO)$/.test(items.find((a) => a.id === id)?.t)))));
 }
 

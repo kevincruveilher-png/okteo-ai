@@ -307,13 +307,23 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   ai-releve `#ai-copy` (presse-papiers avec délai 1,5 s, sinon dans `#ai-paste`), `okteoExt.aiReleve.copied`.
 - v55.2 : `parseAiJson` accepte les guillemets typographiques (2e lecture) ; ouverture sur un morceau de mur trop court
   ou décalée → recentrée / rétrécie (≥ 0,4 m), `stats.ouverturesAjustees`.
+- v56 : réglages `departsMax` 16 (`CAB_V` 4, `OLD_DEFAULTS` valeur ou liste) ; gaines.js n° anti-horaires (R-077),
+  `etiq` (RJ45 → RJn), `directTotals` par diamètre (V20 dans ICTA 20, YSYT) + `directVertes`, découpage R-073 (somme >
+  `icta20` → prises / commandes séparées), doute R-096 ; boites.js `placeLevelBalanced` depuis `minBoxes` (Équilibrée =
+  le moins de boîtes), `bisect` pondéré par `departsOf` ; circuits.js `isCuisine(a, S, items)` = `a.pt` ou
+  `planTravailAuto` (R-098, `APP_CUISINE`), `isCuisineRoom` ; appareils.js ILOT / BPS / SON (`eclairage: true` → circuit
+  éclairage), `sansCvr(items, S)` (S.voletsConnectes) appliqué dans computeCircuits / circuitsByBox / placeBoxes /
+  computeWiring ; ext `cabS(api)` (réglages + choix du chantier `commandeVolet`) à passer au moteur au lieu de getCab() ;
+  `markExterior` ignore VR/VEL ; `okteo.setGaineGroups` (K.gaineGroups) : boxLayout suit le découpage des gaines ;
+  Propriétés `#f_pt` ; Câblage `#bx-cvol` ; journal `#rg-cvol`. Référence : `scripts/maillard.test.mjs` (recâble
+  `docs/chantiers/MAILLARD_kevin.okteo` via `scripts/chantier-wiring.mjs`, options `--recable --connecte --mode= --departs=`).
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (31 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (58 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (175 : règles du journal sur 4 chantiers réels) + `scripts/smoke.mjs` (143 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (63 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (175 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (12 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (145 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

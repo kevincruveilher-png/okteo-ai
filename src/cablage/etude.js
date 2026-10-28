@@ -134,12 +134,12 @@ export function whyBox(b, S, mode) {
     { rule: "R-005", text: "Une boîte peut desservir plusieurs pièces et niveaux" },
     { rule: "R-007", text: `Circuits de la boîte : ${b.circuits.join(", ")} (un circuit ne passe que par une boîte)` },
     ...(b.locked || b.manual ? [{ rule: "R-004", text: "Boîte verrouillée ou déplacée à la main : elle reste en place au recalcul" }] : []),
-    { rule: "R-077", text: `Gaines numérotées ${b.n}.01 (alimentation) puis dans le sens horaire` },
+    { rule: "R-077", text: `Gaines numérotées ${b.n}.01 (alimentation) puis dans le sens anti-horaire (lus de gauche à droite sur chaque tranche)` },
     { rule: null, text: `Longueur totale des gaines : ${fr(b.longueur, 2)} m` },
   ];
 }
 export function whyGaine(g, b, S) {
-  const out = [{ rule: "R-077", text: `${g.no} : face ${g.face}, ${g.kind === "alim" ? "alimentation = .01" : "numéro dans le sens horaire depuis l'alimentation"}` }];
+  const out = [{ rule: "R-077", text: `${g.no} : face ${g.face}, ${g.kind === "alim" ? "alimentation = .01" : "numéro dans le sens anti-horaire depuis l'alimentation"}` }];
   if (g.kind === "alim") out.push({ rule: "R-010", text: `Une seule gaine d'alimentation (${(g.circuits || []).join(", ")}), divisée seulement au-delà de l'ICTA 20` }, { rule: "R-075", text: "Phase et neutre de chaque circuit, une seule terre de la plus forte section" });
   else {
     if ((g.appIds || []).length > 1) out.push({ rule: "R-073", text: `Gaine partagée : ${(g.reps || []).join(" + ")} au même endroit (≤ ${fr(S.memeEndroit ?? 0.3, 2)} m), fils communs une seule fois` });
