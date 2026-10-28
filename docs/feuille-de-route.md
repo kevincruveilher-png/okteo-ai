@@ -351,6 +351,8 @@ Question posée : qu'est-ce qui, sur un plan, dit que les volets sont connectés
   chaque point avec son repère, l'erreur, la correction (avant → après) ou la raison de l'IA ; gardé dans le chantier
   (historique des relevés et relectures, moteur, durée, jetons) ; consultable dans l'onglet Étude.
 - Limites inchangées (2 relectures auto, arrêt sans progrès, 3 min, Arrêter, introuvable jamais redemandé).
+- Consigne sans clé : le n° de page vient de la page choisie à l'import du fond (aujourd'hui « page 1 » écrit en dur) ;
+  phrase « ignore les autres pages (plan du BE, notices) » (Kévin, 09:02 : la page 2 des PDF contient le plan du BE).
 
 ## Mise à jour 62 — types d'implantation des boîtes revus (Kévin, 28/10/2026, 08:38 ; décisions laissées à Claude)
 Réponses de Kévin : le BE fait « selon sa logique : des économies tout en réalisant de belles pieuvres, sans trop
