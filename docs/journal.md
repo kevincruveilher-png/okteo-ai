@@ -281,6 +281,34 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 63 (28/10/2026) — livrée : Mode IA et coûts du chantier
+Version du logiciel : 0.63.0. Demandé par Kévin (28/10, 15:46–16:40) : garder l'interface complète (Mode BE) et pouvoir
+basculer sur une interface légère centrée sur l'IA, le moins de clics possible, avec alertes et résultat.
+- **Bascule** : boutons « Mode BE / Mode IA » en haut à gauche (à côté du nom du logiciel) ou **Alt+M** ; même chantier,
+  mêmes données ; le choix est gardé sur le PC (préférence `ui`).
+- **Mode IA** = le plan + une colonne « parcours » à droite, sans barres d'outils, vues, onglets ni panneaux :
+  1. Plan du pavillonneur (PDF, échelle déduite des cotes, sinon outil Échelle) ;
+  2. Relevé IA : avec une clé, « Lancer le relevé » (estimation des jetons affichée avant) ; **sans clé, « Copier la
+     consigne / coller la réponse »** (pour les essais avec Claude en conversation, comme demandé) ;
+  3. Relecture : automatique avec une clé, sinon copier la relecture / coller la réponse ;
+  4. Hors plan : « Poser (n) » d'après la liste habituelle (devis) ;
+  5. Câbler : type d'implantation + « Câbler / Recâbler » (un seul Ctrl+Z) ;
+  6. Alertes : une seule liste (contrôle, doutes du câblage, points introuvables pour l'IA), les plus graves en haut ;
+     un clic zoome sur le cas, boutons « ✦ Relire » (par l'IA) ou « Mode BE » (corriger à la main) ;
+  7. Résultat : boîtes, gaines, % de réussite de l'IA, **📁 Dossier PDF** complet, rapport IA.
+  Retouche du dessin : bouton « Mode BE ».
+- **Coûts du chantier** (en bas de la colonne, et Paramètres → « Coûts d'un chantier ») :
+  - jetons de l'IA : nombres réels renvoyés par l'API à chaque appel avec clé (relevé **et** relectures), gardés dans le
+    chantier ; les étapes faites par copier / coller sont comptées à part (jetons inconnus) ;
+  - temps BE : compté quand le logiciel est utilisé (souris, clavier, molette ; arrêt après 2 min sans rien faire),
+    séparé mode IA / mode BE, par jour, gardé dans la fiche du chantier ;
+  - coûts en € si on saisit dans Paramètres le prix des jetons (entrée / sortie, € par million) et le coût horaire BE ;
+    ces prix ne sont jamais écrits dans le code (ils changent).
+- Visite guidée : 26 étapes (bascule de mode). Catalogue : « Mode IA » (Alt+M), « Coûts d'un chantier ».
+- Tests : 161 vérifications Playwright (bascule, copier / coller sans clé, câbler, dossier, coûts, Paramètres).
+- Note : lors de la publication de la 61.1, une commande interrompue par Kévin s'était quand même exécutée ; la relance
+  avait doublé l'entrée du journal (corrigé avant l'envoi, rien de perdu).
+
 ## Version 61.1 (28/10/2026) — livrée : correctif de fluidité (boîtes sur le plan)
 Version du logiciel : 0.61.1. Signalé par Kévin : énorme latence dès que les boîtes sont sur le plan.
 - Cause : le choix des courbures des gaines (v59) traitait toutes les gaines du niveau ensemble et se refaisait à chaque

@@ -95,6 +95,11 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
         <h4>Fournisseur utilisé par l'assistant</h4>
         <div class="prov">${provHTML()}</div>
         <label class="cab-row" id="ps-relect" title="Avec une clé : après un relevé IA, Oktéo renvoie à l'IA les points signalés par le contrôle (lumière sans commande…). Arrêt quand il n'y a plus rien à revoir ou qu'une relecture ne corrige rien ; 3 min au plus par appel ; bouton Arrêter."><span>Relectures automatiques par l'IA<small class="mut">0 = jamais (relecture à la main seulement), 3 au plus. Chaque relecture coûte un appel à l'IA.</small></span><span class="cab-ctl"><input type="number" min="0" max="3" step="1" id="pref-relect" value="${getPrefs().relectures}"></span></label>
+        <h4 id="ps-couts">Coûts d'un chantier</h4>
+        <p class="mut sm">Pour chiffrer chaque chantier (mode IA, rapport de l'analyse IA) : jetons de l'IA comptés à chaque appel avec une clé, temps de travail BE compté quand le logiciel est utilisé. Laisser 0 = non chiffré.</p>
+        <label class="cab-row" title="Prix de votre fournisseur IA pour 1 million de jetons envoyés (image + consigne). Voir sa grille tarifaire : les prix changent selon le modèle."><span>Prix des jetons d'entrée<small class="mut">€ par million de jetons</small></span><span class="cab-ctl"><input type="number" min="0" step="0.01" data-cost="prixIn" value="${getPrefs().prixIn}"></span></label>
+        <label class="cab-row" title="Prix pour 1 million de jetons de réponse de l'IA"><span>Prix des jetons de sortie<small class="mut">€ par million de jetons</small></span><span class="cab-ctl"><input type="number" min="0" step="0.01" data-cost="prixOut" value="${getPrefs().prixOut}"></span></label>
+        <label class="cab-row" title="Coût horaire chargé du technicien BE : multiplié par le temps de travail compté sur le chantier"><span>Coût horaire du technicien BE<small class="mut">€ / h</small></span><span class="cab-ctl"><input type="number" min="0" step="0.5" data-cost="tauxHoraire" value="${getPrefs().tauxHoraire}"></span></label>
         <p class="mut">Conseil : Claude pour l'analyse du plan (meilleure lecture des images). NVIDIA : Nemotron 3.5 Super VL par défaut (gratuit dans la limite des crédits, voit le plan). Si NVIDIA retire un modèle, Oktéo en choisit un autre tout seul. Un modèle sans « VL » ou « vision » ne lit que la liste des objets, pas l'image.</p>
       </section>
       <section class="pset-sec" id="ps-regles"></section>
@@ -161,6 +166,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
 
   function wire() {
     wireCab();
+    el.querySelectorAll("[data-cost]").forEach((c) => (c.onchange = () => { const v = Math.max(0, +String(c.value).replace(",", ".") || 0); c.value = v; setPref(c.dataset.cost, v); }));
     const rl = el.querySelector("#pref-relect"); if (rl) rl.onchange = () => { const v = Math.max(0, Math.min(3, Math.round(+rl.value || 0))); rl.value = v; setPref("relectures", v); };
     el.querySelectorAll("[data-pref]").forEach((c) => (c.onchange = () => { setPref(c.dataset.pref, c.checked); c.closest(".cab-row").classList.toggle("chg", c.checked !== PREFS_DEFAULTS[c.dataset.pref]); }));
     const fi = el.querySelector(".pset-find");

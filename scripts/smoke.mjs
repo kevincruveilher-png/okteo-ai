@@ -98,7 +98,7 @@ try {
 
   console.log("Premiers pas (v27)");
   await check("première ouverture : invitation à la visite guidée (non bloquante)", async () => page.isVisible(".tour-invite"));
-  await check("visite guidée : 25 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
+  await check("visite guidée : 26 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes", async () => {
     await page.click("#ti-go");
     const s1 = await page.textContent(".tour-bub .tour-n");
     await page.keyboard.press("ArrowRight");
@@ -106,12 +106,12 @@ try {
       return !document.querySelector(".tour-ring").hidden && r.left <= t.left && r.right >= t.right && r.top <= t.top && r.bottom >= t.bottom; });
     await page.keyboard.press("ArrowLeft");
     const back = await page.textContent(".tour-bub .tour-n");
-    for (let k = 0; k < 25; k++) await page.click("#tour-next");
+    for (let k = 0; k < 26; k++) await page.click("#tour-next");
     const done = await ev(() => document.querySelector(".tour-bub").hidden && okteoExt.panel.state.pane === "steps" && !!document.querySelector(".steps ol li"));
     await ev(() => okteoExt.panel.show("props"));
     await page.reload(); await page.waitForFunction(() => window.okteo && window.okteoExt);
     const again = await page.isVisible(".tour-invite");
-    if (!(s1 === "1 / 25" && lit && back === "1 / 25" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
+    if (!(s1 === "1 / 26" && lit && back === "1 / 26" && done && !again)) throw new Error(JSON.stringify({ s1, lit, back, done, again }));
     return true;
   });
 
@@ -2182,6 +2182,65 @@ try {
     await page.focus(".as-in textarea"); await page.keyboard.press("Escape");
     const esc = !(await page.isVisible(".as-in textarea"));
     if (!(corner && open && shut && esc)) throw new Error(JSON.stringify({ corner, open, shut, esc }));
+    return true;
+  });
+  console.log("Mode IA et coûts du chantier (v63)");
+  await check("Mode IA : bascule par le bouton et Alt+M, parcours à droite, bandeau BE masqué, retour au Mode BE", async () => {
+    await ev(() => okteoExt.panel.close("assistant"));
+    await page.click('#mode-sw [data-m="ia"]');
+    await page.waitForSelector("#iapane .ia-step", { timeout: 5000 });
+    const r = await ev(() => ({ body: document.body.classList.contains("mode-ia"), pane: getComputedStyle(document.getElementById("iapane")).display !== "none",
+      top2: getComputedStyle(document.querySelector(".top2")).display === "none", steps: document.querySelectorAll("#iapane .ia-step").length,
+      plan: document.querySelector('#iapane .ia-step[data-s="1"]').classList.contains("done"), cost: !!document.querySelector("#ia-cost"), on: document.querySelector('#mode-sw [data-m="ia"]').classList.contains("on") }));
+    await page.keyboard.press("Alt+m");
+    const be = await ev(() => !document.body.classList.contains("mode-ia") && getComputedStyle(document.querySelector(".top2")).display !== "none");
+    await page.keyboard.press("Alt+m");
+    const back = await ev(() => document.body.classList.contains("mode-ia"));
+    if (!(r.body && r.pane && r.top2 && r.steps >= 7 && r.plan && r.cost && r.on && be && back)) throw new Error(JSON.stringify({ r, be, back }));
+    return true;
+  });
+  await check("Mode IA sans clé : « Copier la consigne / coller la réponse » ouvre la carte du relevé par copier / coller", async () => {
+    const b = await page.$("#ia-rel-paste");
+    if (!b) return "pas de bouton (clé présente ?)";
+    await b.click();
+    const open = await page.waitForFunction(() => { const c = document.querySelector("#ai-paste"); return c && c.offsetParent !== null; }, null, { timeout: 4000 }).then(() => true, () => false);
+    await ev(() => document.querySelectorAll(".aicard .wx, .wcard .wx").forEach((x) => x.offsetParent && x.click()));
+    if (!open) throw new Error("carte non ouverte");
+    return true;
+  });
+  await check("Mode IA : câbler, alertes listées, dossier PDF complet", async () => {
+    await page.click("#ia-cab");
+    await page.waitForFunction(() => (okteo.cab.boxes || []).length > 0 && document.querySelector('#iapane .ia-step[data-s="5"].done'), null, { timeout: 15000 });
+    const n = await ev(() => ({ li: document.querySelectorAll("#ia-alerts li").length, ctl: okteo.control.length }));
+    await page.click("#ia-dossier");
+    await page.waitForFunction(() => okteoExt.iaMode.lastDossier, null, { timeout: 90000 });
+    const d = await ev(() => ({ pages: okteoExt.iaMode.lastDossier.pages, size: okteoExt.iaMode.lastDossier.blob.size }));
+    if (!(n.li >= n.ctl && d.pages >= 3 && d.size > 10000)) throw new Error(JSON.stringify({ n, d }));
+    return true;
+  });
+  await check("coûts : jetons IA (relevé avec clé) et temps BE chiffrés d'après les prix et le coût horaire de Paramètres", async () => {
+    const r = await ev(async () => {
+      const P = JSON.parse(localStorage.getItem("okteo.prefs.v1") || "{}");
+      localStorage.setItem("okteo.prefs.v1", JSON.stringify({ ...P, prixIn: 3, prixOut: 15, tauxHoraire: 45 }));
+      document.dispatchEvent(new CustomEvent("okteo:prefs"));
+      const lv = okteo.level.id, all = { ...(okteo.cab.releves || {}) };
+      all[lv] = { ...(all[lv] || {}), rapport: [...((all[lv] || {}).rapport || []), { type: "releve", via: "cle", tin: 1000000, tout: 100000 }] };
+      okteo.setCab({ releves: all });
+      const t0 = okteoExt.temps.get(); okteoExt.temps.add(3600, "ia"); const t1 = okteoExt.temps.get();
+      okteoExt.iaMode.render(); await new Promise((r) => setTimeout(r, 400));
+      return { dt: t1.ia - t0.ia, txt: document.getElementById("ia-cost").textContent };
+    });
+    // 1 M × 3 € + 0,1 M × 15 € = 4,50 € ; 1 h × 45 € = 45,00 € au moins
+    const T = r.txt.replace(/\s/g, ""), tok = +((T.match(/IA:([\d]+)jetons/) || [])[1] || 0), eu = (T.match(/([\d]+,\d\d)€/g) || []).map((x) => +x.replace("€", "").replace(",", "."));
+    if (!(r.dt === 3600 && tok >= 1100000 && eu.length === 2 && eu[0] >= 4.5 && eu[1] >= 45)) throw new Error(JSON.stringify({ r, tok, eu }));
+    return true;
+  });
+  await check("Paramètres : section « Coûts d'un chantier » (prix des jetons, coût horaire)", async () => {
+    await page.click('#mode-sw [data-m="be"]');
+    await ev(() => okteo.setTab("params"));
+    const r = await ev(() => ({ h: !!document.getElementById("ps-couts"), n: document.querySelectorAll("[data-cost]").length }));
+    await ev(() => okteo.setTab("plan"));
+    if (!(r.h && r.n === 3)) throw new Error(JSON.stringify(r));
     return true;
   });
   await page.screenshot({ path: process.env.OKTEO_SHOT || "scripts/derniere-capture.png" });

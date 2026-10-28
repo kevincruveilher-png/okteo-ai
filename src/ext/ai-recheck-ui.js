@@ -29,13 +29,13 @@ function saveReleve(api, lv, patch) {
   return all[lv];
 }
 // à l'ajout d'un relevé IA (ai-releve.js) : pièces nommées, ouvertures perdues, remarques, premier rapport
-export function recordReleve(api, plan, { mode = "", info = "", counts = {} } = {}) {
+export function recordReleve(api, plan, { mode = "", info = "", counts = {}, usage = null } = {}) {
   return saveReleve(api, api.level.id, {
     date: new Date().toISOString(), mode, info, nope: [],
     pieces: (plan.pieces || []).map((p) => ({ name: p.name, x: +p.x.toFixed(3), y: +p.y.toFixed(3) })),
     lost: (plan.lost || []).map((o) => ({ x: +o.x.toFixed(3), y: +o.y.toFixed(3), w: o.w, kind: o.kind })),
     remarques: String(plan.remarques || "").slice(0, 600),
-    rapport: [{ type: "releve", date: new Date().toISOString(), info, counts }],
+    rapport: [{ type: "releve", date: new Date().toISOString(), info, counts, ...(usage ? { tin: usage.in, tout: usage.out, tokens: usage.in + usage.out } : {}) }],
   });
 }
 
@@ -241,7 +241,7 @@ export function createRecheck({ api, aiReleve }) {
         try { c = parse(res.text); } catch { log.why = "réponse de l'IA illisible"; break; }
         points.forEach((P) => done.add(P.key));
         const changed = c.count + c.nope.length + c.nopeKeys.length;
-        const { report } = apply(c, { via: "clé", model: res.model, ms: res.ms, tokens, zooms: Z.images.length });
+        const { report } = apply(c, { via: "clé", model: res.model, ms: res.ms, tokens, tin: res.usage ? res.usage.in : 0, tout: res.usage ? res.usage.out : 0, zooms: Z.images.length });
         log.fixed += report.ok; log.reports.push(report);
         // on continue s'il reste des points jamais demandés et que la relecture a corrigé quelque chose
         const rest = pointsNow().length;
@@ -274,7 +274,9 @@ export function createRecheck({ api, aiReleve }) {
     }, 50);
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !card.hidden && !running) close(); });
-  return { open, close, fromText, apply, loop, stop: () => { stopped = true; }, get points() { return points; }, get copied() { return copied; }, get last() { return last; }, get corr() { return corr; }, get report() { return lastReport; }, done };
+  // v63 (mode IA) : nombre d'erreurs de relevé encore signalées sur le niveau ouvert
+  async function pending() { const fr = await pageFrame().catch(() => null); if (!fr) return 0; frame = fr; return stillKeys().size; }
+  return { open, close, pending, get running() { return running; }, fromText, apply, loop, stop: () => { stopped = true; }, get points() { return points; }, get copied() { return copied; }, get last() { return last; }, get corr() { return corr; }, get report() { return lastReport; }, done };
 }
 
 // rapport de l'analyse IA (onglet Étude) : relevé puis relectures, % de réussite, chaque point

@@ -704,3 +704,32 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .ia-pass{margin:6px 0;border:1px solid var(--line);border-radius:8px;padding:5px 8px}
 .ia-pass summary{cursor:pointer;font-size:13px}
 .ia-rows td{font-size:12.5px;vertical-align:top;padding:3px 6px}
+/* v63 : Mode BE / Mode IA */
+.mode-sw{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.mode-sw button{border:0;border-radius:0;padding:5px 10px;background:var(--panel);font-size:12.5px}
+.mode-sw button.on{background:var(--accent2);color:#fff}
+.iapane{display:none}
+body.mode-ia .top2,body.mode-ia #tabs,body.mode-ia #side,body.mode-ia #pop-relev,body.mode-ia #pop-view,body.mode-ia .top>label.ck,body.mode-ia #ctl,body.mode-ia #dbt,body.mode-ia #btn-print{display:none!important}
+body.mode-ia .app{grid-template-rows:auto 1fr}
+body.mode-ia .main{grid-template-columns:minmax(0,1fr) 360px}
+body.mode-ia .iapane{display:flex;flex-direction:column;gap:8px;background:var(--panel);border-left:1px solid var(--line);padding:10px 12px;overflow:auto;min-height:0}
+.ia-head{display:flex;align-items:center;gap:8px}
+.ia-step{border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.ia-step h4{margin:0 0 4px;display:flex;align-items:center;gap:8px;font-size:14px}
+.ia-n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--line);font-size:12px}
+.ia-step.done .ia-n{background:var(--ok);color:#fff}
+.ia-step.todo{border-color:var(--accent2)}
+.ia-step.todo .ia-n{background:var(--accent2);color:#fff}
+.ia-step.wait{opacity:.6}
+.ia-step p{margin:2px 0 6px}
+.ia-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ia-alerts{list-style:none;margin:0;padding:0;max-height:260px;overflow:auto}
+.ia-alerts li{padding:5px 4px;border-top:1px solid var(--line);cursor:pointer;font-size:12.5px;position:relative}
+.ia-alerts li:hover{background:color-mix(in srgb,var(--accent2) 8%,var(--panel))}
+.ia-alerts li .k{font-size:11px;padding:0 5px;border-radius:6px;background:color-mix(in srgb,#e07a12 18%,var(--panel))}
+.ia-alerts li.g3 .k{background:color-mix(in srgb,#d33 25%,var(--panel))}
+.ia-acts{display:flex;gap:4px;margin-top:3px}
+.ia-cost{border-top:1px dashed var(--line);padding-top:6px}
+.ia-cost h4{margin:0 0 3px;font-size:13px}
+.ia-msg{background:color-mix(in srgb,var(--accent2) 10%,var(--panel));border-radius:8px;padding:5px 8px}
+.iarep .iarep-b{max-height:60vh;overflow:auto}

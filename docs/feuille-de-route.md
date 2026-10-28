@@ -389,7 +389,7 @@ Décisions (Claude) :
 5. **Boîtes standard** : compositions de boîte qui reviennent d'un chantier à l'autre → bandes identiques, fabrication
    en série (intérêt atelier à confirmer par Kévin).
 
-## Mode BE / Mode IA (demande de Kévin, 28/10/2026, 15:46) — à définir avec lui
+## 63 — Mode BE / Mode IA et coûts du chantier — FAIT (28/10/2026, 0.63.0 ; demande de Kévin du 28/10, 15:46)
 - **Mode BE** = l'interface actuelle, conservée telle quelle (tout le détail des choix et du résultat).
 - **Mode IA** = interface légère, le moins de clics possible, alertes et résultat : un seul écran (plan + colonne
   « parcours » : plan → relevé IA → relecture automatique → hors plan → câbler → résultat), une seule liste d'alertes
@@ -401,7 +401,9 @@ Décisions (Claude) :
   aujourd'hui seules les relectures sont comptées) cumulés dans le chantier et le rapport IA ; estimation avant de lancer
   (image + consigne + réponse attendue) ; coût en € si on saisit le prix par million de jetons dans Paramètres (prix non
   écrits dans le code : ils changent).
-- Ergonomie (propositions de Claude) : une seule fenêtre de travail à la fois (les cartes ne s'empilent plus) ; un seul
+- Livré : parcours en 7 étapes, copier / coller sans clé (essais), jetons réels du relevé et des relectures, temps BE
+  et coûts (Paramètres → Coûts d'un chantier). Ergonomie du Mode BE ci-dessous = mise à jour 64.
+- Ergonomie (propositions de Claude, **mise à jour 64**) : une seule fenêtre de travail à la fois (les cartes ne s'empilent plus) ; un seul
   compteur « à vérifier » (contrôle + doutes) ; panneau Câblage allégé ; onglets Boîtes / Lignes directes / Bandes
   réunis ; textes d'aide longs remplacés par des infobulles (?).
 

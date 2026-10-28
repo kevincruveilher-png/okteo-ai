@@ -6,6 +6,10 @@ export const PREFS_DEFAULTS = {
   surfaces: false, // surface (m²) des pièces : sur le plan, dans les panneaux et à l'impression
   halos: true, // contrôle (v43) : halo orange animé autour des appareils à vérifier
   relectures: 2, // v57 : relectures automatiques par l'IA (avec clé) après un relevé, 0 à 3
+  ui: "be", // v63 : interface « be » (complète) ou « ia » (simplifiée, centrée sur l'IA)
+  prixIn: 0, // v63 : prix des jetons d'entrée de l'IA, € par million (0 = non renseigné)
+  prixOut: 0, // v63 : prix des jetons de sortie, € par million
+  tauxHoraire: 0, // v63 : coût horaire du technicien BE, € / h (0 = non renseigné)
 };
 
 export function getPrefs() {

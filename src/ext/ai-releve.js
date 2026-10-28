@@ -54,7 +54,7 @@ export function createAiReleve({ api, openParams }) {
   const card = document.createElement("div");
   card.className = "wcard aicard"; card.hidden = true; card.setAttribute("role", "dialog"); card.setAttribute("aria-label", "Relevé par l'IA");
   document.querySelector(".stage").appendChild(card);
-  let lastMode = "";   // v57 : "key" (relevé envoyé à l'IA) ou "paste" (réponse collée) : décide de la relecture automatique
+  let lastMode = "", lastUsage = null;   // v57 : "key" (relevé envoyé à l'IA) ou "paste" (réponse collée) : décide de la relecture automatique
   let busy = false, plan = null, rooms = [], meta = "", keep = { walls: true, rooms: true, devices: true }, lastImage = null, lastText = "";
 
   const close = () => { card.hidden = true; api.setPreview(null); plan = null; };
@@ -113,7 +113,7 @@ export function createAiReleve({ api, openParams }) {
       }
       if (keep.devices && plan.devices.length) { const r = api.importDevices(plan.devices, plan.links, { replace: true }); devAdded = true; done.push(`${r.appareils} appareils, ${r.liaisons} liaisons`); }
       // v61 : ce que la relecture ciblée et son rapport doivent savoir (pièces nommées, ouvertures perdues, remarques)
-      recordReleve(api, keep.walls ? plan : { ...plan, lost: [] }, { mode: lastMode, info: meta, counts: { murs: keep.walls ? plan.walls.length : 0, ouvertures: keep.walls ? plan.openings.length : 0, pieces: plan.pieces.length, appareils: keep.devices ? plan.devices.length : 0, liaisons: keep.devices ? plan.links.length : 0 } });
+      recordReleve(api, keep.walls ? plan : { ...plan, lost: [] }, { mode: lastMode, info: meta, usage: lastUsage, counts: { murs: keep.walls ? plan.walls.length : 0, ouvertures: keep.walls ? plan.openings.length : 0, pieces: plan.pieces.length, appareils: keep.devices ? plan.devices.length : 0, liaisons: keep.devices ? plan.links.length : 0 } });
     });
     card.hidden = true; plan = null;
     api.setHint(`Relevé IA ajouté : ${done.join(", ") || "rien"}. Ctrl+Z annule tout l'ajout.`);
@@ -146,7 +146,7 @@ export function createAiReleve({ api, openParams }) {
     const f2 = await api.levelFond(api.level.id), ref = raw.ref && raw.ref.W > 0 && raw.ref.H > 0 ? raw.ref : null;
     if (!ref) return message("Cette réponse n'indique pas la taille de l'image de référence (champ « ref »). Elle ne peut pas être placée sur le plan.", [{ label: "Fermer", run: () => {} }]);
     const map = { x0: f2.x, y0: f2.y, sx: f2.w / ref.W, sy: f2.h / ref.H };
-    lastMode = "paste";
+    lastMode = "paste"; lastUsage = null;
     return fromText(text, map, `Réponse donnée à la main · image de référence ${ref.W} × ${ref.H} px`);
   }
   function pastePanel() {
@@ -191,7 +191,7 @@ export function createAiReleve({ api, openParams }) {
       show(`<p>L'IA lit le plan (${esc(PROVIDERS[provider].name)} · ${esc(model)})… compter 30 s à 2 min.</p><p class="mut sm">Vous pouvez continuer à travailler : l'aperçu s'affichera ici.</p>`);
       const r = await chat({ system: SYSTEM, messages: [{ role: "user", text: aiPrompt({ W: img.W, H: img.H, cmPerPx: img.map.sx * 100 }), image: { type: "image/jpeg", data: img.url.split(",")[1] } }], maxTokens: 12000, provider, think: true });
       if (!r.sawImage) { busy = false; return message(`Le modèle ${esc(r.model)} ne lit pas les images : choisissez un modèle « vision » dans Paramètres.`, [{ label: "Ouvrir Paramètres", run: openParams }, { label: "Fermer", run: () => {} }]); }
-      lastMode = "key";
+      lastMode = "key"; lastUsage = r.usage || null;
       fromText(r.text, img.map, `${PROVIDERS[r.provider].name} · ${r.model} · ${(r.ms / 1000).toFixed(0)} s · image ${img.W} × ${img.H} px`);
     } catch (e) {
       message("Le relevé par l'IA a échoué : " + esc(e.message), [{ label: "Fermer", run: () => {} }, { label: "Ouvrir Paramètres", run: openParams }]);

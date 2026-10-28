@@ -22,6 +22,8 @@ import { createEssai } from "./essai-ui.js";
 import { mountBoxesPage, mountDirectPage } from "./cablage-pages.js";
 import { createAiReleve } from "./ai-releve.js";
 import { createRecheck } from "./ai-recheck-ui.js";
+import { createIaMode } from "./ia-mode.js";
+import { createTemps } from "./temps.js";
 import { ensurePaperW, chantierScaleCheck } from "./pdf-page.js";
 import { mountBandsPage } from "./cablage-bandes.js";
 import { mountTableauPage } from "./tableau-page.js";
@@ -150,8 +152,12 @@ function start() {
   hooks.tour = () => tour.start();
   hooks.steps = () => { panel.show("steps"); tour.render(); };
   const doubts = createDoubts(api), why = createWhy(api);
+  // v63 : temps de travail BE compté sur le chantier ; mode IA (interface simplifiée)
+  const temps = createTemps(api);
+  const iaMode = createIaMode({ api, aiReleve, recheck, ctl });
+  hooks.modeIa = () => iaMode.setMode(iaMode.mode === "ia" ? "be" : "ia");
   hooks.cabler = () => { const r = cabler(api); api.setHint(r.text); if (pages.etude.ui) pages.etude.ui.render(); return r.text; };
-  window.okteoExt = { doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, recheck, pages, backup: null };
+  window.okteoExt = { doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, recheck, iaMode, temps, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 

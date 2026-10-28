@@ -236,7 +236,7 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `controlKinds`, `okteo.essai` {press, reset, lit, off, breaker, testAll}, `setEssai(on)`. Préférence `halos`.
   Ext : `controle-ui.js` (compteur `#ctl`, `go/next`, `controlSection` en tête du panneau Câblage), `essai-ui.js`
   (`.essai-card`), packs-ui `openMenu/applyPack` (événement `okteo:pack-menu` envoyé par le bouton `data-h="pack"`
-  du HUD pièce ; Maj+P ; `.pk-menu`). `exportGeometry().rooms[].id`. Visite : 25 étapes (v53).
+  du HUD pièce ; Maj+P ; `.pk-menu`). `exportGeometry().rooms[].id`. Visite : 26 étapes (v63).
   v45.1 : `linkTables` ne compte que les vraies commandes et suit les chaînes de lumières ; alertes `int2`, `nobox` ;
   quadrillage `layers.grille.on=false` par défaut (drapeau `g451` dans les données enregistrées).
 - v46 : `src/cablage/tableau.js` (pur : `MODELS` Resi9, `autoTableau(circuits, {model, area})`, `syncTableau`,
@@ -358,13 +358,21 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   (Étude `#et-ia`, `#et-ia-copy`, `.ia-pass`), carte `#rk-rep`, `#rk-again`.
 - v61.1 : render `levelBows` par boîte (`K.bowCache` = Map boxId → {sig, map}, gelé pendant glisser et molette
   `K.wheelAt`) ; view `pxPerVB` sur `K.svSize` (ResizeObserver `K.svObs`, mis à jour par `syncVB`).
+- v63 : Mode IA = `src/ext/ia-mode.js` (`createIaMode({api, aiReleve, recheck, ctl})` : colonne `#iapane` dans `.main`,
+  `.ia-step[data-s=1..7]` done|todo|wait, boutons `#ia-plan`, `#ia-scale`, `#ia-rel` (clé) / `#ia-rel-paste` (sans clé),
+  `#ia-rk-auto`, `#ia-rk`, `#ia-hp`, `#ia-mode`, `#ia-cab`, `#ia-alerts li[data-i]` (contrôle + doutes + `a.aiNo`),
+  `#ia-dossier` (`lastDossier`), `#ia-rep`, `#ia-cost`) ; bascule `#mode-sw [data-m]` + Alt+M, préférence `ui` be|ia,
+  `body.mode-ia` masque le bandeau BE, événement `okteo:ui`. `src/ext/temps.js` (`createTemps` : temps BE dans
+  `meta.temps {be, ia, days}` via `CHS.update`, 15 s par tick si activité < 2 min ; `iaUsage(api)` = jetons
+  `rapport[].tin/tout` de `cab.releves` ; `estimateReleve`, `coutTemps`) ; prefs `prixIn`, `prixOut`, `tauxHoraire`
+  (Paramètres `#ps-couts`, `[data-cost]`). `chat()` renvoie `usage` ; `recordReleve(..., {usage})`.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (41 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (69 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (13 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (156 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (69 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (13 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (161 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)
