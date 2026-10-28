@@ -36,9 +36,23 @@ export const AI_TYPES = { ...BASE_TYPES, ...Object.fromEntries(Object.entries(AP
 const LIGHT = new Set(["LUM", "APP", "SPOT"]), CMD = new Set(["INT", "VV", "BP"]), VOLET = new Set(["VR", "VEL"]);
 
 // consigne commune (relevé avec clé : image envoyée ; sans clé : PDF joint dans une autre conversation)
-function promptBody(coords) {
+// v64.1 (essai MAILLARD du 28/10 : 63 appareils sur 102, image de 1 654 px, 3 min) : méthode imposée (définition,
+// légende, lecture par quarts, décompte final) ; `first` = 1re étape propre au mode (image à faire ou image reçue)
+function method(first) {
+  return `Méthode (obligatoire) :
+1. ${first}
+2. Lis d'abord la légende des symboles du plan (cartouche ou tableau de légende) et sers-t'en pour reconnaître chaque symbole.
+3. Relève le plan par quarts (haut gauche, haut droit, bas gauche, bas droit), en zoomant sur chaque quart, sans sauter de symbole. Les coordonnées restent celles de l'image entière.
+4. À la fin, compte les appareils par type, revérifie chaque type sur tout le plan (en particulier commandes de volet, appliques, va-et-vient, prises, tableau, interphone, équipements du garage et de la cuisine), puis mets ce décompte au début de "remarques".`;
+}
+export const METHOD_PASTE = (page) => `Fais une image de TOUTE la page ${page} (sans rognage) à 200 dpi au moins : pour un A3, au moins 3 300 pixels de large. Si ton image est plus petite, refais-la : chaque symbole doit faire plus de 15 pixels.`;
+// relevé sans clé : en dessous de cette largeur, l'image de l'IA était trop petite (symboles de quelques pixels)
+export const MIN_REF_W = 3000;
+function promptBody(coords, first) {
   const types = Object.entries(AI_TYPES).map(([k, v]) => `  ${k} = ${v}`).join("\n");
   return `Relève ce plan pour le redessiner : murs, portes et fenêtres, pièces, appareillage électrique et liaisons des commandes.
+
+${method(first)}
 
 Règles :
 ${coords}
@@ -50,10 +64,12 @@ ${coords}
 ${types}
   Prends le type le plus précis : une prise marquée « LL » ou « lave-linge » est LL, pas PC20 ; un chauffe-eau est CETH, pas SC ; une commande de volet est CVR, pas SC ni INT. SC seulement si l'usage n'est pas reconnaissable.
   Une prise posée le long du plan de travail de la cuisine (souvent écrite « H:1.10m » ou « PT ») : ajoute "pt": true.
-- Liaisons : [indice de la commande, indice de l'appareil commandé] dans la liste des appareils :
+  Plusieurs symboles côte à côte (boîtier double ou triple, prises alignées au plan de travail) : relève CHAQUE symbole séparément.
+- Liaisons : [indice de la commande, indice de l'appareil commandé] dans la liste des appareils (indices à partir de 0) :
   INT, VV ou BP vers LUM, APP ou SPOT ; CVR vers VR ou VEL.
   Un allumage commandé de plusieurs endroits : chaque VV (ou BP) est relié à TOUTES les lumières qu'il commande. Une commande qui allume plusieurs lumières : une liaison par lumière.
   Points extérieurs (appliques, spots en façade, terrasse) : leur commande est presque toujours À L'INTÉRIEUR, près de la porte ou de la baie la plus proche, souvent dans un boîtier double avec une autre commande ; suis le trait de liaison. Chaque lumière doit avoir sa commande ; sinon dis-le dans "remarques".
+  Chaque volet (VR) a en général sa commande (CVR) à côté de la fenêtre, à l'intérieur : cherche-la.
 - Ignore les annotations ajoutées à la main sur le plan (écritures manuscrites, surlignages, traits de feutre, tampons) : ne relève que le dessin et les symboles de l'électricité.
 - N'invente rien : ce que tu ne vois pas reste absent. Mets dans "remarques" ce qui est douteux, appareil par appareil.`;
 }
@@ -62,12 +78,12 @@ const JSON_FORM = `{"murs":[{"x1":0,"y1":0,"x2":0,"y2":0,"ep":20}],
  "pieces":[{"nom":"Cuisine","x":0,"y":0}],
  "appareils":[{"t":"PC16","x":0,"y":0},{"t":"INT","x":0,"y":0,"h":110},{"t":"LUM","x":0,"y":0},{"t":"PC16","x":0,"y":0,"h":110,"pt":true}],
  "liaisons":[[1,2]],
- "remarques":"ce qui est douteux, en une ou deux phrases"}`;
+ "remarques":"décompte par type, puis ce qui est douteux"}`;
 
 // relevé avec clé : l'image (rognée) est envoyée avec la consigne
 export function aiPrompt({ W, H, cmPerPx }) {
   return `Voici le plan d'une maison individuelle (image de ${W} × ${H} pixels ; 1 pixel ≈ ${cmPerPx.toFixed(2)} cm ; origine en haut à gauche, x vers la droite, y vers le bas).
-${promptBody("- Coordonnées en PIXELS de cette image, nombres entiers.")}
+${promptBody("- Coordonnées en PIXELS de cette image, nombres entiers.", "Regarde l'image jointe en entier, puis zoome partout où les symboles sont serrés : chaque symbole compte.")}
 
 Réponds UNIQUEMENT avec ce JSON (sans texte autour) :
 ${JSON_FORM}`;
@@ -75,8 +91,8 @@ ${JSON_FORM}`;
 // relevé sans clé (v36) : consigne à copier dans une conversation neuve avec le PDF joint ; la réponse se colle dans Oktéo
 export function pastePrompt({ page = 1 } = {}) {
   return `Voici le plan d'une maison individuelle (PDF joint, page ${page}). Ignore les autres pages du PDF (plan du bureau d'études, notices).
-${promptBody(`- Fais une image de TOUTE la page ${page} (sans rognage). Coordonnées en PIXELS de cette image (origine en haut à gauche, x vers la droite, y vers le bas), nombres entiers. Donne la taille de cette image dans "ref" (W = largeur, H = hauteur en pixels) : sans "ref", la réponse ne peut pas être placée.
-- Mesure les positions sur l'image (pas à l'estime) : les murs doivent tomber sur les murs du plan.`)}
+${promptBody(`- Coordonnées en PIXELS de l'image entière de la page ${page} (origine en haut à gauche, x vers la droite, y vers le bas), nombres entiers. Donne la taille de cette image dans "ref" (W = largeur, H = hauteur en pixels) : sans "ref", la réponse ne peut pas être placée.
+- Mesure les positions sur l'image (pas à l'estime) : les murs doivent tomber sur les murs du plan.`, METHOD_PASTE(page))}
 
 Réponds UNIQUEMENT avec ce JSON (sans texte autour) :
 ${JSON_FORM.replace("{", '{"ref":{"W":0,"H":0},\n ')}`;

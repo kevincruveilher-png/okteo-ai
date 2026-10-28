@@ -676,7 +676,14 @@ try {
       || undone.segs !== before.segs || undone.rooms !== before.rooms || undone.app !== before.app) throw new Error(JSON.stringify(r));
     return true;
   });
-  await check("relevé IA sans clé : réponse collée (coordonnées en fraction de page), aperçu orange, ajout, un seul Ctrl+Z", async () => {
+  await check("v64.1 : consigne du relevé avec méthode imposée (200 dpi, légende, quarts, décompte) ; image de moins de 3 000 px signalée au collage", async () => {
+    const t = await ev(async () => { const m = await import("/src/walls/ai-plan.js"); return { p: m.pastePrompt({ page: 2 }), k: m.aiPrompt({ W: 1500, H: 1000, cmPerPx: 1.2 }) }; });
+    const ok = /Méthode \(obligatoire\)/.test(t.p) && /200 dpi/.test(t.p) && /page 2/.test(t.p) && /légende/.test(t.p) && /par quarts/.test(t.p) && /décompte/.test(t.p) && /CHAQUE symbole/.test(t.p) && /CVR\) à côté de la fenêtre/.test(t.p)
+      && /Méthode \(obligatoire\)/.test(t.k) && !/200 dpi/.test(t.k);
+    if (!ok) throw new Error(t.p.slice(0, 600));
+    return true;
+  });
+  await check("relevé IA sans clé : réponse collée (coordonnées en fraction de page ; v64.1 : petite image signalée), aperçu orange, ajout, un seul Ctrl+Z", async () => {
     const ref = { W: 1000, H: 1000 };
     const rep = { ref, murs: [{ x1: 200, y1: 200, x2: 800, y2: 200, ep: 20 }, { x1: 800, y1: 200, x2: 800, y2: 700, ep: 20 }, { x1: 800, y1: 700, x2: 200, y2: 700, ep: 20 }, { x1: 200, y1: 700, x2: 200, y2: 200, ep: 20 }], ouvertures: [{ x: 500, y: 200, l: 100, t: "fenetre" }], pieces: [{ nom: "Essai collé", x: 500, y: 450 }], appareils: [{ t: "PC16", x: 300, y: 300 }], liaisons: [], remarques: "essai" };
     const before = await ev(() => ({ segs: okteo.state.segs.length, app: okteo.state.app.length }));
@@ -694,7 +701,7 @@ try {
     const near = (a, b) => Math.abs(a - b) < 0.02;
     const r = { P, exp, after, undone, before };
     if (P.walls !== 4 || P.op !== 1 || P.dev !== 1 || !near(P.x0, exp.x0) || !near(P.x1, exp.x1) || !near(P.y0, exp.y0) || !near(P.y1, exp.y1)
-      || !/Réponse donnée à la main/.test(txt) || after.segs !== 4 || !/Essai collé/.test(after.rooms) || after.app !== 1
+      || !/Réponse donnée à la main/.test(txt) || !/basse définition/.test(txt) || after.segs !== 4 || !/Essai collé/.test(after.rooms) || after.app !== 1
       || undone.segs !== before.segs || undone.app !== before.app) throw new Error(JSON.stringify(r));
     return true;
   });

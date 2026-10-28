@@ -281,6 +281,17 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 64.1 (28/10/2026) — livrée : consigne du relevé IA avec méthode imposée
+Version du logiciel : 0.64.1. Suite au 2e relevé de MAILLARD par Opus (63 appareils sur 102, image de 1 654 px, 3 min).
+- Consigne (avec et sans clé) : « Méthode (obligatoire) » en tête — image de toute la page à 200 dpi au moins (sans clé),
+  légende lue d'abord, relevé par quarts en zoomant, décompte par type revérifié en fin de réponse (en tête des
+  remarques) ; chaque symbole d'un boîtier double ou triple relevé séparément ; commande de chaque volet cherchée à côté
+  de sa fenêtre ; indices des liaisons à partir de 0 (c'était déjà ainsi, maintenant écrit).
+- Collage d'une réponse : si l'image de l'IA fait moins de 3 000 px, alerte « relevé fait en basse définition, des
+  appareils sont probablement oubliés ».
+- À comparer par Kévin : Opus effort moyen et effort élevé avec cette consigne.
+- Tests : 166 vérifications Playwright (+1).
+
 ## Version 64 (28/10/2026) — livrée : ergonomie du Mode BE
 Version du logiciel : 0.64.0. Propositions de Claude (28/10, après la demande Mode BE / Mode IA de Kévin), dites « go ».
 - **Une seule fenêtre de travail à la fois** (`src/ext/one-card.js`) : quand une fenêtre s'ouvre sur le plan (relevé des

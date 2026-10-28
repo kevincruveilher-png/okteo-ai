@@ -4,7 +4,7 @@
 // avec le relevé sans IA. On coche ce qu'on garde (murs / pièces / appareils) : un seul Ctrl+Z annule l'ajout.
 import { chat, PROVIDERS } from "./ai.js";
 import { settings } from "./settings.js";
-import { aiPrompt, pastePrompt, parseAiJson, aiToPlan } from "../walls/ai-plan.js";
+import { aiPrompt, pastePrompt, parseAiJson, aiToPlan, MIN_REF_W } from "../walls/ai-plan.js";
 import { findRooms, nameRooms, labelPoint, pointInPoly } from "../walls/rooms.js";
 import { autoScale } from "./pdf-page.js";
 import { esc } from "./util.js";
@@ -147,7 +147,9 @@ export function createAiReleve({ api, openParams }) {
     if (!ref) return message("Cette réponse n'indique pas la taille de l'image de référence (champ « ref »). Elle ne peut pas être placée sur le plan.", [{ label: "Fermer", run: () => {} }]);
     const map = { x0: f2.x, y0: f2.y, sx: f2.w / ref.W, sy: f2.h / ref.H };
     lastMode = "paste"; lastUsage = null;
-    return fromText(text, map, `Réponse donnée à la main · image de référence ${ref.W} × ${ref.H} px`);
+    // v64.1 : image trop petite = symboles de quelques pixels, appareils oubliés (essai MAILLARD : 1 654 px, 63 appareils sur 102)
+    const low = Math.max(ref.W, ref.H) < MIN_REF_W ? ` · ⚠ image de ${ref.W} px seulement : relevé fait en basse définition, des appareils sont probablement oubliés (la consigne demande ${MIN_REF_W} px au moins : redemandez-le)` : "";
+    return fromText(text, map, `Réponse donnée à la main · image de référence ${ref.W} × ${ref.H} px${low}`);
   }
   function pastePanel() {
     if (api.tab !== "plan") api.setTab("plan");
