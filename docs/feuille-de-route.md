@@ -373,6 +373,20 @@ Décisions (Claude) :
   (déjà compté dans le cuivre des alimentations).
 - Comparer les modes affiche la note de qualité ; R-094 complété pour Par pièce (journal, à faire valider par Kévin).
 
+## Pistes pour rendre le logiciel plus autonome (réflexion du 28/10/2026, 08:59, à décider avec Kévin)
+1. **Analyse de fin de chantier** (idée de Kévin) : photos du chantier à chaque étape (relevé IA brut, après relectures,
+   après câblage automatique, version validée BE) ; écart classé (appareils ajoutés / retirés / déplacés / changés de
+   type, liaisons, boîtes déplacées, gaines retracées, circuits, fils) ; cumul sur les chantiers → propositions de
+   règles nouvelles ou à revoir dans le journal (validées par Kévin) et taux de réussite mesuré par moteur IA et par
+   pavillonneur. Prérequis : garder ces versions dans le chantier (aujourd'hui seulement l'annulation).
+2. **Plans déjà faits (modèles de pavillonneur)** : empreinte du plan (pièces, surfaces, graphe des murs, en miroir
+   aussi) comparée aux chantiers passés ; un modèle déjà fait = partir du chantier validé, l'IA ne relève que les écarts.
+3. **Profil de pavillonneur** : sa légende de symboles (lue une fois), ses habitudes (hauteurs, volets connectés), ses
+   équipements hors plan et ses packs, appliqués à la création du chantier.
+4. **Lecture du devis** : équipements hors plan et quantités lus dans le devis au lieu d'être cochés (R-100).
+5. **Boîtes standard** : compositions de boîte qui reviennent d'un chantier à l'autre → bandes identiques, fabrication
+   en série (intérêt atelier à confirmer par Kévin).
+
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.
 - Export SPV pour Counter.
