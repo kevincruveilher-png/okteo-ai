@@ -74,7 +74,7 @@ for (let i = 0; i < lines.length; i++) {
   if (!source) source = /Kévin|Q-\d|sources?/i.test(note) ? note : "Journal des règles, 27/10/2026";
   const all = [titre, rest, ...bullets].join(" ");
   const refs = [...new Set([...all.matchAll(/R-\d{3}/g)].map((x) => x[0]).filter((x) => x !== id))];
-  const qs = [...new Set([...all.matchAll(/Q-\d{2}/g)].map((x) => x[0]))];
+  const qs = [...new Set([...all.matchAll(/Q-\d{2,3}/g)].map((x) => x[0]))];
   const bloque = /si_doute = bloquer|doute bloquant|bloqu(ant|er)/i.test(all);
   const cat = catOf[id] || CAT_OF_HEADING[heading] || (/Liaisons/.test(heading) ? "boites" : "gaines");
   const plus = PLUS[id] || {};
@@ -107,7 +107,7 @@ const questions = [];
 let sec = "";
 for (const l of lines) {
   const h = l.match(/^### ([A-O])\. (.+)$/); if (h) sec = h[1] + ". " + h[2];
-  const m = l.match(/^\| (Q-\d{2}) \| (.+) \|$/);
+  const m = l.match(/^\| (Q-\d{2,3}) \| (.+) \|$/);
   if (!m) continue;
   const c = m[2].split(" | ").map((x) => x.trim());
   const open = /^(bloquer|avertir|—)$/.test(c[2] || "");

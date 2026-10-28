@@ -95,7 +95,7 @@ Nouveaux champs :
 - Allumages : R-040, R-041, R-070 à R-072, R-083, R-093
 - Gaines : R-010 à R-014, R-060, R-073 à R-075, R-077, R-078, R-095
 - Raccordements : R-030, R-031, R-080
-- Tableau : R-050, R-081
+- Tableau : R-050, R-081, R-101 à R-161
 - Appareils et lignes directes : R-003, R-079, R-082, R-084, R-086, R-096, R-097, R-099, R-100
 
 L'IA modifie la bibliothèque comme le reste : proposition avant / après, validation de Kévin, historique, code de modification plus tard.
@@ -264,6 +264,7 @@ Les règles `active` · `confirmee` sont validées par Kévin. Les règles `a_va
 - Description : ID 40 A 30 mA type A pour les circuits spécialisés ; ID type AC selon la surface (1 jusqu'à 35 m², 2 jusqu'à 100 m², 3 au-delà) ; 8 circuits au plus par ID ; une rangée par ID ; pas de disjoncteur pour les RJ45 ; réserve de 20 %.
 - **Hypothèses à valider (Q-24)** : pas de parafoudre dans le coffret de base ; ID 40 A partout.
 - Source : v46, v49.
+- Mise à jour 66 (29/10/2026) : le nombre de différentiels ne dépend plus de la surface mais des circuits (R-102, R-119, R-122, R-127) ; règles du tableau R-101 à R-161, à valider.
 
 ### Présentation
 
@@ -463,6 +464,340 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 - Source : bande MAILLARD du BE (page « Lignes directes »).
 
 ---
+
+### Tableau électrique (NF C 15-100:2024) — recherche du 28/10/2026, à valider par Kévin
+
+Source : recherche documentaire transmise par Kévin le 29/10/2026 (00:08) : « il va falloir faire une maj et implanter ces nouvelles règles ». Aucune règle n'est `confirmee` : la norme NF C 15-100-10 elle-même n'a pas été lue (Promotelec, Legrand, Schneider, Consuel, sites secondaires). Elles remplacent le dimensionnement par la surface de R-050 (Q-24).
+
+*Référentiel et principe de calcul*
+
+**R-101 · Référentiel applicable selon la date du projet** — `a_valider` · `supposee`
+- Description : le logiciel applique la série NF C 15-100 d'août 2024 (parties 1, 7-701, 7-722, 10 et 11) si l'une de ces dates est postérieure au 31 août 2025 : dépôt du permis de construire, déclaration préalable, signature du marché ou accusé de réception de commande. Le Consuel l'écrit ainsi : « Si l'une des dates précitées est postérieure au 31 août 2025, alors la nouvelle série de normes NF C 15-100 d'août 2024 s'applique ». Sinon, l'édition 2002 + A5 reste admise et le logiciel signale le choix à faire. Selon l'INFOCONSUEL n° 10, le Consuel contrôle les bâtiments neufs selon la nouvelle série à partir d'avril 2026, « sauf déclaration contraire ».
+- Paramètres : `date_bascule = 2025-09-01`, `referentiel_par_defaut = NF C 15-100:2024`
+- Source : Consuel, « Comment renseigner la version de la norme applicable à mon installation ? » (https://actualites.consuel.com/comment-renseigner-la-version-de-la-normeapplicable-a-mon-installation/) ; Promotelec, « Série de normes NF C15-100 : 2024, les grandes évolutions ! » (https://www.promotelec.com/actualite/serie-de-normes-nf-c15-100-2024-les-grandes-evolutions/).
+
+**R-102 · Dimensionnement par l'installation, pas par la surface** — `a_valider` · `supposee`
+- Description : le nombre de différentiels et de rangées se calcule d'après la liste réelle des circuits, jamais d'après une table de surface. Si une table de surface est utilisée, elle sert seulement à proposer des circuits par défaut et le logiciel l'indique comme une estimation.
+- Paramètres : `methode_dimensionnement = par_circuits`
+- Source : Promotelec, brochure « NF C 15-100 : la réponse aux exigences réglementaires » (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf), passage « l'équipement de protection n'est plus dimensionné en fonction de la taille du logement ».
+
+*Emplacement du tableau et GTL*
+
+**R-103 · Dimensions de l'ETEL** — `a_valider` · `supposee`
+- Description : le logiciel réserve un ETEL d'au moins 600 mm de large et 250 mm de profondeur, du sol au plafond. Une fois l'installation faite, la largeur peut être ramenée à la largeur de la GTL + 100 mm.
+- Paramètres : `etel_largeur_min_mm = 600`, `etel_profondeur_min_mm = 250`, `etel_largeur_reduite = largeur_GTL + 100 mm`, réglables
+- Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf) ; Legrand, guide « NF C 15-100 Révision 23 août 2024 – Points clés ».
+
+**R-104 · Hauteur de la GTL** — `a_valider` · `supposee`
+- Description : la GTL va du sol au plafond. Elle peut s'arrêter à mi-hauteur si toutes les arrivées et tous les départs passent uniquement par le haut, ou uniquement par le bas.
+- Paramètres : `gtl_hauteur = sol_plafond`, `gtl_demi_hauteur_autorisee = si arrivées/départs tous haut ou tous bas`
+- Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf).
+
+**R-105 · Pièce d'implantation de l'ETEL/GTL** — `a_valider` · `supposee`
+- Description : l'ETEL se trouve dans le logement, de préférence près d'une entrée (principale ou de service), ou dans un local annexe directement accessible sans sortir, par exemple un garage attenant. Le logiciel bloque la salle d'eau, les pièces humides ou poussiéreuses, le dessous d'escalier et le placard. L'ETEL ne sert à rien d'autre.
+- Paramètres : `pieces_interdites = [salle_d_eau, piece_humide, piece_poussiereuse, sous_escalier, placard]`, `piece_preferee = proche_entree`, réglables
+- Source : Promotelec, « Tableau électrique : l'essentiel à savoir » (https://www.promotelec.com/particuliers/fiche/tableau-electrique-lessentiel-a-savoir/) ; Schneider Electric, « Tableau électrique : norme et réglementation » (https://www.se.com/fr/fr/work/support/local/reglementation/norme-nfc15-100/tableau-electrique/). Doute : Legrand semble aussi exclure la cuisine (pièce humide), alors que d'autres sources interdisent seulement le dessus et le dessous d'un point d'eau (voir Q-91).
+
+**R-106 · Distances autour de la GTL fermée** — `a_valider` · `supposee`
+- Description : si la GTL est fermée par des cloisons ou une porte, le logiciel vérifie les distances minimales : 10 cm d'une installation de gaz, 40 cm d'une source de chaleur, 60 cm d'un point d'eau.
+- Paramètres : `dist_gaz_min_cm = 10`, `dist_chaleur_min_cm = 40`, `dist_point_eau_min_cm = 60`, réglables
+- Source : Schneider Electric, « Tableau électrique : norme et réglementation » (https://www.se.com/fr/fr/work/support/local/reglementation/norme-nfc15-100/tableau-electrique/). Seuls Schneider (et une fiche Éduscol pour le gaz) donnent ces chiffres. À vérifier dans la norme.
+
+**R-107 · Tableau dans un garage sans accès direct** — `a_valider` · `supposee`
+- Description : si le tableau et le disjoncteur sont placés dans un garage qui ne communique pas directement avec le logement, le logiciel impose un dispositif de coupure d'urgence à l'intérieur du logement.
+- Paramètres : `coupure_urgence_interieure_si_garage_sans_acces = oui`
+- Source : Promotelec FAQ, « Le tableau général et le disjoncteur peuvent-ils être placés dans un garage sans accès direct avec le logement ? » (https://www.promotelec.com/faq/particuliers/le-tableau-general-et-le-disjoncteur-peuvent-ils-etre-places-dans-un-garage-sans-acces-direct-avec-le-logement/).
+
+**R-108 · Contenu de la GTL** — `a_valider` · `supposee`
+- Description : la GTL contient le tableau de répartition principal, le panneau de contrôle (compteur et disjoncteur de branchement) s'il est à l'intérieur, le coffret de communication, au moins 2 prises 2P+T 16 A et les équipements de sécurité (alarme, etc.). Aucun autre fluide ne la traverse.
+- Paramètres : `prises_gtl_min = 2`
+- Source : Schneider Electric, « Tableau électrique : norme et réglementation » (https://www.se.com/fr/fr/work/support/local/reglementation/norme-nfc15-100/tableau-electrique/) ; Legrand, guide NF C 15-100 2024.
+
+**R-109 · Hauteur des organes de manœuvre du tableau** — `a_valider` · `supposee`
+- Description : l'axe des manettes (disjoncteurs, interrupteurs différentiels) est placé entre 0,90 m et 1,80 m du sol fini. Si le coffret a une porte, la rangée basse peut descendre à 0,50 m.
+- Paramètres : `manette_h_min_m = 0,90` (coffret sans porte), `manette_h_min_porte_m = 0,50`, `manette_h_max_m = 1,80`, réglables
+- Source : Promotelec FAQ, « À quelle hauteur doit se trouver le tableau électrique de mon logement ? » (https://www.promotelec.com/faq/particuliers/a-quelle-hauteur-doit-se-trouver-le-tableau-electrique-de-mon-logement/) ; Legrand, guide NF C 15-100 2024.
+
+**R-110 · Hauteur en logement accessible (PMR)** — `a_valider` · `supposee`
+- Description : quand le logement relève de la réglementation accessibilité, la manette la plus haute ne dépasse pas 1,30 m. La limite basse diffère selon les fiches Promotelec : 0,90 m sur promotelec.com, 0,75 m sur l'ancien site particuliers et dans le mémento. Le logiciel vise par défaut la plage 0,90–1,30 m, qui satisfait les deux lectures.
+- Paramètres : `pmr_manette_h_max_m = 1,30`, `pmr_manette_h_min_m = 0,90` (valeur prudente ; 0,75 selon d'autres fiches), réglables
+- Source : Promotelec FAQ (https://www.promotelec.com/faq/particuliers/a-quelle-hauteur-doit-se-trouver-le-tableau-electrique-de-mon-logement/) ; Promotelec FAQ particuliers, ancienne version (https://particuliers.promotelec.com/fiche-faq/a-hauteur-se-trouver-tableau-electrique-de-logement/). Divergence signalée (Q-92).
+
+**R-111 · Coupure d'urgence et disjoncteur de branchement** — `a_valider` · `supposee`
+- Description : la manette du disjoncteur de branchement, qui sert de coupure d'urgence, est placée entre 0,90 m et 1,80 m (au plus 1,30 m en logement accessible), et reste accessible depuis l'intérieur du logement.
+- Paramètres : `agcp_h_min_m = 0,90`, `agcp_h_max_m = 1,80`, `agcp_h_max_pmr_m = 1,30`, réglables
+- Source : 123elec, « Norme GTL » (https://www.123elec.com/equipement_gtl_norme) ; Batir Moins Cher, « GTL : dimensions, contenu et hauteurs » (https://www.batirmoinscher.com/blog/que-dit-la-norme-concernant-la-gtl/). Ce sont des sources secondaires, à confirmer.
+
+**R-112 · Ordre vertical dans la GTL** — `a_valider` · `supposee`
+- Description : par défaut, de haut en bas : panneau de contrôle (disjoncteur de branchement), tableau de répartition (rangée basse au-dessus de 0,90 m), puis coffret de communication.
+- Paramètres : `ordre_gtl = [panneau_controle, tableau, coffret_communication]`, réglable
+- Source : Schneider Electric (coffret de communication « généralement sous le coffret électrique ») ; Batir Moins Cher. C'est un usage, pas une exigence.
+
+*Communication et GTL*
+
+**R-113 · Circuit des prises de la GTL** — `a_valider` · `supposee`
+- Description : les 2 prises 2P+T 16 A de la GTL sont sur un circuit dédié et placées entre 0,05 m et 1,30 m du sol. Le calibre n'est pas fixé par les sources consultées. Le logiciel applique la règle générale des prises : 16 A en 1,5 mm² ou 20 A en 2,5 mm².
+- Paramètres : `prises_gtl_min = 2`, `prises_gtl_h_min_m = 0,05`, `prises_gtl_h_max_m = 1,30`, `prises_gtl_calibre_A = 16` (ou 20 en 2,5 mm²), réglables
+- Source : Schneider Electric, « Tableau électrique : norme et réglementation » (https://www.se.com/fr/fr/work/support/local/reglementation/norme-nfc15-100/tableau-electrique/) ; Legrand, fiche goulottes GTL (https://assets.legrand.com/general/mediagrp/np-ft-gt/f00382fr-04.pdf).
+
+**R-114 · Composition du tableau de communication** — `a_valider` · `supposee`
+- Description : le coffret de communication contient le DTI cuivre et/ou le DTIo fibre, au moins 4 socles RJ45 de brassage, un répartiteur TV, un répartiteur téléphonique si besoin, une barrette de terre, et le câblage en étoile.
+- Paramètres : `rj45_brassage_min = 4`
+- Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf) ; Legrand, guide NF C 15-100 2024.
+
+**R-115 · Volume pour box et ONT** — `a_valider` · `supposee`
+- Description : un volume d'au moins 240 × 300 mm sur 200 mm de profondeur, attenant au coffret de communication ou intégré à lui, avec au moins 1 prise 2P+T.
+- Paramètres : `volume_box_l_mm = 240`, `volume_box_h_mm = 300`, `volume_box_p_mm = 200`, `prise_volume_box_min = 1`, réglables
+- Source : Promotelec, « La norme NF C 15-100 a évolué : le saviez-vous ? » (https://www.promotelec.com/professionnels/fiche/la-norme-nf-c-15-100-a-evolue-le-saviez-vous/) ; Legrand, guide 2024.
+
+**R-116 · Nombre minimal de prises RJ45** — `a_valider` · `supposee`
+- Description : pour un T3 ou plus, au moins 4 prises RJ45 : 2 juxtaposées dans le séjour, et 1 dans chacune de 2 autres pièces. Chaque prise RJ45 est placée près d'une prise de courant. Cette règle sert à compter les départs du coffret.
+- Paramètres : `rj45_min_T3plus = 4`, `rj45_sejour = 2`, réglables
+- Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf).
+
+*Branchement*
+
+**R-117 · Réglage du disjoncteur de branchement** — `a_valider` · `supposee`
+- Description : en monophasé, le réglage correspond à la puissance souscrite : 6 kVA → 30 A, 9 kVA → 45 A, 12 kVA → 60 A. Le réglage est fait par Enedis, sous plomb. Le logiciel s'en sert pour la règle « amont » de calibrage des interrupteurs différentiels (R-124).
+- Paramètres : `agcp_6kVA_A = 30`, `agcp_9kVA_A = 45`, `agcp_12kVA_A = 60`, réglables
+- Source : Choisir.com, « Disjoncteur général » (https://www.choisir.com/energie/articles/117195/le-disjoncteur-general) ; Kelwatt, « Ampérage disjoncteur » (https://www.kelwatt.fr/guide/compteur/electricite/amperage). Ce sont des sources secondaires.
+
+**R-118 · Liaison disjoncteur de branchement → tableau** — `a_valider` · `supposee`
+- Description : section minimale de cuivre selon le réglage : 30 A et 45 A → 10 mm², 60 A → 16 mm², 90 A → 25 mm². Longueurs maximales pour 2 % de chute de tension en monophasé : 45 A en 10 mm² → 22 m, en 16 mm² → 36 m ; 60 A en 16 mm² → 27 m, en 25 mm² → 42 m.
+- Paramètres : `sect_liaison_45A_mm2 = 10`, `sect_liaison_60A_mm2 = 16`, `long_max_45A_10mm2_m = 22`, `long_max_60A_16mm2_m = 27`, réglables
+- Source : Promotelec, « Comment choisir la bonne section de câble pour alimenter votre tableau ? » (https://www.promotelec.com/professionnels/fiche/comment-choisir-la-bonne-section-de-cable-pour-alimenter-votre-tableau/) ; Schneider Electric, guide NF C 15-100 2012.
+
+*Différentiels*
+
+**R-119 · Nombre minimal d'interrupteurs différentiels** — `a_valider` · `supposee`
+- Description : tout logement comporte au moins 2 dispositifs différentiels 30 mA, et tous les circuits sont protégés par un 30 mA.
+- Paramètres : `nb_id_min = 2`, `sensibilite_mA = 30`
+- Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf) ; Legrand, guide 2024.
+
+**R-120 · Type A obligatoire pour la cuisson, le lave-linge et l'IRVE** — `a_valider` · `supposee`
+- Description : les circuits plaque de cuisson ou cuisinière, lave-linge et IRVE sont placés sous un différentiel de type A, ou d'un type supérieur (F ou B). Au moins 1 des différentiels du tableau est donc de type A.
+- Paramètres : `circuits_type_A = [cuisson, lave_linge, irve]`, `types_admis = [A, F, B]`, `nb_id_type_A_min = 1`
+- Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf) ; Legrand, guide 2024.
+
+**R-121 · Type minimal pour les autres circuits** — `a_valider` · `supposee`
+- Description : les autres circuits sont protégés au minimum par un type AC. Un type A, F ou B est aussi admis. Le logiciel accepte qu'un circuit « AC » soit placé sous un type A si la répartition l'exige.
+- Paramètres : `type_min_autres = AC`
+- Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf).
+
+**R-122 · Maximum de circuits par interrupteur différentiel** — `a_valider` · `supposee`
+- Description : 8 circuits au plus en aval d'un même dispositif différentiel, quel que soit son calibre.
+- Paramètres : `circuits_par_id_max = 8`, réglable (une valeur plus basse peut être choisie par habitude chantier, voir Q-95)
+- Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf) ; Legrand, guide 2024.
+
+**R-123 · Éclairage et prises répartis sous au moins 2 différentiels** — `a_valider` · `supposee`
+- Description : pour la continuité de service, les circuits d'éclairage ne sont pas tous sous le même différentiel ; il en va de même pour les circuits de prises. Le logiciel vérifie que chaque famille est présente sous au moins 2 différentiels différents.
+- Paramètres : `id_min_par_famille_eclairage = 2`, `id_min_par_famille_prises = 2`
+- Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf) ; Legrand, guide 2024.
+
+**R-124 · Calibre des interrupteurs différentiels** — `a_valider` · `supposee`
+- Description : le calibre est choisi selon l'une de deux règles. Règle amont : calibre de l'ID ≥ réglage du disjoncteur de branchement. Règle aval : calibre de l'ID ≥ 1 × la somme des calibres des circuits de chauffage direct, IRVE et eau chaude, + 0,5 × la somme des autres circuits. Le logiciel arrondit au calibre commercial supérieur (25, 40 ou 63 A). Exemple Legrand : chauffage 20 A + prises 16 A + éclairage 10 A donne 20 + 8 + 5 = 33 A, d'où un ID de 40 A.
+- Paramètres : `coef_chauffage_irve_ecs = 1`, `coef_autres = 0,5`, `calibres_id_A = [25, 40, 63]`, réglables
+- Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf) ; Legrand, guide 2024.
+
+**R-125 · Type F pour les équipements à variateur (option)** — `a_valider` · `supposee`
+- Description : pour un circuit qui alimente un équipement à variateur de vitesse monophasé (PAC, climatiseur, pompe), le logiciel propose un type F à la place d'un type A. C'est une recommandation, pas une obligation, et cela devient une option du chantier.
+- Paramètres : `proposer_type_F_si_variateur = oui`
+- Source : Hager, « La norme électrique NF C 15-100 » (https://hager.com/fr/normes/nfc-15-100) ; Legrand, guide 2024 (tableau des types).
+
+**R-126 · Congélateur sur différentiel dédié (option recommandée)** — `a_valider` · `supposee`
+- Description : quand l'emplacement du congélateur est connu, il est conseillé de le mettre sur un circuit spécialisé protégé par un 30 mA propre, de préférence à immunité renforcée (HI/SI). Promotelec recommande fortement la même chose pour le réfrigérateur.
+- Paramètres : `congelateur_id_dedie = recommande`, `type_id_congelateur = HI_ou_SI`, réglables
+- Source : Legrand FAQ, « Quel disjoncteur pour un congélateur ? » (https://www.legrand.fr/questions-frequentes/quel-disjoncteur-pour-un-congelateur) ; Promotelec FAQ, « Faut-il faire un circuit spécialisé pour le réfrigérateur ? » (https://www.promotelec.com/faq/professionnels/faut-il-faire-un-circuit-specialise-pour-le-refrigerateur/).
+
+**R-127 · Calcul du nombre d'interrupteurs différentiels** — `a_valider` · `supposee`
+- Description : le logiciel compte les circuits sous les différentiels communs (hors IRVE), calcule `nb_ID = max(2, arrondi_sup(nb_circuits / 8))`, ajoute 1 différentiel dédié par point de recharge (R-142) et, si l'option est retenue, par congélateur, puis vérifie R-120 et R-123.
+- Paramètres : `formule_nb_id = max(nb_id_min, ceil(nb_circuits / circuits_par_id_max))`
+- Source : déduit de R-119 à R-123 et de R-142 (sources citées dans ces règles).
+
+*Protections et circuits*
+
+**R-128 · Un disjoncteur par circuit** — `a_valider` · `supposee`
+- Description : chaque circuit est protégé contre les surintensités par un disjoncteur ; les coupe-circuits à fusibles sont interdits dans le neuf. Un disjoncteur protège un seul circuit.
+- Paramètres : `protection_surintensite = disjoncteur`, `fusible_autorise = non`
+- Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf) ; Legrand, guide 2024.
+
+**R-129 · Circuits d'éclairage** — `a_valider` · `supposee`
+- Description : 1,5 mm², disjoncteur de 16 A au plus (10 A conseillé), 8 points d'éclairage au plus par circuit, et au moins 2 circuits d'éclairage par logement. Une prise commandée compte comme un point d'éclairage.
+- Paramètres : `ecl_section_mm2 = 1,5`, `ecl_calibre_max_A = 16`, `ecl_calibre_defaut_A = 10`, `ecl_points_max = 8`, `ecl_circuits_min = 2`, réglables
+- Source : Legrand, guide NF C 15-100 2024 (https://assets.legrand.com/editorial/legrandfr/outils/documentations-et-guides/legrand-guide-norme-nf-c-15-100.pdf).
+
+**R-130 · Circuits de prises 16 A** — `a_valider` · `supposee`
+- Description : 8 prises au plus en 1,5 mm² / 16 A, ou 12 prises au plus en 2,5 mm² / 20 A. Chaque socle compte pour 1, même dans une boîte multiposte. Une prise USB seule ne compte pas.
+- Paramètres : `pc_1_5_calibre_A = 16`, `pc_1_5_max = 8`, `pc_2_5_calibre_A = 20`, `pc_2_5_max = 12`, réglables
+- Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf) ; Legrand, guide 2024.
+
+**R-131 · Nombre minimal de prises par pièce (pour compter les circuits)** — `a_valider` · `supposee`
+- Description : séjour de 28 m² ou moins : 1 prise par tranche de 4 m², avec un minimum de 5. Séjour de plus de 28 m² : au moins 7. Chambre : 3. Cuisine de plus de 4 m² : 6, dont 4 au-dessus du plan de travail (3 si 4 m² ou moins). Autres pièces de plus de 4 m² hors WC : 1. Plus 2 prises « multimédia », de préférence dans le séjour.
+- Paramètres : `sejour_m2_par_prise = 4`, `sejour_min = 5`, `sejour_grand_min = 7`, `chambre_min = 3`, `cuisine_min = 6`, `multimedia_sup = 2`, réglables
+- Source : Legrand, guide 2024 (https://assets.legrand.com/editorial/legrandfr/outils/documentations-et-guides/legrand-guide-norme-nf-c-15-100.pdf) ; Promotelec, brochure NF C 15-100.
+
+**R-132 · Circuit dédié aux prises de la cuisine** — `a_valider` · `supposee`
+- Description : les 6 prises non spécialisées de la cuisine sont sur un circuit à elles seules, en 2,5 mm² / 20 A. Les prises supplémentaires de la cuisine vont sur un autre circuit.
+- Paramètres : `pc_cuisine_max = 6`, `pc_cuisine_section_mm2 = 2,5`, `pc_cuisine_calibre_A = 20`
+- Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf).
+
+**R-133 · Circuit cuisson** — `a_valider` · `supposee`
+- Description : un circuit dédié à la plaque ou à la cuisinière, avec sortie de câble ou prise 32 A. En monophasé : 6 mm², disjoncteur 32 A. En triphasé : 2,5 mm², 20 A. Il est placé sous un différentiel de type A (R-120).
+- Paramètres : `cuisson_mono_section_mm2 = 6`, `cuisson_mono_calibre_A = 32`, `cuisson_tri_section_mm2 = 2,5`, `cuisson_tri_calibre_A = 20`
+- Source : Legrand, guide 2024 ; Voltimum / Promotelec, « Le point sur les circuits électriques spécialisés dans l'habitat » (https://www.voltimum.fr/actualites/promotelec/securite-electrique-le-point-sur-les-circuits).
+
+**R-134 · Au moins 3 circuits spécialisés en 20 A** — `a_valider` · `supposee`
+- Description : au moins 3 circuits spécialisés en 2,5 mm² / 20 A, chacun pour un seul appareil (lave-linge, lave-vaisselle, sèche-linge, four, congélateur, etc.). Le logiciel ajoute 1 circuit par gros appareil supplémentaire prévu au plan.
+- Paramètres : `specialises_20A_min = 3`, `spec_section_mm2 = 2,5`, `spec_calibre_A = 20`, réglables
+- Source : Legrand, guide 2024 ; Voltimum / Promotelec (https://www.voltimum.fr/actualites/promotelec/securite-electrique-le-point-sur-les-circuits).
+
+**R-135 · Chauffe-eau électrique** — `a_valider` · `supposee`
+- Description : si un chauffe-eau électrique à accumulation est prévu, il a un circuit dédié en 2,5 mm² / 20 A, piloté le plus souvent par un contacteur heures creuses (R-154).
+- Paramètres : `ce_section_mm2 = 2,5`, `ce_calibre_A = 20`
+- Source : Legrand, guide 2024 ; Schneider Electric, guide NF C 15-100 2012 (https://www.etablissements-laroche.fr/wp-content/uploads/2018/09/guideNFC-15-100.pdf).
+
+**R-136 · Chauffage électrique par émetteurs muraux** — `a_valider` · `supposee`
+- Description : les appareils de chauffage sont toujours sur des circuits dédiés. Section et calibre suivent la puissance totale du circuit : 3 500 W → 1,5 mm² / 16 A ; 4 500 W → 2,5 mm² / 20 A ; 5 750 W → 4 mm² / 25 A ; 7 250 W → 6 mm² / 32 A. Par défaut, le logiciel crée 1 circuit en 20 A par tranche de 4 500 W.
+- Paramètres : `chauf_3500W = 1,5 mm² / 16 A`, `chauf_4500W = 2,5 mm² / 20 A`, `chauf_5750W = 4 mm² / 25 A`, `chauf_7250W = 6 mm² / 32 A`, `tranche_defaut_W = 4500`, réglables
+- Source : Legrand, guide 2024 (https://assets.legrand.com/editorial/legrandfr/outils/documentations-et-guides/legrand-guide-norme-nf-c-15-100.pdf).
+
+**R-137 · Plancher chauffant électrique** — `a_valider` · `supposee`
+- Description : si un plancher rayonnant électrique est prévu : 1 700 W → 1,5 mm² / 16 A ; 3 400 W → 2,5 mm² / 25 A ; 4 200 W → 4 mm² / 32 A ; 5 400 W → 6 mm² / 40 A ; 7 500 W → 10 mm² / 50 A.
+- Paramètres : `plancher_1700W = 1,5 mm² / 16 A`, `plancher_3400W = 2,5 mm² / 25 A`, `plancher_4200W = 4 mm² / 32 A`, `plancher_5400W = 6 mm² / 40 A`, `plancher_7500W = 10 mm² / 50 A`, réglables
+- Source : Schneider Electric, guide NF C 15-100 2012 (https://www.etablissements-laroche.fr/wp-content/uploads/2018/09/guideNFC-15-100.pdf) ; Nexans, « Section des conducteurs et calibres de protection » (https://home.nexans.fr/section-des-conducteurs-et-calibres-de-protection). Ce guide date d'avant 2024 : à revalider.
+
+**R-138 · Volets roulants** — `a_valider` · `supposee`
+- Description : s'il y a des volets motorisés, au moins 1 circuit leur est entièrement dédié, en 1,5 mm² / 16 A ou en 2,5 mm² / 20 A selon la puissance des moteurs. Legrand conseille de répartir les volets sur 2 circuits, ce qui devient une option du chantier, par exemple un circuit par niveau.
+- Paramètres : `vr_circuits_min = 1`, `vr_circuits_defaut = 2`, `vr_1_5_calibre_A = 16`, `vr_2_5_calibre_A = 20`, réglables
+- Source : Legrand, guide 2024 (https://assets.legrand.com/editorial/legrandfr/outils/documentations-et-guides/legrand-guide-norme-nf-c-15-100.pdf). Le nombre maximal de moteurs par circuit n'est pas fixé par les sources officielles (voir Q-99).
+
+**R-139 · VMC** — `a_valider` · `supposee`
+- Description : la VMC individuelle a un circuit dédié en 1,5 mm², avec un disjoncteur de 2 A, ou jusqu'à 16 A selon la notice du fabricant.
+- Paramètres : `vmc_section_mm2 = 1,5`, `vmc_calibre_A = 2`, `vmc_calibre_max_A = 16`, réglables
+- Source : Schneider Electric, guide NF C 15-100 2012 ; Legrand FAQ congélateur/VMC (https://www.legrand.fr/questions-frequentes/quel-disjoncteur-pour-un-congelateur).
+
+**R-140 · Circuits de commande (asservissement tarifaire, fil pilote)** — `a_valider` · `supposee`
+- Description : le circuit d'asservissement tarifaire (bobine du contacteur heures creuses) et les circuits de commande sont en 1,5 mm², protégés par un disjoncteur de 2 A. Chacun compte 1 module de disjoncteur.
+- Paramètres : `commande_section_mm2 = 1,5`, `commande_calibre_A = 2`
+- Source : Schneider Electric, guide NF C 15-100 2012 (https://www.etablissements-laroche.fr/wp-content/uploads/2018/09/guideNFC-15-100.pdf).
+
+**R-141 · Circuit IRVE (si prévu)** — `a_valider` · `inconnue`
+- Description : chaque point de recharge (prise renforcée ou borne) a son propre circuit spécialisé. Prise renforcée en mode 2 : 2,5 mm² / 20 A. Borne de 7,4 kW en monophasé : le calibre (32 ou 40 A) et la section (6 ou 10 mm²) varient selon les sources secondaires et dépendent de la notice et de la longueur. Le logiciel ne fixe pas de valeur et demande la notice.
+- Paramètres : `irve_prise_renforcee = 2,5 mm² / 20 A`, `irve_borne_7kW_calibre_A = inconnu` (32 ou 40), `irve_borne_7kW_section_mm2 = inconnue` (6 ou 10), réglables
+- Source : Legrand, guide 2024 ; Promotelec, « Série de normes NF C15-100 : 2024 » (https://www.promotelec.com/actualite/serie-de-normes-nf-c15-100-2024-les-grandes-evolutions/).
+
+**R-142 · Différentiel de l'IRVE** — `a_valider` · `supposee`
+- Description : chaque point de recharge en courant alternatif est protégé individuellement par un DDR 30 mA, au minimum de type A. En mode 3 monophasé : type A ou F avec détection du courant continu à 6 mA (souvent intégrée à la borne), ou bien type B. En mode 3 triphasé : type B, ou type A/F avec détection 6 mA.
+- Paramètres : `irve_ddr_dedie = oui`, `irve_type_min = A`, `irve_detection_dc_mA = 6`
+- Source : Promotelec, « Série de normes NF C15-100 : 2024, les grandes évolutions ! » (https://www.promotelec.com/actualite/serie-de-normes-nf-c15-100-2024-les-grandes-evolutions/) ; Legrand, guide 2024.
+
+**R-143 · Circuits extérieurs et annexes** — `a_valider` · `supposee`
+- Description : les circuits extérieurs (éclairage de jardin, prises non attenantes, portail, porte de garage) et les circuits vers une annexe sont des circuits spécialisés sous 30 mA. Chaque accès extérieur (entrée principale ou de service) reçoit un point d'éclairage.
+- Paramètres : `exterieur_circuit_specialise = oui`, `point_eclairage_par_acces = 1`
+- Source : Voltimum / Promotelec, liste des circuits spécialisés (https://www.voltimum.fr/actualites/promotelec/securite-electrique-le-point-sur-les-circuits) ; Legrand, guide 2024.
+
+*Dimensionnement du tableau et réserves*
+
+**R-144 · Réserve de 20 % d'emplacements** — `a_valider` · `supposee`
+- Description : en maison individuelle, le tableau garde au moins 20 % d'emplacements libres. La règle de 6 modules au minimum concerne seulement le logement collectif. Le logiciel calcule `modules_installes × 1,2`, arrondi au module supérieur, avant de choisir le coffret.
+- Paramètres : `reserve_pct = 20`, `arrondi = module_superieur`, réglables
+- Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf) ; Legrand, guide 2024.
+
+**R-145 · Répartition de la réserve** — `a_valider` · `supposee`
+- Description : la réserve est répartie en bout de rangée, et de préférence sur toutes les rangées, pour qu'on puisse ajouter des disjoncteurs sous chaque différentiel. C'est une recommandation fabricant.
+- Paramètres : `reserve_position = fin_de_rangee`, `reserve_repartie_toutes_rangees = oui`, réglables
+- Source : Legrand, guide 2024 ; Legrand FAQ, « Quelle est la norme pour un tableau électrique dans une maison individuelle en 2026 ? » (https://www.legrand.fr/questions-frequentes/quelle-est-la-norme-pour-un-tableau-electrique-dans-une-maison-individuelle-en-2026).
+
+**R-146 · Largeur des appareils en modules** — `a_valider` · `inconnue`
+- Description : la largeur dépend de la marque et de la gamme. La norme ne la fixe pas. Valeurs par défaut à faire valider : disjoncteur 1P+N = 1 module (18 mm) ; interrupteur différentiel = 2 modules (Legrand DX3 63 A) ou 4 selon la gamme ; parafoudre = 2 modules ; contacteur heures creuses = 1 module ; délesteur = 1 à 2 modules.
+- Paramètres : `mod_disj_1PN = 1`, `mod_id = 2` (ou 4), `mod_parafoudre = 2`, `mod_contacteur = 1`, `mod_delesteur = 2`, réglables
+- Source : Legrand, guide 2024 (largeur 2 modules pour le DX3-ID 63 A). Les autres valeurs sont supposées et dépendent de la gamme choisie par le pavillonneur (Q-94).
+
+**R-147 · Nombre de rangées** — `a_valider` · `supposee`
+- Description : `nb_rangees = arrondi_sup(modules_totaux_avec_reserve / modules_par_rangee)`. La largeur de rangée vient du coffret choisi : 13 modules (GTL de 250 mm) ou 18 modules (GTL plus large). La norme ne fixe aucun nombre de rangées.
+- Paramètres : `modules_par_rangee = 13` (13 ou 18 ; 24 hors GTL standard), réglables
+- Source : Legrand, fiches goulottes GTL Drivia 13 et 18 modules (https://assets.legrand.com/pim/NP-FT-GT/F00382FR-08.pdf) ; Legrand, guide 2024.
+
+**R-148 · Un différentiel en tête de chaque rangée** — `a_valider` · `supposee`
+- Description : par défaut, chaque rangée commence par son interrupteur différentiel, suivi de ses disjoncteurs. Un différentiel n'alimente pas de disjoncteurs sur une autre rangée, sauf choix contraire.
+- Paramètres : `id_tete_de_rangee = oui`, `id_multi_rangees = non`, réglables
+- Source : Schneider Electric, « Tableau électrique : norme et réglementation » (https://www.se.com/fr/fr/work/support/local/reglementation/norme-nfc15-100/tableau-electrique/). C'est un usage, pas une exigence normative.
+
+**R-149 · Repérage et schéma** — `a_valider` · `supposee`
+- Description : chaque disjoncteur est repéré par le local et la fonction (par exemple « Chambre 1 – prises »). Le schéma de l'installation est remis à l'occupant, rangé si possible dans un porte-document de la GTL. Le logiciel génère l'étiquetage.
+- Paramètres : `etiquetage_obligatoire = oui`, `schema_remis = oui`
+- Source : Schneider Electric, « Tableau électrique : norme et réglementation » (https://www.se.com/fr/fr/work/support/local/reglementation/norme-nfc15-100/tableau-electrique/) ; Legrand, guide 2024.
+
+*Parafoudre*
+
+**R-150 · Cas où le parafoudre est obligatoire** — `a_valider` · `supposee`
+- Description : un parafoudre est obligatoire au tableau dans trois cas : (a) bâtiment équipé d'un paratonnerre, toutes zones : type 1, Iimp ≥ 12,5 kA ; (b) bâtiment à moins de 50 m d'un bâtiment équipé d'un paratonnerre ; (c) zone AQ2 avec alimentation entièrement ou partiellement aérienne : type 2, In ≥ 5 kA.
+- Paramètres : `pf_obligatoire_si = [paratonnerre, distance_paratonnerre_lt_50m, AQ2_et_aerien]`, `pf_t1_iimp_kA = 12,5`, `pf_t2_in_kA = 5`, réglables
+- Source : Legrand, guide 2024 ; Legrand, « Parafoudres : bien se protéger » (https://www.legrand.fr/actualites/parafoudres-bien-se-proteger-contre-la-foudre-et-les-surtensions) ; Dehn, « Vos obligations normatives » (https://www.dehn.fr/fr/tertiaires). Promotelec (« Série de normes NF C15-100 : 2024 », partie 4-43, art. 534.1 de la NF C 15-100-1) exclut explicitement l'habitation de la nouvelle évaluation du risque : « Pour tout autre type de bâtiments, à l'exception des bâtiments d'habitation, une évaluation du risque doit être menée ». Pour l'habitation, les règles de 2002 restent donc applicables.
+
+**R-151 · Cas où le parafoudre est recommandé** — `a_valider` · `supposee`
+- Description : en zone AQ2 avec alimentation enterrée, un parafoudre est recommandé (avec analyse de risque) si la maison contient des équipements liés à la sécurité des personnes : alarme, matériel médical, alarme technique. Hors AQ2, il est recommandé en présence d'appareils sensibles. Le logiciel le propose comme option.
+- Paramètres : `pf_recommande_si = [AQ2_et_securite_personnes, equipements_sensibles]`
+- Source : Legrand, guide 2024 (https://assets.legrand.com/editorial/legrandfr/outils/documentations-et-guides/legrand-guide-norme-nf-c-15-100.pdf).
+
+**R-152 · Parafoudre complémentaire au-delà de 10 m** — `a_valider` · `supposee`
+- Description : si un équipement à protéger se trouve à plus de 10 m du parafoudre de tête (la distance était de 30 m auparavant), le logiciel signale qu'il faut un parafoudre complémentaire ou des mesures supplémentaires. C'est utile pour un tableau divisionnaire d'étage ou un garage.
+- Paramètres : `pf_distance_max_m = 10`, réglable
+- Source : Promotelec, « Série de normes NF C15-100 : 2024 » (https://www.promotelec.com/actualite/serie-de-normes-nf-c15-100-2024-les-grandes-evolutions/) ; Legrand, guide 2024. Doute : Promotelec présente ce chiffre dans la partie générale. Son application stricte en habitation reste à confirmer (Q-103).
+
+**R-153 · Parafoudre du réseau de communication** — `a_valider` · `supposee`
+- Description : si l'alimentation électrique est protégée par un parafoudre et que le logement est raccordé à un réseau de communication extérieur en cuivre, le logiciel ajoute un parafoudre de communication. C'est une nouveauté de 2024, qui s'applique aussi à l'habitation.
+- Paramètres : `pf_com_si_pf_puissance_et_cuivre = oui`
+- Source : Promotelec, « Série de normes NF C15-100 : 2024, les grandes évolutions ! » (https://www.promotelec.com/actualite/serie-de-normes-nf-c15-100-2024-les-grandes-evolutions/).
+
+*Gestion d'énergie et automatismes*
+
+**R-154 · Contacteur heures creuses** — `a_valider` · `supposee`
+- Description : le chauffe-eau peut être commandé par un contacteur jour/nuit piloté par le compteur (contact C1/C2). Il faut alors un disjoncteur de commande de 2 A (R-140) en plus du disjoncteur de puissance du chauffe-eau, que le contacteur ne remplace pas.
+- Paramètres : `contacteur_hc = option_chantier`, `disj_commande_hc_A = 2`
+- Source : Promotelec, « Quels sont les composants de votre installation électrique ? » (https://www.promotelec.com/particuliers/fiche/quels-sont-les-composants-de-votre-installation-electrique/) ; Sparx Élec, « Circuits spécialisés obligatoires » (https://www.sparx-elec.fr/circuits-specialises-obligatoires/).
+
+**R-155 · Délesteur ou gestionnaire d'énergie** — `a_valider` · `inconnue`
+- Description : aucune source consultée n'impose de délesteur en pavillon neuf. Le module se place juste après le disjoncteur de branchement. Il coupe les circuits non prioritaires (chauffage par fil pilote, chauffe-eau, IRVE) quand l'appel de puissance approche de l'abonnement. Le logiciel le propose en option et compte ses modules.
+- Paramètres : `delesteur = option_chantier`, `circuits_delestables_defaut = [chauffage, chauffe_eau, irve]`, réglables
+- Source : Promotelec, « Quels sont les composants de votre installation électrique ? » (https://www.promotelec.com/particuliers/fiche/quels-sont-les-composants-de-votre-installation-electrique/). Legrand mentionne une obligation de 2027 qui vient du décret n° 2023-444 du 7 juin 2023 : elle impose un « système de régulation automatique de la température de chauffage par pièce », et non un délestage. L'échéance est le 1er janvier 2027 pour les permis ou déclarations préalables déposés à partir de cette date, et le 1er janvier 2030 pour l'existant, selon JeChange.
+
+**R-156 · Télérupteurs, minuteries, programmateurs** — `a_valider` · `supposee`
+- Description : ces appareils modulaires sont des options. Ils ne protègent rien : le circuit qu'ils commandent garde son disjoncteur. Le logiciel les place dans la rangée de leur circuit et les compte dans les modules.
+- Paramètres : `telerupteur = option_chantier`, `mod_telerupteur = 1`, réglables
+- Source : Promotelec, « Quels sont les composants de votre installation électrique ? » (https://www.promotelec.com/particuliers/fiche/quels-sont-les-composants-de-votre-installation-electrique/).
+
+*Maison à étage, dépendances, extérieur*
+
+**R-157 · Tableau divisionnaire autorisé** — `a_valider` · `supposee`
+- Description : un ou plusieurs tableaux divisionnaires, alimentés par le tableau principal, peuvent être placés hors de la GTL. Ils sont interdits dans les volumes 0, 1 et 2 et dans le volume caché d'une salle d'eau. Par défaut, le logiciel propose un tableau unique dans la GTL ; le divisionnaire d'étage est une option du chantier.
+- Paramètres : `tableau_divisionnaire = option_chantier`, `divisionnaire_interdit = [volume_0, volume_1, volume_2, volume_cache]`
+- Source : Promotelec FAQ, « Peut-on faire installer un tableau divisionnaire dans une salle d'eau ou salle de bains ? » (https://www.promotelec.com/faq/particuliers/peut-on-faire-installer-un-tableau-divisionnaire-dans-une-salle-deau-ou-salle-de-bains/).
+
+**R-158 · Liaison vers un tableau divisionnaire** — `a_valider` · `inconnue`
+- Description : la liaison principal → divisionnaire est protégée par un disjoncteur à son départ. Sa section et sa longueur doivent limiter la chute de tension (1 % selon l'ancien mémento Promotelec, à confirmer). Le guide Schneider 2012 donne en 2,5 mm² / 20 A environ 12 m, et en 4 mm² / 32 A environ 31 m. La place du différentiel 30 mA (au départ ou en tête du divisionnaire) n'est pas tranchée par les sources officielles consultées.
+- Paramètres : `chute_tension_liaison_div_pct = 1` (à confirmer), `long_max_2_5mm2_20A_m = 12`, `long_max_4mm2_32A_m = 31`, `position_ddr_divisionnaire = inconnue`, réglables
+- Source : Schneider Electric / cours MELEC, tableau « longueur maxi des conducteurs d'alimentation des tableaux de répartition divisionnaire » (http://siteelectrotechnique.free.fr/Documents%20TGE/cours%20Meleec_NORMES_NFC15-100_C.pdf) ; Mémento Promotelec « Locaux d'habitation », 2007, obsolète (https://sti.passtek.net/livres/Electrotechnique/Promotelec%20Habitation.pdf).
+
+**R-159 · Local annexe ou garage non attenant** — `a_valider` · `supposee`
+- Description : une annexe (garage séparé, atelier, abri) est alimentée depuis le tableau principal. Elle reçoit un tableau divisionnaire avec dispositif de coupure d'urgence, une protection différentielle (30 mA par défaut dans le logiciel) et une liaison à la terre, en général celle de la maison. La norme n'impose aucun équipement minimal (prises, éclairage) dans les annexes.
+- Paramètres : `annexe_tableau_div = oui`, `annexe_coupure_urgence = oui`, `annexe_ddr_mA = 30`, réglables
+- Source : Promotelec, « Tout savoir sur les normes électriques pour vos locaux annexes » (https://www.promotelec.com/particuliers/fiche/tout-savoir-sur-les-normes-electriques-pour-vos-locaux-annexes/) ; Promotelec, « Série de normes NF C15-100 : 2024 » (encadré sur les bâtiments à usage domestique).
+
+**R-160 · Coupure d'urgence d'un local indépendant habité** — `a_valider` · `supposee`
+- Description : tout local indépendant à usage d'habitation qui comporte plusieurs pièces, par exemple un studio séparé, a son propre dispositif de coupure d'urgence, comme un interrupteur-sectionneur.
+- Paramètres : `coupure_urgence_local_independant = oui`
+- Source : Legrand, guide 2024 (https://assets.legrand.com/editorial/legrandfr/outils/documentations-et-guides/legrand-guide-norme-nf-c-15-100.pdf) ; Promotelec, brochure NF C 15-100.
+
+**R-161 · Répartition des circuits entre niveaux (option)** — `a_valider` · `supposee`
+- Description : dans une maison à étage avec un tableau unique, le logiciel répartit par défaut l'éclairage, les prises et les volets de façon que chaque niveau dépende d'au moins 2 différentiels, et il vérifie la chute de tension pour les pièces de l'étage les plus éloignées.
+- Paramètres : `niveaux_sous_2_id_min = oui`, `vr_un_circuit_par_niveau = oui`, réglables
+- Source : déduit de R-123 et R-138 (Promotelec, Legrand). C'est un choix de conception, pas une exigence.
+
+**Réserves de la recherche**
+- **Aucune lecture directe de la norme.** Le texte de la NF C 15-100-10 (2024) est payant et n'a pas été consulté. Les règles s'appuient sur Promotelec (dont une brochure qui reproduit l'A5 avec l'accord d'AFNOR), les guides Legrand et Schneider, le Consuel et quelques sites secondaires. C'est pourquoi tout est en `supposee` tant que Kévin n'a pas vérifié.
+- **Chiffres anciens à revalider.** Plusieurs chiffres viennent de documents antérieurs à 2024 : le guide Schneider 2012 (plancher chauffant, VMC, longueurs de liaison des divisionnaires) et le mémento Promotelec 2007 (chute de tension de 1 %). Les distances autour de la GTL ne sont données que par Schneider.
+- **Sources qui divergent.** La hauteur basse en logement accessible, l'exclusion ou non de la cuisine pour la GTL, et la coupure d'urgence des annexes (Promotelec la demande pour tout local annexe, Legrand seulement pour un local indépendant habité de plusieurs pièces) diffèrent selon les sources. Le logiciel retient la lecture la plus prudente et pose la question.
 
 ## 5. Questions pour Kévin (registre des inconnues)
 
@@ -785,6 +1120,32 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | Q-87 | Volets roulants selon le mode (R-094) : en Par pièce, chaque volet dans la boîte de sa pièce ? En Équilibrée, deux boîtes de volets quand les volets sont aux deux bouts de la maison (plus de 14 m entre les extrêmes et 40 % de gaine en moins) ? | Oui aux deux (MAILLARD reste à une boîte de volets, comme le BE) | ouverte (proposée par Claude) |
 | Q-88 | Mode « Par zone » (demandé par Kévin le 28/10/2026, 08:46 ; le BE ne le fait pas) : zones d'après le nom des pièces — nuit (chambres, salles de bains, salle d'eau, dressing), jour (séjour, pièce de vie, cuisine, salle à manger, entrée, bureau), garage (garage, cellier, buanderie, atelier, local technique) ; WC, dégagements et noms inconnus prennent la zone de leurs voisines ; une boîte par zone, plus si la zone dépasse la capacité ; une zone de moins de 3 départs rejoint la plus proche ; volets dans la boîte de leur zone. Ces regroupements conviennent-ils (bureau en jour, cellier avec le garage) ? | Oui (supposé) | ouverte (proposée par Claude) |
 
+### Q. Tableau électrique — recherche NF C 15-100:2024 (29/10/2026)
+| N° | Question | Supposé aujourd'hui | Statut |
+|---|---|---|---|
+| Q-89 | Les projets sont-ils tous engagés (permis ou marché) après le 31/08/2025, donc en série NF C 15-100:2024 ? | Série 2024 par défaut ; 2002+A5 seulement si l'utilisateur coche « projet antérieur » | ouverte |
+| Q-90 | Valides-tu qu'aucune règle ne passe en `confirmee` tant que tu n'as pas vérifié dans la norme NF C 15-100-10 papier ou dans L'Officiel de l'Électricité ? | Toutes les règles en `supposee` ou `inconnue` | ouverte |
+| Q-91 | La cuisine (hors zone au-dessus ou au-dessous d'un point d'eau) est-elle acceptée pour la GTL chez tes pavillonneurs ? | Cuisine refusée (lecture prudente, Legrand) | ouverte |
+| Q-92 | En logement accessible, quelle hauteur basse retenir pour les manettes : 0,75 m ou 0,90 m ? | Plage 0,90–1,30 m | ouverte |
+| Q-93 | Les coffrets ont-ils une porte (rangée basse admise dès 0,50 m) ou non (0,90 m) ? | Sans porte, 0,90 m | ouverte |
+| Q-94 | Quelle marque et quelle gamme de tableau (Legrand Drivia, Schneider Resi9, Hager…) pour fixer la largeur réelle des ID, du parafoudre, du contacteur et du délesteur ? | ID = 2 modules, disjoncteur = 1, parafoudre = 2, contacteur = 1, délesteur = 2 | ouverte |
+| Q-95 | Gardez-vous 8 circuits par ID ou une limite maison plus basse (6 ou 7) pour garder de la marge ? | 8 | ouverte |
+| Q-96 | Coffret de 13 ou de 18 modules par rangée ? Accepte-t-on un tableau de 4 rangées ? | 13 modules, rangées calculées | ouverte |
+| Q-97 | Calibre des ID par défaut : 40 A partout sauf rangée chauffage/IRVE en 63 A, ou calcul systématique (R-124) ? | Calcul R-124, puis arrondi à 40 ou 63 A | ouverte |
+| Q-98 | Le congélateur et le réfrigérateur ont-ils un ID dédié à immunité renforcée (option recommandée) ? | Proposé, non imposé | ouverte |
+| Q-99 | Combien de moteurs de volets au plus par circuit chez vous (aucune limite officielle trouvée) ? Un circuit volets par niveau ? | 2 circuits, un par niveau, sans limite de moteurs | ouverte |
+| Q-100 | Chauffage : convecteurs, PAC air/eau, plancher électrique ou poêle ? Puissance par pièce disponible ? | Circuits en 20 A par tranche de 4 500 W si électrique | ouverte |
+| Q-101 | PAC ou climatisation à variateur : ID type F imposé ou seulement proposé ? | Proposé | ouverte |
+| Q-102 | IRVE : prise renforcée 20 A ou borne 7,4 kW ? Quelle notice (calibre 32 ou 40 A, section 6 ou 10 mm², détection 6 mA intégrée) ? | Prise renforcée 2,5 mm² / 20 A sous ID A dédié ; borne = `inconnue` | ouverte |
+| Q-103 | Le parafoudre est-il systématique chez vos clients (même hors cas obligatoires) ? Les communes sont-elles en zone AQ2, avec un branchement aérien ? | Parafoudre seulement si R-150 ; proposé sinon | ouverte |
+| Q-104 | Contacteur heures creuses systématique pour le chauffe-eau, ou chauffe-eau thermodynamique piloté autrement ? | Contacteur HC + disjoncteur de commande 2 A si chauffe-eau électrique | ouverte |
+| Q-105 | Délesteur ou gestionnaire d'énergie : jamais, toujours avec chauffage électrique, ou dès qu'une borne est prévue ? | Proposé si chauffage électrique ou IRVE, non imposé | ouverte |
+| Q-106 | Maison à étage : tableau unique au rez-de-chaussée, ou divisionnaire à l'étage ? Si divisionnaire, différentiel en tête du divisionnaire ou au départ ? | Tableau unique ; divisionnaire = option ; position du DDR `inconnue` | ouverte |
+| Q-107 | Garage attenant avec porte vers le logement : GTL dans le garage acceptée ? Garage séparé : tableau divisionnaire systématique ? | Garage attenant accepté ; garage séparé = divisionnaire + coupure d'urgence | ouverte |
+| Q-108 | Disjoncteur de branchement fourni par Enedis en 30/60 A, et quelle puissance souscrite visée (9 ou 12 kVA) ? | 9 kVA, 45 A ; liaison 10 mm² au plus sur 22 m | ouverte |
+| Q-109 | Les télérupteurs ou minuteries sont-ils montés au tableau ou remplacés par de la domotique (Wiser, Netatmo) ? | Aucun par défaut, ajout manuel | ouverte |
+| Q-110 | Le volume box (240 × 300 × 200 mm) est-il intégré au coffret de communication ou fait-il l'objet d'un compartiment séparé dans la GTL ? | Intégré au coffret de communication | ouverte |
+
 ## 6. Prochaine étape
 
 **Questions en suspens (« en attente », collègue plus qualifié)** : certaines questions ne sont pas à la portée de Kévin ; elles restent ouvertes, le logiciel garde la valeur supposée et la marque « à vérifier », sans jamais la reposer comme si elle était tranchée (Q-83, Q-84, Q-85). Q-85 est à poser à **Thibault**, le collègue de Kévin qui prendra la suite.
@@ -847,3 +1208,4 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | H-041 | 28/10/2026 | R-073, R-094, R-096, R-100 | Modification et création | — | R-073 : commande + prises dans une gaine, sans ICTA 25 dans les boîtes ; R-094 : mode Équilibrée = le moins de boîtes ; R-096 : filaire / connecté décidé par le BE ; R-100 : équipements hors plan, registre (MAILLARD) | Comparaison Oktéo / BE sur MAILLARD, réponses de Kévin du 28/10/2026 (00:32) | IA (validée par Kévin) | — |
 | H-042 | 28/10/2026 | R-094, Q-77, Q-86, Q-87 | Proposition | Q-86, Q-87 ouvertes | Mise à jour 62 : mode Économique = le moins de cuivre, note « belle pieuvre » commune ; volets en Par pièce dans la boîte de leur pièce, deux boîtes de volets en Équilibrée si les volets sont aux deux bouts de la maison (supposés, à valider) | Réponses de Kévin du 28/10/2026 (08:38–08:46), décisions laissées à Claude | IA (à valider par Kévin) | — |
 | H-043 | 28/10/2026 | Q-88 | Proposition | Q-88 ouverte | Mode « Par zone » (jour / nuit / garage) ajouté au logiciel, définition des zones à valider | Demande de Kévin du 28/10/2026 (08:46) | IA (à valider par Kévin) | — |
+| H-044 | 29/10/2026 | R-050, R-101 à R-161, Q-89 à Q-110 | Création | Q-89 à Q-110 ouvertes | Règles d'implantation et de composition du tableau (NF C 15-100:2024) : référentiel, GTL, différentiels, protections, réserve, parafoudre, gestion d'énergie, étage et annexes ; toutes `a_valider` (`supposee` ou `inconnue`) | Recherche documentaire transmise par Kévin le 29/10/2026 (00:08) | IA (à valider par Kévin) | — |

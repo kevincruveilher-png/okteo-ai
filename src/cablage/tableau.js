@@ -46,21 +46,36 @@ export const hasBreaker = (c) => c.kind !== "comm";
 let seq = 0;
 const uid = (p) => p + Date.now().toString(36).slice(-4) + (++seq).toString(36);
 
-// nombre d'ID type AC selon la surface habitable (m²)
+// ancien dimensionnement par la surface (R-050) : gardé pour mémoire, plus utilisé depuis la mise à jour 66
 export function idsAC(area) { return area <= 35 ? 1 : area <= 100 ? 2 : 3; }
+
+// v66 — règles du tableau NF C 15-100:2024 (journal R-101 à R-161, toutes à valider par Kévin)
+// R-102 / R-127 : nombre de différentiels d'après les circuits, jamais d'après la surface : max(2, arrondi_sup(n / 8))
+export const ID_MIN = 2, ID_CALIBRES = [25, 40, 63];
+export function nbIdCommuns(n) { return n ? Math.max(ID_MIN, Math.ceil(n / MAX_PER_ID)) : 0; }
+// R-124 (règle aval) : 1 × chauffage direct, IRVE et eau chaude + 0,5 × les autres, arrondi au calibre commercial supérieur
+const HEAVY = /chauff|radiat|convect|sèche-serv|seche-serv|plancher|irve|recharge|borne|ballon|cumulus|ceth/i;
+export const isHeavy = (c) => c && (c.kind === "chauffage" || HEAVY.test(`${c.label || ""} ${c.name || ""}`));
+export function idCalibreMin(cs) { return cs.reduce((s, c) => s + (c.prot || 16) * (isHeavy(c) ? 1 : 0.5), 0); }
+export function idCalibre(cs) { const need = idCalibreMin(cs); return ID_CALIBRES.find((a) => a >= need) || ID_CALIBRES[ID_CALIBRES.length - 1]; }
+// R-105 : pièces où le tableau (GTL) ne se pose pas ; la cuisine reste une question (Q-91)
+export const GTL_INTERDIT = /salle d.?eau|salle de bain|\bbains?\b|\bsdb\b|\bsde\b|douche|placard|dressing|escalier/i;
 
 export function autoTableau(circuits, { model = DEFAULT_MODEL, area = 100 } = {}) {
   const C = (circuits || []).filter(hasBreaker);
   const spec = C.filter(needsA), rest = C.filter((c) => !needsA(c));
   const groups = [];
   // AC : répartition équilibrée (éclairage et prises alternés pour ne pas tout couper d'un coup)
-  const nAC = Math.max(rest.length ? idsAC(area) : 0, Math.ceil(rest.length / MAX_PER_ID));
+  // v66 (R-119, R-122, R-123, R-127) : au moins 2 différentiels communs, 8 circuits au plus chacun ; éclairage et prises
+  // alternés pour que chaque famille soit sous 2 différentiels au moins (on ne coupe jamais tout d'un coup)
+  const nAC = nbIdCommuns(rest.length);
   const order = [...rest.filter((c) => c.kind === "eclairage"), ...rest.filter((c) => c.kind !== "eclairage")];
   for (let i = 0; i < nAC; i++) groups.push({ type: "AC", a: 40, cs: [] });
   order.forEach((c, i) => groups[i % nAC].cs.push(c));
   for (let i = 0; i < spec.length; i += MAX_PER_ID) groups.push({ type: "A", a: 40, cs: spec.slice(i, i + MAX_PER_ID) });
+  // R-148 : un différentiel en tête de chaque rangée ; R-124 : son calibre d'après ses circuits
   const rows = groups.filter((g) => g.cs.length || g.type === "A").map((g) => [
-    { k: "id", id: uid("i"), a: g.a, type: g.type, w: 2 },
+    { k: "id", id: uid("i"), a: idCalibre(g.cs), type: g.type, w: 2 },
     ...g.cs.map((c) => ({ k: "cb", id: uid("d"), c: c.n, a: c.prot || 16, w: 1 })),
   ]);
   return { model, rows };
@@ -82,7 +97,8 @@ export function protections(rows) {
 }
 export const rowMods = (r) => r.reduce((s, it) => s + (it.w || 1), 0);
 
-export function tableauIssues(tab, circuits) {
+// ctx (v66, facultatif) : {tabRoom: pièce du tableau, rj45: nombre de prises RJ45 du chantier}
+export function tableauIssues(tab, circuits, ctx = {}) {
   const M = modelOf(tab.model), out = [], byN = new Map((circuits || []).map((c) => [c.n, c])), prot = protections(tab.rows);
   if (tab.rows.length > M.rows) out.push(`${tab.rows.length} rangées pour un coffret de ${M.rows} : prenez un coffret plus grand.`);
   tab.rows.forEach((r, i) => { const n = rowMods(r); if (n > M.mods) out.push(`Rangée ${i + 1} : ${n} modules pour ${M.mods} places.`); });
@@ -97,6 +113,24 @@ export function tableauIssues(tab, circuits) {
   for (const [id, n] of count) if (n > MAX_PER_ID) out.push(`Un différentiel ${id.a} A type ${id.type} protège ${n} circuits (8 au plus).`);
   const used = tab.rows.reduce((s, r) => s + rowMods(r), 0), total = M.rows * M.mods;
   if (total - used < Math.ceil(used * 0.2)) out.push(`Réserve insuffisante : ${total - used} modules libres (norme : 20 % de réserve, soit ${Math.ceil(used * 0.2)}).`);
+  // ---------- v66 : règles NF C 15-100:2024 (R-101 à R-161, à valider) ----------
+  const ids = tab.rows.flat().filter((x) => x.k === "id"), C = (circuits || []).filter(hasBreaker);
+  if (C.length && ids.length < ID_MIN) out.push(`R-119 : ${ids.length} interrupteur différentiel ; il en faut 2 au moins dans un logement.`);
+  // R-123 : chaque famille (éclairage, prises) sous au moins 2 différentiels quand elle a 2 circuits ou plus
+  const famIds = (kind) => { const ns = C.filter((c) => c.kind === kind).map((c) => c.n), set = new Set(); tab.rows.flat().filter((x) => x.k === "cb" && ns.includes(x.c)).forEach((x) => { const id = prot.get(x.id); if (id) set.add(id); }); return { n: ns.length, ids: set.size }; };
+  for (const [kind, nom] of [["eclairage", "d'éclairage"], ["prises", "de prises"]]) { const f = famIds(kind); if (f.n >= 2 && f.ids < 2) out.push(`R-123 : les ${f.n} circuits ${nom} sont tous sous le même différentiel ; répartissez-les sous 2 différentiels au moins.`); }
+  // R-124 : calibre de chaque différentiel
+  ids.forEach((id) => { const cs = tab.rows.flat().filter((x) => x.k === "cb" && prot.get(x.id) === id).map((x) => byN.get(x.c)).filter(Boolean), need = idCalibreMin(cs); if (cs.length && id.a < need) out.push(`R-124 : différentiel ${id.a} A trop petit pour ses circuits (il faut au moins ${String(+need.toFixed(1)).replace(".", ",")} A : ${idCalibre(cs)} A).`); });
+  // R-129 / R-130 : calibres de l'éclairage et des prises ; R-129 : 2 circuits d'éclairage au moins ; R-134 : 3 spécialisés au moins
+  const ecl = C.filter((c) => c.kind === "eclairage");
+  if (ecl.length === 1) out.push("R-129 : un seul circuit d'éclairage ; le logement en demande 2 au moins.");
+  ecl.filter((c) => (c.prot || 10) > 16).forEach((c) => out.push(`R-129 : ${c.n} (éclairage) protégé en ${c.prot} A ; 16 A au plus.`));
+  C.filter((c) => c.kind === "prises").forEach((c) => { const sec = c.section || 1.5, a = c.prot || 16; if ((sec < 2.5 && a > 16) || a > 20) out.push(`R-130 : ${c.n} (prises ${String(sec).replace(".", ",")} mm²) protégé en ${a} A ; 16 A en 1,5 mm², 20 A en 2,5 mm².`); });
+  const spec = C.filter((c) => c.kind === "specialise" && !isHeavy(c));
+  if (C.length && spec.length < 3) out.push(`R-134 : ${spec.length} circuit${spec.length > 1 ? "s" : ""} spécialisé${spec.length > 1 ? "s" : ""} (lave-linge, lave-vaisselle, four…) ; la norme en demande 3 au moins.`);
+  // R-105 : pièce du tableau ; R-116 : 4 RJ45 au moins (T3 et plus)
+  if (ctx.tabRoom && GTL_INTERDIT.test(ctx.tabRoom)) out.push(`R-105 : tableau dans « ${ctx.tabRoom} » : la GTL ne se pose pas dans une salle d'eau, un placard ni sous un escalier.`);
+  if (ctx.rj45 != null && ctx.rj45 < 4) out.push(`R-116 : ${ctx.rj45} prise${ctx.rj45 > 1 ? "s" : ""} RJ45 ; 4 au moins pour un T3 ou plus (2 dans le séjour).`);
   return out;
 }
 

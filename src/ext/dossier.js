@@ -7,6 +7,7 @@ import { buildBandsPdf } from "./bandes-pdf.js";
 import { boxSheets } from "./cablage-bandes.js";
 import { modelOf, autoTableau, syncTableau, protections, rowMods, MODS, tableauIssues, hasBreaker } from "../cablage/tableau.js";
 import { logoData, LOGO_RATIO } from "./logo.js";
+import { tabCtx } from "./tableau-page.js";
 
 let J = null;
 async function jspdf() { if (!J) J = (await import("jspdf")).jsPDF; return J; }
@@ -24,11 +25,11 @@ export function tableauNow(api) {
   return { T, C };
 }
 
-export async function buildTableauPdf({ T, C }, { chantier = {}, colors = [] } = {}) {
+export async function buildTableauPdf({ T, C }, { chantier = {}, colors = [], ctx = {} } = {}) {
   const JsPDF = await jspdf(), logo = await logoData();
   const doc = new JsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
   const M = modelOf(T.model), W = 297, mw = Math.min(14, (W - 110) / M.mods), x0 = 24;
-  const nIss = Math.min(6, tableauIssues(T, C).length), nR = Math.max(M.rows, T.rows.length);
+  const nIss = Math.min(6, tableauIssues(T, C, ctx).length), nR = Math.max(M.rows, T.rows.length);
   const mh = Math.min(34, (196 - 34 - nIss * 4) / nR - 7); // toutes les rangées tiennent sur la page
   doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.text("Tableau electrique", 12, 16);
   doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.text(win(`${chantier.nom || ""}${chantier.numero ? " - n° " + chantier.numero : ""} - ${M.brand} ${M.name}`), 12, 23);
@@ -65,7 +66,7 @@ export async function buildTableauPdf({ T, C }, { chantier = {}, colors = [] } =
     doc.text(doc.splitTextToSize(win(t), W - (x0 + M.mods * mw + 12) - 10)[0], x0 + M.mods * mw + 12, yy); yy += 4.2;
     if (yy > 196) break;
   }
-  const iss = tableauIssues(T, C);
+  const iss = tableauIssues(T, C, ctx);
   if (iss.length) { doc.setTextColor(190, 60, 30); doc.setFontSize(7.5); iss.slice(0, 6).forEach((t, i) => doc.text(win("! " + t), 12, 200 - (iss.slice(0, 6).length - 1 - i) * 4)); }
   return { blob: doc.output("blob"), pages: doc.getNumberOfPages() };
 }
@@ -94,7 +95,7 @@ export async function buildDossier(api, { indice = "A" } = {}) {
   const plan = await buildPlanPdf(geo.length > 1 ? geo : geo[0], { nomenclature: true, indice, niveau: geo[0] && geo[0].level, rot: api.viewRot || 0 });   // v62 : sens de la vue
   parts.push({ title: geo.length > 1 ? `Plan (${geo.length} niveaux) et nomenclature` : "Plan et nomenclature", blob: plan.blob });
   const tb = tableauNow(api);
-  if (tb) parts.push({ title: "Tableau electrique", blob: (await buildTableauPdf(tb, { chantier: api.ch, colors: api.circuitColors || [] })).blob });
+  if (tb) parts.push({ title: "Tableau electrique", blob: (await buildTableauPdf(tb, { chantier: api.ch, colors: api.circuitColors || [], ctx: tabCtx(api) })).blob });
   const sheets = boxSheets(api);
   if (sheets.length) parts.push({ title: `Bandes detaillees (${sheets.length} boite${sheets.length > 1 ? "s" : ""} : ${sheets.map((s) => s.box.n).join(", ")})`, blob: (await buildBandsPdf(sheets, { chantier: api.ch.nom, numero: api.ch.numero })).blob });
   const { PDFDocument } = await import("pdf-lib");

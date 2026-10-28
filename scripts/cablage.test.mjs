@@ -14,7 +14,7 @@ import { pointInPoly } from "../src/walls/rooms.js";
 import { PACK_DEFAULTS, packFor, missing, placePack, prisesNorme } from "../src/cablage/packs.js";
 import { computeWiring, gaineLength, cableColors } from "../src/cablage/gaines.js";
 import { connectorsFor, boxSteps, boxMaterial, boxChecks, parseSizes, schemaSVG, tranchesSVG, trancheOrder, overlaps } from "../src/cablage/schema.js";
-import { autoTableau, syncTableau, tableauIssues, protections, moveItem, suggestModel, addBreaker, addModular, MODELS } from "../src/cablage/tableau.js";
+import { autoTableau, syncTableau, tableauIssues, protections, moveItem, suggestModel, addBreaker, addModular, MODELS, idCalibre, nbIdCommuns } from "../src/cablage/tableau.js";
 import { packSheet, unpackSheet, encodeSheet, decodeSheet, sheetUrl } from "../src/cablage/bande-code.js";
 
 let ok = 0; const fails = [];
@@ -370,8 +370,8 @@ console.log("Tableau électrique (v46)");
   const T = autoTableau(C, { model: "r9-13x4", area: 120 }), P = protections(T.rows), cbs = T.rows.flat().filter((x) => x.k === "cb");
   const ids = T.rows.map((r) => r[0]);
   const specUnderA = cbs.filter((x) => +x.c.slice(1) >= 10).every((x) => P.get(x.id).type === "A");
-  check("auto : 3 ID type AC (> 100 m²) + 1 type A, une rangée chacun, COM sans disjoncteur, spécialisés sous type A",
-    T.rows.length === 4 && ids.filter((x) => x.type === "AC").length === 3 && ids.filter((x) => x.type === "A").length === 1 && cbs.length === 13 && specUnderA && tableauIssues(T, C).length === 0,
+  check("auto (v66, R-127) : 2 ID type AC d'après les 9 circuits communs (plus la surface) + 1 type A, une rangée chacun, COM sans disjoncteur, spécialisés sous type A",
+    T.rows.length === 3 && ids.filter((x) => x.type === "AC").length === 2 && ids.filter((x) => x.type === "A").length === 1 && cbs.length === 13 && specUnderA && tableauIssues(T, C).length === 0,
     JSON.stringify(T.rows.map((r) => r.map((x) => x.k === "id" ? "ID" + x.type : x.c))) + " " + JSON.stringify(tableauIssues(T, C)));
   const sp = cbs.find((x) => x.c === "C10"), firstAC = T.rows[0];
   const T2 = { ...T, rows: moveItem(T.rows, sp.id, 0, null) };
@@ -380,9 +380,19 @@ console.log("Tableau électrique (v46)");
     iss.some((x) => /C10.*type A/.test(x)) && tableauIssues({ ...T, rows: moveItem(T.rows, firstAC[1].id, 0, firstAC[0].id) }, C).some((x) => /aucun interrupteur différentiel/.test(x)), JSON.stringify(iss));
   const S2 = syncTableau({ model: "r9-13x1", rows: T.rows }, [...C.filter((c) => c.n !== "C4"), { n: "C20", kind: "prises", prot: 16 }]);
   const big = suggestModel({ model: "r9-13x1", rows: T.rows });
-  check("synchro : circuit disparu retiré, nouveau circuit signalé ; coffret 1 rangée trop petit → suggestion 4 rangées ; ajout sous un ID du bon type",
-    !S2.rows.flat().some((x) => x.c === "C4") && S2.missing.map((c) => c.n).join() === "C20" && tableauIssues(S2, C).some((x) => /rangées pour un coffret de 1/.test(x)) && big.rows >= 4
+  check("synchro : circuit disparu retiré, nouveau circuit signalé ; coffret 1 rangée trop petit → suggestion 3 rangées ; ajout sous un ID du bon type",
+    !S2.rows.flat().some((x) => x.c === "C4") && S2.missing.map((c) => c.n).join() === "C20" && tableauIssues(S2, C).some((x) => /rangées pour un coffret de 1/.test(x)) && big.rows >= 3
       && protections(addBreaker(T.rows, { n: "C21", kind: "specialise", prot: 32 })).size === 14, big.id);
+  // v66 : règles du tableau NF C 15-100:2024 (R-101 à R-161, à valider)
+  const one = autoTableau([...mk("eclairage", 2, 1, 10), ...mk("prises", 2, 3, 16)]), oneIds = one.rows.map((r) => r[0]);
+  check("R-119 / R-123 / R-127 : 4 circuits = 2 différentiels quand même, éclairage et prises chacun sous les 2", oneIds.length === 2 && !tableauIssues(one, [...mk("eclairage", 2, 1, 10), ...mk("prises", 2, 3, 16)]).some((x) => /R-119|R-123/.test(x)));
+  const heat = [{ n: "H1", kind: "specialise", prot: 20, label: "Radiateurs" }, { n: "H2", kind: "specialise", prot: 20, label: "Chauffe-eau" }, { n: "H3", kind: "specialise", prot: 20, label: "Lave-linge" }];
+  check("R-124 : calibre d'un différentiel = 1 × chauffage / eau chaude + 0,5 × le reste, arrondi (20 + 20 + 10 = 50 → 63 A ; exemple Legrand 20 + 8 + 5 = 33 → 40 A)", idCalibre(heat) === 63 && idCalibre([{ prot: 20, label: "Radiateur" }, { prot: 16 }, { prot: 10 }]) === 40 && nbIdCommuns(17) === 3 && nbIdCommuns(3) === 2);
+  const all1 = { model: "r9-13x4", rows: [[{ k: "id", id: "i1", a: 25, type: "AC", w: 2 }, ...["E1", "E2", "P1"].map((c) => ({ k: "cb", id: "d" + c, c, a: 16, w: 1 }))]] };
+  const Cx = [{ n: "E1", kind: "eclairage", prot: 20 }, { n: "E2", kind: "eclairage", prot: 10 }, { n: "P1", kind: "prises", prot: 20, section: 1.5 }];
+  const ix = tableauIssues(all1, Cx, { tabRoom: "Salle de bain", rj45: 2 });
+  check("alertes du tableau : R-119 (1 seul ID), R-123 (éclairage sous un seul ID), R-129 (éclairage en 20 A), R-130 (prises 1,5 en 20 A), R-134 (< 3 spécialisés), R-105 (tableau en salle de bain), R-116 (< 4 RJ45)",
+    ["R-119", "R-123", "R-129", "R-130", "R-134", "R-105", "R-116"].every((r) => ix.some((x) => x.startsWith(r))), JSON.stringify(ix));
 }
 {
   // v57 (R-100) : équipements hors plan : cochés d'après les chantiers déjà faits, posés dans la bonne pièce

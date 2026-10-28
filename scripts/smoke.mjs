@@ -1871,7 +1871,7 @@ try {
   console.log("Journal des règles de câblage (v51)");
   // la page Paramètres défile dans son propre cadre : amener l'élément au centre avant de cliquer
   const clickIn = async (sel) => { await ev((x) => document.querySelector(x)?.scrollIntoView({ block: "center" }), sel); await page.click(sel, { timeout: 8000 }); };
-  await check("Paramètres → Journal des règles : 52 règles, archivée masquée, catégorie Boîtes en rouge, filtres et recherche", async () => {
+  await check("Paramètres → Journal des règles : 117 règles (v66 : 61 règles du tableau), archivée masquée, catégorie Boîtes en rouge, filtres et recherche", async () => {
     await ev(() => localStorage.removeItem("okteo.regles.v1"));
     await page.click('#tabs button[data-tab="params"]');
     await page.waitForSelector("#ps-regles .rg-rules");
@@ -1879,7 +1879,7 @@ try {
     const r = await ev(() => {
       const S = document.getElementById("ps-regles");
       const rows = () => [...S.querySelectorAll(".rg-row")].map((tr) => tr.dataset.id);
-      const o = { intro: /56 règles : \d+ actives, \d+ à valider, 1 brouillon, 1 archivée/.test(S.textContent), n: rows().length, archHidden: !rows().includes("R-076"),
+      const o = { intro: /117 règles : \d+ actives, \d+ à valider, 1 brouillon, 1 archivée/.test(S.textContent), n: rows().length, archHidden: !rows().includes("R-076"),
         rouge: S.querySelector('.rg-cat[data-cat="boites"]').classList.contains("rouge"), nav: !!document.querySelector('.pset-nav a[data-to="ps-regles"]') };
       return o;
     });
@@ -1892,7 +1892,7 @@ try {
     await clickIn('#ps-regles .rg-cat[data-cat="tableau"]');
     const tab = await ev(() => [...document.querySelectorAll("#ps-regles .rg-row")].map((tr) => tr.dataset.id).join(","));
     await clickIn('#ps-regles .rg-cat[data-cat="tableau"]');
-    if (!(r.intro && r.n === 55 && r.archHidden && r.rouge && r.nav && inc === "R-009" && icta.includes("R-074") && tab === "R-050,R-081")) throw new Error(JSON.stringify({ r, inc, icta, tab }));
+    if (!(r.intro && r.n === 116 && r.archHidden && r.rouge && r.nav && inc === "R-009,R-141,R-146,R-155,R-158" && icta.includes("R-074") && tab.startsWith("R-050,R-081,R-101,") && tab.endsWith("R-161") && tab.split(",").length === 63)) throw new Error(JSON.stringify({ r, inc, icta, tab }));
     return true;
   });
   await check("journal : « ⏳ En attente » = questions en suspens (collègue, chantier) et règles qui en dépendent ; « Tout afficher » revient", async () => {
@@ -1903,7 +1903,7 @@ try {
         on: S.querySelector("#rg-f-wait").classList.contains("on") }; });
     await clickIn("#rg-f-clear");
     const n = await ev(() => document.querySelectorAll("#ps-regles .rg-row").length);
-    if (!(r.on && r.open && r.rows === "R-009" && /Q-83/.test(r.qs) && /Q-84/.test(r.qs) && /Q-42/.test(r.qs) && !/Q-01\b/.test(r.qs) && /Q-85/.test(r.qs) && r.col === 3 && n === 55)) throw new Error(JSON.stringify({ r, n }));
+    if (!(r.on && r.open && r.rows === "R-009" && /Q-83/.test(r.qs) && /Q-84/.test(r.qs) && /Q-42/.test(r.qs) && !/Q-01\b/.test(r.qs) && /Q-85/.test(r.qs) && r.col === 3 && n === 116)) throw new Error(JSON.stringify({ r, n }));
     return true;
   });
   await check("fiche d'une règle : paramètres, écart avec le logiciel (18 / 16), utilisée par, preuves, questions, historique ; lien depuis un réglage Câblage", async () => {
@@ -1969,7 +1969,7 @@ try {
     await ev(async () => { const m = await import("/src/cablage/regles.js"); m.resetJournal(); });
     const back = await ev(async () => { const m = await import("/src/cablage/regles.js"); return m.ruleById(m.getJournal(), "R-002").certitude; });
     await ev(() => okteo.setTab("plan"));
-    if (!(/^journal-regles-cablage-\d{8}\.json$/.test(name) && j.okteo === "journal-regles" && j.rules.length === 56 && r.t === "Boîtes verrouillées (importé)" && r.h === "Import" && r.conf === "confirmee" && /Journal importé/.test(r.msg) && back === "supposee")) throw new Error(JSON.stringify({ name, r, back }));
+    if (!(/^journal-regles-cablage-\d{8}\.json$/.test(name) && j.okteo === "journal-regles" && j.rules.length === 117 && r.t === "Boîtes verrouillées (importé)" && r.h === "Import" && r.conf === "confirmee" && /Journal importé/.test(r.msg) && back === "supposee")) throw new Error(JSON.stringify({ name, r, back }));
     return true;
   });
 

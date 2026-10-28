@@ -455,6 +455,11 @@ Décisions (Claude) :
   relevé, pas les oublis : ajouter des points « familles absentes » (volet sans CVR à côté, pas de TAB, cuisine sans
   plaque / four, maison sans interphone ni TV…) envoyés à l'IA comme zones à rechercher.
 
+## 66 — Règles du tableau électrique NF C 15-100:2024 — FAIT (29/10/2026, 0.66.0)
+- R-101 à R-161 et Q-89 à Q-110 dans le journal (à valider) ; moteur : différentiels par les circuits, calibre R-124,
+  alertes R-105, R-116, R-119, R-123, R-124, R-129, R-130, R-134. Reste : GTL / hauteurs, parafoudre, IRVE, chauffage,
+  heures creuses, délesteur, divisionnaire (après les réponses de Kévin aux Q-89 à Q-110).
+
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.
 - Export SPV pour Counter.

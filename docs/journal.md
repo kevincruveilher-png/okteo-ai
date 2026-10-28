@@ -281,6 +281,25 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 66 (29/10/2026) — livrée : règles du tableau électrique (NF C 15-100:2024)
+Version du logiciel : 0.66.0 (la 65, contour de la maison et obstacles, reste à faire). Demandé par Kévin (29/10, 00:08) :
+« il va falloir faire une maj et implanter ces nouvelles règles » (recherche documentaire sur le tableau).
+- **Journal des règles** : 61 règles R-101 à R-161 (référentiel 2024, GTL, hauteurs, communication, branchement,
+  différentiels, protections, réserve, parafoudre, gestion d'énergie, étage et annexes) et 22 questions Q-89 à Q-110 ;
+  toutes `a_valider`, `supposee` ou `inconnue` (la norme n'a pas été lue directement). R-050 annotée : le dimensionnement
+  par la surface est remplacé. Journal : 117 règles, 110 questions (numéros de question à 3 chiffres acceptés).
+- **Moteur du tableau** (`tableau.js`) :
+  - nombre de différentiels d'après les circuits, plus d'après la surface : max(2, arrondi_sup(circuits / 8)) (R-102,
+    R-119, R-122, R-127) ; éclairage et prises alternés sous 2 différentiels au moins (R-123) ;
+  - calibre de chaque différentiel calculé (R-124 : 1 × chauffage / eau chaude / IRVE + 0,5 × le reste → 25, 40 ou 63 A) ;
+  - un différentiel en tête de chaque rangée (R-148), spécialisés sous type A (R-120), réserve de 20 % (R-144) ;
+  - nouvelles alertes de la page Tableau et du dossier PDF, avec le n° de règle : R-119, R-123, R-124, R-129, R-130, R-134,
+    R-105 (tableau dans une salle d'eau, un placard, sous un escalier), R-116 (moins de 4 RJ45).
+- Pas encore dans le moteur (à faire avec les réponses de Kévin) : hauteurs de la GTL et des manettes (R-103 à R-112),
+  parafoudre (R-150 à R-153), IRVE (R-141, R-142), chauffage électrique et plancher (R-136, R-137), contacteur heures creuses
+  et délesteur (R-154, R-155), tableau divisionnaire et annexes (R-157 à R-161).
+- Tests : 80 vérifications du câblage (+3), 166 Playwright.
+
 ## Version 64.1 (28/10/2026) — livrée : consigne du relevé IA avec méthode imposée
 Version du logiciel : 0.64.1. Suite au 2e relevé de MAILLARD par Opus (63 appareils sur 102, image de 1 654 px, 3 min).
 - Consigne (avec et sans clé) : « Méthode (obligatoire) » en tête — image de toute la page à 200 dpi au moins (sans clé),

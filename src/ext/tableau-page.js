@@ -13,6 +13,9 @@ import { esc } from "./util.js";
 
 const KIND = { eclairage: "Éclairage", prises: "Prises", cuisine: "Prises cuisine", specialise: "Spécialisé", comm: "Communication" };
 
+// v66 : contexte des règles du tableau (R-105 pièce du tableau, R-116 nombre de RJ45)
+export function tabCtx(api) { const A = api.allApps(), t = A.find((a) => a.t === "TAB"); return { tabRoom: t ? t.room || "" : "", rj45: A.filter((a) => a.t === "RJ45").length }; }
+
 export function mountTableauPage(el, { api }) {
   let drag = null;
 
@@ -33,7 +36,7 @@ export function mountTableauPage(el, { api }) {
       el.querySelector("#tb-go").onclick = () => { api.setTab("plan"); document.dispatchEvent(new CustomEvent("okteo:open-cablage")); };
       return;
     }
-    const off = new Set(api.essai.off), prot = protections(T.rows), issues = tableauIssues(T, C), colors = api.circuitColors || [];
+    const off = new Set(api.essai.off), prot = protections(T.rows), issues = tableauIssues(T, C, tabCtx(api)), colors = api.circuitColors || [];
     const nCb = T.rows.flat().filter((x) => x.k === "cb").length, nId = T.rows.flat().filter((x) => x.k === "id").length;
     const used = T.rows.reduce((s, r) => s + rowMods(r), 0), total = M.rows * M.mods, sug = suggestModel(T);
     const idOff = (id) => { const cs = T.rows.flat().filter((x) => x.k === "cb" && prot.get(x.id) === id).map((x) => x.c); return cs.length && cs.every((n) => off.has(n)); };
