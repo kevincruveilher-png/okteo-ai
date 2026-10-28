@@ -1081,12 +1081,13 @@ try {
         const a = by[id]; if (!a) continue;
         const d = Math.hypot(a.x - b.x, a.y - b.y); if (d < 2.5) continue;
         // milieu de l'arc dessiné (même calcul que gaineCtrl : décalage de 15 % de la longueur)
-        const arc = (o, c, t) => { const qx = (o.x + c.x) / 2 - (c.y - o.y) * 0.15, qy = (o.y + c.y) / 2 + (c.x - o.x) * 0.15, u = 1 - t; return { x: u * u * o.x + 2 * u * t * qx + t * t * c.x, y: u * u * o.y + 2 * u * t * qy + t * t * c.y }; };
-        const p = arc(P0(b, id), a, 0.5);
+        // v59 : courbure choisie par le plan pour éviter les croisements (R.bowOf)
+        const arc = (o, c, t, k = 0.15) => { const qx = (o.x + c.x) / 2 - (c.y - o.y) * k, qy = (o.y + c.y) / 2 + (c.x - o.x) * k, u = 1 - t; return { x: u * u * o.x + 2 * u * t * qx + t * t * c.x, y: u * u * o.y + 2 * u * t * qy + t * t * c.y }; };
+        const p = arc(P0(b, id), a, 0.5, R.bowOf(b.id, id));
         if (A.some((o) => Math.hypot(o.x - p.x, o.y - p.y) < 0.6) || okteo.cab.boxes.some((o) => Math.hypot(o.x - p.x, o.y - p.y) < 0.8)) continue;
         // pas d'autre gaine tout près de ce point
         const near = okteo.cab.boxes.some((o) => o.apps.some((k) => { if (k === id && o.id === b.id) return false; const c = by[k]; if (!c) return false;
-          for (let i = 1; i < 30; i++) { const q = arc(P0(o, k), c, i / 30); if (Math.hypot(q.x - p.x, q.y - p.y) < 0.3) return true; } return false; }));
+          for (let i = 1; i < 30; i++) { const q = arc(P0(o, k), c, i / 30, R.bowOf(o.id, k)); if (Math.hypot(q.x - p.x, q.y - p.y) < 0.3) return true; } return false; }));
         if (near) continue;
         const g = W.boxes.find((x) => x.id === b.id).gaines.find((x) => x.appIds && x.appIds.includes(id));
         if (!g || g.appIds.length !== 1) continue;   // gaine d'un seul appareil (une gaine partagée est tracée sous un autre appareil)
@@ -1117,6 +1118,32 @@ try {
     const r4 = await ev(({ box, id }) => { const b = okteo.cab.boxes.find((x) => x.id === box); return (b.routes && b.routes[id] || []).length; }, t);
     const ok = r1.wp === 1 && r1.locked && r1.routed && r1.len > t.len && r1.poly && /du mur|dans le mur/.test(hint) && r2.ortho && r3 === 0 && r4 === 1;
     if (!ok) throw new Error(JSON.stringify({ t, r1, r2, r3, r4, hint }));
+    return true;
+  });
+  await check("gaines sans croisement (v59) : courbures choisies pour le niveau, moins de croisements qu'avec un seul arc ; recalculées quand on déplace une boîte", async () => {
+    const r = await ev(async () => {
+      const R = await import("/src/core/render.js"), T = await import("/src/cablage/trace.js");
+      okteo.showCircuits = true;
+      const count = () => {
+        const BX = okteo.cab.boxes.filter((b) => b.lv === okteo.level.id), by = Object.fromEntries(okteo.state.app.map((a) => [a.id, a])), tab = okteo.state.app.find((a) => a.t === "TAB");
+        const bows = R.levelBows(BX, undefined, by, tab), list = [];
+        BX.forEach((b) => R.boxLayout(b).deps.forEach((d) => { if (d.face) (d.tab ? (tab ? [["tab", tab]] : []) : d.apps.map((a) => [a.id, a])).forEach(([k, t]) => { if (!(b.routes || {})[k]) list.push({ key: b.id + "|" + k, P: d.P, T: t }); }); }));
+        return { n: list.length, avec: T.crossings(list, bows), sans: T.crossings(list, null), sig: window.__okteo ? JSON.stringify([...bows].slice(0, 50)) : "" };
+      };
+      const a = count();
+      const B = okteo.cab.boxes.find((b) => b.lv === okteo.level.id);
+      const old = { x: B.x, y: B.y };
+      okteo.setBoxes(okteo.cab.boxes.map((b) => (b.id === B.id ? { ...b, x: b.x + 1.2, y: b.y + 0.8 } : b)));
+      const b = count();
+      const drawn = document.querySelectorAll("#sv path.gaine").length;
+      okteoExt.panel.show("cablage"); okteoExt.cablage.render();
+      const info = document.querySelector("#bx-cross")?.textContent || "", X = okteo.gaineCrossings();
+      okteo.undo();
+      const back = okteo.cab.boxes.find((x) => x.id === B.id);
+      return { a, b, drawn, back: Math.abs(back.x - old.x) < 1e-9, info, X };
+    });
+    const infoOk = r.X.n ? new RegExp(r.X.n + " croisement").test(r.info) : /Aucune gaine/.test(r.info);
+    if (!(r.a.n > 5 && r.a.avec <= r.a.sans && r.b.avec <= r.b.sans && r.drawn > 5 && r.back && infoOk)) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("cadenas : clic sur le cadenas du plan ; recalcul : on coche les boîtes, les verrouillées gardent place, appareils et tracés", async () => {

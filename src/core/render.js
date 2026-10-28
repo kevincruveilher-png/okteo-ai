@@ -14,6 +14,7 @@ import { placeHud } from "./hud.js";
 import { allLinks, belowData, crossLinks } from "./levels.js";
 import { getCab } from "../cablage/settings.js";
 import { portLayout, portXY } from "../cablage/boites.js";
+import { chooseBows, BOW0, curve, polyCross } from "../cablage/trace.js";
 import { APPAREILS, raccOf } from "../cablage/appareils.js";
 
 // ---------- rendu ----------
@@ -316,7 +317,10 @@ export function draw() {
     const pm = pmNow(), cm = circuitMap(), byId = Object.fromEntries(state.app.map(a => [a.id, a])), tab = state.app.find(a => a.t === "TAB");
     let bl = "", bx = "";
     let wp = "";
-    K.CAB.boxes.filter(b => b.lv === K.LV.cur).forEach(b => {
+    const BX = K.CAB.boxes.filter(b => b.lv === K.LV.cur);
+    // v59 : courbure de chaque gaine choisie pour qu'aucune ne croise une autre (tous les boîtes du niveau)
+    K.gaineBows = levelBows(BX, pm, byId, tab);
+    BX.forEach(b => {
       const on = K.boxSel === b.id,
         R = b.routes || {},
         LY = boxLayout(b, pm),
@@ -325,7 +329,7 @@ export function draw() {
       const gpath = (key, P, t) => {
         const pts = R[key];
         if (pts && pts.length) return "M" + [P, ...pts, t].map(p => p.x + " " + p.y).join(" L ");
-        const q = gaineCtrl(P, t);
+        const q = gaineCtrl(P, t, bowOf(b.id, key));
         return `M${P.x} ${P.y} Q ${q.x} ${q.y} ${t.x} ${t.y}`;
       };
       if (showGaines) {
@@ -761,6 +765,43 @@ export function wallU(a) {
   const d = segDir(sg);
   return d && d.L ? { ux: d.ux, uy: d.uy } : {};
 }
+// v59 : courbure des gaines en arc du niveau ({ "boîte|clé": k }), recalculée seulement quand le plan change
+export function levelBows(BX, pm, byId, tab) {
+  const list = [], fixed = [];
+  BX.forEach(b => {
+    const R = b.routes || {};
+    boxLayout(b, pm).deps.forEach(d => {
+      if (!d.face || d.slot == null) return;
+      const ends = d.tab ? (tab ? [["tab", tab]] : []) : d.apps.map(a => [a.id, a]);
+      ends.forEach(([key, t]) => { const r = R[key]; if (r && r.length) fixed.push([d.P, ...r, t]); else list.push({ key: b.id + "|" + key, P: d.P, T: { x: t.x, y: t.y } }); });
+    });
+  });
+  const r3 = v => Math.round(v * 500);
+  const sig = JSON.stringify([list.map(g => [g.key, r3(g.P.x), r3(g.P.y), r3(g.T.x), r3(g.T.y)]), fixed.map(L => L.map(p => [r3(p.x), r3(p.y)]))]);
+  if (K.bowCache && (K.bowCache.sig === sig || K.boxDrag || K.routeDrag || K.endDrag)) return K.bowCache.map;   // pendant un glisser : calcul au lâcher
+  const map = chooseBows(list, fixed);
+  K.bowCache = { sig, map };
+  return map;
+}
+// v59 : croisements qui restent entre gaines du niveau ouvert (alimentation exclue) : { n, intra (même boîte), boxes }
+export function gaineCrossings() {
+  const BX = (K.CAB.boxes || []).filter(b => b.lv === K.LV.cur), byId = Object.fromEntries(state.app.map(a => [a.id, a])), tab = state.app.find(a => a.t === "TAB");
+  if (!BX.length) return { n: 0, intra: 0, boxes: [] };
+  const bows = levelBows(BX, pmNow(), byId, tab), list = [];
+  BX.forEach(b => boxLayout(b).deps.forEach(d => { if (d.face && !d.tab) d.apps.forEach(a => { if (!(b.routes || {})[a.id]) list.push({ box: b.n, key: b.id + "|" + a.id, P: d.P, T: a, k: bows.get(b.id + "|" + a.id) ?? BOW0 }); }); }));
+  const C = list.map(g => curve(g.P, g.T, g.k)), out = { n: 0, intra: 0, boxes: new Set() };
+  for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+    const x = polyCross(C[i], C[j]);
+    if (!x) continue;
+    out.n += x; if (list[i].box === list[j].box) out.intra += x;
+    out.boxes.add(list[i].box); out.boxes.add(list[j].box);
+  }
+  return { ...out, boxes: [...out.boxes].sort() };
+}
+export function bowOf(boxId, key) {
+  const m = K.gaineBows;
+  return m && m.has(boxId + "|" + key) ? m.get(boxId + "|" + key) : BOW0;
+}
 export function boxLayout(b, pm = pmNow()) {
   const C = getCab(), N = Math.max(1, Math.round(C.departsFace) || 6), near = C.memeEndroit ?? 0.3;
   const S = Math.max(K.symCm / 100 * 2.2, 26 * pm);   // v58 : boîtes plus petites (Kévin, 27/10)
@@ -775,7 +816,7 @@ export function boxLayout(b, pm = pmNow()) {
     const sp = spots.find(g => g.some(o => dist(o.x, o.y, a.x, a.y) <= near + 1e-9) && (!gk || !gk[a.id] || !gk[g[0].id] || gk[a.id] === gk[g[0].id]));
     if (sp) sp.push(a); else spots.push([a]);
   });
-  const deps = spots.map(G => ({ id: G[0].id, keys: G.map(a => a.id), apps: G, t: G[0], p: (G.map(a => R[a.id]).find(r => r && r.length) || [])[0] || G[0] }));
+  const deps = spots.map(G => { const r = (G.map(a => R[a.id]).find(r => r && r.length) || [])[0]; return { id: G[0].id, keys: G.map(a => a.id), apps: G, t: G[0], p: r || G[0], pts: r ? [r] : G.map(a => ({ x: a.x, y: a.y })) }; });
   if (tab) deps.push({ id: "tab", keys: ["tab"], apps: [], t: tab, p: (R.tab || [])[0] || tab, tab: true });
   const L = portLayout(b, deps, N, b.ports || {});
   deps.forEach(d => { const q = L.get(d.id) || {}; d.face = q.face || null; d.slot = q.slot ?? null; d.P = portXY(b, S, N, d.face, d.slot); });
@@ -836,7 +877,7 @@ export function hitRoute(wx, wy) {
       if (best && best.wp != null) continue;
       // gaine sans point de passage : on teste l'arc dessiné
       if (pts.length === 2) {
-        const T = pts[1], q = gaineCtrl(P0, T);
+        const T = pts[1], q = gaineCtrl(P0, T, bowOf(b.id, key));
         for (let s = 1; s < 40; s++) {
           const t = s / 40, u = 1 - t;
           const px = u * u * P0.x + 2 * u * t * q.x + t * t * T.x, py = u * u * P0.y + 2 * u * t * q.y + t * t * T.y;

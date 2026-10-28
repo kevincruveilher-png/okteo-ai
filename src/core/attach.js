@@ -34,8 +34,8 @@ export function linkCtrl(c, l) {
   return { x: (c.x + l.x) / 2, y: (c.y + l.y) / 2 };
 }
 // gaine sans point de passage : arc (point de contrôle décalé de 15 % de la longueur, toujours du même côté)
-export function gaineCtrl(b, a) {
-  const L = dist(b.x, b.y, a.x, a.y) || 1, k = 0.15;
+export function gaineCtrl(b, a, k = 0.15) {   // v59 : courbure choisie pour éviter les croisements (bowOf, render.js)
+  const L = dist(b.x, b.y, a.x, a.y) || 1;
   return { x: (b.x + a.x) / 2 - (a.y - b.y) / L * L * k, y: (b.y + a.y) / 2 + (a.x - b.x) / L * L * k };
 }
 export function hitLink(wx, wy) {

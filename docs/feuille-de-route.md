@@ -183,7 +183,7 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
   enrichie (points extérieurs, prises de plan de travail, nouveaux types, gonds et sens des portes) ; porte de garage.
 - **58 — Plan lisible — FAIT (28/10/2026, 0.58.0 ; faite avant la 57)** : taille des symboles d'après le dessin, aucun chevauchement, boîtes plus petites, noms des
   pièces déplaçables (taille commune), rotation du fond.
-- **59 — Gaines sans croisement** : points d'accroche et tracés sans croisement, recalcul au déplacement d'une boîte.
+- **59 — Gaines sans croisement — FAIT (28/10/2026, 0.59.0)** : points d'accroche et tracés sans croisement, recalcul au déplacement d'une boîte.
 - **60 — Boîte pour le câbleur et le perceur** : schéma sans fils superposés, vue des 4 tranches (n° de gaine et
   aboutissant), à l'écran et dans les PDF.
 

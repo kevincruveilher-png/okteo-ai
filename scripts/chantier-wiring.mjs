@@ -31,12 +31,21 @@ try {
     if (recable.departs) { const st = await import("/src/cablage/settings.js"); st.setCab({ ...st.getCab(), departsMax: recable.departs }); }
     if (recable.on) { const e = await import("/src/ext/etude-ui.js"); await e.cabler(okteo); }
     const W = m.wiringNow(okteo);
+    // v59 : croisements des gaines sur le plan (niveau ouvert) : dans une même boîte, entre boîtes, et avec l'arc unique d'avant
+    const R = await import("/src/core/render.js"), T = await import("/src/cablage/trace.js");
+    okteo.showCircuits = true;
+    const BX = okteo.cab.boxes.filter((b) => b.lv === okteo.level.id), by = Object.fromEntries(okteo.state.app.map((a) => [a.id, a])), tab = okteo.state.app.find((a) => a.t === "TAB");
+    const bows = R.levelBows(BX, undefined, by, tab), list = [];
+    BX.forEach((b) => R.boxLayout(b).deps.forEach((d) => { if (!d.face) return; (d.tab ? (tab ? [["tab", tab]] : []) : d.apps.map((a) => [a.id, a])).forEach(([k, t]) => { if (!(b.routes || {})[k]) list.push({ box: b.id, key: b.id + "|" + k, P: d.P, T: t }); }); }));
+    const intra = BX.reduce((s, b) => s + T.crossings(list.filter((g) => g.box === b.id), bows), 0);
+    const noTab = list.filter((g) => !g.key.endsWith("|tab"));
+    const traces = { gaines: list.length, intra, total: T.crossings(list, bows), sansAlim: T.crossings(noTab, bows), arcUnique: T.crossings(list, null) };
     const apps = okteo.allApps().map((a) => ({ id: a.id, t: a.t, rep: a.rep, room: a.room, x: +a.x.toFixed(2), y: +a.y.toFixed(2), h: a.h }));
     const boxes = W.boxes.map((b) => ({ n: b.n, x: b.x, y: b.y, longueur: b.longueur, circuits: b.circuits, bouchons: b.bouchons,
       gaines: b.gaines.map((g) => ({ no: g.no, face: g.face, kind: g.kind, reps: g.reps || null, label: g.label, circuit: g.circuit, diam: g.diam, length: g.length, cable: g.cable || null,
         wires: g.wires.map((w) => ({ fn: w.fn, color: w.color, section: w.section, n: w.n, bague: w.bague || null, circuit: w.circuit || null })) })) }));
     return { chantier: okteo.ch.nom, mode: okteo.cab.mode, circuits: okteo.cab.circuits.map((c) => ({ n: c.n, kind: c.kind, section: c.section, prot: c.prot, direct: c.direct, apps: c.apps.length })),
-      apps, links: okteo.allLinks(), boxes, direct: W.direct, directTotals: W.directTotals, doutes: W.doutes, issues: W.issues, totals: W.totals };
+      apps, links: okteo.allLinks(), boxes, traces, direct: W.direct, directTotals: W.directTotals, doutes: W.doutes, issues: W.issues, totals: W.totals };
   }, { on: flags.includes("--recable"), connecte: flags.includes("--connecte"), mode: (flags.find((f) => f.startsWith("--mode=")) || "").split("=")[1] || "", departs: +((flags.find((f) => f.startsWith("--departs=")) || "").split("=")[1] || 0) });
   fs.writeFileSync(OUT, JSON.stringify(out, null, 1));
   console.log(`${out.boxes.length} boîtes, ${out.boxes.reduce((s, b) => s + b.gaines.length, 0)} gaines, ${out.direct.length} lignes directes → ${OUT}`);

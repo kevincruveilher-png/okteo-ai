@@ -281,6 +281,23 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 59 (28/10/2026) — livrée : gaines sans croisement
+Version du logiciel : 0.59.0.
+- Points d'accroche (boites.js `portLayout`, utilisé par le plan, l'impression et le calcul des gaines, donc les mêmes
+  n° R-077) : après le rangement par direction, deux gaines d'une même boîte qui se croisent échangent leur point, ou
+  l'une passe sur un point libre (seulement sur une face tournée vers son appareil) ; les gaines épinglées à la main ne
+  bougent pas. Calcul avec une boîte de référence de 0,6 m : le résultat ne dépend pas du zoom.
+- Courbure des gaines (`src/cablage/trace.js` `chooseBows`) : chaque gaine en arc prend, parmi 9 courbures, celle qui croise
+  le moins les autres gaines du niveau (toutes les boîtes, tracés faits à la main compris) ; un croisement dans une même
+  boîte compte triple, un croisement avec l'alimentation (pointillés) très peu ; à égalité, l'arc habituel. 2 passes puis
+  essai à deux gaines. Recalculé quand le plan change, au lâcher d'une boîte (pas pendant le glisser). Même calcul à
+  l'impression (avec les points d'accroche imprimés).
+- Panneau Câblage (Boîtes) : « ✓ Aucune gaine n'en croise une autre » ou « ⚠ n croisements (boîtes) » (`okteo.gaineCrossings()`).
+- MAILLARD (Équilibrée, volets connectés) : 81 croisements avec l'arc unique → 31 (dont 22 avec l'alimentation), 9 entre
+  gaines d'appareils, 1 dans une même boîte. Ceux qui restent viennent presque tous de la boîte des volets (LI07), qui
+  dessert les 8 volets de toute la maison : ses gaines traversent forcément les zones des autres boîtes.
+- Tests : 36 + 67 + 175 + 13 + 154 = 445.
+
 ## Version 57 (28/10/2026) — livrée : saisie complète du chantier (après la 58)
 Version du logiciel : 0.58.1 (la 58 était déjà livrée en 0.58.0).
 - Équipements hors plan (R-100) : section « Équipements hors plan » du panneau Câblage (et Ctrl+K) : four, plaque, hotte,

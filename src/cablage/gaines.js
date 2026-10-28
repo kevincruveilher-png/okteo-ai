@@ -305,7 +305,7 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
       const label = G.length === 1 ? `${NAMES[a.t] || (APPAREILS[a.t] || {}).n || a.t} ${a.rep || ""}`.trim() : G.map((m) => m.rep || NAMES[m.t] || m.t).join(" + ");
       const cn = [...new Set(G.map((m) => (circOf.get(m.id) || {}).n).filter(Boolean))];
       // la face est celle par où la gaine sort : vers son 1er point de passage s'il y en a un
-      deps.push({ id: a.id, kind: "app", p: route ? route[0] : a, app: a, appIds: G.map((m) => m.id), reps: G.map((m) => m.rep || NAMES[m.t] || m.t), routed: !!route, label, room: a.room, circuit: cn.join(", "), wires, length: len, cable, ext: !!cable, bouchon: !!cable,
+      deps.push({ id: a.id, kind: "app", p: route ? route[0] : a, pts: route ? [route[0]] : G.map((m) => ({ x: m.x, y: m.y })), app: a, appIds: G.map((m) => m.id), reps: G.map((m) => m.rep || NAMES[m.t] || m.t), routed: !!route, label, room: a.room, circuit: cn.join(", "), wires, length: len, cable, ext: !!cable, bouchon: !!cable,
         rules: { length: "R-011", diam: "R-074", wires: G.length > 1 ? "R-073" : null, ronde: wires.some((w) => /^(retour|nav1|nav2|cmdTL|cmdV1|cmdV2)$/.test(w.fn)) ? "R-072" : null, volet: G.some((m) => m.t === "VR" || m.t === "VEL" || m.t === "CVR") ? "R-096" : null, eq: G.some((m) => m.t === "EQL") ? "R-080" : null, cable: cable ? "R-014" : null, bouchon: cable ? "R-095" : null } });
     }
     // alimentation depuis le tableau : une seule gaine (phase + neutre de chaque circuit, télérupteur, une terre) ;
@@ -330,7 +330,7 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
         label: `Alimentation ${names.join(" + ")} (tableau)${alimG.length > 1 ? ` — gaine ${gi + 1}/${alimG.length}` : ""}`, circuit: names.join(", "), circuits: names, wires, length: len,
         rules: { length: "R-011", diam: "R-074", wires: "R-075" } });
     });
-    const PL = portLayout(b, deps.map((g) => ({ id: g.id, p: g.p, keys: g.kind === "alim" ? [g.id === "alim:0" ? "tab" : g.id] : g.appIds })), S.departsFace, b.ports || {});
+    const PL = portLayout(b, deps.map((g) => ({ id: g.id, p: g.p, pts: g.pts, keys: g.kind === "alim" ? [g.id === "alim:0" ? "tab" : g.id] : g.appIds })), S.departsFace, b.ports || {});
     deps.forEach((g) => {
       const q = PL.get(g.id) || {}; g.face = q.face || "?"; g.slot = q.slot ?? null;
       const secs = g.wires.filter((w) => w.fn !== "isole" || g.cable).map((w) => w.section);

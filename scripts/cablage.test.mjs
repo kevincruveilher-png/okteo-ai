@@ -1,4 +1,5 @@
 // Tests du câblage (sans navigateur) : diamètre des gaines (exemples de Kévin) et répartition des circuits sur EVRARD.
+import { chooseBows, crossings } from "../src/cablage/trace.js";
 import { HP_ITEMS, proposal, placeHorsPlan, stats as hpStats } from "../src/cablage/horsplan.js";
 import fs from "node:fs";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
@@ -297,7 +298,7 @@ console.log("Schéma de boîte pour le câbleur (v33)");
   const crosses = (P) => { const s = deps.map((d) => ({ x0: portXY(box, 1, 6, P.get(d.id).face, P.get(d.id).slot).x, x1: d.p.x })); return s.some((a, i) => s.some((b, j) => j > i && (a.x0 - b.x0) * (a.x1 - b.x1) < 0)); };
   check("points d'accroche : 5 gaines vers le haut sur la face A, dans l'ordre gauche → droite, sans croisement ; une gaine épinglée garde son point",
     deps.every((d) => L.get(d.id).face === "A") && xs.every((x, i) => i === 0 || x > xs[i - 1]) && !crosses(L) && pinned.get("g4").slot === 0 && pinned.get("g4").face === "A"
-    && new Set(deps.map((d) => pinned.get(d.id).slot)).size === 5, xs.join(" "));
+    && new Set(deps.map((d) => pinned.get(d.id).face + pinned.get(d.id).slot)).size === 5, xs.join(" "));
 }
 
 console.log("Modes de pieuvre (v39)");
@@ -398,6 +399,21 @@ console.log("Tableau électrique (v46)");
   check("hors plan : four en cuisine, sèche-serviette en salle de bain, équipotentielle à côté du tableau, bouches dans les chambres, sonnette dans l'entrée ; déjà posé = pas reposé",
     at("FOUR")[0].room === "Cuisine" && at("SS")[0].room === "Salle de bain" && at("EQP")[0].room === null && Math.abs(at("EQP")[0].x - 9.4) < 1e-9 && at("BOUCHE").length === 3
       && at("BOUCHE").every((p) => /Chambre/.test(p.room)) && at("SON")[0].room === "Entrée" && at("GEXT")[0].room === "Garage" && !at("LL").length && at("VMCG")[0].room === null, JSON.stringify(pos));
+}
+{
+  // v59 : gaines sans croisement : courbure choisie ; points d'accroche échangés quand deux gaines d'une boîte se croisent
+  const list = [{ key: "a", P: { x: 0, y: 0 }, T: { x: 10, y: 0 } }, { key: "b", P: { x: 0, y: 0.6 }, T: { x: 5, y: 0.6 } }];
+  const m = chooseBows(list);
+  check("gaines en arc : l'arc habituel croiserait, une autre courbure est choisie (0 croisement) ; sans croisement, l'arc habituel est gardé",
+    crossings(list, null) === 1 && crossings(list, m) === 0 && [...chooseBows([list[0]]).values()][0] === 0.15, JSON.stringify([...m]));
+  const box = { x: 0, y: 0 };
+  // 4 gaines vers le haut : rangées d'après leur direction vue du centre, deux se croiseraient (cas trouvé au hasard)
+  const deps = [[0.94, -1.74], [0.9, -2.09], [-1.21, -1.65], [1.94, -4.38]].map(([x, y], i) => ({ id: "g" + i, p: { x, y } }));
+  const L = portLayout(box, deps, 6);
+  const cr = (a, b, c, d) => { const o = (p, q, r) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x); return o(c, d, a) * o(c, d, b) < 0 && o(a, b, c) * o(a, b, d) < 0; };
+  const P = (d) => portXY(box, 0.6, 6, L.get(d.id).face, L.get(d.id).slot);
+  let nX = 0; deps.forEach((d, i) => deps.slice(i + 1).forEach((e) => { if (cr(P(d), d.p, P(e), e.p)) nX++; }));
+  check("points d'accroche : les gaines d'une boîte ne se croisent pas (points échangés quand le rangement par direction en ferait croiser deux)", nX === 0, JSON.stringify([...L]));
 }
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);

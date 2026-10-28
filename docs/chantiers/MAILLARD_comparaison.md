@@ -75,3 +75,7 @@ Recâblage complet avec les nouvelles règles : 16 départs, mode Équilibrée q
 - **Relevé** : la consigne demande maintenant les commandes des points extérieurs, les prises de plan de travail (`pt`), le sens des portes et la porte de garage.
 - **Relecture ciblée** : les points du contrôle (le WC et les spots extérieurs sur MAILLARD) sont renvoyés à l'IA, à la main sans clé ou automatiquement avec une clé (2 relectures au plus).
 - Restent à vérifier sur le prochain essai : le chauffe-eau et le 2e Aqua Air (doutes du relevé).
+
+## 7. Après la mise à jour 59 (28/10/2026) : croisements des gaines sur le plan
+- Avec un seul arc pour toutes les gaines : 81 croisements. Avec la 59 : 31, dont 22 avec les alimentations (pointillés), 9 entre gaines d'appareils et 1 dans une même boîte.
+- Les croisements qui restent viennent presque tous de la boîte des volets (LI07), qui dessert les 8 volets de toute la maison.

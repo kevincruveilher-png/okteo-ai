@@ -62,7 +62,44 @@ export function portLayout(box, deps, max, pins = {}) {
     G.forEach((g, j) => out.set(g.id, { face: f, slot: fr[Math.min(fr.length - 1, Math.round((j + 0.5) * fr.length / G.length - 0.5))] }));
   }
   free.filter((g) => !faceOf.get(g.id)).forEach((g) => out.set(g.id, { face: null, slot: null }));
+  // v59 : aucune gaine ne croise une autre gaine de la boîte : on échange deux points, ou on déplace une gaine vers un
+  // point libre, tant que ça enlève des croisements (les gaines épinglées à la main ne bougent pas)
+  uncross(box, deps, out, max, new Set(deps.filter((d) => !free.includes(d)).map((d) => d.id)));
   return out;
+}
+export const PORT_S = 0.6;   // côté de référence de la boîte pour ce calcul (m) : le résultat ne dépend pas du zoom
+function uncross(box, deps, out, max, pinned) {
+  const D = deps.filter((d) => out.get(d.id) && out.get(d.id).face);
+  if (D.length < 2) return;
+  const segs = (d, q) => { const P = portXY(box, PORT_S, max, q.face, q.slot); return (d.pts && d.pts.length ? d.pts : [d.p]).map((t) => [P, t]); };
+  const pair = (d, q, e, r) => { let n = 0; for (const [a, b] of segs(d, q)) for (const [c, x] of segs(e, r)) if (!(Math.hypot(a.x - c.x, a.y - c.y) < 1e-9) && crossSeg(a, b, c, x)) n++; return n; };
+  const len = (d, q) => segs(d, q).reduce((s, [a, b]) => s + Math.hypot(a.x - b.x, a.y - b.y), 0);
+  // une gaine sort par une face tournée vers son appareil (elle ne repasse pas sous la boîte)
+  const faces = (d, q) => { const P = portXY(box, PORT_S, max, q.face, q.slot); return (d.pts && d.pts.length ? d.pts : [d.p]).every((t) => q.face === "A" ? t.y < P.y : q.face === "B" ? t.x > P.x : q.face === "C" ? t.y > P.y : t.x < P.x); };
+  const okA = (A, ids) => ids.every((id) => { const d = D.find((x) => x.id === id), q = A.get(id); return !faces(d, out.get(id)) || faces(d, q); });
+  const total = (A) => { let n = 0, L = 0; for (let i = 0; i < D.length; i++) { L += len(D[i], A.get(D[i].id)); for (let j = i + 1; j < D.length; j++) n += pair(D[i], A.get(D[i].id), D[j], A.get(D[j].id)); } return { n, L }; };
+  let cur = total(out);
+  for (let it = 0; it < 80 && cur.n > 0; it++) {
+    const usedSlots = new Set([...out.values()].filter((q) => q.face).map((q) => q.face + q.slot));
+    const freeSlots = [];
+    for (const f of FACES) for (let i = 0; i < max; i++) if (!usedSlots.has(f + i)) freeSlots.push({ face: f, slot: i });
+    let best = null;
+    const tryA = (A, ids) => { if (!okA(A, ids)) return; const t = total(A); if (t.n < cur.n && (!best || t.n < best.t.n || (t.n === best.t.n && t.L < best.t.L))) best = { A, t }; };
+    for (let i = 0; i < D.length; i++) for (let j = i + 1; j < D.length; j++) {
+      const di = D[i], dj = D[j];
+      if (!pair(di, out.get(di.id), dj, out.get(dj.id))) continue;
+      if (!pinned.has(di.id) && !pinned.has(dj.id)) { const A = new Map(out); A.set(di.id, out.get(dj.id)); A.set(dj.id, out.get(di.id)); tryA(A, [di.id, dj.id]); }
+      for (const d of [di, dj]) if (!pinned.has(d.id)) for (const q of freeSlots) { const A = new Map(out); A.set(d.id, q); tryA(A, [d.id]); }
+    }
+    if (!best) break;
+    for (const [k, v] of best.A) out.set(k, v);
+    cur = best.t;
+  }
+}
+function crossSeg(a, b, c, d) {
+  const o = (p, q, r) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+  const d1 = o(c, d, a), d2 = o(c, d, b), d3 = o(a, b, c), d4 = o(a, b, d);
+  return ((d1 > 1e-12 && d2 < -1e-12) || (d1 < -1e-12 && d2 > 1e-12)) && ((d3 > 1e-12 && d4 < -1e-12) || (d3 < -1e-12 && d4 > 1e-12));
 }
 // position d'un point d'accroche (boîte de côté S, `max` points par face)
 export function portXY(box, S, max, f, i) {

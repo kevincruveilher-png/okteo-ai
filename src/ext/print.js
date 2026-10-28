@@ -10,6 +10,7 @@ const AUTO = [["A4", 50], ["A3", 50], ["A4", 75], ["A3", 75], ["A4", 100], ["A3"
 const MARGIN = 10, BAND = 44;                       // marge, bandeau bas (légende + cartouche)
 import { APPAREILS } from "../cablage/appareils.js";
 import { portXY } from "../cablage/boites.js";
+import { chooseBows } from "../cablage/trace.js";
 const SHORT = { PC16: "16", PC20: "20", RJ45: "RJ", VMC: "V", TAB: "TD" };
 const COLS = ["PC16", "PC20", "RJ45", "LUM", "APP", "SPOT", "INT", "VV", "BP", "VMC", "SC", "TAB"];
 const COLNAME = { PC16: "16 A", PC20: "20 A", RJ45: "RJ45", LUM: "Point", APP: "Appl.", SPOT: "Spot", INT: "Int.", VV: "VV", BP: "BP", VMC: "VMC", SC: "SC", TAB: "TD" };
@@ -17,7 +18,8 @@ const fr = (v, d = 2) => v.toFixed(d).replace(".", ",");
 // « #e6194b » → [230, 25, 75] ; autre chose (variable CSS, rien) → null
 export function rgb(c) { const m = /^#?([0-9a-f]{6})$/i.exec(c || ""); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
 // point de contrôle de l'arc d'une gaine (même formule que le cœur, attach.js gaineCtrl)
-function gaineCtrl(b, a) { const L = Math.hypot(a.x - b.x, a.y - b.y) || 1, k = 0.15; return { x: (b.x + a.x) / 2 - (a.y - b.y) / L * L * k, y: (b.y + a.y) / 2 + (a.x - b.x) / L * L * k }; }
+// v59 : courbure choisie pour qu'aucune gaine n'en croise une autre (trace.js chooseBows, comme à l'écran)
+function gaineCtrl(b, a, k = 0.15) { return { x: (b.x + a.x) / 2 - (a.y - b.y) * k, y: (b.y + a.y) / 2 + (a.x - b.x) * k }; }
 
 let lib = null;
 async function jspdf() { if (!lib) lib = (await import("jspdf")).jsPDF; return lib; }
@@ -265,12 +267,15 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     // gaines (v48) : du point d'accroche de la boîte à l'appareil, en arc ou par les points de passage tracés à la main,
     // couleur du circuit ; l'alimentation (vers le tableau) en pointillés gris
     const portOf = (b, d) => portXY(b, BSm, b.N, d.face, d.slot);
+    const bowL = [], bowF = [];
+    boxes.forEach((b) => b.deps.forEach((d) => { const P = portOf(b, d); d.ends.forEach((e) => { if (e.route && e.route.length) bowF.push([P, ...e.route, e]); else bowL.push({ key: b.id + "|" + e.key, P, T: e }); }); }));
+    const bows = o.gaines ? chooseBows(bowL, bowF) : new Map();
     if (o.gaines) boxes.forEach((b) => b.deps.forEach((d) => {
       const P = portOf(b, d);
       d.ends.forEach((e) => {
         let pts;
         if (e.route && e.route.length) pts = [P, ...e.route, e];
-        else { const q = gaineCtrl(P, e); pts = Array.from({ length: 17 }, (_, i) => { const t = i / 16, v = 1 - t; return { x: v * v * P.x + 2 * v * t * q.x + t * t * e.x, y: v * v * P.y + 2 * v * t * q.y + t * t * e.y }; }); }
+        else { const q = gaineCtrl(P, e, bows.get(b.id + "|" + e.key) ?? 0.15); pts = Array.from({ length: 17 }, (_, i) => { const t = i / 16, v = 1 - t; return { x: v * v * P.x + 2 * v * t * q.x + t * t * e.x, y: v * v * P.y + 2 * v * t * q.y + t * t * e.y }; }); }
         const c = d.tab ? [120, 120, 120] : rgb(e.color) || [130, 130, 130];
         doc.setDrawColor(...c); doc.setLineWidth(d.tab ? 0.2 : 0.25);
         if (d.tab) doc.setLineDashPattern([1.5, 1], 0);

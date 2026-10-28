@@ -164,8 +164,11 @@ export function createCablagePane({ api, panel, ctl }) {
     }).join("");
     const issues = W.issues.filter((x) => !/^Pas de tableau/.test(x)).map((x) => `<p class="warn sm">⚠ ${esc(x)}</p>`).join("")
       + (W.splits && W.splits.length ? `<p><button id="cb-fixsplit" title="Chaque allumage coupé va entier (commandes + lumières) dans la boîte qui a le plus de ses lumières. Ctrl+Z pour annuler.">Ramener dans la même boîte (${W.splits.length})</button></p>` : "");
+    // v59 : croisements de gaines qui restent sur le plan (le tracé les évite tant que c'est possible)
+    const X = api.gaineCrossings ? api.gaineCrossings() : { n: 0 };
+    const cross = `<p class="sm ${X.n ? "warn" : "mut"}" id="bx-cross" title="Les points d'accroche et la courbure des gaines sont choisis pour qu'elles ne se croisent pas ; ils sont recalculés quand on déplace une boîte. Un croisement qui reste vient en général d'une boîte qui dessert toute la maison (volets) : déplacez la boîte ou tirez la gaine pour la faire passer ailleurs.">${X.n ? `⚠ ${X.n} croisement${X.n > 1 ? "s" : ""} de gaines sur ce niveau (${esc(X.boxes.join(", "))})${X.intra ? `, dont ${X.intra} dans une même boîte` : ""} : déplacer la boîte ou tirer la gaine.` : "✓ Aucune gaine n'en croise une autre sur ce niveau."}</p>`;
     return `${head}${tabWarn}<p class="sm"><b>${W.totals.boites}</b> boîtes · <b>${W.totals.gaines}</b> gaines · <b>${fr(W.totals.gaine)}</b> m de gaine · <b>${fr(W.totals.cuivre)}</b> m de fil</p>
-      ${issues}<div class="cb-list">${rows}</div>
+      ${cross}${issues}<div class="cb-list">${rows}</div>
       ${askBox ? `<div class="cb-ask bx-ask"><b>Quelles boîtes recalculer ?</b> <span class="mut sm">Les boîtes décochées gardent leur place, leurs appareils et leurs tracés.</span>
           ${B.map((b) => `<label class="wck"><input type="checkbox" class="bx-redo" value="${b.id}" ${b.locked ? "" : "checked"}> ${esc(b.n)}${b.locked ? ` <span class="mut sm">🔒 verrouillée</span>` : ""}</label>`).join("")}
           <label class="wck" title="Vide = le logiciel choisit le nombre qui économise le plus de cuivre">Nombre de boîtes en tout : <input id="bx-count" type="number" min="1" max="40" step="1" placeholder="auto" style="width:64px"></label>
