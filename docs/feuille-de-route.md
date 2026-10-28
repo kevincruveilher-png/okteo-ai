@@ -427,6 +427,12 @@ Décisions (Claude) :
   **matérialiser un obstacle** sur le plan. → Mise à jour 65 : contour de la maison + outil Obstacle (types proposés
   ci-dessus, liste modifiable), en attente du « go ».
 
+## Note du 28/10/2026 (20:15), Kévin — Mode IA : échelle saisie
+- En mode IA, l'échelle ne se règle qu'en pointant deux points (le panneau Propriétés, qui a la case « 1 / N » de l'outil
+  Échelle, y est caché). Kévin veut pouvoir taper « 1/75 » directement dans l'étape 1 du parcours (champ 1 / N +
+  « Appliquer » = `okteo.applyScaleRatio(N)`, si le fond est un PDF au format d'origine ; sinon message clair).
+  Contournement en attendant : Alt+M (Mode BE) → outil Échelle → case « 1 / … » → Appliquer → Alt+M.
+
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.
 - Export SPV pour Counter.
