@@ -389,6 +389,16 @@ Décisions (Claude) :
 5. **Boîtes standard** : compositions de boîte qui reviennent d'un chantier à l'autre → bandes identiques, fabrication
    en série (intérêt atelier à confirmer par Kévin).
 
+## Mode BE / Mode IA (demande de Kévin, 28/10/2026, 15:46) — à définir avec lui
+- **Mode BE** = l'interface actuelle, conservée telle quelle (tout le détail des choix et du résultat).
+- **Mode IA** = interface légère, le moins de clics possible, alertes et résultat : un seul écran (plan + colonne
+  « parcours » : plan → relevé IA → relecture automatique → hors plan → câbler → résultat), une seule liste d'alertes
+  (contrôle, relecture, étude) avec action directe, résultat = bandes / dossier / rapport IA ; barres d'outils, vues,
+  panneaux et onglets détaillés masqués ; bascule Mode BE / Mode IA à tout moment, mêmes données.
+- Ergonomie (propositions de Claude) : une seule fenêtre de travail à la fois (les cartes ne s'empilent plus) ; un seul
+  compteur « à vérifier » (contrôle + doutes) ; panneau Câblage allégé ; onglets Boîtes / Lignes directes / Bandes
+  réunis ; textes d'aide longs remplacés par des infobulles (?).
+
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.
 - Export SPV pour Counter.
