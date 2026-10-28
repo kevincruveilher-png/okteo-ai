@@ -53,6 +53,7 @@ export function createAiReleve({ api, openParams }) {
   const card = document.createElement("div");
   card.className = "wcard aicard"; card.hidden = true; card.setAttribute("role", "dialog"); card.setAttribute("aria-label", "Relevé par l'IA");
   document.querySelector(".stage").appendChild(card);
+  let lastMode = "";   // v57 : "key" (relevé envoyé à l'IA) ou "paste" (réponse collée) : décide de la relecture automatique
   let busy = false, plan = null, rooms = [], meta = "", keep = { walls: true, rooms: true, devices: true }, lastImage = null, lastText = "";
 
   const close = () => { card.hidden = true; api.setPreview(null); plan = null; };
@@ -80,12 +81,12 @@ export function createAiReleve({ api, openParams }) {
   }
 
   function render() {
-    const S = api.state, nP = plan.openings.filter((o) => o.kind === "porte").length;
+    const S = api.state, nP = plan.openings.filter((o) => o.kind === "porte").length, nG = plan.openings.filter((o) => o.kind === "garage").length;
     const row = (k, label, n, extra, has) => `<label class="ai-row"><input type="checkbox" data-k="${k}" ${keep[k] ? "checked" : ""} ${n ? "" : "disabled"}><span><b>${label} : ${n}</b>${extra ? `<br><span class="sm">${extra}</span>` : ""}${has ? `<br><span class="mut sm">remplace les ${has} déjà dessinés</span>` : ""}</span></label>`;
     show(`
       <p class="mut sm">${esc(meta)}</p>
       <p class="sm">En orange : ce que propose l'IA, posé sur votre dessin actuel pour comparer. Cochez ce que vous gardez.</p>
-      ${row("walls", "Murs", plan.walls.length, `${plan.openings.length} ouvertures (${nP} portes, ${plan.openings.length - nP} fenêtres)`, S.segs.filter((s) => !s.virt).length)}
+      ${row("walls", "Murs", plan.walls.length, `${plan.openings.length} ouvertures (${nP} portes${plan.stats.portesOrientees ? `, dont ${plan.stats.portesOrientees} avec leur sens` : ""}, ${plan.openings.length - nP - nG} fenêtres${nG ? `, ${nG} porte(s) de garage` : ""})`, S.segs.filter((s) => !s.virt).length)}
       ${row("rooms", "Pièces", keep.rooms ? rooms.length : roomsFor(keep.walls).length, keep.rooms && rooms.length ? esc(rooms.map((r) => r.name).join(", ")) : plan.pieces.length && !rooms.length && keep.rooms ? "les murs ne ferment aucune pièce" : "", S.rooms.length)}
       ${row("devices", "Appareils", plan.devices.length, `${plan.links.length} liaisons`, S.app.length)}
       ${plan.remarques ? `<p class="mut sm">Remarque de l'IA : ${esc(plan.remarques)}</p>` : ""}
@@ -102,17 +103,18 @@ export function createAiReleve({ api, openParams }) {
   function add() {
     if (!keep.walls && !keep.rooms && !keep.devices) return close();
     const S = api.state, done = [];
+    let devAdded = false;
     api.batch(() => {
       if (keep.walls && plan.walls.length) { const r = api.importWalls(plan, { replace: S.segs.length > 0 }); done.push(`${r.murs} murs`); }
       if (keep.rooms) {
         const list = roomsFor(false).map((r) => ({ ...r, also: r.labels.filter((n) => n !== r.name) }));
         if (list.length) done.push(`${api.addRooms(list, { replace: true })} pièces`);
       }
-      if (keep.devices && plan.devices.length) { const r = api.importDevices(plan.devices, plan.links, { replace: true }); done.push(`${r.appareils} appareils, ${r.liaisons} liaisons`); }
+      if (keep.devices && plan.devices.length) { const r = api.importDevices(plan.devices, plan.links, { replace: true }); devAdded = true; done.push(`${r.appareils} appareils, ${r.liaisons} liaisons`); }
     });
     card.hidden = true; plan = null;
     api.setHint(`Relevé IA ajouté : ${done.join(", ") || "rien"}. Ctrl+Z annule tout l'ajout.`);
-    document.dispatchEvent(new CustomEvent("okteo:ai-releve", { detail: { done } }));
+    document.dispatchEvent(new CustomEvent("okteo:ai-releve", { detail: { done, devices: !!devAdded, mode: lastMode } }));
   }
 
   // réponse de l'IA (texte) → aperçu ; sert aussi aux tests (réponse préparée à l'avance)
@@ -141,6 +143,7 @@ export function createAiReleve({ api, openParams }) {
     const f2 = await api.levelFond(api.level.id), ref = raw.ref && raw.ref.W > 0 && raw.ref.H > 0 ? raw.ref : null;
     if (!ref) return message("Cette réponse n'indique pas la taille de l'image de référence (champ « ref »). Elle ne peut pas être placée sur le plan.", [{ label: "Fermer", run: () => {} }]);
     const map = { x0: f2.x, y0: f2.y, sx: f2.w / ref.W, sy: f2.h / ref.H };
+    lastMode = "paste";
     return fromText(text, map, `Réponse donnée à la main · image de référence ${ref.W} × ${ref.H} px`);
   }
   function pastePanel() {
@@ -185,6 +188,7 @@ export function createAiReleve({ api, openParams }) {
       show(`<p>L'IA lit le plan (${esc(PROVIDERS[provider].name)} · ${esc(model)})… compter 30 s à 2 min.</p><p class="mut sm">Vous pouvez continuer à travailler : l'aperçu s'affichera ici.</p>`);
       const r = await chat({ system: SYSTEM, messages: [{ role: "user", text: aiPrompt({ W: img.W, H: img.H, cmPerPx: img.map.sx * 100 }), image: { type: "image/jpeg", data: img.url.split(",")[1] } }], maxTokens: 12000, provider, think: true });
       if (!r.sawImage) { busy = false; return message(`Le modèle ${esc(r.model)} ne lit pas les images : choisissez un modèle « vision » dans Paramètres.`, [{ label: "Ouvrir Paramètres", run: openParams }, { label: "Fermer", run: () => {} }]); }
+      lastMode = "key";
       fromText(r.text, img.map, `${PROVIDERS[r.provider].name} · ${r.model} · ${(r.ms / 1000).toFixed(0)} s · image ${img.W} × ${img.H} px`);
     } catch (e) {
       message("Le relevé par l'IA a échoué : " + esc(e.message), [{ label: "Fermer", run: () => {} }, { label: "Ouvrir Paramètres", run: openParams }]);

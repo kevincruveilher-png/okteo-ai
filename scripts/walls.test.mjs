@@ -9,7 +9,8 @@ import { findRooms, nameRooms, findLimits, addLimit } from "../src/walls/rooms.j
 import { pageLabels } from "../src/walls/labels.js";
 import { detectDevices, pageTexts } from "../src/walls/devices.js";
 import { solveDigits, readDigits } from "../src/walls/digits.js";
-import { parseAiJson, aiToPlan } from "../src/walls/ai-plan.js";
+import { parseAiJson, aiToPlan, pastePrompt } from "../src/walls/ai-plan.js";
+import { recheckPoints, recheckPrompt, parseCorrections, shouldContinue } from "../src/walls/ai-recheck.js";
 
 const data = new Uint8Array(fs.readFileSync(new URL("../docs/plans/EVRARD_04949_plan.pdf", import.meta.url)));
 const doc = await pdfjs.getDocument({ data, verbosity: 0 }).promise;
@@ -148,6 +149,39 @@ console.log("Relevé par l'IA : remise au propre de la réponse");
   check("guillemets typographiques acceptés ; porte trop près d'une jonction en T recentrée / rétrécie sur son morceau de mur ; hauteur et liaison CVR → volet lues",
     raw.ref.W === 1000 && P.openings.length === 1 && P.stats.ouverturesAjustees === 1 && o.w <= L - 0.1 + 1e-9 && o.w >= 0.4 && P.devices[0].h === 110 && P.links.length === 1 && P.devices[P.links[0].c].t === "CVR",
     JSON.stringify({ o, L, s: P.stats, d: P.devices, l: P.links }));
+}
+{
+  // v57 : sens des portes relevé par l'IA (gonds gx/gy, côté de l'arc vx/vy), porte de garage, prise de plan de travail
+  const raw = { murs: [{ x1: 100, y1: 100, x2: 900, y2: 100, ep: 20 }, { x1: 100, y1: 500, x2: 900, y2: 500, ep: 20 }],
+    ouvertures: [{ x: 300, y: 100, l: 90, t: "porte", gx: 345, gy: 100, vx: 320, vy: 130 }, { x: 600, y: 100, l: 80, t: "porte", gx: 560, gy: 100, vx: 580, vy: 70 }, { x: 500, y: 500, l: 240, t: "garage" }, { x: 800, y: 100, l: 80, t: "porte" }],
+    appareils: [{ t: "PC16", x: 200, y: 110, h: 110, pt: true }, { t: "PC20", x: 300, y: 110, pt: true }, { t: "PC16", x: 400, y: 110 }] };
+  const P = aiToPlan(raw, { x0: 0, y0: 0, sx: 0.01, sy: 0.01 }), O = P.openings;
+  const k = O.map((o) => `${o.kind}/${o.hinge}/${o.swing}`).join(",");
+  check("portes : gond côté droit / gauche et ouverture d'un côté ou de l'autre du mur lus ; porte de garage sans battant ; sans indication : gauche, intérieur",
+    k === "porte/d/ext,porte/g/int,garage/g/int,porte/g/int" && P.stats.portesOrientees === 2 && Math.abs(O[2].w - 2.4) < 1e-6, k);
+  check("prise de plan de travail (pt) gardée sur une PC16 seulement ; consigne : gonds, garage, commandes des points extérieurs",
+    P.devices[0].pt === true && !P.devices[1].pt && !P.devices[2].pt && /"gx"/.test(pastePrompt()) && /"garage"/.test(pastePrompt()) && /Points extérieurs/.test(pastePrompt()) && /"pt": true/.test(pastePrompt()), JSON.stringify(P.devices));
+}
+{
+  // v57 : relecture ciblée : points du contrôle → consigne ; réponse → liaisons, ajouts, introuvables
+  const frame = { x0: 0, y0: 0, w: 20, h: 10 };
+  const apps = [{ id: "a1", t: "SPOT", x: 2, y: 9.8, rep: "S1", room: null }, { id: "a2", t: "INT", x: 3, y: 8, rep: "I1", room: "Séjour" },
+    { id: "a3", t: "LUM", x: 10, y: 5, rep: "L1", room: "WC" }, { id: "a4", t: "LUM", x: 15, y: 5, rep: "L2", room: "Chambre", aiNo: "aucune commande" }, { id: "a5", t: "PC16", x: 2.5, y: 9 }];
+  const issues = [{ kind: "lum", ids: ["a1"], lv: "rdc" }, { kind: "lum", ids: ["a3"], lv: "rdc" }, { kind: "lum", ids: ["a4"], lv: "rdc" }, { kind: "circ", ids: ["a5"], lv: "rdc" }];
+  const done = new Set(["lum:a3"]);
+  const Pts = recheckPoints(apps, issues, { frame, done });
+  const all = recheckPoints(apps, issues, { frame });
+  const txt = recheckPrompt(all, { mode: "paste" });
+  check("relecture : seuls les points nouveaux (pas déjà demandés, pas « introuvable ») ; position en % de la page ; repères proches ; consigne courte",
+    Pts.length === 1 && Pts[0].points[0].rep === "S1" && Pts[0].points[0].x === 10 && Pts[0].points[0].y === 98 && Pts[0].near[0].rep === "I1" && all.length === 2
+      && /S1 \(spot, hors pièce\) à x = 10 %, y = 98 %/.test(txt) && /"introuvable"/.test(txt) && txt.length < 2500, JSON.stringify(Pts));
+  const C = parseCorrections('Voici : {"liaisons":[["I1","S1"],["L1","N1"],["X9","L1"]],"ajouts":[{"t":"INT","x":50,"y":40,"h":110,"pour":"L1","rep":"N1"},{"t":"FOUR","x":1,"y":1}],"introuvable":[{"rep":"L1","pourquoi":"pas de commande dessinée"}]}', { apps, frame, points: all });
+  check("corrections : liaison existante, ajout relié (sens remis commande → lumière), type non autorisé et repère inconnu signalés, introuvable gardé",
+    C.links.length === 2 && C.links[0].c === "a2" && C.links[0].l === "a1" && C.links[1].c === "add:0" && C.links[1].l === "a3" && C.adds.length === 1 && Math.abs(C.adds[0].x - 10) < 1e-9 && Math.abs(C.adds[0].y - 4) < 1e-9 && C.adds[0].h === 110
+      && C.errors.length === 2 && C.nope.length === 1 && C.nope[0].id === "a3" && !C.silent.length, JSON.stringify(C));
+  const st = [shouldContinue({ pass: 1, max: 2, before: 5, after: 2, changed: 3 }), shouldContinue({ pass: 2, max: 2, before: 2, after: 1, changed: 1 }), shouldContinue({ pass: 1, max: 2, before: 2, after: 0, changed: 2 }), shouldContinue({ pass: 1, max: 3, before: 2, after: 2, changed: 0 })];
+  check("boucle : continue si ça progresse ; arrêt à la limite, quand plus rien n'est à revoir, ou quand une relecture ne corrige rien",
+    st[0].go && !st[1].go && /limite/.test(st[1].why) && !st[2].go && /plus rien/.test(st[2].why) && !st[3].go && /rien corrigé/.test(st[3].why), JSON.stringify(st));
 }
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);

@@ -169,7 +169,10 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     doc.setDrawColor(40, 40, 40);
     (o.ouvertures ? geo.openings : []).forEach((op) => {
       const e2 = op.ep / 2, n = op.n;
-      if (op.kind === "fenetre") {
+      if (op.kind === "garage") {   // v57 : porte de garage, sans battant
+        doc.setLineWidth(0.25); doc.setLineDashPattern([1, 0.6], 0); line(op.j1, op.j2); doc.setLineDashPattern([], 0);
+        doc.setLineWidth(0.15); [op.j1, op.j2].forEach((j) => line({ x: j.x + n.x * e2, y: j.y + n.y * e2 }, { x: j.x - n.x * e2, y: j.y - n.y * e2 }));
+      } else if (op.kind === "fenetre") {
         doc.setLineWidth(0.2);
         line({ x: op.j1.x + n.x * e2, y: op.j1.y + n.y * e2 }, { x: op.j2.x + n.x * e2, y: op.j2.y + n.y * e2 });
         line({ x: op.j1.x - n.x * e2, y: op.j1.y - n.y * e2 }, { x: op.j2.x - n.x * e2, y: op.j2.y - n.y * e2 });

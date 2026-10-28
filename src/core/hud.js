@@ -90,7 +90,7 @@ export function hudHTML() {
     if (!o) return "";
     return `<button data-h="w-" class="mini">−</button><span class="lab">${o.w.toFixed(2)} m</span><button data-h="w+" class="mini">+</button>
       <span class="vsep"></span><button data-h="gond">Gond</button><button data-h="sens">Sens</button>
-      <button data-h="kind">${o.kind === "porte" ? "→ Fenêtre" : "→ Porte"}</button>
+      <button data-h="kind" title="Porte → fenêtre → porte de garage">${o.kind === "porte" ? "→ Fenêtre" : o.kind === "fenetre" ? "→ Garage" : "→ Porte"}</button>
       <span class="vsep"></span><button data-h="del" title="Supprimer">🗑</button>`;
   }
   if (K.sel.kind === "app") {
@@ -215,7 +215,7 @@ export function wireHud() {
         });
         if (act === "gond") run(() => o.hinge = o.hinge === "g" ? "d" : "g");
         if (act === "sens") run(() => o.swing = o.swing === "int" ? "ext" : "int");
-        if (act === "kind") run(() => o.kind = o.kind === "porte" ? "fenetre" : "porte");
+        if (act === "kind") run(() => o.kind = o.kind === "porte" ? "fenetre" : o.kind === "fenetre" ? "garage" : "porte");   // v57 : porte de garage
       }
       if (act === "dup" && K.sel.kind === "app") {
         duplicateGroup();

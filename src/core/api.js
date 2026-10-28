@@ -12,7 +12,7 @@ import { wallMeasure } from "./interact.js";
 import { worldToScreen } from "./hud.js";
 import { delSel, showSide } from "./panel.js";
 import { VIEW_PRESETS, applyCalib, applyRatio, buildFilter, buildTools, hintFor, resetTransient, setHint, setRoomTxt, setTab, toggleView, viewPreset } from "./controls.js";
-import { addLevel, allLinks, levelFondInfo, levelName, loadFondImage, okteoGeo, removeLevel, renameLevel, switchLevel, withLevel } from "./levels.js";
+import { addLevel, allLinks, appIndex, levelFondInfo, levelName, loadFondImage, okteoGeo, removeLevel, renameLevel, switchLevel, withLevel } from "./levels.js";
 import { CIRC_COLORS } from "./render.js";
 import { CHECK_KINDS, essai, essaiPress, essaiReset, litSet, setBreaker, testAll } from "./check.js";
 
@@ -208,7 +208,10 @@ window.okteo = {
       ...(a.t === "HOTTE" ? { racc: a.racc || (K.CAB.choix || {}).raccordement || "a_choisir" } : {}),
       ...(a.p != null ? { p: a.p } : {}),
       // v56 (R-098) : prise de plan de travail choisie à la main (true / false) ; absent = reconnue automatiquement
-      ...(a.pt === true || a.pt === false ? { pt: a.pt } : {})
+      ...(a.pt === true || a.pt === false ? { pt: a.pt } : {}),
+      // v57 : équipement hors plan (ajouté d'après le devis, à vérifier) ; point que l'IA n'a pas trouvé en relecture
+      ...(a.hp ? { hp: true } : {}),
+      ...(a.aiNo ? { aiNo: a.aiNo } : {})
     }));
     const out = [];
     for (const l of CH.levels) out.push(...(l.id === K.LV.cur ? one(l.id) : withLevel(l.id, () => one(l.id))));
@@ -342,6 +345,8 @@ window.okteo = {
         h: d.h || TYPES[d.t].h,
         auto: true
       };
+      if (d.pt) na.pt = true; // v57 : prise de plan de travail relevée
+      if (d.hp) na.hp = true; // v57 : équipement hors plan (à vérifier avec le devis)
       if (p.seg) {
         na.seg = p.seg;
         attach(na);
@@ -379,6 +384,31 @@ window.okteo = {
       liaisons: nl,
       ids
     };
+  },
+  // v57 : marques d'un appareil (tous niveaux) : hp (hors plan), aiNo (introuvable pour l'IA, jamais redemandé), pt
+  setAppFlags(id, patch = {}) {
+    const e = appIndex().get(id);
+    if (!e) return false;
+    snapshot();
+    for (const k of ["hp", "aiNo", "pt"]) if (k in patch) { if (patch[k] == null || patch[k] === false && k !== "pt") delete e.a[k]; else e.a[k] = patch[k]; }
+    markDirty();
+    draw();
+    showSide();
+    return true;
+  },
+  // v57 : supprime des appareils (tous niveaux) et leurs liaisons : un seul Ctrl+Z
+  removeApps(ids = []) {
+    const S = new Set(ids);
+    snapshot();
+    let n = 0;
+    const one = (d) => { const k = (d.app || []).length; d.app = (d.app || []).filter(a => !S.has(a.id)); n += k - d.app.length; d.lia = (d.lia || []).filter(l => !S.has(l.c) && !S.has(l.l)); };
+    one(state);
+    for (const [id, d] of Object.entries(K.LV.data)) if (id !== K.LV.cur) one(d);
+    clearSel();
+    markDirty();
+    draw();
+    showSide();
+    return n;
   },
   // plusieurs modifications = un seul pas d'annulation
   batch(fn) {
@@ -469,8 +499,8 @@ window.okteo = {
       t: o.t,
       w: o.w,
       kind: o.kind,
-      hinge: "g",
-      swing: "int"
+      hinge: o.hinge === "d" ? "d" : "g",   // v57 : gond et sens relevés par l'IA
+      swing: o.swing === "ext" ? "ext" : "int"
     }));
     state.app.forEach(a => {
       if (!a.seg || !segById(a.seg)) reattach(a);

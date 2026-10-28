@@ -130,7 +130,7 @@ export async function chat({ system, messages, maxTokens = 1800, provider, model
   model = model || s.models[provider] || PROVIDERS[provider].defaultModel;
   const key = s.keys[provider] || "";
   const t0 = performance.now();
-  let text, switched = "";
+  let text, switched = "", usage = null;
 
   if (provider === "anthropic") {
     const msgs = messages.map((m) => ({
@@ -141,6 +141,7 @@ export async function chat({ system, messages, maxTokens = 1800, provider, model
     }));
     const body = await anthropicCall(key, { model, max_tokens: maxTokens, system, messages: msgs });
     text = (body.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
+    if (body.usage) usage = { in: body.usage.input_tokens || 0, out: body.usage.output_tokens || 0 };
   } else {
     const env = settings.env || {};
     if (env.checked && !env.online) throw new AIError("NVIDIA ne marche que dans la version locale du logiciel (NVIDIA bloque les appels depuis un site en ligne). En ligne, utilisez une clé Claude (Paramètres).", 0);
@@ -160,9 +161,10 @@ export async function chat({ system, messages, maxTokens = 1800, provider, model
       body = await nvidiaCall({ key, model, system, messages, maxTokens, think });
     }
     text = body.choices?.[0]?.message?.content || "";
+    if (body.usage) usage = { in: body.usage.prompt_tokens || 0, out: body.usage.completion_tokens || 0 };
   }
   text = stripThink(text);
-  return { text: text || "(réponse vide)", provider, model, ms: Math.round(performance.now() - t0), sawImage: PROVIDERS[provider].vision(model), switched };
+  return { text: text || "(réponse vide)", provider, model, ms: Math.round(performance.now() - t0), sawImage: PROVIDERS[provider].vision(model), switched, usage };
 }
 
 // Test de connexion depuis les Paramètres

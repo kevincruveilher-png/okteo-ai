@@ -325,13 +325,23 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   rotation de la vue `K.view.rot` (`viewRot`, `W2V`/`V2W` tournés, `viewTransform()` pour `g.world` et fx, `viewWorldBox`,
   `rotExtent` dans fit/zoomToBox, `rotateView(deg, abs)`, `upright(svg)` pour les textes, symboles contre-tournés,
   boutons `#vr-*`, `okteo.rotateView/viewRot/shownAt/symCm`).
+- v57 (0.58.1, après la 58) : hors plan R-100 = `src/cablage/horsplan.js` (pur : `HP_ITEMS`, `proposal` (registre
+  localStorage `okteo.horsplan.v1`, `HP_SEED` MAILLARD, coché ≥ `HP_FREQ` 80 %), `placeHorsPlan(list, rooms, {tab, have})`,
+  `recordChantier`) + `src/ext/horsplan-ui.js` (`hpSection`/`wireHpSection` dans le panneau Câblage `#hp-sec`, `#hp-go`,
+  `poserHorsPlan` = `api.batch` : `cab.horsplan` + `importDevices(..., hp:true)`) ; marque `rect.hp-mark` (render),
+  Propriétés `#f_hp`/`#f_hpok`. Relecture ciblée : `src/walls/ai-recheck.js` (pur : `recheckPoints` (cadre {x0,y0,w,h}
+  en m, positions en %, `done`, `a.aiNo` exclus), `recheckPrompt`, `parseCorrections` → {links ("add:i"), adds, nope,
+  errors, silent}, `shouldContinue`) + `src/ext/ai-recheck-ui.js` (`.rkcard`, `#rk-copy`, `#rk-paste`, `#rk-read`,
+  `#rk-ok`, `#rk-auto`, `#rk-stop` ; `loop({max, ids})` sur `okteo:ai-releve` {devices, mode:"key"}, préférence
+  `relectures` 0–3 dans prefs.js, `#pref-relect`). Consigne : `gx,gy,vx,vy` → `hinge`/`swing`, `t:"garage"`, `pt`.
+  Ouverture `kind:"garage"` (render, levels sans arc, print, panel, hud). API `setAppFlags`, `removeApps`.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
-Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (31 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (63 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (175 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (12 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (149 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (36 vérifications : relevé des murs, des pièces et des
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (65 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (175 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (12 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (153 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

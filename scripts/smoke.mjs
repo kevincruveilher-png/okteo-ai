@@ -45,6 +45,12 @@ const mock = http.createServer((req, res) => {
         liaisons: [[0, 1]], remarques: "plan de test",
       }) + "\n```";
     }
+    else if (/Relecture ciblée/.test(lastText)) {
+      // v57 : relecture ciblée : chaque point est relié au premier repère proche
+      const L = [];
+      for (const m of lastText.matchAll(/^\d+\. (\S+) \([^\n]*\n\s+Repères proches : (\S+) \(/gm)) L.push([m[2], m[1]]);
+      text = JSON.stringify({ liaisons: L, ajouts: [], introuvable: [], remarques: hasImage ? "image reçue" : "" });
+    }
     else if (/Analyse ce plan/.test(lastText)) {
       const rid = (j.system || msgs[0]?.content || "").match(/"id":"(r\d+)"/)?.[1] || "r1";
       text = `## Dessin\n- La pièce [${rid}] n'a pas de point lumineux.\n## Priorités\n1. Ajouter un point lumineux${hasImage ? "\n(image reçue)" : ""}\n\`\`\`okteo\n{"suggest":[{"do":"zoom","ids":["${rid}"],"label":"Voir la pièce"}]}\n\`\`\``;
@@ -54,7 +60,7 @@ const mock = http.createServer((req, res) => {
     if (j.model === "nvidia/nemotron-nano-12b-v2-vl") { res.statusCode = 410; return res.end(JSON.stringify({ error: { message: "The model 'nvidia/nemotron-nano-12b-v2-vl' has reached its end of life" } })); }
     if (req.url === "/v1/messages") {
       if (req.headers["x-api-key"] !== "sk-test") { res.statusCode = 401; return res.end(JSON.stringify({ error: { message: "invalid x-api-key" } })); }
-      return res.end(JSON.stringify({ content: [{ type: "text", text }] }));
+      return res.end(JSON.stringify({ content: [{ type: "text", text }], usage: { input_tokens: 1000, output_tokens: 200 } }));
     }
     if (req.url === "/v1/chat/completions") {
       if (req.headers.authorization !== "Bearer nvapi-test") { res.statusCode = 401; return res.end(JSON.stringify({ error: { message: "unauthorized" } })); }
@@ -711,6 +717,104 @@ try {
     const back = await ev(() => okteo.state.app.length);
     const ok = cons && P.t === "RAD,VR,CVR,INT,LUM" && P.h === "0,0,110,120,0" && P.links === "CVR>VR,INT>LUM" && A.int === 120 && A.rad && A.lia === 2 && back === n0;
     if (!ok) throw new Error(JSON.stringify({ cons, P, A, back, n0 }));
+    return true;
+  });
+  // v57 : relecture ciblée (sans clé : copier / coller ; avec clé : boucle limitée)
+  const rkSetup = () => ev(() => {
+    const xs = okteo.state.nodes.map((n) => n.x).concat(okteo.state.app.map((a) => a.x)), ys = okteo.state.nodes.map((n) => n.y).concat(okteo.state.app.map((a) => a.y));
+    const X = Math.max(...xs) + 1.5, Y = Math.max(...ys) + 1.5;
+    return okteo.importDevices([{ t: "APP", x: X, y: Y }, { t: "INT", x: X + 0.6, y: Y }], []).ids;
+  });
+  await check("relecture ciblée sans clé (v57) : points du contrôle → « Copier la relecture » ; corrections collées → aperçu → appliquées en un seul Ctrl+Z", async () => {
+    const ids = await rkSetup();
+    const n0 = await ev(() => okteo.state.lia.length);
+    await ev((ids) => okteoExt.recheck.open({ ids }), ids);
+    await page.waitForSelector("#rk-copy", { timeout: 10000 });
+    const list = await page.textContent(".rkcard .rk-list");
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/relecture.png" });
+    await page.click("#rk-copy");
+    await page.waitForFunction(() => !/Copier la relecture/.test(document.querySelector("#rk-copy").textContent), null, { timeout: 5000 });
+    const txt = await ev(() => okteoExt.recheck.copied);
+    const reps = await ev((ids) => ids.map((id) => okteo.allApps().find((a) => a.id === id).rep), ids);
+    const cons = /Relecture ciblée/.test(txt) && txt.includes(reps[0]) && txt.includes("Repères proches : " + reps[1]) && /POURCENTAGE de la page 1 du PDF joint/.test(txt);
+    await page.fill("#rk-paste", JSON.stringify({ liaisons: [[reps[1], reps[0]]], ajouts: [], introuvable: [] }));
+    await page.click("#rk-read");
+    await page.waitForSelector("#rk-ok", { timeout: 5000 });
+    const prop = await page.textContent(".rkcard");
+    await page.click("#rk-ok");
+    const after = await ev((ids) => ({ lia: okteo.state.lia.filter((l) => l.c === ids[1] && l.l === ids[0]).length, ctl: okteo.control.filter((it) => it.ids.some((x) => ids.includes(x))).length }), ids);
+    await page.keyboard.press("Control+z");
+    const back = await ev(() => okteo.state.lia.length);
+    await ev((ids) => okteo.removeApps(ids), ids);
+    const r = { cons, list, prop: /1 liaison/.test(prop), after, back, n0 };
+    if (!cons || !/lumière sans commande/.test(list) || !r.prop || after.lia !== 1 || after.ctl !== 0 || back !== n0) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("relecture ciblée avec clé (v57) : image + consigne envoyées, corrections appliquées, arrêt quand plus rien à revoir, jetons comptés ; introuvable jamais redemandé", async () => {
+    await ev(() => okteoExt.settings.set({ provider: "anthropic" }));
+    const ids = await rkSetup();
+    const n0 = seen.length;
+    const log = await ev((ids) => okteoExt.recheck.loop({ max: 2, ids }), ids);
+    const reqs = seen.slice(n0).filter((r) => r.url === "/v1/messages");
+    const img = reqs[0] && reqs[0].body.messages[0].content.some((c) => c.type === "image");
+    const linked = await ev((ids) => okteo.state.lia.some((l) => l.c === ids[1] && l.l === ids[0]), ids);
+    const card = await page.textContent(".rkcard");
+    // un point « introuvable » : marqué sur l'appareil, plus jamais demandé
+    await ev((ids) => okteo.removeApps(ids), ids);
+    const ids2 = await rkSetup();
+    const reps2 = await ev((ids) => ids.map((id) => okteo.allApps().find((a) => a.id === id).rep), ids2);
+    await ev(({ ids, reps }) => { okteoExt.recheck.done.clear(); return okteoExt.recheck.open({ ids }).then(() => okteoExt.recheck.fromText(JSON.stringify({ introuvable: [{ rep: reps[0], pourquoi: "pas de commande dessinée" }, { rep: reps[1], pourquoi: "seul" }] }))); }, { ids: ids2, reps: reps2 });
+    await page.click("#rk-ok");
+    const flag = await ev((id) => okteo.allApps().find((a) => a.id === id).aiNo, ids2[0]);
+    const n1 = seen.length;
+    const log2 = await ev((ids) => { okteoExt.recheck.done.clear(); return okteoExt.recheck.loop({ max: 2, ids }); }, ids2);
+    const asked = seen.length - n1;
+    await ev((ids) => { okteo.removeApps(ids); okteoExt.recheck.close(); }, ids2);
+    const r = { log, reqs: reqs.length, img, linked, card: /Relecture terminée/.test(card), flag, log2, asked };
+    if (!log || log.passes !== 1 || log.tokens !== 1200 || !/plus rien/.test(log.why) || reqs.length !== 1 || !img || !linked || !r.card || flag !== "pas de commande dessinée" || asked !== 0 || log2.passes !== 0) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("porte de garage (v57) : sans battant sur le plan et à l'impression, type choisi dans Propriétés", async () => {
+    const r = await ev(() => {
+      const S = window.__okteo.state, o = S.openings.find((x) => x.kind === "porte");
+      if (!o) return null;
+      okteo.select([o.id]); okteoExt.panel.show("props");
+      const sel = document.querySelector("#ok");
+      sel.value = "garage"; sel.dispatchEvent(new Event("change", { bubbles: true }));
+      const g = okteo.exportGeometry().openings.find((x) => x.kind === "garage");
+      const title = document.querySelector("#sidebody h3")?.textContent;
+      const dashed = document.querySelectorAll('#sv line[stroke-dasharray="0.25 0.12"]').length;
+      return { kind: o.kind, arc: g && !!(g.arc || g.leaf), title, dashed, id: o.id };
+    });
+    await page.keyboard.press("Control+z");
+    const back = await ev((id) => window.__okteo.state.openings.find((x) => x.id === id).kind, r && r.id);
+    await ev(() => okteo.select([]));
+    if (!r || r.kind !== "garage" || r.arc || r.title !== "Porte de garage" || r.dashed < 1 || back !== "porte") throw new Error(JSON.stringify({ r, back }));
+    return true;
+  });
+  await check("équipements hors plan (v57, R-100) : liste du panneau Câblage, posés dans la bonne pièce en violet « à vérifier avec le devis », registre, un seul Ctrl+Z", async () => {
+    await ev(() => { okteoExt.panel.show("cablage"); });
+    await page.waitForSelector("#hp-sec", { timeout: 5000 });
+    await ev(() => { document.getElementById("hp-sec").open = true; });
+    const n0 = await ev(() => ({ app: okteo.state.app.length, four: okteo.allApps().filter((a) => a.t === "FOUR").length, ss: okteo.allApps().filter((a) => a.t === "SS").length }));
+    const pre = await ev(() => [...document.querySelectorAll("#hp-sec [data-hp]")].filter((c) => c.checked).map((c) => c.dataset.hp).join(","));
+    await ev(({ four, ss }) => { const fire = (el) => el.dispatchEvent(new Event("change"));
+      document.querySelectorAll("#hp-sec [data-hp]").forEach((c) => { c.checked = ["FOUR", "SS"].includes(c.dataset.hp); fire(c); });
+      const f = document.querySelector('#hp-sec [data-hq="FOUR"]'), s = document.querySelector('#hp-sec [data-hq="SS"]'); f.value = four + 1; fire(f); s.value = ss + 1; fire(s); }, n0);
+    await page.click("#hp-go");
+    const A = await ev(() => { const N = okteo.state.app.filter((a) => a.hp); return { n: N.length, t: N.map((a) => a.t).sort().join(","), rooms: N.map((a) => okteo.allApps().find((x) => x.id === a.id).room || "-").join(","), mark: document.querySelectorAll("#sv rect.hp-mark").length, cab: JSON.stringify(okteo.cab.horsplan), reg: JSON.parse(localStorage.getItem("okteo.horsplan.v1")).chantiers[okteo.ch.id] }; });
+    const sec = await page.textContent("#hp-sec summary");
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/hors-plan.png" });
+    // panneau Propriétés : marque « à vérifier » et bouton Vérifié
+    const id = await ev(() => okteo.state.app.find((a) => a.hp).id);
+    await ev((id) => { okteo.select([id]); okteoExt.panel.show("props"); }, id);
+    const note = await page.isVisible("#f_hp");
+    await page.keyboard.press("Control+z");
+    const back = await ev(() => ({ app: okteo.state.app.length, hp: okteo.state.app.filter((a) => a.hp).length, cab: okteo.cab.horsplan || null }));
+    await ev(() => okteo.select([]));
+    const r = { pre, A, sec, note, back, n0 };
+    if (!/FOUR/.test(pre) || A.n !== 2 || A.t !== "FOUR,SS" || A.mark < 2 || !/"FOUR":/.test(A.cab) || !A.reg || !A.reg.FOUR || !/2 posés à vérifier/.test(sec) || !note
+      || back.app !== n0.app || back.hp !== 0 || back.cab) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("version en ligne : Claude appelé directement depuis le navigateur ; NVIDIA refusé avec un message clair", async () => {

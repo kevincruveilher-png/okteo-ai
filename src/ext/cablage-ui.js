@@ -11,6 +11,7 @@ import { wiringNow, autoBoxes, removeBoxPlan, fr, cabS } from "./cablage-data.js
 import { buildUnits, MODES } from "../cablage/boites.js";
 import { createCompare } from "./pieuvre-compare.js";
 import { controlSection, wireControlSection } from "./controle-ui.js";
+import { hpSection, wireHpSection, hpOpen } from "./horsplan-ui.js";
 
 const KIND = { eclairage: "Éclairage", prises: "Prises", cuisine: "Prises cuisine", specialise: "Spécialisé", comm: "Communication" };
 const LIGHT = new Set(["LUM", "SPOT", "APP"]);
@@ -92,7 +93,7 @@ export function createCablagePane({ api, panel, ctl }) {
     const head = `<div class="cab-h"><b>Circuits</b> <span class="mut sm">NF C 15-100 · max ${S.maxPoints} points / ${S.maxPrises} prises</span></div>
       <label class="ck sm"><input type="checkbox" id="cb-show" ${api.showCircuits ? "checked" : ""}> Couleurs des circuits sur le plan</label>`;
     if (!C.length) {
-      el.innerHTML = `<div class="cab">${controlSection(api)}${head}<p class="mut">Aucun circuit pour l'instant. Oktéo peut répartir tous les appareils du chantier (tous niveaux) en circuits : éclairage par allumage, prises voisines ensemble, un circuit par prise spécialisée, RJ45 en lignes directes.</p>
+      el.innerHTML = `<div class="cab">${controlSection(api)}${hpSection(api, hpOpen)}${head}<p class="mut">Aucun circuit pour l'instant. Oktéo peut répartir tous les appareils du chantier (tous niveaux) en circuits : éclairage par allumage, prises voisines ensemble, un circuit par prise spécialisée, RJ45 en lignes directes.</p>
         <button class="on" id="cb-auto" ${api.allApps().length ? "" : "disabled title=\"Posez d'abord des appareils\""}>Répartir automatiquement</button>
         <p class="mut sm">Réglages (limites, sections, protections, couleurs des fils) : Paramètres → Câblage.</p></div>`;
       wire(); return;
@@ -118,7 +119,7 @@ export function createCablagePane({ api, panel, ctl }) {
     }).join("");
     const orphans = chk.orphans.length ? `<p class="warn sm">⚠ ${chk.orphans.length} appareil${chk.orphans.length > 1 ? "s" : ""} sans circuit (anneau rouge pointillé sur le plan). <button id="cb-orph">Les sélectionner</button></p>` : "";
     const issues = chk.issues.map((x) => `<p class="warn sm">⚠ ${esc(x.msg)}</p>`).join("");
-    el.innerHTML = `<div class="cab">${controlSection(api)}${head}${orphans}${issues}
+    el.innerHTML = `<div class="cab">${controlSection(api)}${hpSection(api, hpOpen)}${head}${orphans}${issues}
       <div class="cb-list">${rows}</div>
       <div class="cb-foot">
         <select id="cb-kind">${Object.entries(KIND).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select>
@@ -243,6 +244,7 @@ export function createCablagePane({ api, panel, ctl }) {
 
   function wire() {
     if (ctl) wireControlSection(el, ctl);
+    wireHpSection(el, api, render);
     wireBoxes();
     const $ = (s) => el.querySelector(s);
     const sh = $("#cb-show"); if (sh) sh.onchange = () => { api.showCircuits = sh.checked; };

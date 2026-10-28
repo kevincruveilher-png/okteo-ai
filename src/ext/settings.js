@@ -94,6 +94,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
         <div class="pcards">${card("anthropic")}${card("nvidia")}</div>
         <h4>Fournisseur utilisé par l'assistant</h4>
         <div class="prov">${provHTML()}</div>
+        <label class="cab-row" id="ps-relect" title="Avec une clé : après un relevé IA, Oktéo renvoie à l'IA les points signalés par le contrôle (lumière sans commande…). Arrêt quand il n'y a plus rien à revoir ou qu'une relecture ne corrige rien ; 3 min au plus par appel ; bouton Arrêter."><span>Relectures automatiques par l'IA<small class="mut">0 = jamais (relecture à la main seulement), 3 au plus. Chaque relecture coûte un appel à l'IA.</small></span><span class="cab-ctl"><input type="number" min="0" max="3" step="1" id="pref-relect" value="${getPrefs().relectures}"></span></label>
         <p class="mut">Conseil : Claude pour l'analyse du plan (meilleure lecture des images). NVIDIA : Nemotron 3.5 Super VL par défaut (gratuit dans la limite des crédits, voit le plan). Si NVIDIA retire un modèle, Oktéo en choisit un autre tout seul. Un modèle sans « VL » ou « vision » ne lit que la liste des objets, pas l'image.</p>
       </section>
       <section class="pset-sec" id="ps-regles"></section>
@@ -160,6 +161,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
 
   function wire() {
     wireCab();
+    const rl = el.querySelector("#pref-relect"); if (rl) rl.onchange = () => { const v = Math.max(0, Math.min(3, Math.round(+rl.value || 0))); rl.value = v; setPref("relectures", v); };
     el.querySelectorAll("[data-pref]").forEach((c) => (c.onchange = () => { setPref(c.dataset.pref, c.checked); c.closest(".cab-row").classList.toggle("chg", c.checked !== PREFS_DEFAULTS[c.dataset.pref]); }));
     const fi = el.querySelector(".pset-find");
     fi.oninput = () => find(fi.value);

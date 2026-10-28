@@ -203,7 +203,11 @@ export function draw() {
         j1y = cy - d.uy * hw,
         j2x = cx + d.ux * hw,
         j2y = cy + d.uy * hw;
-      if (o.kind === "fenetre") {
+      if (o.kind === "garage") {
+        // v57 : porte de garage (sectionnelle, basculante) : grande ouverture sans battant, tablier en pointillés
+        op += `<line x1="${j1x}" y1="${j1y}" x2="${j2x}" y2="${j2y}" stroke="${c}" stroke-width="0.05" stroke-dasharray="0.25 0.12"/>`;
+        op += `<line x1="${j1x + nx * ep / 2}" y1="${j1y + ny * ep / 2}" x2="${j1x - nx * ep / 2}" y2="${j1y - ny * ep / 2}" stroke="${c}" stroke-width="0.04"/><line x1="${j2x + nx * ep / 2}" y1="${j2y + ny * ep / 2}" x2="${j2x - nx * ep / 2}" y2="${j2y - ny * ep / 2}" stroke="${c}" stroke-width="0.04"/>`;
+      } else if (o.kind === "fenetre") {
         op += `<line x1="${j1x + nx * ep / 2}" y1="${j1y + ny * ep / 2}" x2="${j2x + nx * ep / 2}" y2="${j2y + ny * ep / 2}" stroke="${c}" stroke-width="0.04"/>`;
         op += `<line x1="${j1x - nx * ep / 2}" y1="${j1y - ny * ep / 2}" x2="${j2x - nx * ep / 2}" y2="${j2y - ny * ep / 2}" stroke="${c}" stroke-width="0.04"/>`;
         op += `<line x1="${(j1x + j2x) / 2 + nx * ep / 2}" y1="${(j1y + j2y) / 2 + ny * ep / 2}" x2="${(j1x + j2x) / 2 - nx * ep / 2}" y2="${(j1y + j2y) / 2 - ny * ep / 2}" stroke="${c}" stroke-width="0.03" opacity="0.6"/>`;
@@ -402,6 +406,8 @@ export function draw() {
       if (D) ap += `<g class="leader"><line x1="${a.x}" y1="${a.y}" x2="${X}" y2="${Y}" stroke="var(--mut)" stroke-width="${0.06 * ss}"/><circle cx="${a.x}" cy="${a.y}" r="${0.14 * ss}" fill="var(--mut)"/></g>`;
       ap += `<g class="${cls}" data-id="${a.id}"${D ? ` data-moved="1"` : ""}${col ? ` style="--c:${col}"` : ""}${circ && circ[a.id] ? ` data-c="${circ[a.id].n}"` : ""} transform="translate(${X} ${Y})${rot ? ` rotate(${rot})` : ""}"><g transform="scale(${ss})">`;
       if (aSel) ap += `<circle r="1.5" fill="none" stroke="var(--sel)" stroke-width=".12" stroke-dasharray=".3 .25"/>`;
+      // v57 : équipement hors plan (ajouté d'après le devis) : carré pointillé violet « à vérifier avec le devis »
+      if (a.hp) ap += `<rect class="hp-mark" x="-1.25" y="-1.25" width="2.5" height="2.5" rx=".3" fill="none" stroke="#8a4fd8" stroke-width=".12" stroke-dasharray=".35 .25"><title>Hors plan : à vérifier avec le devis</title></rect>`;
       ap += glyph(a.t) + `</g>`;
       ap += `</g>`;
     });

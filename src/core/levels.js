@@ -361,7 +361,7 @@ export function okteoGeo() {
       ep,
       w: o.w
     };
-    if (o.kind !== "fenetre") {
+    if (o.kind !== "fenetre" && o.kind !== "garage") {
       const sdir = o.swing === "ext" ? 1 : -1,
         H = o.hinge === "d" ? j2 : j1,
         F = o.hinge === "d" ? j1 : j2,

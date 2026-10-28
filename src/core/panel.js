@@ -189,11 +189,11 @@ export function showSide() {
   if (K.sel && K.sel.kind === "open") {
     const o = state.openings.find(x => x.id === K.sel.id);
     const L = segLen(segById(o.seg));
-    b.innerHTML = `<h3>${o.kind === "porte" ? "Porte" : "Fenêtre"}</h3>
+    b.innerHTML = `<h3>${o.kind === "porte" ? "Porte" : o.kind === "garage" ? "Porte de garage" : "Fenêtre"}</h3>
      <div class="prop">
       <div class="field"><label>Largeur <span class="u">m</span></label><input id="ow" type="number" step="0.01" value="${o.w}"></div>
       <div class="field"><label>Position <span class="u">m</span></label><input id="ot" type="number" step="0.01" value="${o.t.toFixed(2)}"></div>
-      <div class="field"><label>Type</label><select id="ok"><option value="porte"${o.kind === "porte" ? " selected" : ""}>Porte</option><option value="fenetre"${o.kind === "fenetre" ? " selected" : ""}>Fenêtre</option></select></div>
+      <div class="field"><label>Type</label><select id="ok"><option value="porte"${o.kind === "porte" ? " selected" : ""}>Porte</option><option value="fenetre"${o.kind === "fenetre" ? " selected" : ""}>Fenêtre</option><option value="garage"${o.kind === "garage" ? " selected" : ""} title="Grande ouverture sans battant (sectionnelle, basculante)">Porte de garage</option></select></div>
       <div class="field"><label>Gond</label><select id="oh"><option value="g"${o.hinge === "g" ? " selected" : ""}>Gauche</option><option value="d"${o.hinge === "d" ? " selected" : ""}>Droit</option></select></div>
       <div class="field full"><label>Ouverture</label><select id="os"><option value="int"${o.swing === "int" ? " selected" : ""}>Vers l'intérieur</option><option value="ext"${o.swing === "ext" ? " selected" : ""}>Vers l'extérieur</option></select></div>
      </div>
@@ -420,6 +420,8 @@ export function showSide() {
       <div class="field"><label>X plan <span class="u">m</span></label><input id="f_x" type="number" step="0.01" value="${a.x}"></div>
       <div class="field"><label>Y plan <span class="u">m</span></label><input id="f_y" type="number" step="0.01" value="${a.y}"></div>
       <div class="field full"><label>Hauteur <span class="u">cm</span></label><input id="f_h" type="number" step="1" value="${a.h ?? ""}" ${a.h == null ? 'placeholder="— plafond —"' : ''}></div>${raccHTML(a)}${ptHTML(a)}</div>
+     ${a.hp ? `<p class="note hp-note" id="f_hp">Équipement hors plan, posé d'après le devis : <b>à vérifier avec le devis</b> et à mettre à sa vraie place. <button id="f_hpok" title="Vérifié avec le devis : retire la marque violette">Vérifié</button></p>` : ""}
+     ${a.aiNo ? `<p class="note" id="f_aino">Relecture IA : ${esc0(a.aiNo)} — ce point ne sera plus redemandé. <button id="f_ainox" title="Le redemander à la prochaine relecture">Redemander</button></p>` : ""}
      <div style="display:flex;gap:6px;margin-top:12px"><button id="dup">Dupliquer</button><button id="del" class="danger">Supprimer</button></div>
      <p class="note">${m ? "Fixé au mur : les distances sont mesurées depuis la face intérieure du mur d'angle, comme sur le chantier. Tapez 30 pour « à 30 cm de l'angle »." : "Approchez l'appareil d'un mur pour qu'il s'y fixe et afficher ses distances aux angles."}</p>`;
     const re = () => {
@@ -456,6 +458,8 @@ export function showSide() {
     const fv = b.querySelector("#f_var"); if (fv) fv.onchange = e => set("var", e.target.value);
     const fr = b.querySelector("#f_racc"); if (fr) fr.onchange = e => set("racc", e.target.value);
     const fp = b.querySelector("#f_p"); if (fp) fp.onchange = e => set("p", e.target.value === "" ? "" : Math.max(0, +e.target.value));
+    const hok = b.querySelector("#f_hpok"); if (hok) hok.onclick = () => { snapshot(); delete a.hp; markDirty(); re(); };
+    const aix = b.querySelector("#f_ainox"); if (aix) aix.onclick = () => { snapshot(); delete a.aiNo; markDirty(); re(); };
     const fpt = b.querySelector("#f_pt"); if (fpt) fpt.onchange = e => set("pt", e.target.value === "" ? "" : e.target.value === "oui");
     b.querySelector("#f_x").onchange = e => {
       snapshot();
@@ -580,4 +584,8 @@ function raccHTML(a) {
   if (D.racc === "choix") h += `<div class="field full"><label>Hotte : raccordement</label><select id="f_racc"><option value=""${!a.racc ? " selected" : ""}>Choix du chantier</option><option value="boite"${a.racc === "boite" ? " selected" : ""}>En boîte (circuit cuisine)</option><option value="ligne_directe"${a.racc === "ligne_directe" ? " selected" : ""}>En ligne directe</option><option value="a_choisir"${a.racc === "a_choisir" ? " selected" : ""}>À choisir</option></select></div>`;
   if (D.volet) h += `<div class="field full"><label>Puissance du moteur <span class="u">W</span></label><input id="f_p" type="number" min="0" step="5" value="${a.p ?? ""}" placeholder="${D.p} (valeur du journal)"></div>`;
   return h;
+}
+// texte court sans balise (raison donnée par l'IA)
+function esc0(v) {
+  return String(v == null ? "" : v === true ? "introuvable" : v).replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[c]).slice(0, 200);
 }

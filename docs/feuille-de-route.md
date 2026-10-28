@@ -178,7 +178,7 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
   hauteur) ; R-073 pas d'ICTA 25 en boîte ; types îlot, BPS, sonnette ; volets : jamais « extérieurs », choix
   filaire / connecté demandé au câblage (R-096) ; étiquettes et total des lignes directes comme le BE (R-099) ;
   journal régénéré ; test de référence MAILLARD (outil chantier-wiring, écart avec la bande du BE).
-- **57 — Saisie complète du chantier** : équipements hors plan (R-100 : liste à cocher d'après le devis, registre,
+- **57 — Saisie complète du chantier — FAIT (28/10/2026, 0.58.1 ; livrée après la 58)** : équipements hors plan (R-100 : liste à cocher d'après le devis, registre,
   propositions « à vérifier ») ; relevé IA en boucle (relecture ciblée générée par les alertes, limites) ; consigne
   enrichie (points extérieurs, prises de plan de travail, nouveaux types, gonds et sens des portes) ; porte de garage.
 - **58 — Plan lisible — FAIT (28/10/2026, 0.58.0 ; faite avant la 57)** : taille des symboles d'après le dessin, aucun chevauchement, boîtes plus petites, noms des

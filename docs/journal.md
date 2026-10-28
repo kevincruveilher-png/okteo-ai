@@ -281,6 +281,37 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 57 (28/10/2026) — livrée : saisie complète du chantier (après la 58)
+Version du logiciel : 0.58.1 (la 58 était déjà livrée en 0.58.0).
+- Équipements hors plan (R-100) : section « Équipements hors plan » du panneau Câblage (et Ctrl+K) : four, plaque, hotte,
+  lave-vaisselle, lave-linge, sèche-linge, îlot, VMC + commande, bouches (7), sèche-serviette, équipotentielles locale et
+  principale, antenne, sonnette + bouton, G EXT. Quantité par ligne ; coché d'avance quand l'équipement est sur 80 % des
+  chantiers du registre (localStorage `okteo.horsplan.v1`, 1er chantier : MAILLARD d'après les bandes du BE).
+  « Poser les cochés » ajoute ce qui manque (déjà sur le plan = pas reposé) dans la pièce qui convient (cuisine / pièce de
+  vie, buanderie / cellier / garage, salle de bain, entrée ; équipotentielle principale à côté du tableau ; VMC et antenne
+  au centre de la maison ; bouches une par chambre / séjour), un seul Ctrl+Z. Marque violette « à vérifier avec le
+  devis » (`a.hp`) sur le plan, note et bouton « Vérifié » dans Propriétés ; « Voir », « Retirer ». Liste du chantier
+  gardée dans `cab.horsplan` et dans le registre (fréquences des chantiers suivants). Moteur pur `src/cablage/horsplan.js`.
+- Relecture ciblée par l'IA : menu Relevé → « ✦ Relecture ciblée » (et Ctrl+K). Les points du contrôle (lumière sans
+  commande, commande sans lumière, va-et-vient seul, deux interrupteurs sur une lumière) deviennent une consigne courte :
+  repère, pièce, position en % de la page, repères proches. Sans clé : « Copier la relecture » → la coller dans la
+  conversation du relevé → coller la réponse (liaisons, ajouts, introuvables) → aperçu → « Appliquer » (un Ctrl+Z).
+  Avec clé : relectures automatiques après un relevé IA qui ajoute des appareils (Paramètres → Assistant et relevé IA :
+  0 à 3, 2 par défaut) ; arrêt quand plus rien n'est à revoir ou qu'une relecture ne corrige rien ; 3 min au plus par
+  appel ; bouton « Arrêter » ; compteur « Relecture 1/2 » et jetons consommés ; un Ctrl+Z par relecture. Un point dit
+  introuvable est marqué sur l'appareil (`a.aiNo`, « Redemander » dans Propriétés) et n'est plus jamais redemandé ; un
+  point déjà demandé ne l'est plus dans la session (« Tout redemander »). Pur : `src/walls/ai-recheck.js` ; interface
+  `src/ext/ai-recheck-ui.js`. Sans clé, pas de boucle.
+- Consigne du relevé enrichie : commandes des points extérieurs (à l'intérieur près de la porte ou de la baie, boîtier
+  double, suivre le trait), `"pt": true` pour les prises de plan de travail (importé sur les PC16), portes avec le montant
+  des gonds (`gx, gy`) et un point de l'arc (`vx, vy`) → gond gauche / droite et sens d'ouverture importés, type
+  « garage ». Les types îlot, BPS, sonnette y étaient déjà (55.1).
+- Porte de garage : nouveau type d'ouverture (`kind: "garage"`) : grande ouverture sans battant, tablier en pointillés,
+  à l'écran et à l'impression ; Propriétés (Type) et menu flottant (porte → fenêtre → garage).
+- API : `okteo.setAppFlags(id, {hp, aiNo, pt})`, `okteo.removeApps(ids)` ; `allApps()` rend `hp`, `aiNo` ; `chat()` rend
+  `usage` (jetons). `okteoExt.recheck` (open, loop, fromText, apply, stop).
+- Tests : 36 + 65 + 175 + 12 + 153 = 441.
+
 ## Version 58 (28/10/2026) — livrée : plan lisible (avant la 57, à la demande de Kévin)
 Version du logiciel : 0.58.0.
 - Taille des symboles d'après le dessin : 5 cm par mètre de la plus petite dimension médiane des pièces, entre 12 et

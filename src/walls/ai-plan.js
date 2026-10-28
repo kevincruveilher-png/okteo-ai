@@ -43,20 +43,23 @@ function promptBody(coords) {
 Règles :
 ${coords}
 - Murs : un segment sur l'AXE du mur (milieu de son épaisseur), d'un angle à l'autre ; "ep" = épaisseur en cm (murs extérieurs souvent 20 à 30 cm, cloisons 5 à 10 cm). Les murs se rejoignent exactement aux angles et aux jonctions en T (même point).
-- Un mur PASSE à travers ses portes et fenêtres : ne le coupe jamais à une ouverture. Donne les ouvertures à part (centre sur l'axe du mur, largeur en cm, "porte" ou "fenetre"). Chaque pièce doit être entièrement fermée par des murs.
+- Un mur PASSE à travers ses portes et fenêtres : ne le coupe jamais à une ouverture. Donne les ouvertures à part : centre sur l'axe du mur, largeur en cm, type "porte", "fenetre" ou "garage" (porte de garage sectionnelle ou basculante : grande, sans arc de battant). Chaque pièce doit être entièrement fermée par des murs.
+- Pour chaque porte (type "porte") : "gx","gy" = le montant où sont les gonds (là où pivote le battant), et "vx","vy" = un point au milieu de l'arc dessiné, du côté où la porte s'ouvre. Regarde l'arc du battant sur le plan.
 - Pièces : le nom écrit sur le plan et un point à l'intérieur de la pièce. Ne crée pas de pièce qui n'est pas écrite.
 - Appareils : le centre du symbole, son type parmi la liste ci-dessous, et "h" = hauteur en cm quand elle est écrite à côté (ex. « H:1.20m » → 120), sinon pas de "h".
 ${types}
   Prends le type le plus précis : une prise marquée « LL » ou « lave-linge » est LL, pas PC20 ; un chauffe-eau est CETH, pas SC ; une commande de volet est CVR, pas SC ni INT. SC seulement si l'usage n'est pas reconnaissable.
+  Une prise posée le long du plan de travail de la cuisine (souvent écrite « H:1.10m » ou « PT ») : ajoute "pt": true.
 - Liaisons : [indice de la commande, indice de l'appareil commandé] dans la liste des appareils :
   INT, VV ou BP vers LUM, APP ou SPOT ; CVR vers VR ou VEL.
   Un allumage commandé de plusieurs endroits : chaque VV (ou BP) est relié à TOUTES les lumières qu'il commande. Une commande qui allume plusieurs lumières : une liaison par lumière.
+  Points extérieurs (appliques, spots en façade, terrasse) : leur commande est presque toujours À L'INTÉRIEUR, près de la porte ou de la baie la plus proche, souvent dans un boîtier double avec une autre commande ; suis le trait de liaison. Chaque lumière doit avoir sa commande ; sinon dis-le dans "remarques".
 - N'invente rien : ce que tu ne vois pas reste absent. Mets dans "remarques" ce qui est douteux.`;
 }
 const JSON_FORM = `{"murs":[{"x1":0,"y1":0,"x2":0,"y2":0,"ep":20}],
- "ouvertures":[{"x":0,"y":0,"l":90,"t":"porte"}],
+ "ouvertures":[{"x":0,"y":0,"l":90,"t":"porte","gx":0,"gy":0,"vx":0,"vy":0},{"x":0,"y":0,"l":240,"t":"garage"}],
  "pieces":[{"nom":"Cuisine","x":0,"y":0}],
- "appareils":[{"t":"PC16","x":0,"y":0},{"t":"INT","x":0,"y":0,"h":110},{"t":"LUM","x":0,"y":0}],
+ "appareils":[{"t":"PC16","x":0,"y":0},{"t":"INT","x":0,"y":0,"h":110},{"t":"LUM","x":0,"y":0},{"t":"PC16","x":0,"y":0,"h":110,"pt":true}],
  "liaisons":[[1,2]],
  "remarques":"ce qui est douteux, en une ou deux phrases"}`;
 
@@ -183,8 +186,17 @@ export function aiToPlan(raw, map, { defEp = 0.2, mergeTol = 0.15, axisTol = 4 }
     });
     if (!best) { stats.ouverturesPerdues++; continue; }
     if (best.shift > 1e-6) stats.ouverturesAjustees = (stats.ouverturesAjustees || 0) + 1;
-    const kind = /fen|win/i.test(o.t || "") ? "fenetre" : /porte|door/i.test(o.t || "") ? "porte" : segs[best.seg].ep < 0.15 ? "porte" : "fenetre";
-    openings.push({ seg: best.seg, t: +best.t.toFixed(3), w: +best.w.toFixed(3), kind });
+    const kind = /gar|sect|bascul/i.test(o.t || "") ? "garage" : /fen|win/i.test(o.t || "") ? "fenetre" : /porte|door/i.test(o.t || "") ? "porte" : segs[best.seg].ep < 0.15 ? "porte" : "fenetre";
+    // v57 : gond (côté du montant gx, gy) et sens (côté du point vx, vy) relevés par l'IA ; sinon gauche / intérieur
+    let hinge = "g", swing = "int";
+    if (kind === "porte") {
+      const A = nodes[segs[best.seg].a], B = nodes[segs[best.seg].b], L = Math.hypot(B.x - A.x, B.y - A.y) || 1, ux = (B.x - A.x) / L, uy = (B.y - A.y) / L;
+      const g = ok(num(o.gx), num(o.gy)) ? P(num(o.gx), num(o.gy)) : null, v = ok(num(o.vx), num(o.vy)) ? P(num(o.vx), num(o.vy)) : null;
+      if (g) hinge = (g.x - A.x) * ux + (g.y - A.y) * uy > best.t ? "d" : "g";
+      if (v) { const c = { x: A.x + ux * best.t, y: A.y + uy * best.t }; swing = (v.x - c.x) * -uy + (v.y - c.y) * ux > 0 ? "ext" : "int"; }
+      if (g || v) stats.portesOrientees = (stats.portesOrientees || 0) + 1;
+    }
+    openings.push({ seg: best.seg, t: +best.t.toFixed(3), w: +best.w.toFixed(3), kind, hinge, swing });
   }
 
   // 5. pièces (nom + point) et appareils
@@ -195,7 +207,7 @@ export function aiToPlan(raw, map, { defEp = 0.2, mergeTol = 0.15, axisTol = 4 }
     const t = String(d.t || "").toUpperCase(), u = num(d.x), v = num(d.y);
     if (!AI_TYPES[t] || !ok(u, v)) return;
     const h = num(d.h);   // hauteur écrite sur le plan (cm), gardée si plausible
-    devIdx[i] = devices.length; devices.push({ t, ...P(u, v), ...(h > 0 && h <= 300 ? { h: Math.round(h) } : {}) });
+    devIdx[i] = devices.length; devices.push({ t, ...P(u, v), ...(h > 0 && h <= 300 ? { h: Math.round(h) } : {}), ...(t === "PC16" && (d.pt === true || d.pt === "true") ? { pt: true } : {}) });
   });
   const links = [];
   (raw.liaisons || []).forEach((l) => {

@@ -69,3 +69,9 @@ Recâblage complet avec les nouvelles règles : 16 départs, mode Équilibrée q
   - les équipements hors plan (R-100) ;
   - les doutes du relevé (chauffe-eau, 2e Aqua Air) ;
   - les prises de plan de travail du relevé : leurs hauteurs ne sont pas relevées, il faut les marquer à la main ou les ajouter à la consigne IA.
+
+## 6. Après la mise à jour 57 (28/10/2026)
+- **Équipements hors plan** : panneau Câblage → « Équipements hors plan ». La liste de MAILLARD est le 1er chantier du registre (four, plaque, hotte, LV, LL, SL, îlot, VMC + commande, 7 bouches, sèche-serviette, EQ locale et principale, antenne, sonnette + bouton, G EXT). Ils sont posés dans la pièce qui convient, en violet « à vérifier avec le devis ».
+- **Relevé** : la consigne demande maintenant les commandes des points extérieurs, les prises de plan de travail (`pt`), le sens des portes et la porte de garage.
+- **Relecture ciblée** : les points du contrôle (le WC et les spots extérieurs sur MAILLARD) sont renvoyés à l'IA, à la main sans clé ou automatiquement avec une clé (2 relectures au plus).
+- Restent à vérifier sur le prochain essai : le chauffe-eau et le 2e Aqua Air (doutes du relevé).

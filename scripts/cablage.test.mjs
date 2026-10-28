@@ -1,4 +1,5 @@
 // Tests du câblage (sans navigateur) : diamètre des gaines (exemples de Kévin) et répartition des circuits sur EVRARD.
+import { HP_ITEMS, proposal, placeHorsPlan, stats as hpStats } from "../src/cablage/horsplan.js";
 import fs from "node:fs";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import { extractSegments } from "../src/walls/extract.js";
@@ -380,6 +381,23 @@ console.log("Tableau électrique (v46)");
   check("synchro : circuit disparu retiré, nouveau circuit signalé ; coffret 1 rangée trop petit → suggestion 4 rangées ; ajout sous un ID du bon type",
     !S2.rows.flat().some((x) => x.c === "C4") && S2.missing.map((c) => c.n).join() === "C20" && tableauIssues(S2, C).some((x) => /rangées pour un coffret de 1/.test(x)) && big.rows >= 4
       && protections(addBreaker(T.rows, { n: "C21", kind: "specialise", prot: 32 })).size === 14, big.id);
+}
+{
+  // v57 (R-100) : équipements hors plan : cochés d'après les chantiers déjà faits, posés dans la bonne pièce
+  const sq = (x0, y0, x1, y1) => [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }];
+  const rooms = [{ name: "Cuisine", poly: sq(0, 0, 4, 4) }, { name: "Salle de bain", poly: sq(4, 0, 7, 3) }, { name: "Cellier", poly: sq(7, 0, 9, 3) },
+    { name: "Chambre 1", poly: sq(0, 4, 4, 8) }, { name: "Chambre 2", poly: sq(4, 4, 8, 8) }, { name: "Entrée", poly: sq(8, 4, 10, 8) }, { name: "Garage", poly: sq(10, 0, 14, 8) }];
+  const R = { chantiers: { A: { FOUR: 1, LL: 1, BOUCHE: 5, ANT: 1 }, B: { FOUR: 1, LL: 1, BOUCHE: 7 }, C: { FOUR: 1, BOUCHE: 7 }, D: { FOUR: 1, LL: 1 }, E: { FOUR: 1 } } };
+  const L = proposal(null, R), on = (t) => L.find((x) => x.t === t);
+  const st = hpStats(R);
+  check("hors plan : coché d'avance à partir de 80 % des chantiers (four 5/5 oui, lave-linge 3/5 non) ; quantité habituelle (bouches : 7)",
+    on("FOUR").on && !on("LL").on && !on("ANT").on && on("BOUCHE").q === 7 && st.LL.freq === 0.6 && L.length === HP_ITEMS.length, JSON.stringify({ four: on("FOUR"), ll: on("LL"), b: on("BOUCHE") }));
+  const list = proposal({ FOUR: 1, LL: 1, SS: 1, EQP: 1, BOUCHE: 3, SON: 1, GEXT: 1, VMCG: 1 }, R);
+  const pos = placeHorsPlan(list, rooms, { tab: { x: 9, y: 7 }, have: { LL: 1 } });
+  const at = (t) => pos.filter((p) => p.t === t);
+  check("hors plan : four en cuisine, sèche-serviette en salle de bain, équipotentielle à côté du tableau, bouches dans les chambres, sonnette dans l'entrée ; déjà posé = pas reposé",
+    at("FOUR")[0].room === "Cuisine" && at("SS")[0].room === "Salle de bain" && at("EQP")[0].room === null && Math.abs(at("EQP")[0].x - 9.4) < 1e-9 && at("BOUCHE").length === 3
+      && at("BOUCHE").every((p) => /Chambre/.test(p.room)) && at("SON")[0].room === "Entrée" && at("GEXT")[0].room === "Garage" && !at("LL").length && at("VMCG")[0].room === null, JSON.stringify(pos));
 }
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);

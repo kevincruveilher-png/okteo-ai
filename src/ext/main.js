@@ -21,6 +21,7 @@ import { createControl, describe as ctlDescribe } from "./controle-ui.js";
 import { createEssai } from "./essai-ui.js";
 import { mountBoxesPage, mountDirectPage } from "./cablage-pages.js";
 import { createAiReleve } from "./ai-releve.js";
+import { createRecheck } from "./ai-recheck-ui.js";
 import { ensurePaperW, chantierScaleCheck } from "./pdf-page.js";
 import { mountBandsPage } from "./cablage-bandes.js";
 import { mountTableauPage } from "./tableau-page.js";
@@ -56,6 +57,8 @@ function start() {
     const pct = Math.abs((s.facteur - 1) * 100).toFixed(0);
     api.setHint(`⚠ Les cotes du plan (${s.cotes}) indiquent une échelle fausse de ${pct} % : le PDF n'est peut-être pas à son format d'origine (A3 imprimé en A4 ?). Menu Relevé → 1. Murs → « Corriger l'échelle », ou réglez-la sur une cote.`);
   });
+  const recheck = createRecheck({ api, aiReleve });
+  hooks.recheck = () => recheck.open();
   hooks.aiReleve = () => aiReleve.open();
   hooks.aiPaste = () => aiReleve.pastePanel();
   document.addEventListener("okteo:walls", () => walls.open());
@@ -117,6 +120,7 @@ function start() {
   document.getElementById("rv-rooms").onclick = relev(() => rooms.open());
   document.getElementById("rv-devices").onclick = relev(() => devices.open());
   document.getElementById("rv-ai").onclick = relev(() => aiReleve.open());
+  document.getElementById("rv-recheck").onclick = relev(() => recheck.open());
   hooks.openReleve = () => setRelev(true);
   document.getElementById("btn-print").onclick = () => printer.open();
 
@@ -139,6 +143,7 @@ function start() {
   const packs = createPacksPane({ api, panel });
   hooks.packs = () => panel.show("packs");
   hooks.cablage = () => panel.show("cablage");
+  hooks.horsplan = () => { panel.show("cablage"); setTimeout(() => { const d = document.getElementById("hp-sec"); if (d) { d.open = true; d.scrollIntoView({ block: "start" }); } }, 60); };
   hooks.circuitsAuto = () => { panel.show("cablage"); cablage.auto(); };
   hooks.boxesAuto = () => { panel.show("cablage"); cablage.placeAuto(); };
   const tour = createTour({ api, panel, hooks });
@@ -146,7 +151,7 @@ function start() {
   hooks.steps = () => { panel.show("steps"); tour.render(); };
   const doubts = createDoubts(api), why = createWhy(api);
   hooks.cabler = () => { const r = cabler(api); api.setHint(r.text); if (pages.etude.ui) pages.etude.ui.render(); return r.text; };
-  window.okteoExt = { doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, pages, backup: null };
+  window.okteoExt = { doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, recheck, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 
