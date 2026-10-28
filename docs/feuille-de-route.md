@@ -405,6 +405,7 @@ Décisions (Claude) :
   écrits dans le code : ils changent).
 - Livré : parcours en 7 étapes, copier / coller sans clé (essais), jetons réels du relevé et des relectures, temps BE
   et coûts (Paramètres → Coûts d'un chantier). Ergonomie du Mode BE ci-dessous = mise à jour 64.
+- **64 — FAIT (28/10/2026, 0.64.0)** : ergonomie du Mode BE livrée (fenêtre unique, compteur unique, onglet Pieuvre, panneau Câblage allégé, ⓘ).
 - Ergonomie (propositions de Claude, **mise à jour 64**) : une seule fenêtre de travail à la fois (les cartes ne s'empilent plus) ; un seul
   compteur « à vérifier » (contrôle + doutes) ; panneau Câblage allégé ; onglets Boîtes / Lignes directes / Bandes
   réunis ; textes d'aide longs remplacés par des infobulles (?).

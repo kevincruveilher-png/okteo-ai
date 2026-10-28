@@ -23,6 +23,7 @@ import { mountBoxesPage, mountDirectPage } from "./cablage-pages.js";
 import { createAiReleve } from "./ai-releve.js";
 import { createRecheck } from "./ai-recheck-ui.js";
 import { createIaMode } from "./ia-mode.js";
+import { createOneCard } from "./one-card.js";
 import { createTemps } from "./temps.js";
 import { ensurePaperW, chantierScaleCheck } from "./pdf-page.js";
 import { mountBandsPage } from "./cablage-bandes.js";
@@ -86,8 +87,13 @@ function start() {
     bandes: { el: document.getElementById("bandes"), mount: (el) => mountBandsPage(el, { api }), ui: null },
     tableau: { el: document.getElementById("tableau"), mount: (el) => mountTableauPage(el, { api }), ui: null },
   };
+  // v64 : Boîtes, Bandes et Lignes directes réunies sous l'onglet « Pieuvre » (sous-onglets en haut)
+  const pgEl = document.getElementById("pg-pieuvre"), SUB = ["boites", "bandes", "lignes"];
+  pgEl.querySelectorAll("[data-sub]").forEach((b) => (b.onclick = () => api.setTab(b.dataset.sub)));
   const onTab = (t) => {
     stage.hidden = !!pages[t];
+    pgEl.hidden = !SUB.includes(t);
+    pgEl.querySelectorAll("[data-sub]").forEach((b) => { b.classList.toggle("on", b.dataset.sub === t); b.setAttribute("aria-pressed", String(b.dataset.sub === t)); });
     for (const [k, pg] of Object.entries(pages)) {
       pg.el.hidden = k !== t;
       if (k === t) { if (!pg.ui) pg.ui = pg.mount(pg.el); else pg.ui.render(); }
@@ -155,9 +161,10 @@ function start() {
   // v63 : temps de travail BE compté sur le chantier ; mode IA (interface simplifiée)
   const temps = createTemps(api);
   const iaMode = createIaMode({ api, aiReleve, recheck, ctl });
+  const oneCard = createOneCard();   // v64 : une seule fenêtre de travail à la fois
   hooks.modeIa = () => iaMode.setMode(iaMode.mode === "ia" ? "be" : "ia");
   hooks.cabler = () => { const r = cabler(api); api.setHint(r.text); if (pages.etude.ui) pages.etude.ui.render(); return r.text; };
-  window.okteoExt = { doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, recheck, iaMode, temps, pages, backup: null };
+  window.okteoExt = { doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, recheck, iaMode, temps, oneCard, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 

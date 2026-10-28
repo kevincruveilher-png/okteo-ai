@@ -18,7 +18,7 @@ const LIGHT = new Set(["LUM", "SPOT", "APP"]);
 
 export function createCablagePane({ api, panel, ctl }) {
   const el = panel.register({ id: "cablage", label: "Câblage", icon: "⚡", tip: "Circuits, boîtes et gaines : répartition, placement, réglages" });
-  let ask = null, renaming = null, askBox = false;
+  let ask = null, renaming = null, askBox = false, circOpen = null;   // v64 : liste des circuits ouverte / repliée à la main
   const fr = (v) => String(v).replace(".", ",");
 
   function data() {
@@ -90,7 +90,8 @@ export function createCablagePane({ api, panel, ctl }) {
     // une saisie en cours (nombre de boîtes, boîtes cochées) survit à un nouvel affichage (enregistrement automatique…)
     const keepCount = el.querySelector("#bx-count")?.value, keepRedo = new Map([...el.querySelectorAll(".bx-redo")].map((c) => [c.value, c.checked]));
     const { S, C, chk, byId } = data(), colors = api.circuitColors;
-    const head = `<div class="cab-h"><b>Circuits</b> <span class="mut sm">NF C 15-100 · max ${S.maxPoints} points / ${S.maxPrises} prises</span></div>
+    const info = (t) => `<i class="info" tabindex="0" title="${esc(t)}">i</i>`;
+    const head = `<div class="cab-h"><b>Circuits</b> <span class="mut sm">${C.length || ""}</span>${info(`NF C 15-100 : au plus ${S.maxPoints} points lumineux / ${S.maxPrises} prises par circuit. Couleur = circuit. Réglages (limites, sections, protections, couleurs des fils) : Paramètres → Câblage.`)}</div>
       <label class="ck sm"><input type="checkbox" id="cb-show" ${api.showCircuits ? "checked" : ""}> Couleurs des circuits sur le plan</label>`;
     if (!C.length) {
       el.innerHTML = `<div class="cab">${controlSection(api)}${hpSection(api, hpOpen)}${head}<p class="mut">Aucun circuit pour l'instant. Oktéo peut répartir tous les appareils du chantier (tous niveaux) en circuits : éclairage par allumage, prises voisines ensemble, un circuit par prise spécialisée, RJ45 en lignes directes.</p>
@@ -119,16 +120,18 @@ export function createCablagePane({ api, panel, ctl }) {
     }).join("");
     const orphans = chk.orphans.length ? `<p class="warn sm">⚠ ${chk.orphans.length} appareil${chk.orphans.length > 1 ? "s" : ""} sans circuit (anneau rouge pointillé sur le plan). <button id="cb-orph">Les sélectionner</button></p>` : "";
     const issues = chk.issues.map((x) => `<p class="warn sm">⚠ ${esc(x.msg)}</p>`).join("");
-    el.innerHTML = `<div class="cab">${controlSection(api)}${hpSection(api, hpOpen)}${head}${orphans}${issues}
+    // v64 : panneau allégé : une fois les boîtes posées, la liste des circuits est repliée (titre + alertes) sous les boîtes
+    const B0 = (api.cab.boxes || []).length, open = circOpen ?? (!B0 || chk.issues.length > 0 || chk.orphans.length > 0);
+    const circ = `<details class="cb-circ" id="cb-circ" ${open ? "open" : ""}><summary title="Ouvrir / replier la liste des circuits"><span class="cab-h"><b>Circuits</b> <span class="mut sm">${C.length}</span>${info(`NF C 15-100 : au plus ${S.maxPoints} points lumineux / ${S.maxPrises} prises par circuit. Couleur = circuit. Réglages (limites, sections, protections, couleurs des fils) : Paramètres → Câblage.`)}</span>${chk.issues.length || chk.orphans.length ? ` <span class="warn sm">⚠ ${chk.issues.length + chk.orphans.length}</span>` : ` <span class="ok sm">✓</span>`}</summary>
+      <label class="ck sm"><input type="checkbox" id="cb-show" ${api.showCircuits ? "checked" : ""}> Couleurs des circuits sur le plan</label>${orphans}${issues}
       <div class="cb-list">${rows}</div>
       <div class="cb-foot">
         <select id="cb-kind">${Object.entries(KIND).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select>
         <button id="cb-new" title="Nouveau circuit (avec les appareils sélectionnés sur le plan, s'il y en a)">＋ Circuit</button>
         ${ask === "auto" ? `<span class="cb-ask">Remplacer les ${C.length} circuits ? <button class="danger" id="cb-yes">Remplacer</button><button id="cb-no">Annuler</button></span>`
           : `<button id="cb-auto" title="Refaire toute la répartition (Ctrl+Z pour revenir)">Répartir automatiquement</button>`}
-      </div>
-      <p class="mut sm">Couleur = circuit. Réglages : Paramètres → Câblage.</p>
-      ${boxesHTML()}</div>`;
+      </div></details>`;
+    el.innerHTML = `<div class="cab">${controlSection(api)}${hpSection(api, hpOpen)}${B0 ? boxesHTML() + circ : circ + boxesHTML()}</div>`;
     if (keepCount) { const i = el.querySelector("#bx-count"); if (i) i.value = keepCount; }
     el.querySelectorAll(".bx-redo").forEach((c) => { if (keepRedo.has(c.value)) c.checked = keepRedo.get(c.value); });
     wire();
@@ -145,7 +148,7 @@ export function createCablagePane({ api, panel, ctl }) {
   function boxesHTML() {
     const B = api.cab.boxes || [], hasTab = api.allApps().some((a) => a.t === "TAB");
     const mode = api.cab.mode || "proximite";
-    const head = `<div class="cab-h" style="margin-top:14px"><b>Boîtes</b> <span class="mut sm">max ${getCab().departsMax} départs sans l'alimentation, ${getCab().departsFace} gaines par face (A haut, B droite, C bas, D gauche)</span></div>
+    const head = `<div class="cab-h" style="margin-top:14px"><b>Boîtes</b> <i class="info" tabindex="0" title="${esc(`Au plus ${getCab().departsMax} départs par boîte sans l'alimentation, ${getCab().departsFace} gaines par face (A haut, B droite, C bas, D gauche). Sur le plan : glisser une boîte pour la déplacer ; tirer une gaine pour lui donner un point de passage (Maj : tronçon droit, double-clic sur un point : le supprimer). Une boîte déplacée ou retracée se verrouille toute seule. Détail des gaines et des fils : onglet Pieuvre (Boîtes, Bandes, Lignes directes).`)}">i</i></div>
       <div class="bx-mode"><label title="Comment les boîtes sont constituées au prochain placement automatique">Pieuvre : <select id="bx-mode">${Object.entries(MODES).map(([k, v]) => `<option value="${k}" ${k === mode ? "selected" : ""}>${v}</option>`).join("")}</select></label>
         <button id="bx-cmp" title="Calcule les quatre modes (économique, équilibrée, par pièce, par zone) et les compare : note « belle pieuvre », mini-plans, fil, gaine, boîtes, départs. Puis « Appliquer ».">Comparer les 4 modes</button></div>${voletsHTML()}`;
     const tabWarn = hasTab ? "" : `<p class="warn sm">⚠ Pas de tableau sur le plan : les boîtes sont placées sans tenir compte de leur alimentation et les longueurs vers le tableau manquent. <button id="bx-tab">Poser le tableau</button></p>`;
@@ -166,15 +169,14 @@ export function createCablagePane({ api, panel, ctl }) {
       + (W.splits && W.splits.length ? `<p><button id="cb-fixsplit" title="Chaque allumage coupé va entier (commandes + lumières) dans la boîte qui a le plus de ses lumières. Ctrl+Z pour annuler.">Ramener dans la même boîte (${W.splits.length})</button></p>` : "");
     // v59 : croisements de gaines qui restent sur le plan (le tracé les évite tant que c'est possible)
     const X = api.gaineCrossings ? api.gaineCrossings() : { n: 0 };
-    const cross = `<p class="sm ${X.n ? "warn" : "mut"}" id="bx-cross" title="Les points d'accroche et la courbure des gaines sont choisis pour qu'elles ne se croisent pas ; ils sont recalculés quand on déplace une boîte. Un croisement qui reste vient en général d'une boîte qui dessert toute la maison (volets) : déplacez la boîte ou tirez la gaine pour la faire passer ailleurs.">${X.n ? `⚠ ${X.n} croisement${X.n > 1 ? "s" : ""} de gaines sur ce niveau (${esc(X.boxes.join(", "))})${X.intra ? `, dont ${X.intra} dans une même boîte` : ""} : déplacer la boîte ou tirer la gaine.` : "✓ Aucune gaine n'en croise une autre sur ce niveau."}</p>`;
+    const cross = `<p class="sm ${X.intra ? "warn" : "mut"}" id="bx-cross" title="Les points d'accroche et la courbure des gaines sont choisis pour que les gaines d'une même boîte ne se croisent pas (interdit) ; entre deux boîtes, c'est permis (Kévin, 28/10). Ils sont recalculés quand on déplace une boîte. Un croisement dans une boîte : déplacez la boîte ou tirez la gaine pour la faire passer ailleurs.">${X.intra ? `⚠ ${X.n} croisement${X.n > 1 ? "s" : ""} de gaines sur ce niveau (${esc(X.boxes.join(", "))}), dont ${X.intra} dans une même boîte : déplacer la boîte ou tirer la gaine.` : X.n ? `✓ ${X.n} croisement${X.n > 1 ? "s" : ""} entre boîtes seulement (permis), aucun dans une même boîte.` : "✓ Aucune gaine n'en croise une autre sur ce niveau."}</p>`;
     return `${head}${tabWarn}<p class="sm"><b>${W.totals.boites}</b> boîtes · <b>${W.totals.gaines}</b> gaines · <b>${fr(W.totals.gaine)}</b> m de gaine · <b>${fr(W.totals.cuivre)}</b> m de fil</p>
       ${cross}${issues}<div class="cb-list">${rows}</div>
       ${askBox ? `<div class="cb-ask bx-ask"><b>Quelles boîtes recalculer ?</b> <span class="mut sm">Les boîtes décochées gardent leur place, leurs appareils et leurs tracés.</span>
           ${B.map((b) => `<label class="wck"><input type="checkbox" class="bx-redo" value="${b.id}" ${b.locked ? "" : "checked"}> ${esc(b.n)}${b.locked ? ` <span class="mut sm">🔒 verrouillée</span>` : ""}</label>`).join("")}
           <label class="wck" title="Vide = le logiciel choisit le nombre qui économise le plus de cuivre">Nombre de boîtes en tout : <input id="bx-count" type="number" min="1" max="40" step="1" placeholder="auto" style="width:64px"></label>
           <div><button class="on" id="bx-yes">Recalculer les boîtes cochées</button><button id="bx-no">Annuler</button></div></div>`
-        : `<button id="bx-auto" title="Recalculer l'emplacement des boîtes selon le mode choisi : vous choisissez lesquelles (les verrouillées restent en place). Ctrl+Z pour revenir.">Replacer les boîtes automatiquement…</button>`}
-      <p class="mut sm">Sur le plan : glisser une boîte pour la déplacer ; tirer une gaine pour lui donner un point de passage (Maj : tronçon droit, double-clic sur un point : le supprimer). Une boîte déplacée ou retracée se verrouille 🔒 toute seule. Onglets « Boîtes » et « Lignes directes » (à gauche) : le détail des gaines et des fils.</p>`;
+        : `<button id="bx-auto" title="Recalculer l'emplacement des boîtes selon le mode choisi : vous choisissez lesquelles (les verrouillées restent en place). Ctrl+Z pour revenir.">Replacer les boîtes automatiquement…</button>`}`;
   }
   function deleteBox(id) {
     const r = removeBoxPlan(api, id);
@@ -246,6 +248,8 @@ export function createCablagePane({ api, panel, ctl }) {
   }
 
   function wire() {
+    // seul un clic sur le titre compte (l'événement toggle part aussi quand le panneau est redessiné ouvert)
+    const cd = el.querySelector("#cb-circ"), sm = cd && cd.querySelector(":scope > summary"); if (sm) sm.onclick = () => { circOpen = !cd.open; };
     if (ctl) wireControlSection(el, ctl);
     wireHpSection(el, api, render);
     wireBoxes();

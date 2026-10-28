@@ -140,15 +140,17 @@ export function createDoubts(api) {
     if (B.length && (api.cab.circuits || []).length) {
       try {
         const W = wiringNow(api), byN = new Map(B.map((b) => [b.n, b])), by = new Map(api.allApps().map((a) => [a.id, a]));
-        D = W.doutes.map((d, i) => { const b = d.box && byN.get(d.box); return { key: "d" + i + (b ? b.id : ""), x: b ? b.x : null, y: b ? b.y : null, lv: b ? b.lv : null, bloquant: d.bloquant, text: d.text, rule: d.rule }; });
-        (W.splits || []).forEach((s, i) => { const a = by.get(s.c); D.push({ key: "s" + i, x: a ? a.x : null, y: a ? a.y : null, lv: a ? a.lv : null, bloquant: true, text: "allumage coupé", rule: "R-002" }); });
+        D = W.doutes.map((d, i) => { const b = d.box && byN.get(d.box); return { key: "d" + i + (b ? b.id : ""), x: b ? b.x : null, y: b ? b.y : null, lv: b ? b.lv : null, box: b ? b.id : null, boxN: d.box || "", bloquant: d.bloquant, text: d.text, rule: d.rule }; });
+        (W.splits || []).forEach((s, i) => { const a = by.get(s.c); D.push({ key: "s" + i, x: a ? a.x : null, y: a ? a.y : null, lv: a ? a.lv : null, ids: a ? [a.id] : [], bloquant: true, text: "allumage coupé", rule: "R-002" }); });
       } catch (e) { D = []; }
     }
     last = D;
     api.setDoubts(D.filter((d) => d.x != null));
+    // v64 : un seul compteur « à vérifier » (#ctl) : contrôle + doutes ; l'ancien bouton des doutes reste caché
+    document.dispatchEvent(new CustomEvent("okteo:doubts", { detail: D }));
     if (btn) {
       const nb = D.filter((d) => d.bloquant).length;
-      btn.hidden = !D.length;
+      btn.hidden = true;
       btn.textContent = nb ? `✕ ${D.length} doute${D.length > 1 ? "s" : ""}` : `? ${D.length} doute${D.length > 1 ? "s" : ""}`;
       btn.classList.toggle("warn", !nb);
       btn.title = `Doutes du câblage (${nb} bloquant${nb > 1 ? "s" : ""}) : ${D.slice(0, 4).map((d) => d.text).join(" ; ")}${D.length > 4 ? "…" : ""} — clic : onglet Étude`;
@@ -157,7 +159,7 @@ export function createDoubts(api) {
   const later = () => { if (!t) t = setTimeout(update, 120); };
   ["okteo:cab", "okteo:saved", "okteo:level", "okteo:cab-settings", "okteo:regles", "okteo:ready"].forEach((e) => document.addEventListener(e, later));
   if (btn) btn.onclick = () => api.setTab("etude");
-  update();
+  update(); setTimeout(update, 0);   // 2e fois : le compteur « à vérifier » est créé après
   return { update, get list() { return last; } };
 }
 

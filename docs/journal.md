@@ -281,6 +281,22 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 64 (28/10/2026) — livrée : ergonomie du Mode BE
+Version du logiciel : 0.64.0. Propositions de Claude (28/10, après la demande Mode BE / Mode IA de Kévin), dites « go ».
+- **Une seule fenêtre de travail à la fois** (`src/ext/one-card.js`) : quand une fenêtre s'ouvre sur le plan (relevé des
+  murs, pièces, appareils, relevé IA, relecture, comparaison des modes, rapport IA), les autres se ferment comme par leur
+  ✕. Restent à part : l'alerte « Dessin non enregistré », le mode essai, la bulle « Pourquoi ? », l'assistant.
+- **Un seul compteur « à vérifier »** en haut : contrôle du plan + doutes du câblage (rouge ✕ si un doute est bloquant).
+  Un clic va au cas suivant : d'abord le contrôle, puis chaque doute (zoom sur sa boîte, circuits affichés ; sans boîte :
+  onglet Étude). L'ancien bouton des doutes a disparu.
+- **Onglets réunis** : à gauche, Chantiers · Plan · Étude · **Pieuvre** · Tableau · Paramètres. Pieuvre = trois
+  sous-onglets en haut de la page (Boîtes, Bandes, Lignes directes) ; l'onglet rouvre le dernier utilisé.
+- **Panneau Câblage allégé** : une fois les boîtes posées, les Boîtes passent en premier et la liste des circuits est
+  repliée (titre, nombre, ✓ ou ⚠ ; un clic l'ouvre, le choix est gardé) ; les longs textes d'aide sont devenus des
+  ⓘ (infobulle au survol). Croisements entre deux boîtes : affichés comme permis (✓), seuls ceux d'une même boîte alertent.
+- Visite guidée : 27 étapes (onglet Pieuvre). Catalogue : « Onglet Pieuvre », « Une seule fenêtre de travail à la fois ».
+- Tests : 165 vérifications Playwright (+3 ; navigation des tests par les sous-onglets).
+
 ## Version 62.1 (28/10/2026) — livrée : mode « Par zone »
 Version du logiciel : 0.63.2. Demandé par Kévin (28/10, 08:46 : « le BE ne le fait pas, mais je veux l'avoir »).
 - **Par zone** : une boîte par zone **nuit** (chambres, salles de bains, salle d'eau, dressing), **jour** (séjour, pièce

@@ -733,3 +733,14 @@ body.mode-ia .iapane{display:flex;flex-direction:column;gap:8px;background:var(-
 .ia-cost h4{margin:0 0 3px;font-size:13px}
 .ia-msg{background:color-mix(in srgb,var(--accent2) 10%,var(--panel));border-radius:8px;padding:5px 8px}
 .iarep .iarep-b{max-height:60vh;overflow:auto}
+/* v64 : onglet « Pieuvre » = Boîtes, Bandes, Lignes directes (sous-onglets) */
+.pgroup{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--bg)}
+.pgroup[hidden]{display:none}
+.pgroup>.params{flex:1;min-height:0}
+.subtabs{display:flex;gap:4px;padding:8px 16px 0;border-bottom:1px solid var(--line);background:var(--panel)}
+.subtabs button{border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;padding:6px 14px;background:var(--bg);color:var(--mut);font-weight:600;margin-bottom:-1px}
+.subtabs button.on{background:var(--panel);color:var(--fg);border-color:var(--line);box-shadow:inset 0 2px 0 var(--accent)}
+.info{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1px solid var(--line);font-size:11px;color:var(--mut);cursor:help;vertical-align:middle;margin-left:4px;font-style:normal;background:var(--bg)}
+.info:hover,.info:focus{color:var(--accent);border-color:var(--accent);outline:none}
+.ctl.bad.blq{background:#c83232;border-color:#c83232}.ctl.bad.blq:hover{background:#a82626}
+.cb-circ{margin-top:12px}.cb-circ>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;padding:6px 0}.cb-circ>summary::-webkit-details-marker{display:none}.cb-circ>summary::before{content:"▸";color:var(--mut)}.cb-circ[open]>summary::before{content:"▾"}

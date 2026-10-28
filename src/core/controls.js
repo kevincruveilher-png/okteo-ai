@@ -237,16 +237,20 @@ export function setHint(s) {
 
 export function buildTabs() {
   const el = document.getElementById("tabs");
-  const items = [["chantiers", "Chantiers", null], ["plan", "Plan", null], ["etude", "Étude", null], ["boites", "Boîtes", null], ["bandes", "Bandes", null], ["lignes", "Lignes directes", null], ["tableau", "Tableau", null], ["params", "Paramètres", null]];
-  el.innerHTML = items.map(([k, n, s]) => `<button data-tab="${k}" class="${K.tab === k ? 'on' : ''}${k === "params" ? " tab-params" : ""}" ${s ? 'disabled' : ''}><span class="lbl">${n}</span>${s ? `<span class="soon">${s}</span>` : ""}</button>`).join("");
+  // v64 : onglets réunis : « Pieuvre » = Boîtes, Bandes et Lignes directes (sous-onglets en haut de la page)
+  const items = [["chantiers", "Chantiers", null], ["plan", "Plan", null], ["etude", "Étude", null], ["boites", "Pieuvre", null], ["tableau", "Tableau", null], ["params", "Paramètres", null]];
+  const on = (k) => K.tab === k || (k === "boites" && PIEUVRE_TABS.includes(K.tab));
+  el.innerHTML = items.map(([k, n, s]) => `<button data-tab="${k}" class="${on(k) ? 'on' : ''}${k === "params" ? " tab-params" : ""}" ${s ? 'disabled' : ''}${k === "boites" ? ' title="Boîtes, bandes de câblage et lignes directes du chantier"' : ""}><span class="lbl">${n}</span>${s ? `<span class="soon">${s}</span>` : ""}</button>`).join("");
   el.querySelectorAll("button").forEach(b => b.onclick = () => {
     if (b.disabled) return;
-    setTab(b.dataset.tab);
+    setTab(b.dataset.tab === "boites" ? (PIEUVRE_TABS.includes(K.tab) ? K.tab : K.pieuvreSub || "boites") : b.dataset.tab);
   });
 }
 
+export const PIEUVRE_TABS = ["boites", "bandes", "lignes"];
 export function setTab(t) {
   K.tab = t;
+  if (PIEUVRE_TABS.includes(t)) K.pieuvreSub = t;
   buildTabs();
   showSide();
   document.dispatchEvent(new CustomEvent("okteo:tab", {

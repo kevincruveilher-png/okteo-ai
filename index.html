@@ -72,9 +72,16 @@
     <section class="params" id="params" hidden></section>
     <section class="params" id="chantiers" hidden></section>
     <section class="params" id="etude" hidden></section>
-    <section class="params" id="boites" hidden></section>
-    <section class="params" id="bandes" hidden></section>
-    <section class="params" id="lignes" hidden></section>
+    <div class="pgroup" id="pg-pieuvre" hidden>
+      <nav class="subtabs" id="subtabs" aria-label="Pieuvre">
+        <button data-sub="boites" title="Boîtes : gaines, longueurs, fils, raccordements">Boîtes</button>
+        <button data-sub="bandes" title="Bandes de câblage : schéma de chaque boîte pour le câbleur, étiquettes, dossier PDF">Bandes</button>
+        <button data-sub="lignes" title="Lignes directes : du tableau à l'appareil, sans boîte">Lignes directes</button>
+      </nav>
+      <section class="params" id="boites" hidden></section>
+      <section class="params" id="bandes" hidden></section>
+      <section class="params" id="lignes" hidden></section>
+    </div>
     <section class="params" id="tableau" hidden></section>
     <aside class="side" id="side">
       <div class="side-grip" id="side-grip" title="Glisser pour élargir le panneau"></div>

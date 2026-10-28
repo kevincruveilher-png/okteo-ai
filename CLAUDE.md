@@ -236,7 +236,7 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `controlKinds`, `okteo.essai` {press, reset, lit, off, breaker, testAll}, `setEssai(on)`. Préférence `halos`.
   Ext : `controle-ui.js` (compteur `#ctl`, `go/next`, `controlSection` en tête du panneau Câblage), `essai-ui.js`
   (`.essai-card`), packs-ui `openMenu/applyPack` (événement `okteo:pack-menu` envoyé par le bouton `data-h="pack"`
-  du HUD pièce ; Maj+P ; `.pk-menu`). `exportGeometry().rooms[].id`. Visite : 26 étapes (v63).
+  du HUD pièce ; Maj+P ; `.pk-menu`). `exportGeometry().rooms[].id`. Visite : 27 étapes (v64).
   v45.1 : `linkTables` ne compte que les vraies commandes et suit les chaînes de lumières ; alertes `int2`, `nobox` ;
   quadrillage `layers.grille.on=false` par défaut (drapeau `g451` dans les données enregistrées).
 - v46 : `src/cablage/tableau.js` (pur : `MODELS` Resi9, `autoTableau(circuits, {model, area})`, `syncTableau`,
@@ -378,13 +378,20 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
 - v62.1 (0.63.2) : mode `zone` (boites.js `ZONES`, `ZONE_MOTS`, `zoneOfName` (mots ≤ 3 lettres entiers), `zonesOf(rooms)`
   (voisines à moins de 35 cm), `placeLevelZones` ; boîtes `zone`) ; `autoBoxes` passe `rooms` pour piece et zone ;
   qualite.js ignore les gaines tracées à la main (`box.routes`) ; compareModes : départs sans l'alimentation.
+- v64 : `src/ext/one-card.js` (`createOneCard()` : MutationObserver ; une carte `CARDS` = `.wcard:not(.save-alert), .cmpcard`
+  qui devient visible ferme les autres par leur `.wx` ; `okteoExt.oneCard`) ; compteur unique `#ctl` (controle-ui : doutes
+  reçus par `okteo:doubts` {detail: liste, box, ids}, `goDoubt`, classe `blq`) ; `#dbt` toujours caché ; onglets : controls.js
+  `PIEUVRE_TABS`, bouton `data-tab="boites"` libellé « Pieuvre », `K.pieuvreSub` ; index.html `#pg-pieuvre` (`.pgroup`) +
+  `#subtabs [data-sub]` + sections boites/bandes/lignes ; tests : `goSub(sub)` dans smoke.mjs (jamais
+  `#tabs button[data-tab="bandes"]`). Câblage : `#cb-circ` (details, `circOpen` = clic sur le titre seulement), boîtes en
+  premier quand il y en a, aides `.info[title]`. Visite : 27 étapes.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (41 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (77 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (14 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (162 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (77 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (14 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (165 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)
