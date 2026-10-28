@@ -68,16 +68,18 @@ export function mesures(W, { items = [], boxes = [], S = {} } = {}) {
   let croise = 0, longues = 0;
   const groups = new Map(), rooms = [];
   for (const b of W.boxes || []) {
-    const lv = b.lv ?? lvOf.get(b.id), list = [];
+    const box = boxes.find((x) => x.id === b.id) || b, lv = b.lv ?? box.lv ?? lvOf.get(b.id), list = [];
     const pts = [];
     for (const g of b.gaines || []) {
       if (g.kind !== "app") continue;
       if ((g.length || 0) > LONG) longues++;
-      const P = portXY(b, PORT_S, N, g.face, g.slot);
+      const P = portXY(b, S.portS || PORT_S, N, g.face, g.slot);
       for (const id of g.appIds || [g.appId]) {
         const a = by.get(id);
         if (!a || (a.lv != null && lv != null && a.lv !== lv)) continue;
-        list.push({ key: b.id + "|" + id, P, T: a }); pts.push({ x: a.x, y: a.y });
+        pts.push({ x: a.x, y: a.y });
+        // gaine tracée à la main (points de passage) : ce n'est pas un arc, le BE l'a voulue ainsi (comme à l'écran)
+        if (!((box.routes || {})[id])) list.push({ key: b.id + "|" + id, P, T: a });
       }
     }
     if (list.length > 1) croise += crossings(list, chooseBows(list, []));

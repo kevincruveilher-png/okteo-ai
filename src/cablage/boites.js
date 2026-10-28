@@ -202,7 +202,8 @@ function absorbSmall(boxes, tab, S) {
       const rest = B.filter((b) => b !== sb).map((b) => ({ ...b, units: b.units.slice() }));
       let ok = true;
       for (const u of sb.units) {
-        const to = rest.slice().sort((p, q) => d2(p, u) - d2(q, u)).find((b) => boxOk({ ...b, units: [...b.units, u] }, tab, S));
+        // une place de marge : une gaine trop chargée peut être coupée en deux au câblage (R-073)
+        const to = rest.slice().sort((p, q) => d2(p, u) - d2(q, u)).find((b) => departsOf([...b.units, u], S) <= S.departsMax - 1 && boxOk({ ...b, units: [...b.units, u] }, tab, S));
         if (!to) { ok = false; break; }
         to.units.push(u);
       }
@@ -364,6 +365,82 @@ function placeLevelRooms(units, tab, S, roomsLv) {
   return out;
 }
 
+// ---------- mode « par zone » (v62 bis, demandé par Kévin le 28/10/2026, 08:46 ; le BE ne le fait pas) ----------
+// zones jour / nuit / garage d'après le nom des pièces ; les pièces de passage (WC, dégagement, couloir…) et les noms
+// inconnus prennent la zone de leurs voisines (pièce qui touche, à moins de 35 cm : l'épaisseur d'un mur)
+export const ZONES = { nuit: "Nuit", jour: "Jour", garage: "Garage" };
+export const ZONE_MOTS = {
+  nuit: ["chambre", "ch", "suite", "parental", "sdb", "bain", "salle d'eau", "sde", "douche", "dressing", "nuit"],
+  garage: ["garage", "cellier", "buanderie", "atelier", "local tech", "chaufferie", "abri", "remise", "cave"],
+  jour: ["sejour", "séjour", "salon", "piece de vie", "pièce de vie", "cuisine", "manger", "sam", "entree", "entrée", "bureau", "veranda", "véranda", "living", "jour", "bibliotheque", "bibliothèque", "jeux"],
+};
+// mots de 3 lettres ou moins (ch, sdb, sde, sam) : mot entier seulement
+export function zoneOfName(name) {
+  const n = String(name || "").toLowerCase().replace(/[^a-z0-9àâäçéèêëîïôöùûü']+/g, " ").trim();
+  const hit = (m) => (m.length <= 3 ? new RegExp("(^| )" + m + "( |$)").test(n) : n.includes(m));
+  for (const z of ["garage", "nuit", "jour"]) if (ZONE_MOTS[z].some(hit)) return z;
+  return null;
+}
+const polyDist = (P, Q) => {
+  let d = Infinity;
+  const sd = (p, a, b) => { const dx = b.x - a.x, dy = b.y - a.y, L = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / L)); return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy); };
+  for (const p of P) for (let i = 0; i < Q.length; i++) d = Math.min(d, sd(p, Q[i], Q[(i + 1) % Q.length]));
+  return d;
+};
+// rooms = [{name, poly}] → Map nom → zone ; une pièce de passage prend la zone la plus présente chez ses voisines
+export function zonesOf(rooms) {
+  const R = (rooms || []).filter((r) => r.poly && r.poly.length > 2), Z = new Map();
+  R.forEach((r) => { const z = zoneOfName(r.name); if (z) Z.set(r.name, z); });
+  for (let pass = 0; pass < 4; pass++) {
+    let changed = false;
+    for (const r of R) {
+      if (Z.has(r.name)) continue;
+      const votes = {};
+      R.forEach((o) => { if (o !== r && Z.has(o.name) && Math.min(polyDist(r.poly, o.poly), polyDist(o.poly, r.poly)) < 0.35) votes[Z.get(o.name)] = (votes[Z.get(o.name)] || 0) + 1; });
+      // à égalité : nuit avant jour (le dégagement des chambres), jour avant garage
+      const best = Object.entries(votes).sort((p, q) => q[1] - p[1] || ["nuit", "jour", "garage"].indexOf(p[0]) - ["nuit", "jour", "garage"].indexOf(q[0]))[0];
+      if (best) { Z.set(r.name, best[0]); changed = true; }
+    }
+    if (!changed) break;
+  }
+  R.forEach((r) => { if (!Z.has(r.name)) Z.set(r.name, "jour"); });   // isolée et inconnue : jour
+  return Z;
+}
+function placeLevelZones(units, tab, S, roomsLv) {
+  if (!units.length) return [];
+  const Z = zonesOf(roomsLv), R = (roomsLv || []).filter((r) => r.poly && r.poly.length > 2);
+  if (!Z.size) return placeLevel(units, tab, S);
+  const zoneOfUnit = (u) => {
+    if (u.room && Z.has(u.room)) return Z.get(u.room);
+    // hors pièce (extérieur) : zone de la pièce la plus proche
+    let best = null, bd = Infinity;
+    R.forEach((r) => { const d = polyDist([{ x: u.x, y: u.y }], r.poly); if (d < bd) { bd = d; best = r; } });
+    return best ? Z.get(best.name) : "jour";
+  };
+  const G = new Map();
+  units.forEach((u) => { const z = zoneOfUnit(u); if (!G.has(z)) G.set(z, []); G.get(z).push(u); });
+  // zone avec moins de 3 départs : rejoint la zone la plus proche
+  for (const [z, L] of [...G]) {
+    if (G.size < 2 || departsOf(L, S) >= 3) continue;
+    const c = { x: L.reduce((s, u) => s + u.x, 0) / L.length, y: L.reduce((s, u) => s + u.y, 0) / L.length };
+    const to = [...G.entries()].filter(([k]) => k !== z).sort(([, p], [, q]) => Math.min(...p.map((u) => d2(u, c))) - Math.min(...q.map((u) => d2(u, c))))[0][0];
+    G.get(to).push(...L); G.delete(z);
+  }
+  const out = [];
+  for (const [z, L] of G) {
+    // une boîte par zone ; plus si la zone dépasse la capacité d'une boîte (parts égales, comme l'Équilibrée)
+    const B = placeLevelBalanced(L, tab, S, minBoxes(L, S)) || placeLevel(L, tab, S);
+    if (!B) return null;
+    const zr = R.filter((r) => Z.get(r.name) === z);
+    for (const b of B) {
+      // la boîte reste dans sa zone
+      if (zr.length && !zr.some((r) => pointInPoly(b.x, b.y, r.poly))) { const r = zr.slice().sort((p, q) => polyDist([b], p.poly) - polyDist([b], q.poly))[0]; const p = labelPoint(r.poly); b.x = p.x; b.y = p.y; }
+      out.push({ ...b, zone: z });
+    }
+  }
+  return out;
+}
+
 // toutes les boîtes du chantier ; tabs : {[niveau]: {x, y}} position du tableau (ou de la trémie qui y mène) par niveau
 // keep = boîtes à garder telles quelles (verrouillées ou non cochées) : elles gardent position, nom, tracés et
 // appareils ; une unité dont un appareil est déjà dans une boîte gardée y va en entier ; le reste est réparti.
@@ -371,7 +448,7 @@ function placeLevelRooms(units, tab, S, roomsLv) {
 // mode (v39) : "proximite" (le moins de cuivre, défaut), "equilibre" (parts égales), "piece" (une boîte par pièce ;
 // rooms = {[niveau]: [{name, poly}]})
 // v62 : « proximite » s'appelle Économique (le moins de cuivre) ; la clé reste pour les chantiers déjà enregistrés
-export const MODES = { proximite: "Économique", equilibre: "Équilibrée", piece: "Par pièce" };
+export const MODES = { proximite: "Économique", equilibre: "Équilibrée", piece: "Par pièce", zone: "Par zone" };
 export function placeBoxes(items0, links, circuits, tabs, S0, { keep = [], count = 0, mode = "proximite", rooms = {}, volets = "" } = {}) {
   const items = sansCvr(items0, S0);
   const secOf = new Map(circuits.map((c) => [c.id, c.section || 1.5]));
@@ -408,6 +485,7 @@ export function placeBoxes(items0, links, circuits, tabs, S0, { keep = [], count
   }
   const placeMode = (L, lv, k) => {
     if (mode === "piece") return placeLevelRooms(L, tabs[lv] || null, S, rooms[lv]);
+    if (mode === "zone") return placeLevelZones(L, tabs[lv] || null, S, rooms[lv]);
     // v56 (R-094, H-041) : en mode équilibrée, le moins de boîtes possible (comme le BE) : on part du minimum de boîtes
     // permis par les départs, et on n'en ajoute que si les parts ne tiennent pas (départs ou gaines par face)
     if (mode === "equilibre") return placeLevelBalanced(L, tabs[lv] || null, S, k || minBoxes(L, S));
@@ -438,7 +516,7 @@ export function placeBoxes(items0, links, circuits, tabs, S0, { keep = [], count
       r = rv && ro ? [...ro, ...rv] : null;
     } else r = placeMode(L, lv, want[lv] || 0);
     if (!r) { issues.push(`Niveau ${lv} : impossible de respecter ${S.departsMax} départs par boîte (sans l'alimentation) et ${S.departsFace} gaines par face (une unité trop grosse ?)`); continue; }
-    for (const b of r) { do n++; while (usedIds.has("b" + n)); usedIds.add("b" + n); out.push({ id: "b" + n, n: boxName(n), lv, x: +(Math.round(b.x / 0.05) * 0.05).toFixed(2), y: +(Math.round(b.y / 0.05) * 0.05).toFixed(2), apps: b.units.flatMap((u) => u.ids) }); }
+    for (const b of r) { do n++; while (usedIds.has("b" + n)); usedIds.add("b" + n); out.push({ id: "b" + n, n: boxName(n), lv, x: +(Math.round(b.x / 0.05) * 0.05).toFixed(2), y: +(Math.round(b.y / 0.05) * 0.05).toFixed(2), apps: b.units.flatMap((u) => u.ids), ...(b.zone ? { zone: b.zone } : {}) }); }
   }
   out.sort((a, b) => (+String(a.n).replace(/\D/g, "") || 0) - (+String(b.n).replace(/\D/g, "") || 0));
   return { boxes: out, issues, mode };

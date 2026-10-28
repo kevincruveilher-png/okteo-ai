@@ -356,7 +356,7 @@ Question posée : qu'est-ce qui, sur un plan, dit que les volets sont connectés
 
 ## Mise à jour 62 — FAIT (28/10/2026, 0.63.1) — types d'implantation des boîtes revus (Kévin, 28/10/2026, 08:38 ; décisions laissées à Claude)
 - Livré : note « belle pieuvre », Économique = le moins de cuivre (coût d'une boîte réglable, petites boîtes fondues),
-  volets selon le mode, impression dans le sens de la vue ; Q-86 et Q-87 à faire valider par Kévin. Suite : mode « Par zone ».
+  volets selon le mode, impression dans le sens de la vue ; Q-86 et Q-87 à faire valider par Kévin. Mode « Par zone » : FAIT (0.63.2, jour / nuit / garage, Q-88 à valider).
 Réponses de Kévin : le BE fait « selon sa logique : des économies tout en réalisant de belles pieuvres, sans trop
 croiser les gaines » ; boîte posable partout (on y reviendra) ; autant de modes que judicieux ; volets adaptés au mode.
 Décisions (Claude) :

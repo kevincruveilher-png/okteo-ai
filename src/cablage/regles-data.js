@@ -1,6 +1,6 @@
 // Généré par scripts/regles-import.mjs depuis docs/journal-regles-cablage.md — ne pas modifier à la main.
 export const REGLES_BASE = {
- "version": "2026-10-28.42",
+ "version": "2026-10-28.43",
  "rules": [
   {
    "id": "R-001",
@@ -2657,6 +2657,16 @@ export const REGLES_BASE = {
    "si_doute": "",
    "statut": "ouverte",
    "statut_texte": "ouverte (proposée par Claude)"
+  },
+  {
+   "id": "Q-88",
+   "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
+   "question": "Mode « Par zone » (demandé par Kévin le 28/10/2026, 08:46 ; le BE ne le fait pas) : zones d'après le nom des pièces — nuit (chambres, salles de bains, salle d'eau, dressing), jour (séjour, pièce de vie, cuisine, salle à manger, entrée, bureau), garage (garage, cellier, buanderie, atelier, local technique) ; WC, dégagements et noms inconnus prennent la zone de leurs voisines ; une boîte par zone, plus si la zone dépasse la capacité ; une zone de moins de 3 départs rejoint la plus proche ; volets dans la boîte de leur zone. Ces regroupements conviennent-ils (bureau en jour, cellier avec le garage) ?",
+   "reponse": "Oui (supposé)",
+   "suppose": "",
+   "si_doute": "",
+   "statut": "ouverte",
+   "statut_texte": "ouverte (proposée par Claude)"
   }
  ],
  "history": [
@@ -3119,6 +3129,17 @@ export const REGLES_BASE = {
    "avant": "Q-86, Q-87 ouvertes",
    "apres": "Mise à jour 62 : mode Économique = le moins de cuivre, note « belle pieuvre » commune ; volets en Par pièce dans la boîte de leur pièce, deux boîtes de volets en Équilibrée si les volets sont aux deux bouts de la maison (supposés, à valider)",
    "motif": "Réponses de Kévin du 28/10/2026 (08:38–08:46), décisions laissées à Claude",
+   "par": "IA (à valider par Kévin)",
+   "code_valide": null
+  },
+  {
+   "id": "H-043",
+   "date": "28/10/2026",
+   "regle": "Q-88",
+   "action": "Proposition",
+   "avant": "Q-88 ouverte",
+   "apres": "Mode « Par zone » (jour / nuit / garage) ajouté au logiciel, définition des zones à valider",
+   "motif": "Demande de Kévin du 28/10/2026 (08:46)",
    "par": "IA (à valider par Kévin)",
    "code_valide": null
   }

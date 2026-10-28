@@ -47,7 +47,7 @@ export function autoBoxes(api, keepIds = [], count = 0, mode = (api.cab.mode || 
   const tab = items.find((a) => a.t === "TAB");
   const tabs = {}; api.levels.forEach((l) => { if (tab) tabs[l.id] = { x: tab.x, y: tab.y }; });
   const keep = (api.cab.boxes || []).filter((b) => keepIds.includes(b.id));
-  return placeBoxes(items, links, circuits, tabs, S, { keep, count, mode, rooms: mode === "piece" ? roomsByLevel(api) : {}, volets: (api.cab.choix || {}).volets || "" });
+  return placeBoxes(items, links, circuits, tabs, S, { keep, count, mode, rooms: mode === "piece" || mode === "zone" ? roomsByLevel(api) : {}, volets: (api.cab.choix || {}).volets || "" });
 }
 
 // comparatif des modes de pieuvre (v39) : pour chacun, les boîtes, les circuits qui en découlent et les chiffres
@@ -61,7 +61,7 @@ export function compareModes(api) {
     const r = autoBoxes(api, keepIds, 0, mode, base);
     const circuits = S.circuitsParBoite ? circuitsByBox(items, links, r.boxes, S) : base;
     const W = computeWiring({ items: ext, links, circuits, boxes: r.boxes, levels, S });
-    const dep = W.boxes.map((b) => b.gaines.length);
+    const dep = W.boxes.map((b) => b.gaines.filter((g) => g.kind === "app").length);   // départs sans l'alimentation (R-001)
     const mean = dep.reduce((s, v) => s + v, 0) / (dep.length || 1);
     const q = mesures(W, { items, boxes: r.boxes, S });
     return { mode, name, boxes: r.boxes, circuits, W, q, issues: [...r.issues, ...W.issues.filter((x) => !/télérupteur au tableau|sans commande|ne commande aucune/.test(x))],

@@ -1442,7 +1442,7 @@ try {
     if (!(cut.marks > 0 && btn && after === 0 && back > 0)) throw new Error(JSON.stringify({ cut, btn, after, back }));
     return true;
   });
-  await check("modes de pieuvre (v39) : comparatif économique / équilibrée / par pièce (v62 : note « belle pieuvre », mini-plans, chiffres), « Appliquer », un seul Ctrl+Z", async () => {
+  await check("modes de pieuvre (v39) : comparatif économique / équilibrée / par pièce / par zone (v62 : note « belle pieuvre », mini-plans, chiffres), « Appliquer », un seul Ctrl+Z", async () => {
     await page.click('#tabs button[data-tab="plan"]');
     await ev(() => okteoExt.panel.show("cablage")); await page.waitForTimeout(200);
     const before = await ev(() => ({ mode: okteo.cab.mode || "proximite", boxes: JSON.stringify(okteo.cab.boxes.map((b) => [b.x, b.y])) }));
@@ -1458,7 +1458,7 @@ try {
     const back = await ev(() => ({ mode: okteo.cab.mode || "proximite", boxes: JSON.stringify(okteo.cab.boxes.map((b) => [b.x, b.y])) }));
     await page.click('#tabs button[data-tab="bandes"]'); await page.waitForSelector(".bands .bd-svg svg");
     const P = r.find((x) => x.mode === "proximite"), E = r.find((x) => x.mode === "equilibre");
-    const ok = r.length === 3 && r.every((x) => x.boxes > 0 && x.rows === 11 && x.fil > 0 && x.note >= 0 && x.note <= 100) && /Économique/.test(P.h) && E.boxes <= P.boxes && r.some((x) => x.best > 0)
+    const ok = r.length === 4 && r.some((x) => x.mode === "zone") && r.every((x) => x.boxes > 0 && x.rows === 11 && x.fil > 0 && x.note >= 0 && x.note <= 100) && /Économique/.test(P.h) && E.boxes <= P.boxes && r.some((x) => x.best > 0)
       && after.mode === "piece" && !after.card && after.boxes !== before.boxes && back.mode === before.mode && back.boxes === before.boxes;
     if (!ok) throw new Error(JSON.stringify({ r, before: before.mode, after: after.mode, back: back.mode }));
     return true;
@@ -1973,7 +1973,7 @@ try {
     await page.click('#etude .et-step[data-n="2"]');
     const alt = await ev(() => [...document.querySelectorAll("#etude .et-box table tr")].slice(1).map((tr) => tr.textContent));
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/etude.png" });
-    if (!(r.steps.length === 9 && /1\. Lecture du plan/.test(r.steps[0]) && /9\. Contrôle/.test(r.steps[8]) && /Précontrôle — ✓ les \d+ règles utiles/.test(r.pc) && /supposées/.test(r.pc) && r.where > 0 && alt.length === 3 && alt.some((t) => /retenu/.test(t)))) throw new Error(JSON.stringify({ r, alt }));
+    if (!(r.steps.length === 9 && /1\. Lecture du plan/.test(r.steps[0]) && /9\. Contrôle/.test(r.steps[8]) && /Précontrôle — ✓ les \d+ règles utiles/.test(r.pc) && /supposées/.test(r.pc) && r.where > 0 && alt.length === 4 && alt.some((t) => /retenu/.test(t)) && !alt.some((t) => /retenu/.test(t) && /✗/.test(t)))) throw new Error(JSON.stringify({ r, alt }));
     return true;
   });
   await check("« Câbler le chantier » : boîtes et circuits recalculés, étude enregistrée dans le chantier, statistiques ; un seul Ctrl+Z", async () => {

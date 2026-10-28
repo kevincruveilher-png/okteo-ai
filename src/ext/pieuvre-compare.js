@@ -9,6 +9,7 @@ const DESC = {
   proximite: "Le moins de cuivre (longueur de chaque gaine × nombre de fils), sans mêler les territoires des boîtes ; volets avec les boîtes voisines si c'est moins de cuivre.",
   equilibre: "Comme le BE : le moins de boîtes, parts de départs égales ; une boîte pour les volets (deux s'ils sont aux deux bouts de la maison).",
   piece: "Une boîte par pièce (les petites pièces rejoignent leur voisine) ; chaque volet dans la boîte de sa pièce.",
+  zone: "Une boîte par zone : nuit (chambres, salles de bains), jour (séjour, cuisine, bureau, entrée), garage ; WC et dégagements avec leurs voisines ; plus de boîtes si la zone est trop chargée.",
 };
 const COL = ["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#9a6324", "#469990", "#808000"];
 const fr = (v, d = 0) => (v == null || !isFinite(v) ? "—" : Number(v).toFixed(d).replace(".", ","));
@@ -49,7 +50,7 @@ export function createCompare({ api, apply }) {
       const cur = api.cab.mode || "proximite";
       const best = (key, max = false) => { const v = res.map((r) => r.m[key]); const b = max ? Math.max(...v) : Math.min(...v); return (r) => r.m[key] === b; };
       const rows = [["note", "Belle pieuvre (note sur 100)", 0, best("note", true)], ["croise", "Croisements dans une boîte (interdit)", 0, null], ["terr", "Appareils chez la boîte voisine", 0, best("terr")], ["boites", "Boîtes", 0, null], ["circuits", "Circuits (hors lignes directes)", 0, null], ["cuivre", "Fil (m)", 0, best("cuivre")], ["gaine", "Gaine (m)", 0, best("gaine")],
-        ["dep", "Départs par boîte", 0, null], ["ecart", "Écart des départs (régularité)", 1, best("ecart")], ["longues", "Gaines longues", 0, best("longues")], ["pieces", "Pièces par boîte (max)", 0, best("pieces")]];
+        ["dep", "Départs par boîte (sans l'alimentation)", 0, null], ["ecart", "Écart des départs (régularité)", 1, best("ecart")], ["longues", "Gaines longues", 0, best("longues")], ["pieces", "Pièces par boîte (max)", 0, best("pieces")]];
       const why = (r) => CRITERES.filter((c) => r.note && r.note.pen[c.k] > 0).map((c) => `${c.lab} : −${String(r.note.pen[c.k]).replace(".", ",")}`).join("\n") || "aucun point retiré";
       const val = (r, k, d) => (k === "dep" ? `${r.m.depMin} à ${r.m.depMax}` : fr(r.m[k], d));
       card.innerHTML = `<div class="cmp-h"><b>Comparer les modes de pieuvre</b><span class="mut sm">les boîtes verrouillées 🔒 restent en place · en vert : le meilleur</span><button class="wx" title="Fermer (Échap)">✕</button></div>

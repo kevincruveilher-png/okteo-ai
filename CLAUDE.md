@@ -375,13 +375,16 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `noteNow(api, W)` (cablage-data.js), `.cmp-note` ; étude : alternatives `note`. Impression : print.js `rotateGeo(geo, deg)`
   (option `rot` de `buildPlanPdf`, `rotImage` pour le fond, boîtes `b.rot` → `portW`), print-ui case `sensVue`
   (`#pr-rotwrap`), dossier `rot: api.viewRot`.
+- v62.1 (0.63.2) : mode `zone` (boites.js `ZONES`, `ZONE_MOTS`, `zoneOfName` (mots ≤ 3 lettres entiers), `zonesOf(rooms)`
+  (voisines à moins de 35 cm), `placeLevelZones` ; boîtes `zone`) ; `autoBoxes` passe `rooms` pour piece et zone ;
+  qualite.js ignore les gaines tracées à la main (`box.routes`) ; compareModes : départs sans l'alimentation.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (41 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (75 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (14 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (162 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (77 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (14 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (162 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

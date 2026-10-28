@@ -8,7 +8,7 @@ import { detectDevices, pageTexts } from "../src/walls/devices.js";
 import { gaineFor } from "../src/cablage/gaine.js";
 import { computeCircuits, checkCircuits, circuitsByBox, isCuisine } from "../src/cablage/circuits.js";
 import { CAB_DEFAULTS as S } from "../src/cablage/settings.js";
-import { placeBoxes, buildUnits, faceToward, portLayout, portXY, minBoxes, wiresOf, MODES } from "../src/cablage/boites.js";
+import { placeBoxes, buildUnits, faceToward, portLayout, portXY, minBoxes, wiresOf, MODES, zonesOf, zoneOfName } from "../src/cablage/boites.js";
 import { intrusions, noter, mesures, POIDS } from "../src/cablage/qualite.js";
 import { pointInPoly } from "../src/walls/rooms.js";
 import { PACK_DEFAULTS, packFor, missing, placePack, prisesNorme } from "../src/cablage/packs.js";
@@ -466,6 +466,19 @@ console.log("Types d'implantation et note « belle pieuvre » (v62)");
   const W1 = computeWiring({ items: H1.it, links: H1.links, circuits: circuitsByBox(H1.it, H1.links, ex.boxes, S), boxes: ex.boxes, levels: ["rdc"], S });
   const q1 = mesures(W1, { items: H1.it, boxes: ex.boxes, S });
   check("Économique : aucune boîte de moins de 3 départs, aucun croisement dans une boîte, territoires séparés", W1.boxes.every((b) => b.gaines.filter((g) => g.kind === "app").length >= 3) && q1.croise === 0 && q1.terr === 0, JSON.stringify(q1));
+  // mode Par zone : chambres + bains + dégagement (nuit) | séjour + WC (jour) | garage
+  const rect = (name, x0, x1) => ({ name, poly: [{ x: x0, y: -0.5 }, { x: x1, y: -0.5 }, { x: x1, y: 6.5 }, { x: x0, y: 6.5 }] });
+  const RZ = [rect("Chambre 1", 0, 5), rect("Bains", 5.1, 7), rect("Dgt", 7.1, 9), rect("Séjour", 9.1, 18), rect("WC", 18.1, 19.5), rect("Garage", 19.6, 27)];
+  const Zm = zonesOf(RZ);
+  check("Par zone : zones d'après le nom (Chambre, Bains → nuit ; Séjour → jour ; Garage) ; Dgt et WC prennent la zone de leurs voisines",
+    Zm.get("Chambre 1") === "nuit" && Zm.get("Bains") === "nuit" && Zm.get("Dgt") === "nuit" && Zm.get("Séjour") === "jour" && Zm.get("WC") === "jour" && Zm.get("Garage") === "garage" && zoneOfName("Ch 2") === "nuit" && zoneOfName("Dgt") === null,
+    JSON.stringify([...Zm]));
+  const roomAtX = (x) => RZ.find((r) => x >= r.poly[0].x && x <= r.poly[1].x)?.name || null;
+  const HZ = house(false); HZ.it.forEach((a) => { if (a.t !== "TAB") a.room = roomAtX(a.x); });
+  const zr = placeBoxes(HZ.it, HZ.links, computeCircuits(HZ.it, HZ.links, S), { rdc: { x: 13, y: 0 } }, S, { mode: "zone", rooms: { rdc: RZ } });
+  const zoneOfBox = (b) => new Set(b.apps.map((id) => Zm.get(HZ.it.find((a) => a.id === id).room)));
+  check("Par zone : chaque boîte ne sert qu'une zone et se trouve dans une pièce de sa zone ; toutes les zones servies", zr.boxes.length >= 2 && zr.boxes.every((b) => zoneOfBox(b).size === 1 && b.zone && RZ.some((r) => Zm.get(r.name) === b.zone && pointInPoly(b.x, b.y, r.poly)))
+    && new Set(zr.boxes.map((b) => b.zone)).size === new Set(HZ.it.filter((a) => a.room).map((a) => Zm.get(a.room))).size && MODES.zone === "Par zone", JSON.stringify(zr.boxes.map((b) => [b.zone, b.x, b.y, [...zoneOfBox(b)]])));
 }
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);

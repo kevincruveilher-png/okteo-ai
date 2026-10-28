@@ -281,6 +281,21 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 62.1 (28/10/2026) — livrée : mode « Par zone »
+Version du logiciel : 0.63.2. Demandé par Kévin (28/10, 08:46 : « le BE ne le fait pas, mais je veux l'avoir »).
+- **Par zone** : une boîte par zone **nuit** (chambres, salles de bains, salle d'eau, dressing), **jour** (séjour, pièce
+  de vie, cuisine, salle à manger, entrée, bureau) et **garage** (garage, cellier, buanderie, atelier, local technique),
+  d'après le nom des pièces. WC, dégagements et noms inconnus prennent la zone de leurs voisines (pièce qui touche) ;
+  plus de boîtes si la zone dépasse la capacité d'une boîte (parts égales) ; une zone de moins de 3 départs rejoint la
+  plus proche ; la boîte reste dans une pièce de sa zone ; volets dans la boîte de leur zone ; appareils extérieurs avec
+  la pièce la plus proche.
+- MAILLARD : 7 boîtes (nuit 3, jour 3, garage 1), 1 346 m de fil.
+- Comparer les modes : 4 colonnes ; « Départs par boîte » compte maintenant sans l'alimentation (R-001), comme partout.
+- Note « belle pieuvre » : une gaine tracée à la main (points de passage) n'est plus comptée comme un croisement
+  (comme à l'écran).
+- Journal des règles : Q-88 (définition des zones) proposée à Kévin.
+- Tests : 77 vérifications du câblage (+2).
+
 ## Version 62 (28/10/2026) — livrée : types d'implantation des boîtes revus, note « belle pieuvre », impression dans le sens de la vue
 Version du logiciel : 0.63.1 (livrée après la 63). Demandé par Kévin (28/10, 08:38–08:46), décisions laissées à Claude.
 - **Note « belle pieuvre »** sur 100, la même pour tous les modes (`src/cablage/qualite.js`) : aucun croisement de
