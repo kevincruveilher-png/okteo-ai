@@ -355,7 +355,8 @@ Décisions (Claude) :
   deux si les volets sont aux deux bouts de la maison et que ça évite de traverser toute la maison (à vérifier sur MAILLARD).
 - **Par pièce** : la boîte de chaque pièce ou groupe de petites pièces ; volets dans la boîte de leur pièce.
 - Autres modes envisagés (Claude, 08:45) : « Par zone » (jour / nuit / garage, une boîte par zone, découpage d'après
-  les pièces voisines) proposé à Kévin ; écartés : « gaines courtes » (devient un critère de la note), « près du tableau »
+  les pièces voisines) proposé à Kévin — le BE ne le fait pas, mais Kévin veut l'avoir (08:46) : à ajouter dans une
+  mise à jour après la 62 ; écartés : « gaines courtes » (devient un critère de la note), « près du tableau »
   (déjà compté dans le cuivre des alimentations).
 - Comparer les modes affiche la note de qualité ; R-094 complété pour Par pièce (journal, à faire valider par Kévin).
 
