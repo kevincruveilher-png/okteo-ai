@@ -767,21 +767,27 @@ export function wallU(a) {
 }
 // v59 : courbure des gaines en arc du niveau ({ "boîte|clé": k }), recalculée seulement quand le plan change
 export function levelBows(BX, pm, byId, tab) {
-  const list = [], fixed = [];
+  // v61.1 : calcul boîte par boîte (seuls les croisements d'une même boîte sont interdits, Kévin 28/10) : quelques
+  // millisecondes par boîte, et déplacer une boîte ne recalcule que cette boîte. Avant : toutes les gaines du niveau
+  // ensemble, refait à chaque zoom (3 à 8 s sur MAILLARD).
+  if (!(K.bowCache instanceof Map)) K.bowCache = new Map();
+  const r3 = v => Math.round(v * 200), out = new Map();
   BX.forEach(b => {
-    const R = b.routes || {};
-    boxLayout(b, pm).deps.forEach(d => {
+    const R = b.routes || {}, LY = boxLayout(b, pm), list = [], fixed = [];
+    LY.deps.forEach(d => {
       if (!d.face || d.slot == null) return;
+      const P = d.P;   // point d'accroche affiché (sa position ne change avec le zoom que si la boîte atteint sa taille mini)
       const ends = d.tab ? (tab ? [["tab", tab]] : []) : d.apps.map(a => [a.id, a]);
-      ends.forEach(([key, t]) => { const r = R[key]; if (r && r.length) fixed.push([d.P, ...r, t]); else list.push({ key: b.id + "|" + key, P: d.P, T: { x: t.x, y: t.y } }); });
+      ends.forEach(([key, t]) => { const r = R[key]; if (r && r.length) fixed.push([P, ...r, t]); else list.push({ key: b.id + "|" + key, P, T: { x: t.x, y: t.y } }); });
     });
+    const sig = JSON.stringify([r3(b.x), r3(b.y), list.map(g => [g.key, r3(g.P.x), r3(g.P.y), r3(g.T.x), r3(g.T.y)]), fixed.map(L => L.map(p => [r3(p.x), r3(p.y)]))]);
+    const c = K.bowCache.get(b.id);
+    // pendant un glisser : on garde l'ancien calcul, refait au lâcher
+    const map = c && (c.sig === sig || K.boxDrag || K.routeDrag || K.endDrag || K.wheelAt) ? c.map : chooseBows(list, fixed);
+    if (!c || c.map !== map) K.bowCache.set(b.id, { sig, map });
+    map.forEach((v, k) => out.set(k, v));
   });
-  const r3 = v => Math.round(v * 500);
-  const sig = JSON.stringify([list.map(g => [g.key, r3(g.P.x), r3(g.P.y), r3(g.T.x), r3(g.T.y)]), fixed.map(L => L.map(p => [r3(p.x), r3(p.y)]))]);
-  if (K.bowCache && (K.bowCache.sig === sig || K.boxDrag || K.routeDrag || K.endDrag)) return K.bowCache.map;   // pendant un glisser : calcul au lâcher
-  const map = chooseBows(list, fixed);
-  K.bowCache = { sig, map };
-  return map;
+  return out;
 }
 // v59 : croisements qui restent entre gaines du niveau ouvert (alimentation exclue) : { n, intra (même boîte), boxes }
 export function gaineCrossings() {

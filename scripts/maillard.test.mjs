@@ -45,8 +45,8 @@ check("lignes directes communes au BE : RJ1 à RJ7 en gaine verte (grade 3 TV), 
   && dl("MOTEUR1")?.fil === "1,5 GR+BF+V/J" && dl("MOTEUR1")?.diam === 16 && ["TV1", "TV2"].every((e) => dl(e)?.fil === "17 VATC"));
 check("R-099 : total des lignes directes, gaines vertes comptées avec les ICTA 20", (D.directTotals["ICTA 20"] || 0) >= 9 && !Object.keys(D.directTotals).some((k) => /verte/.test(k)), JSON.stringify(D.directTotals));
 const Tr = D.traces || {};
-check("v59 : gaines tracées sans croisement : au plus 1 croisement dans une même boîte, croisements divisés par 2 sur le plan (avant : un seul arc pour toutes)",
-  Tr.gaines > 70 && Tr.intra <= 1 && Tr.total * 2 <= Tr.arcUnique && Tr.sansAlim <= 10, JSON.stringify(Tr));
+check("v59 / v61.1 : gaines tracées boîte par boîte : au plus 1 croisement dans une même boîte (entre deux boîtes : permis, Kévin 28/10)",
+  Tr.gaines > 70 && Tr.intra <= 1, JSON.stringify(Tr));
 check("aucun doute bloquant", !D.doutes.some((d) => d.bloquant), D.doutes.map((d) => d.rule).join(","));
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);

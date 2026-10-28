@@ -13,6 +13,7 @@ import { showSide } from "./panel.js";
 // la zone de dessin prend exactement les proportions de l'écran : pas de bandes, pas de décalage entre clic et affichage
 export function syncVB() {
   const R = sv.getBoundingClientRect();
+  if (R.width > 0 && R.height > 0) K.svSize = { w: R.width, h: R.height };
   if (R.width > 0 && R.height > 0) {
     VB.h = 70;
     VB.w = 70 * R.width / R.height;
@@ -101,9 +102,19 @@ export function evWorld(e) {
   return V2W(v.x, v.y);
 }
 
+// v61.1 : taille du plan à l'écran mémorisée (mise à jour par un ResizeObserver) : getBoundingClientRect appelé pendant
+// le dessin forçait le navigateur à recalculer la mise en page à chaque appel (≈ 60 % du temps de dessin)
 export function pxPerVB() {
-  const r = sv.getBoundingClientRect();
-  return Math.min(r.width / VB.w, r.height / VB.h) || 1;
+  if (!K.svSize) {
+    const r = sv.getBoundingClientRect();
+    K.svSize = { w: r.width, h: r.height };
+    if (typeof ResizeObserver !== "undefined" && !K.svObs) {
+      K.svObs = new ResizeObserver((es) => { const c = es[0] && es[0].contentRect; if (c) K.svSize = { w: c.width, h: c.height }; });
+      K.svObs.observe(sv);
+    }
+    if (!(K.svSize.w > 0)) { const v = K.svSize; K.svSize = null; return Math.min(v.w / VB.w, v.h / VB.h) || 1; }
+  }
+  return Math.min(K.svSize.w / VB.w, K.svSize.h / VB.h) || 1;
 }
 
 export function tolM() {

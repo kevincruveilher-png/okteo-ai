@@ -267,9 +267,13 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     // gaines (v48) : du point d'accroche de la boîte à l'appareil, en arc ou par les points de passage tracés à la main,
     // couleur du circuit ; l'alimentation (vers le tableau) en pointillés gris
     const portOf = (b, d) => portXY(b, BSm, b.N, d.face, d.slot);
-    const bowL = [], bowF = [];
-    boxes.forEach((b) => b.deps.forEach((d) => { const P = portOf(b, d); d.ends.forEach((e) => { if (e.route && e.route.length) bowF.push([P, ...e.route, e]); else bowL.push({ key: b.id + "|" + e.key, P, T: e }); }); }));
-    const bows = o.gaines ? chooseBows(bowL, bowF) : new Map();
+    // courbures choisies boîte par boîte (seuls les croisements dans une même boîte sont interdits)
+    const bows = new Map();
+    if (o.gaines) boxes.forEach((b) => {
+      const bowL = [], bowF = [];
+      b.deps.forEach((d) => { const P = portOf(b, d); d.ends.forEach((e) => { if (e.route && e.route.length) bowF.push([P, ...e.route, e]); else bowL.push({ key: b.id + "|" + e.key, P, T: e }); }); });
+      chooseBows(bowL, bowF).forEach((v, k) => bows.set(k, v));
+    });
     if (o.gaines) boxes.forEach((b) => b.deps.forEach((d) => {
       const P = portOf(b, d);
       d.ends.forEach((e) => {

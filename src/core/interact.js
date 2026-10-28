@@ -1001,6 +1001,10 @@ sv.addEventListener("dblclick", e => {
 });
 sv.addEventListener("wheel", e => {
   e.preventDefault();
+  // v61.1 : pendant le zoom à la molette, les courbures des gaines ne sont pas recalculées ; un dessin complet suit
+  K.wheelAt = Date.now();
+  clearTimeout(K.wheelT);
+  K.wheelT = setTimeout(() => { K.wheelAt = 0; draw(); }, 260);
   const [wx, wy] = evWorld(e);
   const f = e.deltaY < 0 ? 1.12 : 1 / 1.12;
   K.view.scale = Math.max(2, Math.min(90, K.view.scale * f));
