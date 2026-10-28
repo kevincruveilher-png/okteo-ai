@@ -410,6 +410,20 @@ Décisions (Claude) :
   compteur « à vérifier » (contrôle + doutes) ; panneau Câblage allégé ; onglets Boîtes / Lignes directes / Bandes
   réunis ; textes d'aide longs remplacés par des infobulles (?).
 
+## Notes du 28/10/2026 (20:04), Kévin — pour une prochaine mise à jour : gaines hors de la maison, obstacles
+- **Gaines qui sortent de la maison** : sur une maison en L (ou en U, avec un porche, un garage en retrait…), l'arc ou
+  la ligne droite entre la boîte et l'appareil passe dehors puis rentre. Une gaine doit rester dans l'emprise de la
+  maison (combles ou faux plafond au-dessus des pièces). Proposé : contour de la maison (pièces + murs) ; une gaine qui
+  en sort passe par l'angle rentrant (point de passage automatique) et sa longueur est recalculée ; une boîte n'est
+  jamais posée dehors ; la note « belle pieuvre » compte les gaines qui sortaient.
+- **Obstacles** (Kévin cite les trémies ; liste proposée par Claude, à confirmer par Kévin) : trémie d'escalier, trappe
+  d'accès aux combles, conduit de cheminée ou de poêle (écart au feu), gaines et caisson de VMC, ballon / chaudière /
+  pompe à chaleur en combles, puits de lumière et fenêtres de toit, pièces sans combles au-dessus (rampant, toit plat,
+  dalle béton à l'étage), mur coupe-feu entre garage et maison (traversée à limiter), porche ou auvent ouvert.
+  Proposé : un objet « obstacle » dessiné sur le plan (rectangle ou polygone, avec son type) ; les boîtes ne s'y posent
+  pas, les gaines le contournent (points de passage automatiques) ; une traversée de mur coupe-feu compte comme un doute
+  « à vérifier ».
+
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.
 - Export SPV pour Counter.
