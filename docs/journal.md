@@ -292,17 +292,6 @@ Version du logiciel : 0.61.1. Signalé par Kévin : énorme latence dès que les
 - MAILLARD : un cran de molette ≈ 8,5 s → 0,1 s ; lâcher une boîte 8,8 s → 0,25 s ; dessin 76 → 37 ms ; 0 croisement dans
   une même boîte (avant : 1). Reste : glisser une boîte ≈ 13 images/s (tout le plan est redessiné à chaque mouvement).
 
-## Version 61.1 (28/10/2026) — livrée : correctif de fluidité (boîtes sur le plan)
-Version du logiciel : 0.61.1. Signalé par Kévin : énorme latence dès que les boîtes sont sur le plan.
-- Cause : le choix des courbures des gaines (v59) traitait toutes les gaines du niveau ensemble et se refaisait à chaque
-  zoom, à chaque lâcher de boîte et à chaque modification : 3 à 8 s par calcul sur MAILLARD (97 gaines).
-- Courbures calculées boîte par boîte (seuls les croisements d'une même boîte sont interdits, règle de Kévin du 28/10),
-  cache par boîte (déplacer une boîte ne recalcule qu'elle), pas de recalcul pendant le zoom à la molette (un dessin
-  complet 0,26 s après) ; taille du plan mémorisée (`K.svSize`, ResizeObserver) au lieu de `getBoundingClientRect`
-  pendant le dessin. Impression : même calcul boîte par boîte.
-- MAILLARD : un cran de molette ≈ 8,5 s → 0,1 s ; lâcher une boîte 8,8 s → 0,25 s ; dessin 76 → 37 ms ; 0 croisement dans
-  une même boîte (avant : 1). Reste : glisser une boîte ≈ 13 images/s (tout le plan est redessiné à chaque mouvement).
-
 ## Version 61 (28/10/2026) — livrée : relecture ciblée étendue et plus fine, rapport de l'analyse IA
 Version du logiciel : 0.61.0.
 - Toutes les erreurs détectées après un relevé IA sont relues par l'IA (`recheckPoints(ctx)`), dans cet ordre :
