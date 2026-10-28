@@ -347,12 +347,16 @@ Décisions (Claude) :
   aucun croisement dans une même boîte (obligatoire) ; territoires des boîtes bien séparés (pas d'appareils d'une boîte
   au milieu de ceux d'une autre) ; longueur de gaine ; nombre de boîtes ; départs équilibrés ; gaines pas trop longues.
   Les modes ne diffèrent que par le poids donné à chaque critère.
-- **Économique** (ancien Proximité) : le moins de gaine, dans la limite d'une belle pieuvre ; volets dans les boîtes
-  voisines si c'est plus court, sinon boîte(s) de volets.
+- **Économique** (ancien Proximité) : le moins de **cuivre** (rectification de Kévin, 08:45 : longueur de chaque gaine ×
+  nombre de fils, pas la longueur de gaine seule ; une gaine de 5 fils pèse plus qu'une de 3), dans la limite d'une
+  belle pieuvre ; volets dans les boîtes voisines si c'est moins de cuivre, sinon boîte(s) de volets. Q-77 (« plus
+  petite longueur de gaine d'abord ») à mettre à jour dans le journal avec Kévin.
 - **Équilibrée** (comme le BE) : le moins de boîtes, parts égales ; une boîte à part pour les volets (R-094), coupée en
   deux si les volets sont aux deux bouts de la maison et que ça évite de traverser toute la maison (à vérifier sur MAILLARD).
 - **Par pièce** : la boîte de chaque pièce ou groupe de petites pièces ; volets dans la boîte de leur pièce.
-- Pas de mode supplémentaire tant qu'un chantier ne le justifie pas (« Par zone » jour / nuit : à revoir sur un vrai cas).
+- Autres modes envisagés (Claude, 08:45) : « Par zone » (jour / nuit / garage, une boîte par zone, découpage d'après
+  les pièces voisines) proposé à Kévin ; écartés : « gaines courtes » (devient un critère de la note), « près du tableau »
+  (déjà compté dans le cuivre des alimentations).
 - Comparer les modes affiche la note de qualité ; R-094 complété pour Par pièce (journal, à faire valider par Kévin).
 
 ## Sans date
