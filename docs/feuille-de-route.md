@@ -339,6 +339,22 @@ Question posée : qu'est-ce qui, sur un plan, dit que les volets sont connectés
   → Améliorer le choix d'implantation des boîtes : le placement (modes proximité / équilibrée / par pièce) doit éviter
   les boîtes dont les gaines se croiseraient (appareils d'une boîte « entremêlés » avec ceux d'une autre).
 
+## Mise à jour 62 — types d'implantation des boîtes revus (Kévin, 28/10/2026, 08:38 ; décisions laissées à Claude)
+Réponses de Kévin : le BE fait « selon sa logique : des économies tout en réalisant de belles pieuvres, sans trop
+croiser les gaines » ; boîte posable partout (on y reviendra) ; autant de modes que judicieux ; volets adaptés au mode.
+Décisions (Claude) :
+- **Une note de qualité commune** à tous les modes (« belle pieuvre »), calculée et affichée pour chaque proposition :
+  aucun croisement dans une même boîte (obligatoire) ; territoires des boîtes bien séparés (pas d'appareils d'une boîte
+  au milieu de ceux d'une autre) ; longueur de gaine ; nombre de boîtes ; départs équilibrés ; gaines pas trop longues.
+  Les modes ne diffèrent que par le poids donné à chaque critère.
+- **Économique** (ancien Proximité) : le moins de gaine, dans la limite d'une belle pieuvre ; volets dans les boîtes
+  voisines si c'est plus court, sinon boîte(s) de volets.
+- **Équilibrée** (comme le BE) : le moins de boîtes, parts égales ; une boîte à part pour les volets (R-094), coupée en
+  deux si les volets sont aux deux bouts de la maison et que ça évite de traverser toute la maison (à vérifier sur MAILLARD).
+- **Par pièce** : la boîte de chaque pièce ou groupe de petites pièces ; volets dans la boîte de leur pièce.
+- Pas de mode supplémentaire tant qu'un chantier ne le justifie pas (« Par zone » jour / nuit : à revoir sur un vrai cas).
+- Comparer les modes affiche la note de qualité ; R-094 complété pour Par pièce (journal, à faire valider par Kévin).
+
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.
 - Export SPV pour Counter.
