@@ -79,3 +79,7 @@ Recâblage complet avec les nouvelles règles : 16 départs, mode Équilibrée q
 ## 7. Après la mise à jour 59 (28/10/2026) : croisements des gaines sur le plan
 - Avec un seul arc pour toutes les gaines : 81 croisements. Avec la 59 : 31, dont 22 avec les alimentations (pointillés), 9 entre gaines d'appareils et 1 dans une même boîte.
 - Les croisements qui restent viennent presque tous de la boîte des volets (LI07), qui dessert les 8 volets de toute la maison.
+
+## 8. Après la mise à jour 60 (28/10/2026) : schémas de boîte
+- Aucun fil tracé (retours, navettes) ne recouvre un autre sur les 6 schémas de MAILLARD ; bornes en quinconce sur les faces chargées.
+- Chaque bande a maintenant une page « perçage des tranches » : les 4 faces vues de l'extérieur, trous de gauche à droite (n° croissants), Ø et appareil au bout.

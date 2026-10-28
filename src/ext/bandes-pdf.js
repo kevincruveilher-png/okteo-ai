@@ -1,7 +1,8 @@
 // Impression des schémas de boîte (v33) : une feuille A4 par boîte (schéma + orientation + matériel), puis la liste
 // des raccordements à cocher (suite sur d'autres feuilles si besoin). jsPDF, unités mm ; texte en WinAnsi seulement
 // (pas de flèches ni d'émojis).
-import { schemaSVG, FN_SHORT, wireName } from "../cablage/schema.js";
+import { schemaSVG, tranchesSVG, FN_SHORT, wireName } from "../cablage/schema.js";
+import { getCab } from "../cablage/settings.js";
 import { wireSolid } from "./cablage-data.js";
 import { code128, bars, qrMatrix } from "./barcode.js";
 import { sheetUrl } from "../cablage/bande-code.js";
@@ -9,13 +10,13 @@ import { sheetUrl } from "../cablage/bande-code.js";
 let lib = null;
 async function jspdf() { if (!lib) lib = (await import("jspdf")).jsPDF; return lib; }
 
-async function svgToPng(svg, px = 1500) {
+async function svgToPng(svg, px = 1500, py = px) {
   const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
   try {
     const img = new Image();
     await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error("schéma illisible")); img.src = url; });
-    const c = document.createElement("canvas"); c.width = px; c.height = px;
-    const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, px, px); g.drawImage(img, 0, 0, px, px);
+    const c = document.createElement("canvas"); c.width = px; c.height = py;
+    const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, px, py); g.drawImage(img, 0, 0, px, py);
     return c.toDataURL("image/jpeg", 0.92);   // JPEG : PDF léger (un PNG serait stocké presque brut)
   } finally { URL.revokeObjectURL(url); }
 }
@@ -120,6 +121,15 @@ export async function buildBandsPdf(pages, { chantier = "", numero = "" } = {}) 
       }
     } catch (e) { /* QR impossible : la feuille reste utilisable */ }
 
+    // perçage des tranches (v60) : les 4 faces vues de l'extérieur, pour le perceur
+    doc.addPage();
+    doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(0); doc.text(win(`Boîte ${box.n} : perçage des tranches`), M, 16);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(70);
+    doc.text(doc.splitTextToSize(win("Chaque face vue de l'extérieur de la boîte : percer les trous dans cet ordre, de gauche à droite (n° de gaine croissants). Sous chaque trou : l'appareil au bout de la gaine et son diamètre."), W - 2 * M), M, 22);
+    doc.setTextColor(0);
+    const trSvg = tranchesSVG(box, { sides, n: getCab().departsFace }), trH = +((/viewBox="0 0 1000 (\d+)"/.exec(trSvg) || [0, 770])[1]);
+    const tw = W - 2 * M, th = tw * trH / 1000;
+    doc.addImage(await svgToPng(trSvg, 1600, Math.round(1600 * trH / 1000)), "JPEG", M, 32, tw, th);
     // raccordements à cocher
     doc.addPage();
     doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.text(win(`Boîte ${box.n} : raccordements à faire dans l'ordre`), M, 16);

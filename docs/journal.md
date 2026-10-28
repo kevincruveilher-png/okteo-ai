@@ -281,6 +281,23 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 60 (28/10/2026) — livrée : boîte pour le câbleur et le perceur
+Version du logiciel : 0.60.0.
+- Schéma de boîte sans fils superposés (schema.js `routeInside`) : un connecteur par raccordement tracé (retours,
+  navettes, commandes), alignés au milieu de la boîte, largeur d'après le nombre de fils ; chaque fil a sa propre entrée
+  sur le connecteur (par le dessus ou par le dessous) et ses propres couloirs : bande du haut, bande du bas, bandes
+  latérales pour les faces B et D ; chaque segment est réservé, un autre fil ne peut pas reprendre la même ligne. Couloirs
+  espacés de 9, resserrés seulement si la boîte est trop chargée. `overlaps(links)` pour les tests.
+- Bornes en quinconce sur deux rangs (elles se chevauchaient dès 2 fils voisins) ; le trait d'un fil du 1er rang passe
+  entre les bornes du 2e rang.
+- Gaines dans leur ordre réel sur chaque face (points d'accroche), sur le schéma comme sur le plan.
+- Vue des 4 tranches pour le perceur (`tranchesSVG`, `trancheOrder`) : chaque face vue de l'extérieur, un trou par point
+  d'accroche (pointillés = libre), taille d'après le Ø de la gaine, n° de gaine (croissants de gauche à droite, R-077),
+  appareil au bout, Ø, pièce, bouchon. Onglet Bandes (sous le schéma), page 2 de chaque bande détaillée (PDF, donc aussi
+  dans le dossier du chantier), page téléphone (QR : le point d'accroche est ajouté à la bande compressée).
+- MAILLARD et les 4 chantiers FTZ : 0 recouvrement de fils sur tous les schémas (proximité et équilibrée).
+- Tests : 36 + 69 + 176 + 13 + 154 = 448.
+
 ## Version 59 (28/10/2026) — livrée : gaines sans croisement
 Version du logiciel : 0.59.0.
 - Points d'accroche (boites.js `portLayout`, utilisé par le plan, l'impression et le calcul des gaines, donc les mêmes

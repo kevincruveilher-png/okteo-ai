@@ -184,7 +184,7 @@ Principe : le logiciel ne devine jamais ; une valeur sans règle `confirmee` = �
 - **58 — Plan lisible — FAIT (28/10/2026, 0.58.0 ; faite avant la 57)** : taille des symboles d'après le dessin, aucun chevauchement, boîtes plus petites, noms des
   pièces déplaçables (taille commune), rotation du fond.
 - **59 — Gaines sans croisement — FAIT (28/10/2026, 0.59.0)** : points d'accroche et tracés sans croisement, recalcul au déplacement d'une boîte.
-- **60 — Boîte pour le câbleur et le perceur** : schéma sans fils superposés, vue des 4 tranches (n° de gaine et
+- **60 — Boîte pour le câbleur et le perceur — FAIT (28/10/2026, 0.60.0)** : schéma sans fils superposés, vue des 4 tranches (n° de gaine et
   aboutissant), à l'écran et dans les PDF.
 
 ## Comparaison MAILLARD, réponses de Kévin (28/10/2026, 00:32) — journal H-041

@@ -32,3 +32,6 @@ i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-
 .steps ul li{padding:2px 0}
 .ctl{padding-left:20px}
 footer{margin-top:24px;text-align:center;color:var(--mut);font:12px monospace}
+/* v60 : perçage des tranches */
+.tr .svgw{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tr svg{display:block;width:100%;height:auto}

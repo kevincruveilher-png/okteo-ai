@@ -11,7 +11,8 @@ export function packSheet(S, { labels = true } = {}) {
   const r1 = (v) => (v == null ? null : Math.round(v * 100) / 100);
   const g = S.box.gaines.map((x) => [x.no, x.face, x.kind === "alim" ? 1 : 0, x.kind === "alim" ? "" : (x.reps && x.reps.length ? x.reps.join("+") : x.label || ""),
     r1(x.length), x.diam || 0, x.cable || 0, x.serie || 0,
-    x.wires.map((w) => [Math.max(0, FN.indexOf(w.fn)), ci(w.color), w.section || 0, w.n ?? null, ci(w.core && w.core !== w.color ? w.core : ""), w.bague || ""])]);
+    x.wires.map((w) => [Math.max(0, FN.indexOf(w.fn)), ci(w.color), w.section || 0, w.n ?? null, ci(w.core && w.core !== w.color ? w.core : ""), w.bague || ""]),
+    x.slot ?? -1]);   // v60 : point d'accroche (ordre réel sur la face, tranches pour le perceur)
   return {
     v: 1,
     h: [S.ch.client || "", S.ch.nom || "", S.ch.numero || "", S.box.n, S.level || "", S.cover || "haut", S.model || "", S.code || ""],
@@ -29,8 +30,8 @@ export function unpackSheet(P) {
   const col = (i) => (i >= 0 ? P.c[i] : null);
   const box = {
     n: P.h[3],
-    gaines: P.g.map(([no, face, alim, who, length, diam, cable, serie, W]) => ({
-      no, face, kind: alim ? "alim" : "app", label: alim ? "Alimentation (tableau)" : who, reps: alim ? [] : who ? [who] : [], length, diam, cable: cable || null, serie: serie || 0, circuits: [],
+    gaines: P.g.map(([no, face, alim, who, length, diam, cable, serie, W, slot]) => ({
+      no, face, slot: slot == null || slot < 0 ? null : slot, kind: alim ? "alim" : "app", label: alim ? "Alimentation (tableau)" : who, reps: alim ? [] : who ? [who] : [], length, diam, cable: cable || null, serie: serie || 0, circuits: [],
       wires: W.map(([f, c, section, n, core, bague]) => ({ fn: FN[f], color: col(c), section, n, core: col(core), bague: bague || null })),
     })),
     nets: P.n.map(([n, label, f]) => ({ n, label: label || FN_FR[FN[f]] || "", fn: FN[f] })),

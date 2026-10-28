@@ -6,6 +6,7 @@ import { computeCircuits, circuitsByBox } from "../src/cablage/circuits.js";
 import { placeBoxes } from "../src/cablage/boites.js";
 import { computeWiring } from "../src/cablage/gaines.js";
 import { CAB_DEFAULTS as S } from "../src/cablage/settings.js";
+import { boxSteps, parseSizes, schemaSVG, overlaps } from "../src/cablage/schema.js";
 
 let ok = 0; const fails = [];
 const check = (name, cond, info = "") => { if (cond) { ok++; console.log("  ✓ " + name); } else { fails.push(name); console.log("  ✗ " + name + (info ? " : " + info : "")); } };
@@ -112,6 +113,20 @@ for (const name of Object.keys(CHANTIERS_FTZ)) {
   const t = W.directTotals, n16 = t["ICTA 16"] || 0, n20 = t["ICTA 20"] || 0, aig = t["ICTA 40"] || 0;
   check("DUCOURNEAU : total par gaine identique à FTZ (11 ICTA 16, 16 ICTA 20 dont les vertes, R-099 ; 1 gaine aiguillée)", n16 === lignesTotal.ICTA16 && n20 === lignesTotal.ICTA20 && aig === lignesTotal.AIG && W.directVertes > 0, JSON.stringify(t));
   check("courant faible jamais dans une boîte ni avec le courant fort (R-003) : TV, antenne, RJ45 en gaine verte", W.direct.filter((d) => d.faible).every((d) => d.gaine === "V20" || d.gaine === 20) && !W.boxes.some((b) => b.gaines.some((g) => (g.appIds || []).some((id) => /^(RJ45|TV|ANT|INTERCO)$/.test(items.find((a) => a.id === id)?.t)))));
+}
+
+// v60 : schémas de boîte sans fil superposé, sur les 4 chantiers
+{
+  let nL = 0, nOv = 0;
+  for (const name of Object.keys(CHANTIERS_FTZ)) for (const mode of ["proximite", "equilibre"]) {
+    const { W } = run(name, mode);
+    for (const B of W.boxes) {
+      const svg = schemaSVG(B, boxSteps(B, parseSizes(S.bornes)));
+      const L = [...svg.matchAll(/class="lnk"[^>]* d="([^"]+)"/g)].map((m) => ({ pts: m[1].replace(/^M/, "").split(" L").map((t) => { const [x, y] = t.trim().split(" ").map(Number); return { x, y }; }) }));
+      nL += L.length; nOv += overlaps(L).length;
+    }
+  }
+  check("schémas de boîte (v60) : sur les 4 chantiers, aucun retour ni navette tracé ne recouvre un autre fil", nL > 20 && nOv === 0, `${nL} fils, ${nOv} recouvrements`);
 }
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);

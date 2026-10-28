@@ -341,13 +341,19 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   render `levelBows` (cache `K.bowCache`, gelé pendant un glisser), `K.gaineBows`, `bowOf(boxId, key)` (hitRoute, tests),
   `gaineCrossings()` → `okteo.gaineCrossings()` (`#bx-cross` dans le panneau Câblage) ; attach `gaineCtrl(b, a, k)` ;
   print.js `chooseBows` avec ses points d'accroche. `chantier-wiring.mjs` rend `traces` {gaines, intra, total, sansAlim, arcUnique}.
+- v60 : schema.js `routeInside(box, tr, term)` → {nodes (connecteurs `g.node` rect), links (`path.lnk` « M x y L … »), fails}
+  (couloirs réservés H/V, propriétaire `o` = fil, départs B/D réservés d'avance, entrées et demi-entrées, espacement 9 →
+  4,5), `BOX` (IN0/IN1 derrière 2 rangs de bornes), `overlaps(links)` ; bornes en quinconce (`stag`, `term.stub`) ; gaines
+  triées par `slot` sur chaque face ; `trancheOrder(box, f, n)` (vue de l'extérieur = rang décroissant), `tranchesSVG(box,
+  {sides, n})` (`g.tranche[data-f]`, `g.trou[data-no]`, `circle.trou.libre`) ; Bandes `.bd-tranches`, `#bd-tr-h` ; bandes-pdf
+  page 2 « perçage des tranches » (`svgToPng(svg, px, py)`) ; bande-code : 10e élément de gaine = `slot` ; bande-view `.tr`.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (36 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (67 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (175 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (13 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (154 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (69 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (13 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (154 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

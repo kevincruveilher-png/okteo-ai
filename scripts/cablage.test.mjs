@@ -12,7 +12,7 @@ import { placeBoxes, buildUnits, faceToward, portLayout, portXY, minBoxes } from
 import { pointInPoly } from "../src/walls/rooms.js";
 import { PACK_DEFAULTS, packFor, missing, placePack, prisesNorme } from "../src/cablage/packs.js";
 import { computeWiring, gaineLength, cableColors } from "../src/cablage/gaines.js";
-import { connectorsFor, boxSteps, boxMaterial, boxChecks, parseSizes, schemaSVG } from "../src/cablage/schema.js";
+import { connectorsFor, boxSteps, boxMaterial, boxChecks, parseSizes, schemaSVG, tranchesSVG, trancheOrder, overlaps } from "../src/cablage/schema.js";
 import { autoTableau, syncTableau, tableauIssues, protections, moveItem, suggestModel, addBreaker, addModular, MODELS } from "../src/cablage/tableau.js";
 import { packSheet, unpackSheet, encodeSheet, decodeSheet, sheetUrl } from "../src/cablage/bande-code.js";
 
@@ -414,6 +414,22 @@ console.log("Tableau électrique (v46)");
   const P = (d) => portXY(box, 0.6, 6, L.get(d.id).face, L.get(d.id).slot);
   let nX = 0; deps.forEach((d, i) => deps.slice(i + 1).forEach((e) => { if (cr(P(d), d.p, P(e), e.p)) nX++; }));
   check("points d'accroche : les gaines d'une boîte ne se croisent pas (points échangés quand le rangement par direction en ferait croiser deux)", nX === 0, JSON.stringify([...L]));
+}
+{
+  // v60 : schéma sans fils superposés ; vue des 4 tranches pour le perceur
+  const linksOf = (svg) => [...svg.matchAll(/class="lnk"[^>]* d="([^"]+)"/g)].map((m) => ({ pts: m[1].replace(/^M/, "").split(" L").map((t) => { const [x, y] = t.trim().split(" ").map(Number); return { x, y }; }) }));
+  const termsOverlap = (svg) => { const R = [...svg.matchAll(/class="term" x="([\d.-]+)" y="([\d.-]+)" width="([\d.]+)" height="([\d.]+)"/g)].map((m) => m.slice(1).map(Number)); return R.some((a, i) => R.some((b, j) => j > i && a[0] < b[0] + b[2] - 0.5 && b[0] < a[0] + a[2] - 0.5 && a[1] < b[1] + b[3] - 0.5 && b[1] < a[1] + a[3] - 0.5)); };
+  const Z = parseSizes(S.bornes);
+  let nL = 0, nOv = 0, tOv = 0;
+  for (const B of W.boxes) { const svg = schemaSVG(B, boxSteps(B, Z)), L = linksOf(svg); nL += L.length; nOv += overlaps(L).length; if (termsOverlap(svg)) tOv++; }
+  check("schéma de boîte (v60) : aucun fil intérieur (retours, navettes) ne recouvre un autre, aucune borne n'en cache une autre", nL > 4 && nOv === 0 && tOv === 0, `${nL} fils tracés, ${nOv} recouvrements, ${tOv} boîtes à bornes superposées`);
+  const B = W.boxes.find((b) => b.gaines.length >= 5) || W.boxes[0], T = tranchesSVG(B, { sides: { A: "Chambre 1" } });
+  const num = (g) => +String(g.no).split(".").pop();
+  const faces = ["A", "B", "C", "D"].map((f) => trancheOrder(B, f, 6).filter((x) => x.g).map((x) => num(x.g)));
+  const alimF = (B.gaines.find((g) => g.kind === "alim") || {}).face;
+  const inc = ["A", "B", "C", "D"].every((f, i) => f === alimF || faces[i].every((v, k) => !k || v > faces[i][k - 1]));
+  check("tranches (v60) : 4 faces vues de l'extérieur, un trou par gaine, n° croissants de gauche à droite (R-077), diamètre et appareil au bout",
+    (T.match(/class="tranche"/g) || []).length === 4 && (T.match(/class="trou" data-no/g) || []).length === B.gaines.filter((g) => g.slot != null).length && inc && /Tranche A · Chambre 1/.test(T) && /Ø(16|20)/.test(T) && /Tableau/.test(T), JSON.stringify({ faces, alimF }));
 }
 
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);

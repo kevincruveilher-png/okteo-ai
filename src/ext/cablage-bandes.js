@@ -5,7 +5,7 @@
 import { getJournal, ruleById } from "../cablage/regles.js";
 import { wiringNow, wireCss, wireSolid, facesSides, fr } from "./cablage-data.js";
 import { getCab } from "../cablage/settings.js";
-import { boxSteps, boxMaterial, boxChecks, boxWires, parseSizes, schemaSVG, FN_SHORT, wireName, orderLines, BOX_MODELS } from "../cablage/schema.js";
+import { boxSteps, boxMaterial, boxChecks, boxWires, parseSizes, schemaSVG, tranchesSVG, FN_SHORT, wireName, orderLines, BOX_MODELS } from "../cablage/schema.js";
 import { code128, barsSVG, boxCode, qrMatrix, qrSVG } from "./barcode.js";
 import { sheetUrl } from "../cablage/bande-code.js";
 import { buildLabelsPdf } from "./labels-pdf.js";
@@ -130,6 +130,8 @@ export function mountBandsPage(el, { api }) {
           <p class="mut sm">Terres, neutres, phases, puis retours lampe et navettes. Pour chaque numéro : dans chaque gaine indiquée, prendre le fil de la couleur indiquée, le dénuder et l'enfoncer dans le connecteur. Cocher au fur et à mesure.</p>
         </div>
       </div>
+      <h3 id="bd-tr-h">Perçage des tranches <span class="mut sm">pour le perceur : chaque face vue de l'extérieur, trous dans l'ordre de gauche à droite, n° de gaine, appareil au bout et diamètre</span></h3>
+      <div class="bd-tranches" title="Vue de l'extérieur de chaque face : le perceur perce les trous dans cet ordre (n° croissants de gauche à droite, règle R-077)">${tranchesSVG(box, { sides, n: getCab().departsFace })}</div>
       <table class="gt bd-steps"><thead><tr><th></th><th>N°</th><th>Raccordement</th><th>Fils à prendre (gaine · couleur · appareil)</th><th>Connecteur</th></tr></thead><tbody>
         ${steps.map((s) => `<tr class="${ok.has(s.n) ? "done" : ""}"><td><input type="checkbox" data-n="${s.n}" ${ok.has(s.n) ? "checked" : ""} title="Cocher quand c'est fait"></td><td class="c"><b>${s.n}</b></td><td>${esc(s.label)}</td>
           <td>${s.wires.map((w) => `<div><b>${esc(w.gaine)}</b> ${w.core && w.core !== w.color ? `<span class="wchip"><i style="background:${wireCss(w.core)}"></i>${esc(w.core)}</span> repéré ` : ""}${chip(w)}${w.bague ? ` <span class="bague" title="Bague à poser sur ce fil">bague ${esc(w.bague)}</span>` : ""} <span class="mut">${esc(FN_SHORT[w.fn] || w.fn)} · ${esc(w.label)}${w.room ? " · " + esc(w.room) : ""}</span></div>`).join("")}</td>

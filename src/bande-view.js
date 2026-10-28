@@ -2,7 +2,7 @@
 // Les données sont dans l'adresse (#b=…, compressées) : rien n'est chargé d'un serveur, rien n'est envoyé.
 // Cases cochées gardées sur le téléphone (localStorage, par boîte et par version de la bande).
 import { decodeSheet, unpackSheet } from "./cablage/bande-code.js";
-import { schemaSVG, boxSteps, orderLines, FN_SHORT, wireName } from "./cablage/schema.js";
+import { schemaSVG, tranchesSVG, boxSteps, orderLines, FN_SHORT, wireName } from "./cablage/schema.js";
 import { wireSolid, wireCss } from "./ext/cablage-data.js";
 
 const el = document.getElementById("bande");
@@ -30,6 +30,7 @@ async function main() {
     <h1>Boîte ${esc(H.box)} <span>${esc(H.model)} · couvercle vers le ${esc(H.cover)}</span></h1>
     <div class="faces">${["A", "B", "C", "D"].map((f) => `<span><b>${f}</b> ${esc(D.sides[f] || "—")}</span>`).join("")}</div>
     <section class="sch"><div class="svgw">${schemaSVG(D.box, steps, { color: wireSolid, sides: D.sides })}</div><p class="mut">Écartez deux doigts pour agrandir le schéma.</p></section>
+    ${D.box.gaines.some((g) => g.slot != null) ? `<section class="tr"><h2>Perçage des tranches</h2><p class="mut">Chaque face vue de l'extérieur : trous de gauche à droite.</p><div class="svgw">${tranchesSVG(D.box, { sides: D.sides })}</div></section>` : ""}
     <section><h2>Ordre de câblage</h2>
       <table class="ord">${order.map((o) => `<tr><td class="n">${o.n}</td><td><i style="background:${wireCss(o.color)}"></i>${esc(o.color)} ${o.section ? fr(o.section) : ""}</td><td class="c">${o.count} fil${o.count > 1 ? "s" : ""}</td></tr>`).join("")}</table></section>
     <section><h2>Raccordements <span class="prog"></span></h2>

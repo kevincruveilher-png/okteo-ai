@@ -1428,12 +1428,12 @@ try {
     const p2 = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await p2.goto(`http://localhost:${APP_PORT}/bande.html` + url.slice(url.indexOf("#")));
     await p2.waitForSelector(".steps > li");
-    const r = await p2.evaluate(() => ({ h1: document.querySelector("h1").textContent, steps: document.querySelectorAll(".steps > li").length, ord: document.querySelectorAll(".ord tr").length, svg: !!document.querySelector(".sch svg g.face"), wide: document.documentElement.scrollWidth <= innerWidth + 1 }));
+    const r = await p2.evaluate(() => ({ h1: document.querySelector("h1").textContent, steps: document.querySelectorAll(".steps > li").length, ord: document.querySelectorAll(".ord tr").length, svg: !!document.querySelector(".sch svg g.face"), tr: document.querySelectorAll(".tr svg g.tranche").length, wide: document.documentElement.scrollWidth <= innerWidth + 1 }));
     if (process.env.SHOT) await p2.screenshot({ path: process.env.SHOT + "/bande-telephone.png", fullPage: true });
     await p2.click(".steps > li:first-child input"); await p2.reload(); await p2.waitForSelector(".steps > li");
     const kept = await p2.evaluate(() => document.querySelector(".steps > li:first-child input").checked && /1 \/ /.test(document.querySelector(".prog").textContent));
     await p2.close();
-    const ok = url.startsWith("https://kevincruveilher-png.github.io/okteo-ai/bande.html#b=") && r.h1.includes(bn) && r.steps === steps && r.ord === steps && r.svg && r.wide && kept;
+    const ok = url.startsWith("https://kevincruveilher-png.github.io/okteo-ai/bande.html#b=") && r.h1.includes(bn) && r.steps === steps && r.ord === steps && r.svg && r.tr === 4 && r.wide && kept;
     if (!ok) throw new Error(JSON.stringify({ len: url.length, steps, bn, r, kept }));
     return true;
   });
@@ -1445,10 +1445,13 @@ try {
     if (process.env.SHOT) fs.writeFileSync(process.env.SHOT + "/schemas-boites.pdf", Buffer.from(b64, "base64"));
     const doc = await pdfjsNode.getDocument({ data: new Uint8Array(Buffer.from(b64, "base64")), verbosity: 0 }).promise;
     const txt = async (i) => (await (await doc.getPage(i)).getTextContent()).items.map((x) => x.str).join(" ");
-    const t1 = await txt(1), t2 = await txt(2), n = await ev(() => okteo.cab.boxes.length);
+    const t1 = await txt(1), tTr = await txt(2), t2 = await txt(3), n = await ev(() => okteo.cab.boxes.length);
+    // v60 : vue des 4 tranches à l'écran (sous le schéma) ; page « perçage des tranches » après le schéma
+    const tr = await ev(() => ({ n: document.querySelectorAll(".bands .bd-tranches svg g.tranche").length, trous: document.querySelectorAll(".bands .bd-tranches svg g.trou[data-no]").length }));
     await page.click('#tabs button[data-tab="plan"]');
-    const ok = doc.numPages >= 2 * n && /Boîte LI01/.test(t1) && /PAVILLONNEUR/.test(t1) && /TABLEAU/.test(t1) && /ORDRE DE CABLAGE/.test(t1) && /MODÈLE DE BOÎTE/.test(t1) && /-LI01/.test(t1) && /connecteur/.test(t1) && /raccordements à faire dans l'ordre/.test(t2) && /1\. Terres/.test(t2) && /Contrôle final/.test(await txt(doc.numPages));
-    if (!ok) throw new Error(JSON.stringify({ pages: doc.numPages, n, t1: t1.slice(0, 300), t2: t2.slice(0, 300) }));
+    const ok = doc.numPages >= 3 * n && /Boîte LI01/.test(t1) && /PAVILLONNEUR/.test(t1) && /TABLEAU/.test(t1) && /ORDRE DE CABLAGE/.test(t1) && /MODÈLE DE BOÎTE/.test(t1) && /-LI01/.test(t1) && /connecteur/.test(t1)
+      && /perçage des tranches/.test(tTr) && tr.n === 4 && tr.trous > 2 && /raccordements à faire dans l'ordre/.test(t2) && /1\. Terres/.test(t2) && /Contrôle final/.test(await txt(doc.numPages));
+    if (!ok) throw new Error(JSON.stringify({ pages: doc.numPages, n, tr, t1: t1.slice(0, 300), tTr: tTr.slice(0, 200), t2: t2.slice(0, 300) }));
     return true;
   });
   await check("étiquettes de boîte (v50) : 4 par A4 paysage, nom, en-tête, code, longueur totale et « à vérifier » (v52) ; dossier PDF : garde + plan + tableau + bandes détaillées", async () => {
