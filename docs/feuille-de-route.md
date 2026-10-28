@@ -339,6 +339,19 @@ Question posée : qu'est-ce qui, sur un plan, dit que les volets sont connectés
   → Améliorer le choix d'implantation des boîtes : le placement (modes proximité / équilibrée / par pièce) doit éviter
   les boîtes dont les gaines se croiseraient (appareils d'une boîte « entremêlés » avec ceux d'une autre).
 
+## Mise à jour 61 — relecture ciblée étendue et plus fine (définie avec Kévin, 28/10/2026, 08:47–08:49)
+- Points envoyés à l'IA en plus des liaisons : pièce nommée non fermée, ouverture recentrée / rétrécie / loin des murs,
+  porte sans sens, appareil hors pièce, type vague (SC) ou peu probable, prise de cuisine sans hauteur, doublons,
+  doutes écrits par l'IA dans « remarques ». Repères O1, O2… pour les ouvertures. Question propre à chaque erreur.
+- Avec clé : image agrandie autour de chaque point (en plus du plan entier). Sans clé : zone précise en % de la page.
+- Réponse : liaisons, ajouts, types, portes, ouvertures, murs, doublons, hauteurs, introuvables. Aperçu + un Ctrl+Z.
+- L'IA peut modifier (types compris), visible dans l'aperçu (Kévin, 08:49).
+- **Rapport de l'analyse IA** (Kévin, 08:49) : ce qui a été modifié, ce qui n'a pas été trouvé, et un % de réussite,
+  « sous réserve du contrôle BE ». Décisions (Claude) : % = points résolus / points signalés, par relecture et au total ;
+  chaque point avec son repère, l'erreur, la correction (avant → après) ou la raison de l'IA ; gardé dans le chantier
+  (historique des relevés et relectures, moteur, durée, jetons) ; consultable dans l'onglet Étude.
+- Limites inchangées (2 relectures auto, arrêt sans progrès, 3 min, Arrêter, introuvable jamais redemandé).
+
 ## Mise à jour 62 — types d'implantation des boîtes revus (Kévin, 28/10/2026, 08:38 ; décisions laissées à Claude)
 Réponses de Kévin : le BE fait « selon sa logique : des économies tout en réalisant de belles pieuvres, sans trop
 croiser les gaines » ; boîte posable partout (on y reviendra) ; autant de modes que judicieux ; volets adaptés au mode.
