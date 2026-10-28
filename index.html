@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oktéo AI</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+  <script type="module" crossorigin src="./assets/main-DjT0FVLP.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/cablage-data-BJhKheR3.js">
+  <link rel="stylesheet" crossorigin href="./assets/main-C8Y2nVCa.css">
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand">Oktéo <b>AI</b></div>
+    <div class="mode-sw" id="mode-sw" role="group" aria-label="Interface" title="Mode BE : l'interface complète, tout le détail. Mode IA : interface simplifiée pour piloter l'IA, du plan au dossier PDF (Alt+M)"><button data-m="be" aria-pressed="true">Mode BE</button><button data-m="ia" aria-pressed="false">Mode IA</button></div>
+    <button class="badge" title="Chantier ouvert : cliquez pour changer de chantier">…</button>
+    <div class="levels" id="levels" role="tablist" aria-label="Niveaux"></div>
+    <div class="pop pop-left" id="pop-relev">
+      <button id="btn-relev" aria-haspopup="true" aria-expanded="false" title="Relever automatiquement le plan PDF : murs, pièces, appareillage, ou relevé par l'IA">⤓ Relevé ▾</button>
+      <div class="pop-body relev" hidden>
+        <p class="mut sm">Chaque relevé montre un aperçu en orange : vous gardez ou non le résultat. Ctrl+Z annule.</p>
+        <button id="rv-walls" title="Lit les murs dessinés dans le PDF (sans IA) : épaisseurs, portes, fenêtres. L'échelle est réglée toute seule d'après les cotes si besoin."><b>1. Murs</b><small>du PDF, sans IA</small></button>
+        <button id="rv-rooms" title="Trouve les pièces fermées par les murs, leur surface et leur nom lu sur le plan. Il faut des murs."><b>2. Pièces</b><small>noms et surfaces</small></button>
+        <button id="rv-devices" title="Lit les symboles du plan : prises, interrupteurs, points lumineux… et leurs liaisons."><b>3. Appareillage</b><small>symboles et liaisons</small></button>
+        <div class="pop-sep"></div>
+        <button id="rv-ai" class="btn-ai" title="L'IA regarde l'image du plan et propose murs, pièces et appareils, pour comparer avec le relevé sans IA. Il faut une clé IA (Paramètres)."><b>✦ Relevé par l'IA</b><small>murs, pièces et appareils, pour comparer</small></button>
+        <button id="rv-recheck" class="btn-ai" title="Fait relire par l'IA toutes les erreurs détectées après un relevé (liaisons, pièces non fermées, types vagues, appareils hors pièce, doublons, ouvertures, portes…) : consigne à copier, ou relecture automatique avec une clé. Rapport dans l'onglet Étude."><b>✦ Relecture ciblée</b><small>les erreurs détectées, avec rapport</small></button>
+      </div>
+    </div>
+    <div class="grow"></div>
+    <label class="ck" title="Force les murs et les cotes à l'horizontale ou à la verticale"><input type="checkbox" id="ortho" checked> Angles droits</label>
+    <div class="pop" id="pop-view">
+      <button id="btn-view" aria-haspopup="true" aria-expanded="false" title="Cotes, repères, fond de plan, taille des symboles">Affichage ▾</button>
+      <div class="pop-body" hidden>
+        <label class="ck"><input type="checkbox" id="dims" checked> Cotes</label>
+        <label class="ck"><input type="checkbox" id="reps" checked> Repères (P1, I2…)</label>
+        <label class="ck" title="Les murs du niveau du dessous en gris clair, pour caler ceux de l'étage"><input type="checkbox" id="below" checked> Niveau du dessous en transparence</label>
+        <div class="slider" title="Visibilité du fond">Fond<input id="bg" type="range" min="0" max="100" value="60"><span id="bgv" class="num">60%</span></div>
+        <div class="slider" title="Diamètre des symboles (cm). Auto : taille calculée d'après le dessin (pièces), la même pour tous les appareils ; bouger le curseur la règle à la main">Symboles<input id="sym" type="range" min="6" max="60" value="20"><span id="symv" class="num">20</span><label class="ck mini" title="Taille d'après le dessin"><input type="checkbox" id="symauto" checked> Auto</label></div>
+        <div class="slider" title="Taille des noms de pièces (la même pour toutes les pièces). On peut aussi déplacer un nom en le glissant.">Noms<input id="roomtxt" type="range" min="60" max="250" step="10" value="100"><span id="roomtxtv" class="num">100%</span></div>
+        <div class="vrot" title="Tourner la vue : le plan et son fond tournent ensemble à l'écran (pour travailler un plan dessiné de travers ou couché). Le dessin et l'impression ne changent pas.">Tourner la vue
+          <span class="vrot-b"><button id="vr-ccw" title="Un quart de tour à gauche">⟲ 90°</button><button id="vr-cw" title="Un quart de tour à droite">⟳ 90°</button><button id="vr-180" title="Demi-tour">180°</button>
+          <input id="vr-deg" type="number" step="0.5" min="-180" max="180" value="0" title="Angle en degrés (quelques degrés pour un scan de travers)"><span class="num">°</span><button id="vr-0" title="Vue droite d'origine">0°</button></span></div>
+        <button id="theme" title="Thème clair / sombre">◐ Thème clair / sombre</button>
+        <button id="export" title="Données du dessin au format JSON (murs, pièces, appareils, liaisons)">Exporter les données (JSON)</button>
+      </div>
+    </div>
+    <div class="sep"></div>
+    <button id="undo" title="Annuler (Ctrl+Z)">↶</button><button id="redo" title="Rétablir (Ctrl+Y)">↷</button>
+    <button class="ctl" id="ctl" title="Contrôle du plan">✓ Contrôle</button>
+    <button class="dbt" id="dbt" hidden title="Doutes du câblage : règles manquantes ou cas non prévus (onglet Étude → Où ça coince)">✕ 0</button>
+    <div class="chip"><span class="dot" id="savedot"></span><span id="savetxt">Enregistré</span></div>
+    <button id="btn-print" title="Plan imprimable en PDF, à l'échelle, avec cartouche et nomenclature (Ctrl+P)">🖨 Imprimer</button>
+    <div class="sep"></div>
+    <button id="btn-palette" title="Toutes les fonctions, avec recherche (Ctrl+K)">⌕ Fonctions</button>
+  </div>
+  <div class="top2">
+    <div class="grp grp-act" title="Actions : dessiner le bâtiment (1re barre) et poser l'appareillage (2e barre)"><span class="glab">Actions</span><div class="tool" id="tools"></div></div>
+    <div class="grp grp-view"><span class="glab">Vues</span><div class="vfilter" id="vfilter" role="group" aria-label="Filtre de la vue"></div></div>
+    <div class="grp grp-pan"><span class="glab">Panneaux</span><div class="panes" id="panes" role="group" aria-label="Panneaux de droite"></div></div>
+  </div>
+  <div class="main">
+    <nav class="tabs" id="tabs"></nav>
+    <div class="stage">
+      <svg id="sv" viewBox="0 0 100 70" preserveAspectRatio="xMidYMid meet" aria-label="Plan du chantier"></svg>
+      <svg class="fx" id="fx" aria-hidden="true" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="hud" id="hud" hidden></div>
+      <div class="readout" id="readout" hidden></div>
+      <div class="hint" id="hint"></div>
+      <div class="as-dock" id="as-dock" aria-label="Assistant"></div>
+      <div class="zoomw"><button id="zout">−</button><button id="zfit">Ajuster</button><button id="zin">+</button></div>
+    </div>
+    <section class="params" id="params" hidden></section>
+    <section class="params" id="chantiers" hidden></section>
+    <section class="params" id="etude" hidden></section>
+    <div class="pgroup" id="pg-pieuvre" hidden>
+      <nav class="subtabs" id="subtabs" aria-label="Pieuvre">
+        <button data-sub="boites" title="Boîtes : gaines, longueurs, fils, raccordements">Boîtes</button>
+        <button data-sub="bandes" title="Bandes de câblage : schéma de chaque boîte pour le câbleur, étiquettes, dossier PDF">Bandes</button>
+        <button data-sub="lignes" title="Lignes directes : du tableau à l'appareil, sans boîte">Lignes directes</button>
+      </nav>
+      <section class="params" id="boites" hidden></section>
+      <section class="params" id="bandes" hidden></section>
+      <section class="params" id="lignes" hidden></section>
+    </div>
+    <section class="params" id="tableau" hidden></section>
+    <aside class="side" id="side">
+      <div class="side-grip" id="side-grip" title="Glisser pour élargir le panneau"></div>
+      <div class="side-head" id="side-head"></div>
+      <div class="pane" data-pane="props" id="sidebody"></div>
+    </aside>
+  </div>
+</div>
+</body>
+</html>

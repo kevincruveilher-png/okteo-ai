@@ -1,0 +1,18 @@
+import{u as $,d as g,b as f,o as v,s as S,t as x,w as p,a as y,F as k,c as q}from"./cablage-data-BJhKheR3.js";const c=document.getElementById("bande"),t=l=>String(l??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"),h=(l,a=1)=>l==null?"—":Number(l).toFixed(a).replace(".",","),C=l=>l==null?"":`<svg viewBox="0 0 60 60" width="54" height="54"><g transform="rotate(${(l*180/Math.PI).toFixed(1)} 30 30)"><path d="M4 23H34V13L56 30L34 47V37H4Z" fill="currentColor"/></g></svg>`;async function L(){const l=/[#&]b=([A-Za-z0-9_-]+)/.exec(location.hash);if(!l){c.innerHTML="<h1>Bande de câblage</h1><p>Scannez le QR code d'une feuille de boîte imprimée par Oktéo.</p>";return}let a;try{a=$(await g(l[1]))}catch{c.innerHTML="<h1>Bande illisible</h1><p>Le QR code n'a pas pu être lu entièrement. Rescannez-le, ou réimprimez la feuille.</p>";return}const n=a.head,i=f(a.box,a.sizes),b=v(i),r="okteo.bande."+(n.code||n.box)+"."+l[1].length+l[1].slice(-12);let o=new Set;try{o=new Set(JSON.parse(localStorage.getItem(r)||"[]"))}catch{}const m=()=>{try{localStorage.setItem(r,JSON.stringify([...o]))}catch{}};document.title=`${n.box} — ${n.nom}`,c.innerHTML=`
+    <header class="hd">
+      <div><small>Pavillonneur</small><b>${t(n.client||"—")}</b><small>Chantier</small><b>${t(n.nom)}</b></div>
+      <div class="tab">${C(a.tabAng)}<span>TABLEAU</span></div>
+      <div class="r"><small>N° d'affaire</small><b>${t(n.numero||"—")}</b><small>${t(n.level)}</small></div>
+    </header>
+    <h1>Boîte ${t(n.box)} <span>${t(n.model)} · couvercle vers le ${t(n.cover)}</span></h1>
+    <div class="faces">${["A","B","C","D"].map(e=>`<span><b>${e}</b> ${t(a.sides[e]||"—")}</span>`).join("")}</div>
+    <section class="sch"><div class="svgw">${S(a.box,i,{color:q,sides:a.sides})}</div><p class="mut">Écartez deux doigts pour agrandir le schéma.</p></section>
+    ${a.box.gaines.some(e=>e.slot!=null)?`<section class="tr"><h2>Perçage des tranches</h2><p class="mut">Chaque face vue de l'extérieur : trous de gauche à droite.</p><div class="svgw">${x(a.box,{sides:a.sides})}</div></section>`:""}
+    <section><h2>Ordre de câblage</h2>
+      <table class="ord">${b.map(e=>`<tr><td class="n">${e.n}</td><td><i style="background:${p(e.color)}"></i>${t(e.color)} ${e.section?h(e.section):""}</td><td class="c">${e.count} fil${e.count>1?"s":""}</td></tr>`).join("")}</table></section>
+    <section><h2>Raccordements <span class="prog"></span></h2>
+      <ol class="steps">${i.map(e=>`<li data-n="${e.n}" class="${o.has(e.n)?"done":""}"><label><input type="checkbox" ${o.has(e.n)?"checked":""}><b>${e.n}.</b> ${t(e.label)}
+        <small>${e.wires.length} fils → ${e.conn.list.length?e.conn.list.map(s=>s+" entrées").join(" + ")+(e.conn.ponts?` (+ ${e.conn.ponts} pont${e.conn.ponts>1?"s":""})`:""):"fil seul : vérifier"}</small></label>
+        <ul>${e.wires.map(s=>`<li><b>${t(s.gaine)}</b> <i style="background:${p(s.core&&s.core!==s.color?s.core:s.color)}"></i>${t(y(s))} ${h(s.section)}${s.bague?` · bague ${t(s.bague)}`:""} <span class="mut">${t(k[s.fn]||s.fn)}${s.label?" · "+t(s.label):""}</span></li>`).join("")}</ul></li>`).join("")}</ol></section>
+    <section><h2>Contrôle final</h2><ul class="ctl"><li>Chaque gaine : tous ses fils sont dans un connecteur (aucun fil libre).</li><li>Chaque connecteur : le nombre de fils indiqué, enfoncés jusqu'au bout (tirer légèrement pour vérifier).</li></ul></section>
+    <footer>${t(n.code)} · Oktéo</footer>`;const d=()=>{c.querySelector(".prog").textContent=`${o.size} / ${i.length}`};c.querySelectorAll(".steps > li").forEach(e=>e.querySelector("input").onchange=s=>{const u=+e.dataset.n;s.target.checked?o.add(u):o.delete(u),e.classList.toggle("done",s.target.checked),m(),d()}),d()}L();
