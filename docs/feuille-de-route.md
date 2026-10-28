@@ -433,6 +433,14 @@ Décisions (Claude) :
   « Appliquer » = `okteo.applyScaleRatio(N)`, si le fond est un PDF au format d'origine ; sinon message clair).
   Contournement en attendant : Alt+M (Mode BE) → outil Échelle → case « 1 / … » → Appliquer → Alt+M.
 
+## Note du 28/10/2026 (20:28), Kévin — 2e relevé IA de MAILLARD « moins bien, beaucoup d'oublis »
+- Réponse collée : image de 1 654 × 1 169 px (page rendue en basse définition, l'IA le dit : « page imprimée réduite,
+  env. 34 px/m »), 63 appareils contre 102 dans le relevé corrigé (1er essai Opus du 27/10 : 100), 14 liaisons contre 33.
+  Manquent : 8 CVR, 6 appliques, 9 VV, 7 prises, TAB, interphone, 2 Aqua Air, moteur de garage, 1 TV.
+- Cause probable : définition de l'image (symboles de quelques pixels) et réponse sans vérification par la légende.
+- À essayer (ajout en tête de consigne donné à Kévin) : page rendue à 200 dpi au moins, lecture par quarts de page,
+  légende lue d'abord, décompte par type à la fin. Si c'est mieux : l'intégrer à `pastePrompt` / `aiPrompt`.
+
 ## Sans date
 - Interrupteur à voyant (avec neutre) et nouvel appareillage.
 - Export SPV pour Counter.
