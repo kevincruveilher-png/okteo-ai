@@ -270,7 +270,9 @@ export function startGroupDrag(wx, wy, G, perp) {
       x0: r.x0,
       y0: r.y0,
       x1: r.x1,
-      y1: r.y1
+      y1: r.y1,
+      lx: r.lx,
+      ly: r.ly
     };
   });
   G.dims.forEach(id => {
@@ -340,6 +342,7 @@ export function moveGroup(wx, wy, shift) {
       r.x1 = +(q.x1 + dx).toFixed(3);
       r.y0 = +(q.y0 + dy).toFixed(3);
       r.y1 = +(q.y1 + dy).toFixed(3);
+      if (q.lx != null) { r.lx = +(q.lx + dx).toFixed(3); r.ly = +(q.ly + dy).toFixed(3); }   // v58 : nom déplacé à la main
     }
   }
   for (const id in o.dims) {
@@ -419,6 +422,7 @@ export function transformGroup(kind) {
       r.x1 = Math.max(p0.x, p1.x);
       r.y0 = Math.min(p0.y, p1.y);
       r.y1 = Math.max(p0.y, p1.y);
+      if (r.lx != null) { const pl = T({ x: r.lx, y: r.ly }); r.lx = pl.x; r.ly = pl.y; }
     }
   });
   G.dims.forEach(id => {

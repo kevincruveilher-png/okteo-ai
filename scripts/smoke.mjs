@@ -1103,7 +1103,7 @@ try {
       const shape = (t) => { const g = [...document.querySelectorAll("#tools .pb")].find((b) => b.dataset.tool === t); return g ? g.querySelector("svg").firstElementChild.tagName : null; };
       const C = okteo.cab.circuits, inC = new Set(C.flatMap((c) => c.apps));
       const a = okteo.state.app.find((x) => inC.has(x.id) && x.t === "PC16");
-      const g = [...document.querySelectorAll("#sv g.dev")].find((e) => e.getAttribute("transform").startsWith(`translate(${a.x} ${a.y})`));
+      const g = document.querySelector(`#sv g.dev[data-id="${a.id}"]`);
       return { pc: shape("PC16"), int: shape("INT"), lum: shape("LUM"), spot: document.querySelector('#tools .pb[data-tool="SPOT"] svg').querySelectorAll("path").length,
         col: g && g.style.getPropertyValue("--c"), circ: g && g.classList.contains("circ"), oldRings: document.querySelectorAll("#sv circle.circ").length };
     });
@@ -1111,7 +1111,7 @@ try {
     const nc = await ev(() => {
       const p = okteo.state.app.find((x) => x.t === "PC16"), id = p.id, save = JSON.stringify(okteo.cab.circuits);
       okteo.setCircuits(okteo.cab.circuits.map((c) => ({ ...c, apps: c.apps.filter((k) => k !== id && okteo.state.app.find((a) => a.id === k)?.t !== "RJ45") })));
-      const g = (pred) => [...document.querySelectorAll("#sv g.dev")].find((e) => { const a = okteo.state.app.find(pred); return a && e.getAttribute("transform").startsWith(`translate(${a.x} ${a.y})`); });
+      const g = (pred) => { const a = okteo.state.app.find(pred); return a && document.querySelector(`#sv g.dev[data-id="${a.id}"]`); };
       const red = g((x) => x.id === id), rj = g((x) => x.t === "RJ45");
       return { red: red && red.classList.contains("nocirc") && red.style.getPropertyValue("--c") === "#d33", rj: !rj || !rj.classList.contains("nocirc") };
     });
@@ -1133,7 +1133,7 @@ try {
       }
       return out;
     });
-    const rots = await ev((list) => list.map(({ kind, id }) => { const a = okteo.state.app.find((x) => x.id === id); const g = [...document.querySelectorAll("#sv g.dev")].find((e) => e.getAttribute("transform").startsWith(`translate(${a.x} ${a.y})`));
+    const rots = await ev((list) => list.map(({ kind, id }) => { const a = okteo.state.app.find((x) => x.id === id); const g = document.querySelector(`#sv g.dev[data-id="${a.id}"]`);
       const m = (g.getAttribute("transform").match(/rotate\(([-\d.]+)\)/) || [0, "0"])[1]; return { kind, seg: !!a.seg, rot: Math.round(+m) }; }), r);
     await page.keyboard.press("Control+z"); await page.keyboard.press("Control+z");
     const ok = rots.every((o) => o.seg && (o.kind === "v" ? Math.abs(Math.abs(o.rot) - 90) < 1 : Math.abs(o.rot) % 180 < 1));
@@ -1226,7 +1226,7 @@ try {
       return { l: lk.l, marks: document.querySelectorAll("#sv line.split").length };
     });
     await ev(() => okteoExt.panel.show("cablage")); await page.waitForTimeout(200);
-    const btn = await page.isVisible("#cb-fixsplit");
+    const btn = await page.waitForSelector("#cb-fixsplit", { state: "visible", timeout: 5000 }).then(() => true, () => false);
     await page.click("#cb-fixsplit");
     const after = await ev(() => document.querySelectorAll("#sv line.split").length);
     await page.keyboard.press("Control+z");
@@ -1896,6 +1896,60 @@ try {
     const after = await probe();
     await ev(() => okteo.undo());
     if (!(before.n > 0 && before.d && before.inC && after.c === "connecte" && !after.d && !after.inC)) throw new Error(JSON.stringify({ before, after }));
+    return true;
+  });
+
+  console.log("Plan lisible (v58)");
+  await check("taille des symboles d'après le dessin (12 à 26 cm, « Auto ») ; le curseur la règle à la main, « Auto » la recalcule", async () => {
+    await page.click('#tabs button[data-tab="plan"]');
+    await ev(() => { okteoExt.panel.close("assistant"); okteo.clearSel(); });
+    const r = await ev(() => {
+      const auto = okteo.symCm, ck = document.getElementById("symauto").checked;
+      const sl = document.getElementById("sym"); sl.value = 40; sl.dispatchEvent(new Event("input"));
+      const man = okteo.symCm, ck2 = document.getElementById("symauto").checked;
+      const a = document.getElementById("symauto"); a.checked = true; a.dispatchEvent(new Event("change"));
+      return { auto, ck, man, ck2, back: okteo.symCm };
+    });
+    if (!(r.ck && r.auto >= 12 && r.auto <= 26 && r.man === 40 && !r.ck2 && r.back === r.auto)) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("deux appareils au même endroit : affichage décalé le long du mur, trait de rappel ; un clic sur le symbole décalé le sélectionne", async () => {
+    await ev(() => { okteo.setTool("sel"); okteo.showCircuits = false; okteo.viewPreset("impl"); okteo.fit(); });
+    const ids = await ev(() => { const a = okteo.state.app.find((x) => x.t === "PC16" && x.seg); return okteo.importDevices([{ t: "PC16", x: a.x, y: a.y }, { t: "INT", x: a.x, y: a.y }]).ids; });
+    const s = await ev((ids) => ids.map((id) => okteo.shownAt(id)), ids);
+    const leader = await ev(() => document.querySelectorAll("#sv g.leader").length);
+    const moved = s.find((p) => p.moved), id = ids[s.indexOf(moved)];
+    const c = await ev((p) => okteo.toClient(p.x, p.y), moved);
+    await page.mouse.click(c.x, c.y);
+    const sel = await ev(() => (okteo.selection[0] || "").replace(/^app:/, ""));
+    await ev(() => { okteo.clearSel(); okteo.undo(); });
+    if (!(moved && leader >= 1 && Math.hypot(s[0].x - s[1].x, s[0].y - s[1].y) > 0.05 && sel === id)) throw new Error(JSON.stringify({ s, leader, sel, id }));
+    return true;
+  });
+  await check("nom de pièce : glissé à la souris (position gardée, un Ctrl+Z) ; taille commune à toutes les pièces", async () => {
+    await ev(() => { okteo.setTool("sel"); okteo.viewPreset("bati"); okteo.fit(); });
+    const L = await ev(() => okteo.roomLabels.sort((p, q) => (q.x1 - q.x0) - (p.x1 - p.x0))[0]);
+    const p0 = await ev((l) => okteo.toClient(l.cx, l.cy), L);
+    await page.mouse.move(p0.x, p0.y); await page.mouse.down(); await page.mouse.move(p0.x + 40, p0.y + 30, { steps: 6 }); await page.mouse.up();
+    const r = await ev((id) => { const r = okteo.state.rooms.find((x) => x.id === id); return { lx: r.lx, ly: r.ly, sel: null }; }, L.id);
+    const fs = () => ev(() => [...document.querySelectorAll("#sv g.labels text[font-weight='600']")].map((t) => +t.getAttribute("font-size")));
+    const f1 = await fs(); await ev(() => okteo.setRoomTxt(1.5)); const f2 = await fs(); await ev(() => okteo.setRoomTxt(1));
+    await ev(() => okteo.undo());
+    const back = await ev((id) => okteo.state.rooms.find((x) => x.id === id).lx, L.id);
+    await ev(() => okteo.viewPreset("impl"));
+    const ratio = f2[0] / f1[0];
+    if (!(r.lx != null && Math.abs(ratio - 1.5) < 0.01 && f2.every((v) => Math.abs(v - f2[0]) < 1e-9) && back == null)) throw new Error(JSON.stringify({ r, f1: f1.slice(0, 3), f2: f2.slice(0, 3), back }));
+    return true;
+  });
+  await check("tourner la vue d'un quart de tour : fond et dessin tournent ensemble, textes droits, le clic vise toujours le bon appareil ; 0° remet la vue", async () => {
+    await ev(() => { okteo.rotateView(90); okteo.fit(); });
+    const r = await ev(() => ({ tr: document.querySelector("#sv g.world").getAttribute("transform"), up: !!document.querySelector("#sv g.labels text[transform*='rotate(-90']"), img: !!document.querySelector("#sv g.world image") }));
+    const a = await ev(() => { const a = okteo.state.app.find((x) => x.t === "LUM"); const p = okteo.shownAt(a.id); return { id: a.id, c: okteo.toClient(p.x, p.y) }; });
+    await page.mouse.click(a.c.x, a.c.y);
+    const sel = await ev((id) => okteo.selection[0] === "app:" + id, a.id);
+    await ev(() => { okteo.clearSel(); okteo.rotateView(0, true); okteo.fit(); });
+    const r0 = await ev(() => ({ rot: okteo.viewRot, tr: document.querySelector("#sv g.world").getAttribute("transform") }));
+    if (!(/rotate\(90\)/.test(r.tr) && r.up && r.img && sel && r0.rot === 0 && !/rotate/.test(r0.tr))) throw new Error(JSON.stringify({ r, sel, r0 }));
     return true;
   });
 

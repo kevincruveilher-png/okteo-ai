@@ -283,6 +283,8 @@ K.boxSel = null;
 K.__boxLayer = "";
 K.bgLevel = 0.60;
 K.symCm = 20;
+K.symAuto = true; // v58 : taille des symboles calculée d'après le dessin (même taille pour tous) ; faux = réglée à la main
+K.roomTxt = 1; // v58 : taille commune des noms de pièces (facteur, 0,6 à 2,5)
 K.ortho = true;
 K.gridM = 0.05;
 K.view = {

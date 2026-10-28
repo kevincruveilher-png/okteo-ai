@@ -281,6 +281,24 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 58 (28/10/2026) — livrée : plan lisible (avant la 57, à la demande de Kévin)
+Version du logiciel : 0.58.0.
+- Taille des symboles d'après le dessin : 5 cm par mètre de la plus petite dimension médiane des pièces, entre 12 et
+  26 cm, la même pour tous les appareils (`autoSymCm`, `K.symAuto`, case « Auto » du curseur Symboles ; bouger le
+  curseur la règle à la main ; dessins anciens : gardent leur taille si elle avait été changée). Impression : symbole
+  d'au moins 2,5 mm.
+- Aucun chevauchement : `spreadSymbols` (place.js) écarte l'affichage des symboles trop proches (le long de leur mur
+  pour un appareil mural), position réelle gardée, trait de rappel ; écran (`K.dispPos`, repères, halos, sélection)
+  et impression (mêmes règles en mm).
+- Boîtes plus petites : côté 2,2 symboles / 26 px mini à l'écran (points d'accroche plus petits), 3,6 u / 9 mm imprimé.
+- Noms des pièces : glissés à la souris (`r.lx`, `r.ly`, suivent la pièce quand on la déplace ou la tourne, un Ctrl+Z),
+  « Replacer le nom » dans Propriétés ; taille commune (`K.roomTxt`, Affichage → Noms, Propriétés de la pièce), écran
+  et impression.
+- Tourner la vue (Affichage → Tourner la vue : ±90°, 180°, angle libre, 0°) : le fond et le dessin tournent ensemble
+  à l'écran, textes et symboles restent droits ; les coordonnées du dessin, les relevés et l'impression ne changent pas
+  (`K.view.rot`, `W2V`/`V2W`, `viewTransform`, groupe `g.world`). L'impression reste dans le sens du plan d'origine.
+- Tests : 31 + 63 + 175 + 12 + 149 = 430.
+
 ## Version 56 (28/10/2026) — livrée : câblage aligné sur le bureau d'études (MAILLARD)
 Version du logiciel : 0.56.0. Règles du journal H-037 à H-041 (réponses de Kévin des 27 et 28/10).
 - R-001 : 16 départs par boîte hors alimentation (réglage `departsMax` 16, anciens 12 et 18 remplacés : `CAB_V` 4).

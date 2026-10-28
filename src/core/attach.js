@@ -59,7 +59,8 @@ export function hitApp(wx, wy) {
   let b = null,
     bd = Math.max(tolM(), K.symCm / 100);
   for (const a of state.app) {
-    const d = dist(wx, wy, a.x, a.y);
+    const D = K.dispPos && K.dispPos.get(a.id);   // v58 : symbole affiché décalé
+    const d = Math.min(dist(wx, wy, a.x, a.y), D ? dist(wx, wy, D.x, D.y) : Infinity);
     if (d < bd) {
       bd = d;
       b = a;

@@ -4,14 +4,14 @@ import { K } from "./k.js";
 import { addLimit } from "../walls/rooms.js";
 import { CH, PAL, PLAN, TYPES, VB, layers, node, nodeById, segById, state, uidA, uidN, uidO, uidR, uidS } from "./model.js";
 import { markDirty, packData, snapshot, writeNow } from "./persist.js";
-import { fit, renumberReps, repMap, syncVB } from "./view.js";
+import { fit, renumberReps, repMap, rotExtent, rotateView, syncVB } from "./view.js";
 import { draw, drawFx, sv } from "./render.js";
 import { attach, reattach, roomArea, roomPoly, snapToWall, wallMounted } from "./attach.js";
 import { bbox, clampOpenings, clearSel, duplicateGroup, multi, normalizeSel, openCenter, roomAt, selectAll, transformGroup } from "./groups.js";
 import { wallMeasure } from "./interact.js";
 import { worldToScreen } from "./hud.js";
 import { delSel, showSide } from "./panel.js";
-import { VIEW_PRESETS, applyCalib, applyRatio, buildFilter, buildTools, hintFor, resetTransient, setHint, setTab, toggleView, viewPreset } from "./controls.js";
+import { VIEW_PRESETS, applyCalib, applyRatio, buildFilter, buildTools, hintFor, resetTransient, setHint, setRoomTxt, setTab, toggleView, viewPreset } from "./controls.js";
 import { addLevel, allLinks, levelFondInfo, levelName, loadFondImage, okteoGeo, removeLevel, renameLevel, switchLevel, withLevel } from "./levels.js";
 import { CIRC_COLORS } from "./render.js";
 import { CHECK_KINDS, essai, essaiPress, essaiReset, litSet, setBreaker, testAll } from "./check.js";
@@ -22,7 +22,8 @@ export function zoomToBox(x0, y0, x1, y1) {
   const pad = 0.8,
     w = Math.max(1.5, x1 - x0),
     h = Math.max(1.5, y1 - y0);
-  K.view.scale = Math.min(90, Math.min(VB.w / (w + pad * 2), VB.h / (h + pad * 2)));
+  const E = rotExtent(w + pad * 2, h + pad * 2);
+  K.view.scale = Math.min(90, Math.min(VB.w / E.w, VB.h / E.h));
   K.view.cx = (x0 + x1) / 2;
   K.view.cy = (y0 + y1) / 2;
   draw();
@@ -568,6 +569,29 @@ window.okteo = {
     showSide();
   },
   setTab,
+  // v58 : vue tournée (degrés) ; rotateView(pas) ou rotateView(angle, true)
+  rotateView(deg, abs = false) {
+    rotateView(deg, abs);
+    return K.view.rot || 0;
+  },
+  get viewRot() {
+    return K.view.rot || 0;
+  },
+  setRoomTxt(f) {
+    setRoomTxt(f);
+  },
+  // v58 : boîtes des noms de pièces affichés [{id, x0, y0, x1, y1, cx, cy}] et position AFFICHÉE d'un appareil
+  get roomLabels() {
+    return (K.roomLabelBoxes || []).map(b => ({ ...b }));
+  },
+  shownAt(id) {
+    const a = state.app.find(x => x.id === id);
+    const d = K.dispPos && K.dispPos.get(id);
+    return a ? { x: d ? d.x : a.x, y: d ? d.y : a.y, moved: !!d } : null;
+  },
+  get symCm() {
+    return K.symCm;
+  },
   objBox,
   zoomToBox,
   // emprise du dessin + du fond de plan (pour l'image envoyée à l'IA)

@@ -317,13 +317,21 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `markExterior` ignore VR/VEL ; `okteo.setGaineGroups` (K.gaineGroups) : boxLayout suit le découpage des gaines ;
   Propriétés `#f_pt` ; Câblage `#bx-cvol` ; journal `#rg-cvol`. Référence : `scripts/maillard.test.mjs` (recâble
   `docs/chantiers/MAILLARD_kevin.okteo` via `scripts/chantier-wiring.mjs`, options `--recable --connecte --mode= --departs=`).
+- v58 : `autoSymCm()` (view.js) + `K.symAuto` (persist `symAuto`, case `#symauto`) ; `spreadSymbols(items, D)` (place.js)
+  → `K.dispPos` (render : symbole au point affiché, `g.leader`, `g.dev[data-id]`, `data-moved` ; repères, halos, `hitApp`) ;
+  `wallU(a)` ; `exportGeometry().apps[].wall`, print.js même décalage en mm, `u ≥ 1,6` ; boîte `S = max(symCm·2,2/100,
+  26 px)`, print `BS = max(3,6 u, 9)` ; noms de pièces `r.lx/r.ly` (glisser : `K.labelDrag`, `K.roomLabelBoxes`,
+  `okteo.roomLabels`), `K.roomTxt` (`setRoomTxt`, `#roomtxt`, `#r_txt`, `#r_lab`, `geo.roomTxt`, `rooms[].labelFixed`) ;
+  rotation de la vue `K.view.rot` (`viewRot`, `W2V`/`V2W` tournés, `viewTransform()` pour `g.world` et fx, `viewWorldBox`,
+  `rotExtent` dans fit/zoomToBox, `rotateView(deg, abs)`, `upright(svg)` pour les textes, symboles contre-tournés,
+  boutons `#vr-*`, `okteo.rotateView/viewRot/shownAt/symCm`).
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (31 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (63 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (175 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (12 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (145 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (63 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (175 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (12 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (149 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)

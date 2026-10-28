@@ -232,6 +232,17 @@ export function endPtr() {
     draw();
     return;
   }
+  if (K.labelDrag) {
+    const L = K.labelDrag;
+    K.labelDrag = null;
+    if (L.moved) { markDirty(); draw(); showSide(); }
+    else {
+      // simple clic sur le nom : la pièce est sélectionnée
+      setSingle("room", L.id);
+      draw(); showSide();
+    }
+    return;
+  }
   if (K.boxDrag) {
     K.boxDrag = null;
     markDirty();
@@ -407,6 +418,12 @@ sv.addEventListener("pointerdown", e => {
         }
       }));
       draw();
+      return;
+    }
+    // v58 : nom de pièce saisi : on le glisse (sa position est gardée ; « Replacer le nom » dans Propriétés l'efface)
+    const rl = !hitApp(wx, wy) && layers.pieces.on ? (K.roomLabelBoxes || []).find(q => wx >= q.x0 && wx <= q.x1 && wy >= q.y0 && wy <= q.y1) : null;
+    if (rl) {
+      K.labelDrag = { id: rl.id, dx: wx - rl.cx, dy: wy - rl.cy, moved: false };
       return;
     }
     if (K.boxSel) {
@@ -755,9 +772,10 @@ sv.addEventListener("pointermove", e => {
     y: wy
   };
   if (K.pan) {
-    const k = pxPerVB();
-    K.view.cx = K.pan.cx - (e.clientX - K.pan.x) / k / K.view.scale;
-    K.view.cy = K.pan.cy - (e.clientY - K.pan.y) / k / K.view.scale;
+    const k = pxPerVB(), t = ((K.view.rot || 0) * Math.PI) / 180, c = Math.cos(t), s = Math.sin(t);
+    const dx = (e.clientX - K.pan.x) / k / K.view.scale, dy = (e.clientY - K.pan.y) / k / K.view.scale;   // v58 : vue tournée
+    K.view.cx = K.pan.cx - (dx * c + dy * s);
+    K.view.cy = K.pan.cy - (-dx * s + dy * c);
     draw();
     return;
   }
@@ -801,6 +819,17 @@ sv.addEventListener("pointermove", e => {
       pts[R.i] = { x: +x.toFixed(2), y: +y.toFixed(2) };
       draw();
       setHint(routeHint(b, R.key, R.i));
+    }
+    return;
+  }
+  if (K.labelDrag) {
+    const r = state.rooms.find(x => x.id === K.labelDrag.id);
+    if (r) {
+      if (!K.labelDrag.moved) { snapshot(); K.labelDrag.moved = true; }
+      r.lx = +(wx - K.labelDrag.dx).toFixed(3);
+      r.ly = +(wy - K.labelDrag.dy).toFixed(3);
+      draw();
+      setHint(`Nom « ${r.name} » déplacé. Propriétés de la pièce → « Replacer le nom » pour le remettre à sa place automatique.`);
     }
     return;
   }

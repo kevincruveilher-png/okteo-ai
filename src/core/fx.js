@@ -4,6 +4,7 @@
 // à chaque mouvement de souris. Un élément qui disparaît s'éteint en fondu avant d'être retiré.
 import { K } from "./k.js";
 import { VB } from "./model.js";
+import { viewTransform } from "./view.js";
 
 const DEFS = `<defs>
   <radialGradient id="fxGlow"><stop offset="0" stop-color="#fff6cf" stop-opacity=".58"/><stop offset=".18" stop-color="#ffe08a" stop-opacity=".44"/>
@@ -25,7 +26,7 @@ export function fxDraw(items) {
   fx.setAttribute("viewBox", `0 0 ${VB.w} ${VB.h}`);
   let root = fx.querySelector("g.fx-root");
   if (!root) { fx.innerHTML = DEFS; root = fx.querySelector("g.fx-root"); }
-  root.setAttribute("transform", `translate(${VB.w / 2} ${VB.h / 2}) scale(${K.view.scale}) translate(${-K.view.cx} ${-K.view.cy})`);
+  root.setAttribute("transform", viewTransform());
   const want = new Map(items.map((it) => [it.kind + ":" + it.key, it]));
   root.querySelectorAll(":scope > g[data-k]").forEach((g) => {
     const it = want.get(g.dataset.k);

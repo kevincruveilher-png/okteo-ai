@@ -12,7 +12,7 @@ import { planTravailAuto } from "../cablage/circuits.js";
 import { getCab } from "../cablage/settings.js";
 import { currentGroup, deleteGroup, duplicateGroup, groupCount, multi, resizeRoom, roomAt, transformGroup } from "./groups.js";
 import { posOnWall, wallMeasure } from "./interact.js";
-import { applyCalib, applyRatio, buildTools, hintFor, setHint } from "./controls.js";
+import { applyCalib, applyRatio, buildTools, hintFor, setHint, setRoomTxt } from "./controls.js";
 
 // ---------- panneau ----------
 export function layerPanel() {
@@ -284,6 +284,8 @@ export function showSide() {
      ${r.also && r.also.length ? `<p class="note warn">Le plan indique aussi ici : <b>${r.also.join(", ")}</b>. Un mur manque peut-être pour les séparer.</p>` : ""}
      <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
        <button id="r_ccw" title="Maj+R">⟲ 90°</button><button id="r_cw" title="R">⟳ 90°</button><button id="r_mx" title="X">⇋</button><button id="r_my" title="Y">⇵</button></div>
+     <div class="field full" style="margin-top:10px" title="Taille commune : elle change les noms de toutes les pièces (écran et impression)"><label>Taille des noms de pièces <span class="u">%</span></label><input id="r_txt" type="range" min="60" max="250" step="10" value="${Math.round((K.roomTxt || 1) * 100)}"></div>
+     <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">${r.lx != null ? `<button id="r_lab" title="Le nom revient à sa place automatique (au milieu de la pièce, sans gêner)">Replacer le nom</button>` : `<span class="note" style="margin:0">Glissez le nom de la pièce sur le plan pour le déplacer.</span>`}</div>
      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button id="r_dup">Dupliquer</button><button id="delr" class="danger">Supprimer</button></div>
      <p class="note">${r.cycle ? "Pièce détectée d'après ses murs : sa forme et sa surface suivent les murs quand on les déplace. Surface mesurée entre les faces intérieures des murs." : "La largeur et la profondeur déplacent réellement les murs de droite et du bas."} Glissez la pièce sélectionnée pour la déplacer avec ses murs et ses appareils. Supprimer retire la pièce, ses murs et son contenu.</p>`;
     b.querySelector("#rn").onchange = e => {
@@ -292,6 +294,8 @@ export function showSide() {
       markDirty();
       draw();
     };
+    b.querySelector("#r_txt").oninput = e => setRoomTxt(+e.target.value / 100);
+    if (b.querySelector("#r_lab")) b.querySelector("#r_lab").onclick = () => { snapshot(); delete r.lx; delete r.ly; markDirty(); draw(); showSide(); };
     if (b.querySelector("#rw")) b.querySelector("#rw").onchange = e => {
       const v = +e.target.value;
       if (v > 0.3) {

@@ -4,7 +4,7 @@ import { K } from "./k.js";
 import * as CHS from "../chantiers.js";
 import { CH, PAL, TYPES, dist, layers, node, nodeById, redo, state, uidS, undo } from "./model.js";
 import { applyPack, load, markDirty, packState, paintStatus, save, snapshot } from "./persist.js";
-import { applyOrtho, fit, repMap } from "./view.js";
+import { applyOrtho, autoSymCm, fit, repMap, rotateView } from "./view.js";
 import { draw, glyph } from "./render.js";
 import { wallMounted } from "./attach.js";
 import { APPAREILS, GROUPES } from "../cablage/appareils.js";
@@ -222,6 +222,15 @@ export function hintFor(v) {
   return m[v] || "";
 }
 
+// v58 : taille commune des noms de pièces (facteur 0,6 à 2,5) : un seul réglage pour toutes les pièces, écran et impression
+export function setRoomTxt(f) {
+  K.roomTxt = Math.max(0.6, Math.min(2.5, +f || 1));
+  const el = document.getElementById("roomtxt"), v = document.getElementById("roomtxtv");
+  if (el) el.value = Math.round(K.roomTxt * 100);
+  if (v) v.textContent = Math.round(K.roomTxt * 100) + "%";
+  draw();
+  save();
+}
 export function setHint(s) {
   document.getElementById("hint").textContent = s || "";
 }
@@ -261,10 +270,27 @@ document.getElementById("bg").addEventListener("input", e => {
 });
 document.getElementById("sym").addEventListener("input", e => {
   K.symCm = +e.target.value;
+  K.symAuto = false;   // v58 : réglée à la main
+  document.getElementById("symauto").checked = false;
   document.getElementById("symv").textContent = e.target.value;
   draw();
   save();
 });
+document.getElementById("symauto").addEventListener("change", e => {
+  K.symAuto = e.target.checked;
+  draw();
+  document.getElementById("sym").value = Math.round(K.symCm);
+  document.getElementById("symv").textContent = Math.round(K.symCm);
+  save();
+});
+document.getElementById("roomtxt").addEventListener("input", e => setRoomTxt(+e.target.value / 100));
+// v58 : tourner la vue (le dessin ne change pas)
+document.getElementById("vr-ccw").addEventListener("click", () => rotateView(-90));
+document.getElementById("vr-cw").addEventListener("click", () => rotateView(90));
+document.getElementById("vr-180").addEventListener("click", () => rotateView(180));
+document.getElementById("vr-0").addEventListener("click", () => rotateView(0, true));
+document.getElementById("vr-deg").addEventListener("change", e => rotateView(+e.target.value || 0, true));
+document.addEventListener("okteo:view-rot", e => { const el = document.getElementById("vr-deg"); if (el && document.activeElement !== el) el.value = e.detail.rot; setHint(e.detail.rot ? `Vue tournée de ${String(e.detail.rot).replace(".", ",")}° : le dessin, les relevés et l'impression ne changent pas. « 0° » remet la vue droite.` : "Vue droite d'origine."); });
 document.getElementById("ortho").addEventListener("change", e => {
   K.ortho = e.target.checked;
   save();
@@ -592,8 +618,13 @@ buildTools();
 buildTabs();
 document.getElementById("bg").value = Math.round(K.bgLevel * 100);
 document.getElementById("bgv").textContent = Math.round(K.bgLevel * 100) + "%";
+if (K.symAuto) K.symCm = autoSymCm();
 document.getElementById("sym").value = Math.round(K.symCm);
 document.getElementById("symv").textContent = Math.round(K.symCm);
+document.getElementById("symauto").checked = !!K.symAuto;
+document.getElementById("roomtxt").value = Math.round((K.roomTxt || 1) * 100);
+document.getElementById("vr-deg").value = K.view.rot || 0;
+document.getElementById("roomtxtv").textContent = Math.round((K.roomTxt || 1) * 100) + "%";
 document.getElementById("ortho").checked = K.ortho;
 document.getElementById("dims").checked = K.showDims;
 document.getElementById("reps").checked = K.showReps;

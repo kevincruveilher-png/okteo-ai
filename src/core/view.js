@@ -2,7 +2,7 @@
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
 import { K } from "./k.js";
 import { PLAN, TYPES, VB, dist, state } from "./model.js";
-import { markDirty, snapshot } from "./persist.js";
+import { markDirty, save, snapshot } from "./persist.js";
 import { draw, sv } from "./render.js";
 import { bbox, roomAt } from "./groups.js";
 import { linkRole } from "./attach.js";
@@ -34,18 +34,61 @@ export function fit() {
   const w = bb ? Math.max(2, bb.x1 - bb.x0) : PLAN.w,
     h = bb ? Math.max(2, bb.y1 - bb.y0) : PLAN.h,
     pad = 1.0;
-  K.view.scale = Math.min(VB.w / (w + pad * 2), VB.h / (h + pad * 2));
+  const E = rotExtent(w + pad * 2, h + pad * 2);
+  K.view.scale = Math.min(VB.w / E.w, VB.h / E.h);
   K.view.cx = bb ? bb.cx : PLAN.w / 2;
   K.view.cy = bb ? bb.cy : PLAN.h / 2;
   draw();
 }
 
+// v58 : taille des symboles d'après le dessin : 5 cm par mètre de la plus petite dimension médiane des pièces
+// (pièce de 3 m → 15 cm), entre 12 et 26 cm ; 20 cm sans pièce. Même taille pour tous les appareils du plan.
+export function autoSymCm() {
+  const dims = state.rooms.map(r => {
+    const P = r.poly && r.poly.length > 2 ? r.poly : r.x0 != null ? [{ x: r.x0, y: r.y0 }, { x: r.x1, y: r.y1 }] : null;
+    if (!P) return null;
+    const xs = P.map(p => p.x), ys = P.map(p => p.y);
+    return Math.min(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  }).filter(d => d > 0.5).sort((a, b) => a - b);
+  if (!dims.length) return 20;
+  const med = dims[Math.floor(dims.length / 2)];
+  return Math.max(12, Math.min(26, Math.round(med * 5)));
+}
+// v58 : rotation de la VUE (K.view.rot, degrés, sens horaire à l'écran) pour travailler sur un plan tourné : le dessin
+// et le fond tournent ensemble à l'écran, les coordonnées du dessin (et les relevés, l'impression) ne changent pas
+export const viewRot = () => ((K.view.rot || 0) * Math.PI) / 180;
 export function V2W(vx, vy) {
-  return [K.view.cx + (vx - VB.w / 2) / K.view.scale, K.view.cy + (vy - VB.h / 2) / K.view.scale];
+  const t = viewRot(), dx = (vx - VB.w / 2) / K.view.scale, dy = (vy - VB.h / 2) / K.view.scale, c = Math.cos(t), s = Math.sin(t);
+  return [K.view.cx + dx * c + dy * s, K.view.cy - dx * s + dy * c];
 }
 
 export function W2V(x, y) {
-  return [VB.w / 2 + (x - K.view.cx) * K.view.scale, VB.h / 2 + (y - K.view.cy) * K.view.scale];
+  const t = viewRot(), dx = x - K.view.cx, dy = y - K.view.cy, c = Math.cos(t), s = Math.sin(t);
+  return [VB.w / 2 + (dx * c - dy * s) * K.view.scale, VB.h / 2 + (dx * s + dy * c) * K.view.scale];
+}
+// transformation monde → viewBox (plan et couche d'effets)
+export function viewTransform() {
+  return `translate(${VB.w / 2} ${VB.h / 2}) scale(${K.view.scale})${K.view.rot ? ` rotate(${K.view.rot})` : ""} translate(${-K.view.cx} ${-K.view.cy})`;
+}
+// emprise visible en coordonnées du dessin (les 4 coins de la vue)
+export function viewWorldBox() {
+  const C = [V2W(0, 0), V2W(VB.w, 0), V2W(0, VB.h), V2W(VB.w, VB.h)];
+  return { x0: Math.min(...C.map(p => p[0])), y0: Math.min(...C.map(p => p[1])), x1: Math.max(...C.map(p => p[0])), y1: Math.max(...C.map(p => p[1])) };
+}
+// largeur / hauteur à l'écran d'une boîte du dessin (w × h), vue tournée
+export function rotExtent(w, h) {
+  const t = viewRot(), c = Math.abs(Math.cos(t)), s = Math.abs(Math.sin(t));
+  return { w: w * c + h * s, h: w * s + h * c };
+}
+// tourner la vue (pas en degrés, ou valeur absolue avec abs) ; le centre de la vue reste en place
+export function rotateView(deg, abs = false) {
+  let r = abs ? +deg : (K.view.rot || 0) + +deg;
+  r = ((Math.round(r * 10) / 10) % 360 + 360) % 360;
+  if (r > 180) r -= 360;
+  K.view.rot = r;
+  draw();
+  save();
+  document.dispatchEvent(new CustomEvent("okteo:view-rot", { detail: { rot: r } }));
 }
 
 export function evWorld(e) {

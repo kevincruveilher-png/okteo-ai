@@ -90,6 +90,8 @@ export const packData = () => ({
   view: K.view,
   bg: K.bgLevel,
   sym: K.symCm,
+  symAuto: K.symAuto,
+  roomTxt: K.roomTxt,
   ortho: K.ortho,
   dims: K.showDims,
   reps: K.showReps,
@@ -169,6 +171,9 @@ export function load() {
     if (o.view) K.view = o.view;
     if (typeof o.bg === "number") K.bgLevel = o.bg;
     if (typeof o.sym === "number") K.symCm = o.sym;
+    // v58 : un dessin enregistré avant la taille automatique garde sa taille s'il l'avait changée (≠ 20 cm)
+    K.symAuto = typeof o.symAuto === "boolean" ? o.symAuto : !(typeof o.sym === "number" && o.sym !== 20);
+    if (typeof o.roomTxt === "number") K.roomTxt = o.roomTxt;
     if (typeof o.ortho === "boolean") K.ortho = o.ortho;
     if (typeof o.dims === "boolean") K.showDims = o.dims;
     if (typeof o.reps === "boolean") K.showReps = o.reps;

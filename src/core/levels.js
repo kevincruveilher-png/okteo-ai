@@ -6,7 +6,7 @@ import { labelPoint } from "../walls/rooms.js";
 import { CH, LKEYS, TYPES, dist, epOf, nodeById, segById, segDir, state, symScaleOf } from "./model.js";
 import { markDirty, snapshot } from "./persist.js";
 import { fit, repMap } from "./view.js";
-import { appRot, boxLayout, circuitMap, draw, wallIntervals } from "./render.js";
+import { appRot, boxLayout, circuitMap, draw, wallIntervals, wallU } from "./render.js";
 import { followWalls, roomArea, roomPoly } from "./attach.js";
 import { clearSel, roomAt } from "./groups.js";
 import { showSide } from "./panel.js";
@@ -392,7 +392,8 @@ export function okteoGeo() {
       name: r.name,
       poly: P,
       area: roomArea(r),
-      label: r.poly ? labelPoint(r.poly) : {
+      labelFixed: r.lx != null && r.ly != null,   // v58 : nom déplacé à la main
+      label: r.lx != null && r.ly != null ? { x: r.lx, y: r.ly } : r.poly ? labelPoint(r.poly) : {
         x: (r.x0 + r.x1) / 2,
         y: (r.y0 + r.y1) / 2
       }
@@ -416,6 +417,7 @@ export function okteoGeo() {
     room: (roomAt(a.x, a.y) || {}).name || null,
     xlink: xl[a.id] || null,
     rot: appRot(a),
+    wall: wallU(a).ux != null ? wallU(a) : null,   // v58 : direction du mur (décalage d'affichage le long du mur)
     color: (cmap[a.id] || {}).color || null,
     circuit: (cmap[a.id] || {}).n || null
   }));
@@ -473,6 +475,7 @@ export function okteoGeo() {
     dims,
     boxes,
     symU: symScaleOf(),
+    roomTxt: K.roomTxt || 1,
     fond: K.FOND && K.BG.w > 0 ? {
       url: K.FOND,
       x: K.BG.x,

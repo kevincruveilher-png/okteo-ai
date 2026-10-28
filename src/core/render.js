@@ -2,9 +2,9 @@
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
 import { K } from "./k.js";
 import { labelPoint, pointInPoly } from "../walls/rooms.js";
-import { Placer, roomCandidates, textBox } from "../place.js";
+import { Placer, roomCandidates, spreadSymbols, textBox } from "../place.js";
 import { TYPES, VB, dist, epOf, layers, nodeById, pmNow, segById, segDir, segLen, state, symView } from "./model.js";
-import { V2W, W2V, ensureReps, pxPerVB, repMap, syncVB } from "./view.js";
+import { V2W, W2V, autoSymCm, ensureReps, pxPerVB, repMap, syncVB, viewTransform, viewWorldBox } from "./view.js";
 import { followWalls, gaineCtrl, linkCtrl, linkRole, openHandles, roomArea, roomPoly } from "./attach.js";
 import { pref } from "../prefs.js";
 import { controlIssues, essai, litSet } from "./check.js";
@@ -96,6 +96,7 @@ export function draw() {
   syncVB();
   followWalls();
   ensureReps();
+  if (K.symAuto) K.symCm = autoSymCm();   // v58 : taille des symboles d'après le dessin
   const s = K.view.scale,
     [bx, by] = W2V(K.BG.x, K.BG.y),
     ep = state.wallEp;
@@ -103,22 +104,22 @@ export function draw() {
   .gy{fill:var(--panel);stroke:var(--c,var(--accent));stroke-width:.14}.gf{fill:var(--c,var(--accent));stroke:var(--c,var(--accent));stroke-width:.14}
   .gs{stroke:var(--c,var(--accent));stroke-width:.16;fill:none}.gl{fill:var(--c,var(--accent));font:600 .75px var(--fm);text-anchor:middle}
   .glw{fill:#fff;font:600 .7px var(--fm);text-anchor:middle}.gl3{fill:var(--c,var(--accent));font:700 .52px var(--fm);text-anchor:middle}</style>`;
-  if (K.bgLevel > 0 && layers.fond.on && K.FOND) h += `<image href="${K.FOND}" x="${bx}" y="${by}" width="${K.BG.w * s}" height="${K.BG.h * s}" opacity="${K.bgLevel}" preserveAspectRatio="none"/>`;
+  // v58 : tout le plan (fond, quadrillage, dessin) dans un même groupe, en coordonnées du dessin : la vue peut tourner
+  h += `<g class="world" transform="${viewTransform()}">`;
+  if (K.bgLevel > 0 && layers.fond.on && K.FOND) h += `<image href="${K.FOND}" x="${K.BG.x}" y="${K.BG.y}" width="${K.BG.w}" height="${K.BG.h}" opacity="${K.bgLevel}" preserveAspectRatio="none"/>`;
   // quadrillage (v37) : trait fin au pas le plus petit lisible (5 cm, 10 cm, 50 cm, 1 m ou 5 m), trait marqué tous les mètres
   if (layers.grille.on) {
-    const ppv = pxPerVB(), STEPS = [0.05, 0.1, 0.5, 1, 5, 10];
+    const ppv = pxPerVB(), STEPS = [0.05, 0.1, 0.5, 1, 5, 10], WB = viewWorldBox();
     const minor = STEPS.find(m => m * s * ppv >= 7) || 10, major = minor < 1 ? 1 : minor * 5;
     const lines = (step) => {
       let gl = "";
-      const g = step * s;
-      for (let x = (((0 - K.view.cx) * s + VB.w / 2) % g + g) % g; x < VB.w; x += g) gl += `<line x1="${x.toFixed(3)}" y1="0" x2="${x.toFixed(3)}" y2="${VB.h}"/>`;
-      for (let y = (((0 - K.view.cy) * s + VB.h / 2) % g + g) % g; y < VB.h; y += g) gl += `<line x1="0" y1="${y.toFixed(3)}" x2="${VB.w}" y2="${y.toFixed(3)}"/>`;
+      for (let x = Math.ceil(WB.x0 / step) * step; x <= WB.x1; x += step) gl += `<line x1="${x.toFixed(3)}" y1="${WB.y0.toFixed(3)}" x2="${x.toFixed(3)}" y2="${WB.y1.toFixed(3)}"/>`;
+      for (let y = Math.ceil(WB.y0 / step) * step; y <= WB.y1; y += step) gl += `<line x1="${WB.x0.toFixed(3)}" y1="${y.toFixed(3)}" x2="${WB.x1.toFixed(3)}" y2="${y.toFixed(3)}"/>`;
       return gl;
     };
-    h += `<g class="grid minor" data-step="${minor}" stroke="var(--grid)" stroke-width="${(0.6 / ppv).toFixed(4)}">${lines(minor)}</g>`;
-    if (major * s * ppv < 2000) h += `<g class="grid major" data-step="${major}" stroke="var(--grid2)" stroke-width="${(1 / ppv).toFixed(4)}">${lines(major)}</g>`;
+    h += `<g class="grid minor" data-step="${minor}" stroke="var(--grid)" stroke-width="${(0.6 / ppv / s).toFixed(5)}">${lines(minor)}</g>`;
+    if (major * s * ppv < 2000) h += `<g class="grid major" data-step="${major}" stroke="var(--grid2)" stroke-width="${(1 / ppv / s).toFixed(5)}">${lines(major)}</g>`;
   }
-  h += `<g transform="translate(${VB.w / 2} ${VB.h / 2}) scale(${s}) translate(${-K.view.cx} ${-K.view.cy})">`;
   // groupe sélectionné (sélection multiple ou pièce) : ce qui bougera
   const GH = multi.size > 1 || K.sel && K.sel.kind === "room" ? currentGroup() : null;
   // niveau du dessous en transparence (pour caler les murs de l'étage)
@@ -347,7 +348,7 @@ export function draw() {
       const taken = new Map(LY.deps.filter(d => d.face && d.slot != null).map(d => [d.face + d.slot, d]));
       for (const f of ["A", "B", "C", "D"]) for (let i = 0; i < LY.N; i++) {
         const P = portXY(b, S, LY.N, f, i), d = taken.get(f + i), col = d ? (d.tab ? "var(--fg)" : (cm[d.apps[0].id] || {}).color || "var(--mut)") : null;
-        bx += `<circle class="port${d ? " used" : ""}" data-f="${f}" data-i="${i}" cx="${P.x}" cy="${P.y}" r="${(d ? 2.6 : 2) * pm}" fill="${col || "var(--panel)"}" stroke="${col || "var(--mut)"}" stroke-width="${0.9 * pm}"/>`;
+        bx += `<circle class="port${d ? " used" : ""}" data-f="${f}" data-i="${i}" cx="${P.x}" cy="${P.y}" r="${(d ? 1.9 : 1.4) * pm}" fill="${col || "var(--panel)"}" stroke="${col || "var(--mut)"}" stroke-width="${0.9 * pm}"/>`;
       }
       // cadenas : fermé = la boîte ne bouge plus au recalcul ; un clic l'ouvre ou le ferme
       bx += `<g class="lock${b.locked ? " on" : ""}" transform="translate(${lk.x} ${lk.y}) scale(${pm})"><title>${b.locked ? "Boîte verrouillée : elle ne bouge pas au recalcul (clic pour déverrouiller)" : "Clic pour verrouiller la boîte"}</title>` +
@@ -374,6 +375,9 @@ export function draw() {
     h += `<g class="boxlinks">${bl}</g>`;
     K.__boxLayer = bx;
   } else K.__boxLayer = "";
+  // v58 : symboles sans chevauchement : affichage décalé (le long du mur pour un appareil mural), position réelle gardée,
+  // trait de rappel vers la position réelle ; K.dispPos sert aussi aux repères, aux halos et à la sélection
+  K.dispPos = layers.appareils.on ? spreadSymbols(state.app.map(a => ({ id: a.id, x: a.x, y: a.y, ...wallU(a) })), 1.9 * symView()) : new Map();
   // appareils + repères
   if (layers.appareils.on) {
     // mode essai (v45) : lumières allumées (classe lit) et commandes actionnées (classe on)
@@ -393,35 +397,47 @@ export function draw() {
         const c = circ[a.id];
         if (c) { cls += " circ"; col = c.color; } else if (circ.__need(a) && !circ.__direct(a)) { cls += " circ nocirc"; col = "#d33"; }
       }
-      const rot = appRot(a);
-      ap += `<g class="${cls}"${col ? ` style="--c:${col}"` : ""}${circ && circ[a.id] ? ` data-c="${circ[a.id].n}"` : ""} transform="translate(${a.x} ${a.y})${rot ? ` rotate(${rot})` : ""}"><g transform="scale(${ss})">`;
+      // v58 : vue tournée : le symbole reste droit à l'écran (sauf l'applique, tournée dos à son mur)
+      const rot = appRot(a) || -(K.view.rot || 0), D = K.dispPos.get(a.id), X = D ? D.x : a.x, Y = D ? D.y : a.y;
+      if (D) ap += `<g class="leader"><line x1="${a.x}" y1="${a.y}" x2="${X}" y2="${Y}" stroke="var(--mut)" stroke-width="${0.06 * ss}"/><circle cx="${a.x}" cy="${a.y}" r="${0.14 * ss}" fill="var(--mut)"/></g>`;
+      ap += `<g class="${cls}" data-id="${a.id}"${D ? ` data-moved="1"` : ""}${col ? ` style="--c:${col}"` : ""}${circ && circ[a.id] ? ` data-c="${circ[a.id].n}"` : ""} transform="translate(${X} ${Y})${rot ? ` rotate(${rot})` : ""}"><g transform="scale(${ss})">`;
       if (aSel) ap += `<circle r="1.5" fill="none" stroke="var(--sel)" stroke-width=".12" stroke-dasharray=".3 .25"/>`;
       ap += glyph(a.t) + `</g>`;
       ap += `</g>`;
     });
     h += `<g>${ap}</g>`;
   }
-  if (K.__boxLayer) h += `<g class="boxes">${K.__boxLayer}</g>`;
+  if (K.__boxLayer) h += `<g class="boxes">${upright(K.__boxLayer)}</g>`;
   // ---------- étiquettes : taille fixe à l'écran, placées sans chevauchement (les moins importantes sont masquées) ----------
   {
     const pm = 1 / (pxPerVB() * s),
       PL = new Placer(pm * 48);
+    // v58 : vue tournée d'un quart de tour : les textes restent droits à l'écran, leur boîte est donc couchée dans le dessin
+    if (Math.abs(Math.sin(((K.view.rot || 0) * Math.PI) / 180)) > 0.7) {
+      const rb = b => { const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, w = (b.x1 - b.x0) / 2, hh = (b.y1 - b.y0) / 2; return { x0: cx - hh, y0: cy - w, x1: cx + hh, y1: cy + w }; };
+      const free0 = PL.free.bind(PL), add0 = PL.add.bind(PL);
+      PL.free = b => free0(b.__r ? b : rb(b));
+      PL.add = b => add0(b.__r ? b : Object.assign(rb(b), { __r: 1 }));
+    }
     let lb = "";
     const ssv = symView(),
       R = 0.95 * ssv;
     const txt = (x, y, str, px, fill, fam, extra = "") => `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" fill="${fill}" font-size="${px * pm}" font-family="${fam}"${extra}>${str}</text>`;
     // les symboles des appareils sont des obstacles
-    if (layers.appareils.on) state.app.forEach(a => PL.add({
-      x0: a.x - R,
-      y0: a.y - R,
-      x1: a.x + R,
-      y1: a.y + R
-    }));
+    const dp = a => K.dispPos.get(a.id) || a;   // v58 : position affichée
+    if (layers.appareils.on) state.app.forEach(a => { const p = dp(a); PL.add({
+      x0: p.x - R,
+      y0: p.y - R,
+      x1: p.x + R,
+      y1: p.y + R
+    }); });
     // 1. noms des pièces, et leur surface si Paramètres → Affichage le demande (toujours affichés ; déplacés dans la pièce s'ils gênent)
+    K.roomLabelBoxes = [];
     if (layers.pieces.on) {
-      const F1 = 13,
+      const RT = K.roomTxt || 1,   // v58 : taille commune des noms de pièces
+        F1 = 13 * RT,
         showA = pref("surfaces"),
-        F2 = showA ? 11 : 0;
+        F2 = showA ? 11 * RT : 0;
       state.rooms.slice().sort((p, q) => roomArea(q) - roomArea(p)).forEach(r => {
         const P = roomPoly(r),
           lp = r.poly ? labelPoint(r.poly) : {
@@ -445,7 +461,9 @@ export function draw() {
         });
         const inPoly = b => [[b.x0, b.y0], [b.x1, b.y0], [b.x0, b.y1], [b.x1, b.y1]].every(([x, y]) => pointInPoly(x, y, P));
         const cands = roomCandidates(lp, bb, (x, y) => pointInPoly(x, y, P), Math.max(0.25, 24 * pm)).slice(0, 80).map(box);
-        const got = PL.first(cands.filter(inPoly)) || PL.first(cands) || PL.add(box(lp));
+        // v58 : nom déplacé à la main (r.lx, r.ly) : posé là, sans chercher de place
+        const got = r.lx != null && r.ly != null ? PL.add(box({ x: r.lx, y: r.ly })) : PL.first(cands.filter(inPoly)) || PL.first(cands) || PL.add(box(lp));
+        K.roomLabelBoxes.push({ id: r.id, ...got, cx: (got.x0 + got.x1) / 2, cy: (got.y0 + got.y1) / 2 });
         const cx = (got.x0 + got.x1) / 2,
           cy = (got.y0 + got.y1) / 2;
         lb += showA ? txt(cx, cy - (F2 + 3) * pm / 2, r.name, F1, "var(--fg)", "var(--ff)", ' font-weight="600"') + txt(cx, cy + (F1 + 3) * pm / 2, ar, F2, "var(--mut)", "var(--fm)") : txt(cx, cy, r.name, F1, "var(--fg)", "var(--ff)", ' font-weight="600"');
@@ -481,12 +499,13 @@ export function draw() {
         const g = R + 3 * pm,
           h2 = F * pm * 0.5;
         const pos = [[g, -g, "start"], [g, g, "start"], [-g, -g, "end"], [-g, g, "end"], [g + 0 * pm, 0, "start"], [-g, 0, "end"], [0, -g - h2, "middle"], [0, g + h2, "middle"]];
+        const p = dp(a);
         const cands = pos.map(([dx, dy, an]) => ({
-          b: textBox(a.x + dx, a.y + dy, str, F * pm, {
+          b: textBox(p.x + dx, p.y + dy, str, F * pm, {
             anchor: an
           }),
-          x: a.x + dx,
-          y: a.y + dy,
+          x: p.x + dx,
+          y: p.y + dy,
           an
         }));
         let c = cands.find(c => PL.free(c.b));
@@ -544,7 +563,7 @@ export function draw() {
         }
       });
     }
-    h += `<g class="labels">${lb}</g>`;
+    h += `<g class="labels">${upright(lb)}</g>`;
   }
   // nœuds
   if ((K.tool === "mur" || K.tool === "sel") && layers.murs.on) {
@@ -559,8 +578,7 @@ export function draw() {
   }
   // guides d'alignement
   if (K.guides && K.guides.length) {
-    const [wx0, wy0] = V2W(0, 0),
-      [wx1, wy1] = V2W(VB.w, VB.h);
+    const WB = viewWorldBox(), wx0 = WB.x0, wy0 = WB.y0, wx1 = WB.x1, wy1 = WB.y1;
     let gg = "";
     K.guides.forEach(gd => {
       if (gd.v) gg += `<line x1="${gd.at}" y1="${wy0}" x2="${gd.at}" y2="${wy1}" stroke="var(--accent2)" stroke-width="0.03" stroke-dasharray="0.2 0.15" opacity="0.8"/>`;else gg += `<line x1="${wx0}" y1="${gd.at}" x2="${wx1}" y2="${gd.at}" stroke="var(--accent2)" stroke-width="0.03" stroke-dasharray="0.2 0.15" opacity="0.8"/>`;
@@ -688,8 +706,8 @@ export function drawFx() {
   const items = [];
   if (layers.appareils.on && K.tab === "plan") {
     const by = Object.fromEntries(state.app.map((a) => [a.id, a])), ss = symView();
-    if (pref("halos")) list.forEach((it) => it.ids.forEach((id) => { const a = by[id]; if (a) items.push({ key: id, kind: "halo", x: a.x, y: a.y, r: 1.5 * ss }); }));
-    if (K.testMode) litSet().forEach((id) => { const a = by[id]; if (a) items.push({ key: id, kind: "glow", x: a.x, y: a.y, r: Math.max(1.4, 4 * ss) }); });
+    if (pref("halos")) list.forEach((it) => it.ids.forEach((id) => { const a0 = by[id], a = a0 && ((K.dispPos && K.dispPos.get(id)) || a0); if (a) items.push({ key: id, kind: "halo", x: a.x, y: a.y, r: 1.5 * ss }); }));
+    if (K.testMode) litSet().forEach((id) => { const a0 = by[id], a = a0 && ((K.dispPos && K.dispPos.get(id)) || a0); if (a) items.push({ key: id, kind: "glow", x: a.x, y: a.y, r: Math.max(1.4, 4 * ss) }); });
   }
   // doutes du câblage (v53, okteo.setDoubts) : pastille en haut à droite de la boîte, sur le niveau ouvert
   if (K.tab === "plan" && K.showCirc !== false) {
@@ -724,9 +742,22 @@ export function circuitMap() {
 // géométrie d'une boîte (v37) : côté S (taille fixe sur le plan : 3 diamètres de symbole, jamais moins de 34 px à l'écran),
 // N points d'accroche par face (réglage « départs par face »), et ses départs : une gaine par endroit (appareils à moins
 // de « même endroit » l'un de l'autre) + l'alimentation, chacun sur son point (rangés sans croisement, ou épinglés à la main)
+// v58 : vue tournée : chaque texte est retourné autour de son point d'ancrage pour rester droit à l'écran
+export function upright(svg) {
+  const r = K.view.rot || 0;
+  if (!r) return svg;
+  return svg.replace(/<text((?:(?!transform)[^>])*?) x="([^"]+)" y="([^"]+)"/g, (m, pre, x, y) => `<text${pre} x="${x}" y="${y}" transform="rotate(${-r} ${x} ${y})"`);
+}
+// direction du mur d'un appareil mural (pour le décaler le long de son mur), sinon {}
+export function wallU(a) {
+  const sg = a.seg ? segById(a.seg) : null;
+  if (!sg) return {};
+  const d = segDir(sg);
+  return d && d.L ? { ux: d.ux, uy: d.uy } : {};
+}
 export function boxLayout(b, pm = pmNow()) {
   const C = getCab(), N = Math.max(1, Math.round(C.departsFace) || 6), near = C.memeEndroit ?? 0.3;
-  const S = Math.max(K.symCm / 100 * 3, 34 * pm);
+  const S = Math.max(K.symCm / 100 * 2.2, 26 * pm);   // v58 : boîtes plus petites (Kévin, 27/10)
   const byId = Object.fromEntries(state.app.map(a => [a.id, a])), tab = state.app.find(a => a.t === "TAB"), R = b.routes || {};
   const spots = [];
   b.apps.forEach(id => {

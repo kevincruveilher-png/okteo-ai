@@ -1,4 +1,4 @@
-import { Placer, roomCandidates } from "../place.js";
+import { Placer, roomCandidates, spreadSymbols } from "../place.js";
 import { pref } from "../prefs.js";
 import { logoData, LOGO_RATIO } from "./logo.js";
 // Sortie PDF imprimable du plan (vectorielle, à l'échelle exacte) : page 1 = plan + légende + échelle graphique
@@ -183,25 +183,29 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     });
     // ---------- étiquettes placées sans chevauchement (boîtes en mm sur le papier) ----------
     const PL = new Placer(6), MM = 25.4 / 72;
-    const u = geo.symU * f;                            // unité de symbole en mm
+    const u = Math.max(geo.symU * f, 1.6);              // unité de symbole en mm (v58 : symbole d'au moins 2,5 mm imprimé)
     const tw = (str, size, bold) => { doc.setFont("helvetica", bold ? "bold" : "normal"); doc.setFontSize(size); return doc.getTextWidth(String(str)); };
     const boxAt = (cx, cy, w, h) => ({ x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2 });
     const apps = o.appareils ? geo.apps : [];
-    apps.forEach((a) => PL.add(boxAt(X(a.x), Y(a.y), 2 * u, 2 * u)));      // les symboles sont des obstacles
+    // v58 : symboles sans chevauchement sur le papier (décalés le long de leur mur, trait de rappel vers la vraie position)
+    const disp = spreadSymbols(apps.map((a) => ({ id: a.id, x: X(a.x), y: Y(a.y), ...(a.wall ? { ux: a.wall.ux, uy: a.wall.uy } : {}) })), 1.9 * u);
+    const PX = (a) => (disp.get(a.id) || { x: X(a.x) }).x, PY = (a) => (disp.get(a.id) || { y: Y(a.y) }).y;
+    apps.forEach((a) => PL.add(boxAt(PX(a), PY(a), 2 * u, 2 * u)));      // les symboles sont des obstacles
     // boîtes de pieuvre (v48) : carré de taille fixe sur le papier (comme à l'écran : environ 3 symboles), obstacles aussi
     const boxes = o.boites || o.gaines ? (geo.boxes || []) : [];
-    const BS = Math.max(4.8 * u, 11), BSm = BS / f;
+    const BS = Math.max(3.6 * u, 9), BSm = BS / f;   // v58 : boîtes plus petites
     if (o.boites) boxes.forEach((b) => PL.add(boxAt(X(b.x), Y(b.y) - BS * 0.2, BS + 5, BS * 1.4 + 5)));
     // noms et surfaces des pièces : au point d'étiquette, sinon à la place libre la plus proche dans la pièce
     const inPoly = (x, y, P) => { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) c = !c; } return c; };
-    const S1 = Math.max(6, Math.min(11, 0.5 * f * 2.83)), S2 = Math.max(5, Math.min(8, 0.34 * f * 2.83));
+    const RT = geo.roomTxt || 1;   // v58 : taille commune des noms de pièces
+    const S1 = Math.max(6, Math.min(11, 0.5 * f * 2.83)) * RT, S2 = Math.max(5, Math.min(8, 0.34 * f * 2.83)) * RT;
     const roomLabels = (o.pieces ? geo.rooms : []).slice().sort((p, q) => q.area - p.area).map((r) => {
       const surf = o.surfaces ? `${fr(r.area, 1)} m²` : "", w = Math.max(tw(r.name, S1, true), surf ? tw(surf, S2) : 0) + 1, h = (S1 + (surf ? S2 : 0)) * MM + 1.4;
       const P = r.poly, bb = { x0: Math.min(...P.map((p) => p.x)), y0: Math.min(...P.map((p) => p.y)), x1: Math.max(...P.map((p) => p.x)), y1: Math.max(...P.map((p) => p.y)) };
       const c = roomCandidates(r.label, bb, (x, y) => inPoly(x, y, P), Math.max(0.2, 4 / f)).slice(0, 80)
         .map((q) => ({ q, b: boxAt(X(q.x), Y(q.y), w, h) }));
       const fits = (b) => [[b.x0, b.y0], [b.x1, b.y0], [b.x0, b.y1], [b.x1, b.y1]].every(([x, y]) => inPoly(cx + (x - area.x - area.w / 2) / f, cy + (y - area.y - area.h / 2) / f, P));
-      const got = c.find((k) => fits(k.b) && PL.free(k.b)) || c.find((k) => PL.free(k.b)) || c[0];
+      const got = r.labelFixed ? { b: boxAt(X(r.label.x), Y(r.label.y), w, h) } : c.find((k) => fits(k.b) && PL.free(k.b)) || c.find((k) => PL.free(k.b)) || c[0];
       PL.add(got.b);
       return { r, surf, x: (got.b.x0 + got.b.x1) / 2, y: (got.b.y0 + got.b.y1) / 2, h };
     });
@@ -219,7 +223,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const repLabels = !o.reperes ? [] : apps.map((a) => {
       const str = a.rep || "", hs = [a.h != null && a.h !== a.hDef ? `h ${fr(a.h / 100)}` : "", a.xlink || ""].filter(Boolean).join("  ");
       const w = Math.max(tw(str, SR, true), hs ? tw(hs, SR) : 0), h = SR * MM * (hs ? 2.1 : 1.05), g = u * 1.05;
-      const ax = X(a.x), ay = Y(a.y);
+      const ax = PX(a), ay = PY(a);
       const pos = [[g, -g - h / 2, "l"], [g, g + h / 2, "l"], [-g, -g - h / 2, "r"], [-g, g + h / 2, "r"], [g, 0, "l"], [-g, 0, "r"], [0, -g - h / 2, "c"], [0, g + h / 2, "c"]];
       for (const [dx, dy, al] of pos) {
         const x0 = al === "l" ? ax + dx : al === "r" ? ax + dx - w : ax - w / 2, b = { x0, y0: ay + dy - h / 2, x1: x0 + w, y1: ay + dy + h / 2 };
@@ -272,7 +276,10 @@ export async function buildPlanPdf(geoIn, opts = {}) {
         if (e.route && e.route.length) { doc.setFillColor(255, 255, 255); e.route.forEach((p) => doc.circle(X(p.x), Y(p.y), 0.45, "FD")); }
       });
     }));
-    apps.forEach((a) => symbol(doc, a.t, X(a.x), Y(a.y), u, a.rot || 0, o.circuits ? rgb(a.color) : null));
+    apps.forEach((a) => {
+      if (disp.has(a.id)) { doc.setDrawColor(150, 150, 150); doc.setLineWidth(0.1); doc.line(X(a.x), Y(a.y), PX(a), PY(a)); doc.setFillColor(150, 150, 150); doc.circle(X(a.x), Y(a.y), 0.25, "F"); }
+      symbol(doc, a.t, PX(a), PY(a), u, a.rot || 0, o.circuits ? rgb(a.color) : null);
+    });
     // boîtes : carré, nom au-dessus, faces A–D, points d'accroche (pleins = gaine raccordée, couleur du circuit),
     // n° de la gaine à côté de son point (onglet Bandes : LI01.04 → « 04 »)
     if (o.boites) boxes.forEach((b) => {
