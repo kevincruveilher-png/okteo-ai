@@ -1027,3 +1027,11 @@ Validation v67 : 89 fichiers contrôlés, 8 tests de bibliothèque, 41 murs, 86 
 - Smoke : 170 réussis et un seul défaut préexistant d’étiquettes (2 chevauchements en vue d’ensemble, 1 en zoom). Le garde-fou CI accepte uniquement cet échec précis ; `npm run check` seul reste en échec jusqu’à sa correction.
 - Parcours dédiés Chromium réussis : VMC/comparaison (complétion, relance sans doublon, ajout/annulation de bouche, tracés, halos et confirmation, parcours/altitudes, rejet, export, appariement de prise double et réouverture), MAJ 3/4, MAJ 1/2 et bibliothèque. Captures finales examinées. Aucun fournisseur IA réellement appelé.
 - Workflows de vérification/publication conservés dans leurs branches de travail ; le workflow temporaire est retiré de la livraison `main`. L’autorisation « Push » permet de terminer l’intégration et la publication précédemment bloquées.
+
+### Publication v70
+
+- Source du build validé : `2c0e7e6a85981492eaf3fe134172ee2ea78a87c3` (`main` et branche d’intégration).
+- Construction et envoi sur `gh-pages` réussis : https://github.com/kevincruveilher-png/okteo-ai/actions/runs/40940334880 ; commit `87b68d95d613d19dc804b10a094328a70883561d`, sans réécriture de l’historique.
+- Déploiement Pages réussi : https://github.com/kevincruveilher-png/okteo-ai/actions/runs/40940389089.
+- Vérification HTTP : `https://kevincruveilher-png.github.io/okteo-ai/version.json` répond 200 et annonce `0.70.0`, source `2c0e7e6a85981492eaf3fe134172ee2ea78a87c3`.
+- Cette consignation finale ne change que le journal ; le code publié reste celui validé par Chromium. Limites documentées : géométrie toiture et altitudes à confirmer, référence BE/appareillages détaillés non déduits automatiquement, charte/ouvrants reportés et défaut d’étiquettes connu.
