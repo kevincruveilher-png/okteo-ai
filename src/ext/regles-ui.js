@@ -2,7 +2,7 @@
 // En tête : les choix du chantier ouvert (mode de pieuvre, volets, appareils à choix) et les écarts entre le journal et
 // les réglages actuels du logiciel ; puis le tableau filtrable des règles (clic = fiche), les questions et l'historique.
 // Pas d'édition directe : une règle se modifie par l'assistant (avant / après, validation, historique).
-import { CATS, CERTS, STATUTS, QSTATUTS, getJournal, pendingQuestions, ruleById, usedBy, historyOf, stats, totals, filterRules, ecarts,
+import { CERTS, STATUTS, QSTATUTS, getJournal, pendingQuestions, ruleById, usedBy, historyOf, totals, ecarts,
   exportJournal, importJournal } from "../cablage/regles.js";
 import { DOMAINS, FAMILIES, TYPES, VALIDATIONS, APPLICATIONS, libraryMeta, libraryRules, facetCounts, matchesWords } from "../cablage/regles-library.js";
 import { MODES } from "../cablage/boites.js";
@@ -164,7 +164,6 @@ export function mountRegles(el, { api, ask }) {
     }
   }
   function wireEcarts() { el.querySelectorAll(".rg-ecarts [data-open]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); openRule(a.dataset.open); })); }
-  function relist() { render(); }
   function msg(t, bad) { const m = el.querySelector(".rg-msg"); m.hidden = false; m.className = "rg-msg" + (bad ? " bad" : ""); m.textContent = t; }
 
   function openRule(id, scroll = true) {

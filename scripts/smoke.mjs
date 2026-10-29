@@ -529,7 +529,7 @@ try {
     await page.fill(".pset-find", "");
     const back = await ev(() => !document.querySelector("#ps-ia").hidden);
     await page.click('#tabs button[data-tab="plan"]');
-    if (!(secs === "Affichage|Assistant et relevé IA|Journal des règles de câblage|Câblage|Packs" && r.rows >= 6 && r.ia && r.grp === "Couleurs des fils" && back)) throw new Error(JSON.stringify({ secs, r, back }));
+    if (!(secs === "Affichage|Assistant et relevé IA|Bibliothèque des règles|Câblage|Packs" && r.rows >= 6 && r.ia && r.grp === "Couleurs des fils" && back)) throw new Error(JSON.stringify({ secs, r, back }));
     return true;
   });
 
