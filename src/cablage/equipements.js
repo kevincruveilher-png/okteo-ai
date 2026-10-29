@@ -42,7 +42,7 @@ export function proposeEquipements({ items, rooms = [], level, frame = null }) {
     const room = rooms.find(r => spec.mots.test(norm(r.name))), n = adds.filter(a => a.implantation.piece === spec.piece).length;
     const point = room?.poly?.length > 2 ? labelPoint(room.poly) : mid;
     // Légère séparation visuelle autour du point proposé ; jamais présentée comme une implantation lue.
-    adds.push({ t: spec.t, lv: room?.lv || level, x: point.x + n * .18, y: point.y, aiOrigin: 'regle', implantation: pending(spec.piece, room ? 'Proposition dans cette pièce ; emplacement précis à définir.' : `Pièce ${spec.piece} non identifiée ; emplacement à définir.`) });
+    adds.push({ t: spec.t, lv: room?.lv || level, x: point.x + n * .45, y: point.y + (!room ? (spec.piece === 'Cuisine' ? .55 : 1.1) : 0), aiOrigin: 'regle', implantation: pending(spec.piece, room ? 'Proposition dans cette pièce ; emplacement précis à définir.' : `Pièce ${spec.piece} non identifiée ; emplacement à définir.`) });
   }
   if (items.some(a => a.t === 'TV') && !items.some(a => a.t === 'ANT')) adds.push({ t: 'ANT', lv: rooms[0]?.lv || level, ...mid, aiOrigin: 'regle', implantation: pending('Combles / faîtage', 'Proposition au milieu de la maison, au niveau du faîtage ; toiture et position à confirmer.') });
   // Antenne déjà proposée dans un autre outil : conserver la position, mais afficher son état réel.

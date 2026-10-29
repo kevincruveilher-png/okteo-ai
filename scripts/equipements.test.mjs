@@ -49,6 +49,7 @@ if(process.argv.includes('--browser')){
   await page.click('#f-placement-confirm');assert.equal(await page.locator('#fx .fx-placement:not(.gone)').count(),5);
   await page.keyboard.press('Control+z');assert.equal(await page.locator('#fx .fx-placement:not(.gone)').count(),6);await page.keyboard.press('Control+y');
   const exported=await page.evaluate(()=>okteo.exportGeometry().apps.find(a=>a.t==='FOUR'));assert.equal(exported.implantation.etat,'confirmee');
+  await page.evaluate(()=>{okteo.zoomTo(okteo.state.app.map(a=>a.id));okteo.select([okteo.state.app.find(a=>a.t==='LV').id]);document.querySelector('.tour-invite')?.remove();});
   await page.screenshot({path:'/tmp/okteo-maj34-halo.png'});
   const serialized=await page.evaluate(async()=>{const{buildOkteo}=await import('/src/ext/okteo-file.js');return JSON.parse(await(await buildOkteo(okteo.ch,okteo.packData())).text());});assert.equal(JSON.parse(serialized.dessin.s).app.find(a=>a.t==='FOUR').implantation.etat,'confirmee');
   await page.evaluate(()=>okteo.saveNow());await page.reload();await page.waitForFunction(()=>window.okteoExt);assert.equal(await page.evaluate(id=>okteo.allApps().find(a=>a.id===id).implantation.etat,four.id),'confirmee');
