@@ -1,0 +1,22 @@
+name: Vérification bibliothèque v67
+on:
+  push:
+    branches: [verification-bibliotheque-v67]
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: c7fa163a0b5e0d629281e89878d51ee7a113120d
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run check
+      - run: npm run build
+        if: always()
