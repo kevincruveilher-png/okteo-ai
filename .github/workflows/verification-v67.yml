@@ -10,18 +10,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 8ffa5904d20702ebffc2dafa0556d24600722da9
+          ref: 75f730d276ec4cc6bd2b07e22e6e3ee5f6a4c7a1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run check
+      - run: node scripts/syntax.mjs && node scripts/regles-library.test.mjs
       - run: npm run build
         if: always()
       - name: Vérifier et capturer la bibliothèque
-        if: always()
         run: |
           node --input-type=module <<'JS'
           import { chromium } from 'playwright';
@@ -42,6 +41,8 @@ jobs:
             await page.locator('.rg-row[data-id="R-144"]').click();
             if(await page.locator('.rg-fiche').count()!==1)throw Error('Fiche manquante');
             await page.locator('#ps-regles').evaluate(el=>el.scrollIntoView({block:'start'}));
+            const overflow=await page.locator('.rg-fiche-in').evaluate(el=>el.scrollWidth>el.clientWidth+1);
+            if(overflow)throw Error('Débordement de la fiche');
             console.log('OKTEO_FICHE:'+ (await page.screenshot({type:'jpeg',quality:60})).toString('base64'));
             await browser.close();
           } finally {server.kill();}
