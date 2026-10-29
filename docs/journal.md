@@ -1013,3 +1013,17 @@ Validation v67 : 89 fichiers contrôlés, 8 tests de bibliothèque, 41 murs, 86 
 - `npm run check` s’arrête au lancement Chromium utilisé par MAILLARD : navigateur Playwright absent ; le Chromium système est également empêché par le runtime (`socket() failed: Operation not permitted`). MAILLARD, smoke et parcours navigateur MAJ 5/6 restent donc à exécuter. Aucune réussite navigateur v70 ni publication n’est revendiquée.
 - Le contrôle automatique a rejeté deux fois la création de l’arbre GitHub vers le dépôt public `kevincruveilher-png/okteo-ai`, jugeant « Maj 5 et 6 » insuffisamment explicite pour cette publication. Le second essai suivait la vérification du dépôt public, de l’origin et des fichiers modifiés ; après ce second refus, aucun autre moyen d’envoi n’a été tenté.
 - Travail conservé sur la branche locale `integration/maj-5-6-v70`, avec workflow de vérification prêt. Prochaine étape : confirmation explicite de Kévin pour l’envoi vers ce dépôt public, puis tests Chromium, correction des éventuels défauts, intégration `main` et publication Pages. La version en ligne v69 n’a pas été modifiée par ce lot.
+
+### Autorisation de push et validation Chromium v70
+
+- Kévin confirme « Push » après la question explicite sur `kevincruveilher-png/okteo-ai` public. Le blocage précédent est levé : envoi réussi vers `verification-maj56-v70`.
+- Premier passage Chromium : parcours dédiés VMC/comparaison, MAJ 3/4, lecture IA et bibliothèque réussis ; compilation réussie. Le smoke a révélé un sélecteur trop large incluant le nouveau tableau BE dans les modes de pieuvre. Le tableau des modes reçoit un identifiant et le test cible ses quatre lignes, sans supprimer d’assertion.
+- Captures examinées : réseau VMC avec bouches/rejet et formulaire de comparaison. Ajustement de lisibilité : une altitude encore inconnue ne superpose pas de halo rouge à la proposition violette ; un vrai blocage de rejet reste signalé. Affichage des repères VMC plutôt que des identifiants internes dans l’Étude.
+
+### Validation finale v70
+
+- Révision testée : `71808f2970273f725b42650cabc27ba6b25380ef`, branche `verification-maj56-v70`. Intégration réussie : https://github.com/kevincruveilher-png/okteo-ai/actions/runs/40939830580.
+- Syntaxe : 98 fichiers. Réussis : 15 VMC/comparaison, 13 équipements/détecteurs, 12 lecture IA, 14 symboles, 8 règles, 41 murs, 86 câblage, 176 chantiers et 14 MAILLARD ; compilation Vite.
+- Smoke : 170 réussis et un seul défaut préexistant d’étiquettes (2 chevauchements en vue d’ensemble, 1 en zoom). Le garde-fou CI accepte uniquement cet échec précis ; `npm run check` seul reste en échec jusqu’à sa correction.
+- Parcours dédiés Chromium réussis : VMC/comparaison (complétion, relance sans doublon, ajout/annulation de bouche, tracés, halos et confirmation, parcours/altitudes, rejet, export, appariement de prise double et réouverture), MAJ 3/4, MAJ 1/2 et bibliothèque. Captures finales examinées. Aucun fournisseur IA réellement appelé.
+- Workflows de vérification/publication conservés dans leurs branches de travail ; le workflow temporaire est retiré de la livraison `main`. L’autorisation « Push » permet de terminer l’intégration et la publication précédemment bloquées.
