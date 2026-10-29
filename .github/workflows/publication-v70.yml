@@ -1,0 +1,45 @@
+name: Publication v70 validee
+on: [create]
+permissions:
+  contents: write
+jobs:
+  publication:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2c0e7e6a85981492eaf3fe134172ee2ea78a87c3
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Publier le build sans reecrire l historique
+        env:
+          SOURCE_SHA: 2c0e7e6a85981492eaf3fe134172ee2ea78a87c3
+        run: |
+          set -eu
+          current=$(git ls-remote origin refs/heads/main | cut -f1)
+          test "$current" = "$SOURCE_SHA"
+          git fetch origin gh-pages
+          target="$RUNNER_TEMP/okteo-v70-pages"
+          git worktree add --detach "$target" origin/gh-pages
+          node --input-type=module - "$target" <<'JS'
+          import fs from 'node:fs';
+          const dir=process.argv[2];
+          for(const name of fs.readdirSync(dir)) if(name!=='.git') fs.rmSync(dir+'/'+name,{recursive:true,force:true});
+          fs.cpSync('dist',dir,{recursive:true});
+          fs.writeFileSync(dir+'/.nojekyll','');
+          fs.writeFileSync(dir+'/version.json',JSON.stringify({version:'0.70.0',source:process.env.SOURCE_SHA})+'\n');
+          JS
+          git -C "$target" config user.name "Okteo publication"
+          git -C "$target" config user.email "deploy@okteo.local"
+          git -C "$target" add -A
+          if ! git -C "$target" diff --cached --quiet; then
+            git -C "$target" commit -m "Publication v70 depuis $SOURCE_SHA"
+            git -C "$target" push origin HEAD:gh-pages
+          fi
+          git -C "$target" rev-parse HEAD
