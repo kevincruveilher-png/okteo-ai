@@ -978,4 +978,15 @@ Validation v67 : 89 fichiers contrôlés, 8 tests de bibliothèque, 41 murs, 86 
 - Accès Étude + catalogue ; complément automatique après précontrôle lors du câblage. Ajouts de circuits sans effacer les circuits existants, hormis le recalcul historique du mode par boîte. Une consultation d’onglet ne modifie pas le chantier.
 - MAJ 4 : raccordement phase/neutre/terre au circuit éclairage de la boîte uniquement si détecteur intégré, alimentation permanente et preuve confirmés. Détecteur séparé/ambigu reste à résoudre ; commande manuelle contradictoire = doute bloquant. Pas de retour flottant ni interrupteur inventé.
 - Transmission : `docs/equipements-v69.md`, API `applyEquipmentProposal`, `implantation` sauvegardée, modules purs `equipements.js` et `detecteur.js`. Tests dédiés + smoke ajoutés. VMC et charte graphique hors périmètre.
-- Validation et publication : résultats à consigner après les contrôles, avant conclusion de la livraison.
+- Résultats de validation et références : voir la transmission ci-dessous.
+
+### Validation v69 et transmission
+
+- Tests ciblés : 13 vérifications équipements/détecteurs (absence de doublons, positions existantes, PC32, indications de principe, pièces absentes, métadonnées, preuves détecteur, raccordement permanent y compris câble extérieur 3G1,5 et contradiction transmise entre boîtes).
+- Parcours Chromium MAJ 3/4 : ajout via Étude, relance, halos, confirmation explicite, annuler/rétablir, géométrie et fichier `.okteo`, réouverture, ajout multi-niveaux sans changer le niveau ouvert, contrôle initial puis détecteur confirmé et contradiction. Câblage après précontrôle, chantier inchangé si blocage, circuit manuel conservé et annulation unique des ajouts automatiques.
+- Régressions MAJ 1/2 et bibliothèque de symboles conservées ; aucun fournisseur IA appelé avec une vraie clé. Compilation Vite réussie.
+- Réserve générale : le défaut de chevauchement des étiquettes déjà documenté en v67/v68 reste présent (2 en vue d’ensemble, 1 en zoom). Le contrôle d’intégration n’accepte que ce défaut précis ; `npm run check` conserve son code d’échec tant que le dessin n’est pas corrigé.
+- Les workflows de vérification et publication sont conservés sur leurs branches de travail, sans être installés dans `main`. Aucun historique réécrit.
+
+- Révision finale testée : `0086649305b7504f476fde3d1a6258c43fc962d5`, branche `verification-maj34-v69`. Actions : https://github.com/kevincruveilher-png/okteo-ai/actions/runs/40934689444 (intégration réussie avec l’avertissement préexistant décrit ci-dessus).
+- Résultats : syntaxe 95 fichiers ; 13 équipements/détecteurs, 12 lecture IA, 14 symboles, 8 règles, 41 murs, 86 câblage, 176 chantiers, 14 MAILLARD ; smoke 169 réussis et le seul échec connu d’étiquettes. Parcours dédiés MAJ 3/4, MAJ 1/2 et bibliothèque réussis. Build réussi. Capture des halos et des propriétés examinée.

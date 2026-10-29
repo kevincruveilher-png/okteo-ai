@@ -1,5 +1,8 @@
 # Relevé IA v68 — MAJ 1 et 2
 
+État historique du lot v68. Les MAJ 3/4 ont depuis été intégrées en v69 : voir [équipements et détecteurs](equipements-v69.md). Les restrictions ci-dessous décrivent uniquement la livraison v68.
+
+
 Autorisation : Kévin, 29 octobre 2026, « Go pour maj 1 et 2 » et intégration de la branche bibliothèque dans le tronc.
 
 ## Données conservées
