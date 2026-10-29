@@ -8,6 +8,7 @@
 // - alertes : circuit sans différentiel, spécialisé hors type A, plus de 8 circuits, rangée trop pleine, réserve 20 %.
 // Le tableau est enregistré dans le chantier (okteo.cab.tableau, un Ctrl+Z par changement) dès qu'on le modifie.
 import { MODELS, BRANDS, MODS, DEFAULT_MODEL, modelOf, autoTableau, syncTableau, tableauIssues, protections, rowMods, moveItem, addBreaker, addModular, removeItem, newId, suggestModel, hasBreaker } from "../cablage/tableau.js";
+import { openRulesLibrary } from "./regles-ui.js";
 import { wiringNow } from "./cablage-data.js";
 import { esc } from "./util.js";
 
@@ -68,6 +69,7 @@ export function mountTableauPage(el, { api }) {
         ${!sug ? `<span class="warn">Aucun coffret ${esc(M.brand)} du catalogue ne convient à cette disposition avec la réserve prévue.</span>` : ""}
         ${T.rows.flat().some((it) => it.reviewPlacement) ? `<button id="tb-reviewed" title="Après contrôle des emplacements et des raccordements des accessoires conservés">Valider la revue des accessoires</button>` : ""}
         <button id="tb-auto" title="Refaire la disposition : ID type A pour les spécialisés, ID type AC selon les circuits et la charge, 8 circuits au plus par ID (accessoires conservés à vérifier ; un seul Ctrl+Z)">Placer automatiquement</button>
+        <button id="tb-rules" title="Consulter les règles du tableau, leurs sources et leur état de validation">Règles du tableau</button>
         <button id="tb-addid" title="Ajouter un interrupteur différentiel sur une nouvelle rangée">＋ Différentiel</button>
         <button id="tb-essai" title="Revenir au plan en mode essai : les disjoncteurs coupés ici éteignent leurs lumières">💡 Essai sur le plan</button>
       </div>
@@ -86,6 +88,7 @@ export function mountTableauPage(el, { api }) {
     $("#tb-auto").onclick = () => { save(autoTableau(api.cab.circuits || [], { model: T.model, previous: T })); api.setHint("Tableau disposé automatiquement ; accessoires conservés à vérifier. Ctrl+Z pour revenir."); };
     const reviewed = $("#tb-reviewed");
     if (reviewed) reviewed.onclick = () => save({ ...T, rows: T.rows.map((r) => r.map(({ reviewPlacement, ...it }) => it)) });
+    $("#tb-rules").onclick = () => openRulesLibrary(api, "tableau");
     $("#tb-addid").onclick = () => save({ ...T, rows: newId(T.rows, "AC") });
     $("#tb-mod").onchange = (e) => { const t = e.target.value; if (!t) return; save({ ...T, rows: addModular(T.rows, t, modelOf(T.model).mods) }); api.setHint(`${MODS[t].n} ajouté au tableau : glissez-le où vous voulez. Ctrl+Z pour annuler.`); };
     const tlb = $("#tb-tl");

@@ -4,6 +4,7 @@
 // Pas d'édition directe : une règle se modifie par l'assistant (avant / après, validation, historique).
 import { CATS, CERTS, STATUTS, QSTATUTS, getJournal, pendingQuestions, ruleById, usedBy, historyOf, stats, totals, filterRules, ecarts,
   exportJournal, importJournal } from "../cablage/regles.js";
+import { DOMAINS, FAMILIES, TYPES, VALIDATIONS, APPLICATIONS, libraryMeta, libraryRules, facetCounts, matchesWords } from "../cablage/regles-library.js";
 import { MODES } from "../cablage/boites.js";
 import { getCab } from "../cablage/settings.js";
 import { esc, md } from "./util.js";
@@ -27,8 +28,13 @@ if (typeof document !== "undefined") {
 }
 
 export function mountRegles(el, { api, ask }) {
-  const F = { cat: "", cert: "", statut: "", q: "", attente: false };
-  let open = "", tabQ = false, tabH = false;
+  const defaults = () => ({ domain: "", family: "", type: "", validation: "", application: "", cert: "", statut: "", q: "", attente: false, archives: false });
+  const previous = cur?.api === api ? cur.state : null;
+  const F = { ...defaults(), ...previous?.filters };
+  const PAGE_SIZE = 24;
+  let open = previous?.open || "", view = previous?.view || "rules", page = previous?.page || 0, contextOpen = previous?.contextOpen || false, advancedOpen = previous?.advancedOpen || false;
+  const selected = () => Object.keys(F).filter((k) => !!F[k]);
+  const rows = (J) => libraryRules(J, F);
 
   function choixHTML() {
     if (!api) return "";
@@ -48,25 +54,36 @@ export function mountRegles(el, { api, ask }) {
     const E = ecarts(J, getCab());
     if (!E.length) return `<p class="rg-ok">✓ Les réglages du câblage suivent le journal.</p>`;
     return `<div class="rg-ecarts"><h4>⚠ ${E.length} écart${E.length > 1 ? "s" : ""} entre le journal et le logiciel actuel</h4>
-      <p class="mut sm">Le câblage sera mis en conformité avec le journal à la mise à jour 52. En attendant, ce sont les réglages actuels qui s'appliquent.</p>
+      <p class="mut sm">Les valeurs du journal et les réglages diffèrent. Vérifiez cet écart : ce sont les réglages actuels qui sont utilisés par le moteur.</p>
       <table class="rg-tab"><tr><th>Règle</th><th>Sujet</th><th>Journal</th><th>Logiciel</th></tr>
       ${E.map((e) => `<tr><td><a href="#" data-open="${e.id}">${e.id}</a></td><td>${esc(e.label)}${e.note ? `<small class="mut">${esc(e.note)}</small>` : ""}</td><td><b>${val(e.attendu)}</b></td><td>${val(e.logiciel)}</td></tr>`).join("")}</table></div>`;
   }
   function catsHTML(J) {
-    const S = stats(J);
-    return `<div class="rg-cats">${Object.entries(CATS).map(([k, l]) => {
-      const s = S[k]; if (!s || !s.n) return "";
-      const rest = s.n - s.confirmee;
-      return `<button class="rg-cat${s.rouge ? " rouge" : ""}${F.cat === k ? " on" : ""}" data-cat="${k}" title="${s.confirmee} confirmée(s), ${s.supposee} supposée(s), ${s.inconnue} inconnue(s)${s.rouge ? " — une règle bloquante est inconnue" : ""}">${esc(l)} <b>${s.n}</b>${rest ? ` <span class="mut">· ${rest} à confirmer</span>` : ""}</button>`;
-    }).join("")}</div>`;
+    const counts = facetCounts(J, { ...F, family: "" }, "domain", DOMAINS);
+    return `<div class="rg-cats" aria-label="Domaines"><button class="rg-cat${!F.domain ? " on" : ""}" data-domain="" aria-pressed="${!F.domain}">Tous les domaines <b>${libraryRules(J, { ...F, domain: "", family: "" }).length}</b></button>${Object.entries(DOMAINS).map(([k,l]) => `<button class="rg-cat${F.domain === k ? " on" : ""}" data-domain="${k}" aria-pressed="${F.domain === k}">${esc(l)} <b>${counts[k]}</b></button>`).join("")}</div>`;
+  }
+  function selectHTML(J, key, labels, title, id = "rg-f-" + key) {
+    const counts = facetCounts(J, F, key, labels);
+    return `<label>${esc(title)}<select id="${id}" data-filter="${key}"><option value="">Toutes / tous</option>${Object.entries(labels).map(([k,l]) => `<option value="${k}" ${F[key] === k ? "selected" : ""}>${esc(l)} (${counts[k]})</option>`).join("")}</select></label>`;
+  }
+  function pagination(n) {
+    const last = Math.max(0, Math.ceil(n / PAGE_SIZE) - 1); page = Math.min(page, last);
+    return `<div class="rg-paging"><span role="status" aria-live="polite" id="rg-count">${n} résultat${n > 1 ? "s" : ""}${n ? ` · ${page * PAGE_SIZE + 1}–${Math.min(n, (page + 1) * PAGE_SIZE)}` : ""}</span><button data-page="prev" ${page === 0 ? "disabled" : ""}>← Précédent</button><span>Page ${page + 1} / ${last + 1}</span><button data-page="next" ${page >= last ? "disabled" : ""}>Suivant →</button></div>`;
   }
   function ficheHTML(J, r) {
     const used = usedBy(J, r.id), H = historyOf(J, r.id), Q = (r.questions_liees || []).map((id) => J.questions.find((q) => q.id === id)).filter(Boolean);
     const E = ecarts(J, getCab()).filter((e) => e.id === r.id);
     const chip = (id) => { const x = ruleById(J, id); return `<a href="#" class="rg-ref" data-open="${id}" title="${esc(x ? x.titre : "")}">${id}</a>`; };
-    const params = Object.entries(r.parametres || {});
+    const params = Object.entries(r.parametres || {}), m = libraryMeta(r);
+    const related = J.rules.filter((x) => x.id !== r.id && libraryMeta(x).family === m.family).slice(0, 6);
     return `<div class="rg-fiche-in">
-      <p>${md(r.description.charAt(0).toUpperCase() + r.description.slice(1))}</p>
+      <div class="rg-reading"><div><h4>À quoi sert cette règle ?</h4><p>${esc(m.summary)}</p></div>
+      <div><h4>Quand l’utiliser ?</h4><p>${esc(m.when)}</p></div><div><h4>Que dois-je vérifier ?</h4><p>${esc(m.action)}</p></div>
+      <div><h4>Exemple de consultation</h4><p>${esc(m.example)}</p></div></div>
+      <div class="rg-application"><b>Dans Oktéo : ${esc(APPLICATIONS[m.application.state])}</b><p>${esc(m.application.detail)}</p>${m.application.source ? `<small class="mut">Périmètre relu : ${esc(m.application.source)}</small>` : ""}</div>
+      ${related.length ? `<p class="rg-related"><b>Dans la même famille :</b> ${related.map((x) => `<a href="#" data-open="${x.id}">${esc(x.titre)} <small>${x.id}</small></a>`).join(" ")}</p>` : ""}
+      <details class="rg-technical"><summary>Voir le texte complet, les sources et l’historique</summary>
+      <p>${md(String(r.description || ""))}</p>
       ${(r.details || []).length ? `<ul>${r.details.map((d) => `<li>${md(d)}</li>`).join("")}</ul>` : ""}
       ${r.condition ? `<p><b>Quand :</b> ${esc(r.condition)}</p>` : ""}${r.action ? `<p><b>Action :</b> ${esc(r.action)}</p>` : ""}
       <dl class="rg-dl">
@@ -82,16 +99,19 @@ export function mountRegles(el, { api, ask }) {
         ${Q.length ? `<dt>Questions</dt><dd>${Q.map((q) => `<span class="rg-q ${q.statut}">${q.id}</span> ${esc(q.question)} <span class="mut">— ${esc(q.reponse || q.suppose || "")} (${esc(QSTATUTS[q.statut] || q.statut)})</span>${waitTag(q)}`).join("<br>")}</dd>` : ""}
         <dt>Historique</dt><dd>${H.length ? H.map((h) => `<span class="mono">${h.id}</span> ${esc(h.date)} · ${esc(h.action)} · ${esc(h.motif)}`).join("<br>") : "—"}</dd>
       </dl>
+      </details>
       <div class="rg-act"><button class="rg-ask" data-id="${r.id}" title="Les règles ne se modifient que par l'assistant : il propose un avant / après que vous validez">✦ Demander une modification à l'assistant</button><span class="mut sm">Modifié le ${esc((r.modifie_le || "").split("-").reverse().join("/"))} par ${esc(r.modifie_par || "—")}</span></div>
     </div>`;
   }
   function tableHTML(J) {
-    const list = filterRules(J, F);
-    return `<table class="rg-tab rg-rules"><thead><tr><th>Règle</th><th>Titre</th><th>Catégorie</th><th>Certitude</th><th>Statut</th></tr></thead><tbody>
-      ${list.map((r) => `<tr class="rg-row${open === r.id ? " on" : ""}${r.statut === "archivee" ? " arch" : ""}" data-id="${r.id}" tabindex="0" title="Cliquer pour la fiche de la règle">
-        <td class="mono">${r.id}${r.si_doute === "bloquer" && r.certitude !== "confirmee" ? ` <span class="rg-blk" title="Bloquant tant que la règle n'est pas confirmée">✕</span>` : ""}</td><td>${esc(r.titre)}</td><td>${esc(CATS[r.categorie] || r.categorie)}</td><td>${pill(r.certitude)}</td><td>${esc(STATUTS[r.statut] || r.statut)}</td></tr>
-        ${open === r.id ? `<tr class="rg-fiche"><td colspan="5">${ficheHTML(J, r)}</td></tr>` : ""}`).join("")}
-      </tbody></table>${list.length ? "" : `<p class="mut">Aucune règle ne correspond aux filtres.</p>`}`;
+    const list = rows(J);
+    const nav = pagination(list.length), visible = list.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+    return `${nav}<table class="rg-tab rg-rules"><thead><tr><th>Règle</th><th>En quelques mots</th><th>Famille</th><th>Validation</th><th>Dans Oktéo</th></tr></thead><tbody>
+      ${visible.map((r) => { const m = libraryMeta(r); return `<tr class="rg-row${open === r.id ? " on" : ""}${r.statut === "archivee" ? " arch" : ""}" data-id="${r.id}" tabindex="0" aria-expanded="${open === r.id}" title="Ouvrir la fiche : ${esc(r.titre)}">
+        <td class="mono">${r.id}</td><td><strong>${esc(r.titre)}</strong><small class="rg-summary">${esc(m.summary)}</small></td><td>${esc(FAMILIES[m.family])}<small class="mut">${esc(TYPES[m.type])}</small></td>
+        <td><span class="rg-validation ${m.validation}">${esc(VALIDATIONS[m.validation])}</span><small class="mut">${esc(STATUTS[r.statut] || r.statut)}</small></td><td><span class="rg-app-state">${esc(APPLICATIONS[m.application.state])}</span></td></tr>
+        ${open === r.id ? `<tr class="rg-fiche"><td colspan="5">${ficheHTML(J,r)}</td></tr>` : ""}`; }).join("")}
+      </tbody></table>${list.length ? "" : `<div class="rg-empty"><b>Aucun résultat.</b><p>Essayez un autre mot ou retirez un filtre. Les règles archivées sont masquées par défaut.</p><button data-reset>Tout réinitialiser</button></div>`}`;
   }
   // question en suspens : à voir avec un collègue plus qualifié, ou en attente d'un chantier (jamais reposée à Kévin)
   function waitTag(q) {
@@ -101,38 +121,39 @@ export function mountRegles(el, { api, ask }) {
   }
   function questionsHTML(J) {
     const ord = { ouverte: 0, attente: 1, partielle: 2, reportee: 3, repondue: 4 };
-    const L = [...(F.attente ? pendingQuestions(J) : J.questions)].sort((a, b) => ord[a.statut] - ord[b.statut] || a.id.localeCompare(b.id));
-    return `<table class="rg-tab rg-qs"><tr><th>N°</th><th>Question</th><th>Réponse ou supposé</th><th>Statut</th></tr>
-      ${L.map((q) => `<tr><td class="mono">${q.id}</td><td>${esc(q.question)}<small class="mut">${esc(q.section)}</small></td><td>${esc(q.reponse || (q.suppose ? "supposé : " + q.suppose : ""))}${q.si_doute ? ` <span class="mut">(si doute : ${esc(q.si_doute)})</span>` : ""}</td><td><span class="rg-q ${q.statut}">${esc(QSTATUTS[q.statut] || q.statut)}</span>${waitTag(q)}</td></tr>`).join("")}</table>`;
+    const L = [...(F.attente ? pendingQuestions(J) : J.questions)].filter((q) => matchesWords([q.id,q.question,q.reponse,q.suppose,q.section].join(" "), F.q)).sort((a, b) => ord[a.statut] - ord[b.statut] || a.id.localeCompare(b.id));
+    const nav = pagination(L.length);
+    return `${nav}<table class="rg-tab rg-qs"><tr><th>N°</th><th>Question</th><th>Réponse ou supposé</th><th>Statut</th></tr>
+      ${L.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((q) => `<tr><td class="mono">${q.id}</td><td>${esc(q.question)}<small class="mut">${esc(q.section)}</small></td><td>${esc(q.reponse || (q.suppose ? "supposé : " + q.suppose : ""))}${q.si_doute ? ` <span class="mut">(si doute : ${esc(q.si_doute)})</span>` : ""}</td><td><span class="rg-q ${q.statut}">${esc(QSTATUTS[q.statut] || q.statut)}</span>${waitTag(q)}</td></tr>`).join("")}</table>`;
   }
   function historyHTML(J) {
-    return `<table class="rg-tab rg-hist"><tr><th>N°</th><th>Date</th><th>Règle</th><th>Action</th><th>Avant → après</th><th>Motif</th><th>Par</th><th>Code</th></tr>
-      ${[...J.history].reverse().map((h) => `<tr><td class="mono">${h.id}</td><td>${esc(h.date)}</td><td>${esc(h.regle)}</td><td>${esc(h.action)}</td><td>${esc(h.avant)} → ${esc(h.apres)}</td><td>${esc(h.motif)}</td><td>${esc(h.par)}</td><td>${h.code_valide == null ? "—" : h.code_valide ? "oui" : "non"}</td></tr>`).join("")}</table>`;
+    const H = [...J.history].reverse().filter((h) => matchesWords(Object.values(h).join(" "), F.q));
+    const nav = pagination(H.length);
+    return `${nav}<table class="rg-tab rg-hist"><tr><th>N°</th><th>Date</th><th>Règle</th><th>Action</th><th>Avant → après</th><th>Motif</th><th>Par</th><th>Code</th></tr>
+      ${H.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((h) => `<tr><td class="mono">${h.id}</td><td>${esc(h.date)}</td><td>${esc(h.regle)}</td><td>${esc(h.action)}</td><td>${esc(h.avant)} → ${esc(h.apres)}</td><td>${esc(h.motif)}</td><td>${esc(h.par)}</td><td>${h.code_valide == null ? "—" : h.code_valide ? "oui" : "non"}</td></tr>`).join("")}</table>`;
   }
 
   function render() {
+    const focus = el.contains(document.activeElement) ? document.activeElement.id : "";
+    const caret = focus === "rg-f-q" ? document.activeElement.selectionStart : null;
     const J = getJournal(), T = totals(J);
-    el.innerHTML = `<div class="pset-h"><h3>Journal des règles de câblage</h3>
-        <span class="rg-io"><button id="rg-export" title="Enregistrer le journal complet (règles, questions, historique) dans un fichier JSON">⤓ Exporter</button>
-        <label class="rg-imp" title="Remplacer le journal de ce PC par un journal exporté"><input type="file" id="rg-import" accept=".json,application/json" hidden>⤒ Importer…</label></span></div>
-      <p class="mut">Référence unique des règles KiTéOHM. ${T.n} règles : ${T.active} actives, ${T.a_valider} à valider, ${T.brouillon} brouillon, ${T.archivee} archivée${T.archivee > 1 ? "s" : ""} ;
-        ${T.questions} questions à traiter. Le logiciel ne devine jamais : une règle non confirmée donne un résultat « à vérifier » ou un doute bloquant (✕).
-        Pas d'édition directe : ouvrez une règle et « Demander une modification à l'assistant » (avant / après à valider, historique).</p>
+    const labels = { ...DOMAINS,...FAMILIES,...TYPES,...VALIDATIONS,...APPLICATIONS,...CERTS,...STATUTS };
+    el.innerHTML = `<div class="pset-h"><h3>Bibliothèque des règles</h3><span class="rg-io"><button id="rg-export" title="Exporter toutes les règles, questions et historiques, sans tenir compte des filtres">⤓ Exporter</button><label class="rg-imp">⤒ Importer…<input type="file" id="rg-import" accept=".json,application/json" hidden></label></span></div>
+      <p class="mut rg-intro">Trouvez une règle par sujet ou par mot-clé, puis ouvrez sa fiche. <b>Une règle validée n’est pas forcément automatisée.</b></p>
+      <p class="mut sm">${T.n} règles : ${T.active} actives, ${T.a_valider} à valider, ${T.brouillon} brouillon, ${T.archivee} archivée${T.archivee > 1 ? "s" : ""}. Les numéros et l’historique sont conservés.</p>
       <p class="rg-msg" hidden></p>
-      <div class="rg-choix-box">${choixHTML()}</div>
-      <div class="rg-ecarts-box">${ecartsHTML(J)}</div>
-      ${catsHTML(J)}
-      <div class="rg-filters">
-        <select id="rg-f-cert" aria-label="Certitude"><option value="">Toutes certitudes</option>${Object.entries(CERTS).map(([k, l]) => `<option value="${k}" ${F.cert === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
-        <select id="rg-f-statut" aria-label="Statut"><option value="">Statuts en vigueur</option>${Object.entries(STATUTS).map(([k, l]) => `<option value="${k}" ${F.statut === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
-        <input type="search" id="rg-f-q" placeholder="Chercher dans les règles (ex. terre, ICTA, volet)" value="${esc(F.q)}">
-        <button id="rg-f-wait" class="${F.attente ? "on" : ""}" aria-pressed="${!!F.attente}" title="Questions en suspens (en attente d'un chantier ou d'un collègue plus qualifié) et les règles qui en dépendent">⏳ En attente <b>${pendingQuestions(J).length}</b></button>
-        <button id="rg-f-clear" ${F.cat || F.cert || F.statut || F.q || F.attente ? "" : "hidden"}>Tout afficher</button>
-      </div>
-      <div class="rg-list">${tableHTML(J)}</div>
-      <details class="rg-more" ${tabQ || F.attente ? "open" : ""} id="rg-qd"><summary>${F.attente ? `Questions en attente (${pendingQuestions(J).length})` : `Questions pour Kévin (${J.questions.length}, dont ${T.questions} à traiter)`}</summary>${questionsHTML(J)}</details>
-      <details class="rg-more" ${tabH ? "open" : ""} id="rg-hd"><summary>Historique des modifications (${J.history.length})</summary>${historyHTML(J)}</details>`;
+      <nav class="rg-views" aria-label="Vues de la bibliothèque">${[["rules","Règles",T.n],["questions","Questions en attente / réponses",J.questions.length],["history","Historique",J.history.length]].map(([v,l,n]) => `<button data-view="${v}" class="${view === v ? "on" : ""}" aria-pressed="${view === v}">${l} <b>${n}</b></button>`).join("")}</nav>
+      <label class="rg-search">Rechercher ${view === "rules" ? "une règle" : view === "questions" ? "une question" : "dans l’historique"}<input type="search" id="rg-f-q" placeholder="Ex. ballon, différentiel, terre, diamètre, R-144…" value="${esc(F.q)}" autocomplete="off"></label>
+      ${view === "rules" ? `${catsHTML(J)}<div class="rg-filters">${selectHTML(J,"family",FAMILIES,"Famille")}${selectHTML(J,"type",TYPES,"Type de règle")}${selectHTML(J,"validation",VALIDATIONS,"Validation")}${selectHTML(J,"application",APPLICATIONS,"Application dans Oktéo")}</div>
+      <details class="rg-advanced" ${advancedOpen ? "open" : ""}><summary>Filtres avancés : certitude, statut d’origine, archives</summary><div class="rg-filters">${selectHTML(J,"cert",CERTS,"Certitude d’origine","rg-f-cert")}${selectHTML(J,"statut",STATUTS,"Statut d’origine","rg-f-statut")}<label class="rg-check"><input id="rg-archives" type="checkbox" ${F.archives ? "checked" : ""}> Inclure les règles archivées</label></div></details>` : `<p class="mut sm">La recherche porte sur cette vue. Les filtres de famille et de validation concernent uniquement la vue Règles.</p>`}
+      <div class="rg-tools"><button id="rg-f-wait" class="${F.attente ? "on" : ""}" aria-pressed="${F.attente}">⏳ En attente d’une réponse <b>${pendingQuestions(J).length}</b></button><button id="rg-f-clear" ${selected().length ? "" : "hidden"}>Tout réinitialiser</button></div>
+      <div class="rg-active" aria-label="Filtres actifs">${selected().filter((k) => view === "rules" || ["q","attente"].includes(k)).map((k) => `<button data-remove="${k}" title="Retirer ce filtre">${k === "q" ? 'Recherche : ' + esc(F.q) : k === "attente" ? 'En attente' : k === "archives" ? 'Archives incluses' : esc(labels[F[k]] || F[k])} ×</button>`).join("")}</div>
+      <div class="rg-list" ${view === "rules" ? "" : "hidden"}>${view === "rules" ? tableHTML(J) : ""}</div>
+      <details class="rg-more" id="rg-qd" ${view === "questions" ? "open" : "hidden"}><summary>Questions et réponses</summary>${view === "questions" ? questionsHTML(J) : ""}</details>
+      <details class="rg-more" id="rg-hd" ${view === "history" ? "open" : "hidden"}><summary>Historique des modifications</summary>${view === "history" ? historyHTML(J) : ""}</details>
+      <details class="rg-context" ${contextOpen ? "open" : ""}><summary>Choix du chantier et écarts avec les réglages</summary><div class="rg-choix-box">${choixHTML()}</div><div class="rg-ecarts-box">${ecartsHTML(J)}</div></details>`;
     wire();
+    if (focus) { const x = el.querySelector('#' + focus); if (x) { x.focus({ preventScroll: true }); if (caret != null && x.type === "search") x.setSelectionRange(caret, caret); } }
   }
   // mise à jour d'un seul bloc (sans toucher au tableau ni à la fiche ouverte)
   function part(which) {
@@ -143,17 +164,18 @@ export function mountRegles(el, { api, ask }) {
     }
   }
   function wireEcarts() { el.querySelectorAll(".rg-ecarts [data-open]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); openRule(a.dataset.open); })); }
-  function relist() {
-    const J = getJournal(); el.querySelector(".rg-list").innerHTML = tableHTML(J); wireList();
-    el.querySelector("#rg-f-clear").hidden = !(F.cat || F.cert || F.statut || F.q || F.attente);
-  }
+  function relist() { render(); }
   function msg(t, bad) { const m = el.querySelector(".rg-msg"); m.hidden = false; m.className = "rg-msg" + (bad ? " bad" : ""); m.textContent = t; }
 
   function openRule(id, scroll = true) {
     open = open === id && !scroll ? "" : id;
-    const r = ruleById(getJournal(), id);
-    if (r && filterRules(getJournal(), F).every((x) => x.id !== id)) { F.cat = ""; F.cert = ""; F.statut = r.statut === "archivee" ? "archivee" : ""; F.q = ""; F.attente = false; render(); }
-    else relist();
+    const J = getJournal(), r = ruleById(J,id);
+    if (!r) return;
+    view = "rules";
+    if (!rows(J).some((x) => x.id === id)) Object.assign(F,defaults(), { archives: r.statut === "archivee" });
+    page = Math.floor(rows(J).findIndex((x) => x.id === id) / PAGE_SIZE);
+    render();
+    if (!scroll) el.querySelector(`.rg-row[data-id="${id}"]`)?.focus({ preventScroll: true });
     if (scroll) el.querySelector(`.rg-row[data-id="${id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
   function wireList() {
@@ -167,15 +189,19 @@ export function mountRegles(el, { api, ask }) {
   function wire() {
     wireList();
     wireEcarts();
-    el.querySelectorAll(".rg-cat").forEach((b) => (b.onclick = () => { F.cat = F.cat === b.dataset.cat ? "" : b.dataset.cat; render(); }));
-    const c = el.querySelector("#rg-f-cert"), s = el.querySelector("#rg-f-statut"), q = el.querySelector("#rg-f-q");
-    c.onchange = () => { F.cert = c.value; render(); };
-    s.onchange = () => { F.statut = s.value; render(); };
-    q.oninput = () => { F.q = q.value; relist(); };
-    el.querySelector("#rg-f-clear").onclick = () => { F.cat = F.cert = F.statut = F.q = ""; F.attente = false; render(); };
-    el.querySelector("#rg-f-wait").onclick = () => { F.attente = !F.attente; render(); };
-    el.querySelector("#rg-qd").ontoggle = (e) => { tabQ = e.target.open; };
-    el.querySelector("#rg-hd").ontoggle = (e) => { tabH = e.target.open; };
+    const reset = () => { Object.assign(F,defaults()); page = 0; view = "rules"; open = ""; render(); };
+    el.querySelectorAll('[data-domain]').forEach((b) => b.onclick = () => { F.domain = b.dataset.domain; F.family = ""; page = 0; render(); });
+    el.querySelectorAll('[data-filter]').forEach((s) => s.onchange = () => { F[s.dataset.filter] = s.value; if (F.statut === "archivee") F.archives = true; page = 0; render(); });
+    el.querySelectorAll('[data-view]').forEach((b) => b.onclick = () => { view = b.dataset.view; page = 0; render(); });
+    el.querySelectorAll('[data-remove]').forEach((b) => b.onclick = () => { const k = b.dataset.remove; F[k] = defaults()[k]; if (k === "domain") F.family = ""; page = 0; render(); });
+    el.querySelectorAll('[data-page]').forEach((b) => b.onclick = () => { page += b.dataset.page === "next" ? 1 : -1; open = ""; render(); });
+    el.querySelectorAll('[data-reset]').forEach((b) => b.onclick = reset);
+    el.querySelector('#rg-f-q').oninput = (e) => { F.q = e.target.value; page = 0; render(); };
+    const archives = el.querySelector('#rg-archives'); if (archives) archives.onchange = () => { F.archives = archives.checked; if (!F.archives && F.statut === "archivee") F.statut = ""; page = 0; render(); };
+    el.querySelector('#rg-f-clear').onclick = reset;
+    el.querySelector('#rg-f-wait').onclick = () => { F.attente = !F.attente; page = 0; view = "questions"; render(); };
+    const advanced = el.querySelector(".rg-advanced"); if (advanced) advanced.ontoggle = (e) => { advancedOpen = e.target.open; };
+    el.querySelector('.rg-context').ontoggle = (e) => { contextOpen = e.target.open; };
     el.querySelector("#rg-export").onclick = () => {
       const J = getJournal(), d = new Date();
       downloadBlob(new Blob([exportJournal(J)], { type: "application/json" }), `journal-regles-cablage-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.json`);
@@ -196,6 +222,12 @@ export function mountRegles(el, { api, ask }) {
   }
 
   render();
-  cur = { el, render, part, open: openRule, get filters() { return { ...F }; } };
+  cur = { el, api, render, part, get state() { return { filters: { ...F }, open, view, page, contextOpen, advancedOpen }; }, open: openRule, browse(domain = "") { Object.assign(F, defaults(), { domain }); view = "rules"; page = 0; open = ""; render(); el.scrollIntoView({ block: "start" }); }, get filters() { return { ...F }; } };
   return cur;
+}
+
+// Accès depuis le tableau : on laisse Paramètres se monter avant d'appliquer le domaine.
+export function openRulesLibrary(api, domain = "") {
+  api.setTab("params");
+  if (cur?.el.isConnected) cur.browse(domain);
 }

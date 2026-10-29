@@ -69,7 +69,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
 
   const SECS = () => [
     ["ps-aff", "Affichage"], ["ps-ia", "Assistant et relevé IA"],
-    ["ps-regles", "Journal des règles"], ["cab-set", "Câblage"], ...CAB_FIELDS.map(([g], i) => ["ps-cab-" + i, g, true]), ["ps-packs", "Packs"],
+    ["ps-regles", "Bibliothèque des règles"], ["cab-set", "Câblage"], ...CAB_FIELDS.map(([g], i) => ["ps-cab-" + i, g, true]), ["ps-packs", "Packs"],
   ];
   function prefHTML() {
     const v = getPrefs();

@@ -415,3 +415,6 @@ Dépôt privé `kevincruveilher-png/okteo-ai`, branche `main`. Kévin modifie au
 - Ne pas utiliser `alert`/`confirm` (bloquent les tests).
 - Noms de modèles IA : vérifier qu'ils existent encore avant de les mettre par défaut (NVIDIA retire des modèles ;
   `nvidia/nemotron-nano-12b-v2-vl` retiré le 26/08/2026 et proposé par erreur le 25/10).
+
+### Bibliothèque des règles (v67)
+`src/cablage/regles-library.js` : domaines/familles/types, recherche et état d’application ; métadonnées de consultation, jamais moteur normatif. `src/ext/regles-ui.js` : fiches paginées, filtres, vues Questions/Historique ; `openRulesLibrary(api, domaine)` pour un accès ciblé. Conserver les identifiants et données métier. Une règle validée n’est pas forcément automatisée ; tout périmètre non relu reste « À documenter ». Tests dédiés : `scripts/regles-library.test.mjs`.

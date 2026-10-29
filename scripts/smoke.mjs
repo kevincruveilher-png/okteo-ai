@@ -1900,29 +1900,43 @@ try {
   console.log("Journal des règles de câblage (v51)");
   // la page Paramètres défile dans son propre cadre : amener l'élément au centre avant de cliquer
   const clickIn = async (sel) => { await ev((x) => document.querySelector(x)?.scrollIntoView({ block: "center" }), sel); await page.click(sel, { timeout: 8000 }); };
-  await check("Paramètres → Journal des règles : 117 règles (v66 : 61 règles du tableau), archivée masquée, catégorie Boîtes en rouge, filtres et recherche", async () => {
+  await check("bibliothèque : pagination, domaines, recherche, filtres de validation et application", async () => {
     await ev(() => localStorage.removeItem("okteo.regles.v1"));
     await page.click('#tabs button[data-tab="params"]');
     await page.waitForSelector("#ps-regles .rg-rules");
     await page.fill(".pset-find", "");
-    const r = await ev(() => {
-      const S = document.getElementById("ps-regles");
-      const rows = () => [...S.querySelectorAll(".rg-row")].map((tr) => tr.dataset.id);
-      const o = { intro: /117 règles : \d+ actives, \d+ à valider, 1 brouillon, 1 archivée/.test(S.textContent), n: rows().length, archHidden: !rows().includes("R-076"),
-        rouge: S.querySelector('.rg-cat[data-cat="boites"]').classList.contains("rouge"), nav: !!document.querySelector('.pset-nav a[data-to="ps-regles"]') };
-      return o;
-    });
-    await page.selectOption("#rg-f-cert", "inconnue");
-    const inc = await ev(() => [...document.querySelectorAll("#ps-regles .rg-row")].map((tr) => tr.dataset.id).join(","));
+    const initial = await page.locator("#ps-regles .rg-row").count();
+    const count = await page.textContent("#rg-count");
+    await clickIn('#ps-regles [data-page="next"]');
+    const second = await page.locator("#ps-regles .rg-row").first().getAttribute("data-id");
+    await page.fill("#rg-f-q", "ballon");
+    const ballon = await page.locator('.rg-row[data-id="R-082"]').count();
+    await clickIn("#rg-f-clear");
+    await clickIn('#ps-regles [data-domain="tableau"]');
+    const tableau = await page.textContent("#rg-count");
+    await page.selectOption('[data-filter="validation"]', "manquante");
+    const missing = await page.locator("#ps-regles .rg-row").count();
+    await clickIn("#rg-f-clear");
+    await page.selectOption('[data-filter="application"]', "automatique");
+    const auto = await page.locator('.rg-row[data-id="R-074"]').count();
     await clickIn("#rg-f-clear");
     await page.fill("#rg-f-q", "ICTA");
-    const icta = await ev(() => [...document.querySelectorAll("#ps-regles .rg-row")].map((tr) => tr.dataset.id));
+    const icta = await page.locator('.rg-row[data-id="R-074"]').count();
     await clickIn("#rg-f-clear");
-    await clickIn('#ps-regles .rg-cat[data-cat="tableau"]');
-    const tab = await ev(() => [...document.querySelectorAll("#ps-regles .rg-row")].map((tr) => tr.dataset.id).join(","));
-    await clickIn('#ps-regles .rg-cat[data-cat="tableau"]');
-    if (!(r.intro && r.n === 116 && r.archHidden && r.rouge && r.nav && inc === "R-009,R-141,R-146,R-155,R-158" && icta.includes("R-074") && tab.startsWith("R-050,R-081,R-101,") && tab.endsWith("R-161") && tab.split(",").length === 63)) throw new Error(JSON.stringify({ r, inc, icta, tab }));
+    if (!(initial === 24 && count.startsWith("116 résultats") && second !== "R-001" && ballon && tableau.startsWith("66 résultats") && missing > 0 && auto && icta)) throw new Error(JSON.stringify({ initial,count,second,ballon,tableau,missing,auto,icta }));
     return true;
+  });
+  await check("Tableau → Règles du tableau : accès ciblé, fiche au clavier, retour tous domaines", async () => {
+    await ev(() => okteo.setTab("tableau"));
+    await clickIn("#tb-rules");
+    await page.waitForSelector('#ps-regles [data-domain="tableau"].on');
+    const count = await page.textContent("#rg-count");
+    await page.locator("#ps-regles .rg-row").first().focus();
+    await page.keyboard.press("Enter");
+    const fiche = await page.locator(".rg-fiche").count();
+    const collapsed = await ev(() => !document.querySelector(".rg-technical").open);
+    await clickIn("#rg-f-clear");
+    return count.startsWith("66 résultats") && fiche === 1 && collapsed;
   });
   await check("journal : « ⏳ En attente » = questions en suspens (collègue, chantier) et règles qui en dépendent ; « Tout afficher » revient", async () => {
     await clickIn("#rg-f-wait");
@@ -1932,7 +1946,7 @@ try {
         on: S.querySelector("#rg-f-wait").classList.contains("on") }; });
     await clickIn("#rg-f-clear");
     const n = await ev(() => document.querySelectorAll("#ps-regles .rg-row").length);
-    if (!(r.on && r.open && r.rows === "R-009" && /Q-83/.test(r.qs) && /Q-84/.test(r.qs) && /Q-42/.test(r.qs) && !/Q-01\b/.test(r.qs) && /Q-85/.test(r.qs) && r.col === 3 && n === 116)) throw new Error(JSON.stringify({ r, n }));
+    if (!(r.on && r.open && r.rows === "" && /Q-83/.test(r.qs) && /Q-84/.test(r.qs) && /Q-42/.test(r.qs) && !/Q-01\b/.test(r.qs) && /Q-85/.test(r.qs) && r.col === 3 && n === 24)) throw new Error(JSON.stringify({ r, n }));
     return true;
   });
   await check("fiche d'une règle : paramètres, écart avec le logiciel (18 / 16), utilisée par, preuves, questions, historique ; lien depuis un réglage Câblage", async () => {
@@ -1955,6 +1969,7 @@ try {
   });
   await check("choix du chantier : mode de pieuvre, volets, appareils à choix enregistrés dans le chantier (Plug bloqué)", async () => {
     const plug = await ev(() => document.querySelector('#rg-mode option[value="plug"]').disabled);
+    await clickIn("#ps-regles .rg-context > summary");
     await page.selectOption("#rg-mode", "equilibre");
     await page.selectOption("#rg-volets", "boite_a_part");
     await page.selectOption("#rg-racc", "ligne_directe");
@@ -1966,6 +1981,7 @@ try {
   await check("modifier une règle par l'assistant : avant / après, Valider = journal + historique ; proposition invalide refusée", async () => {
     const old = await ev(() => JSON.stringify(okteoExt.settings.get()));
     await ev(() => okteoExt.settings.set({ keys: { anthropic: "sk-test", nvidia: "" }, provider: "anthropic" }));
+    await page.fill("#rg-f-q", "R-002");
     await clickIn('#ps-regles .rg-row[data-id="R-002"]');
     await clickIn('#ps-regles .rg-ask[data-id="R-002"]');
     await page.waitForSelector(".as-in textarea", { state: "visible" });

@@ -915,3 +915,13 @@ Mise à jour prévue avant l'impression. Plan d'ensemble : 41 mise en page, 42 P
 - **Modèle de boîte** (en bas à gauche) : réglage de la boîte, « Boîte pavillonnaire carrée » (seul modèle connu, liste prévue pour d'autres) ; « Couvercle : haut / bas » = simple mention, sans effet sur le plan, les gaines ni le dessin.
 - **Textes** : plus gros ; plus de lettres Ph / N / PE ; gaine écrite « LI01.10 · P14 · 4,8 m · Ø16 » (repère de l'appareil, pas son nom long ; gaines groupées : « P17 + P18 + I12 »).
 - **Alimentation** : plus de « Ph C1 / N C1 » sur chaque fil ; accolade par paire sous les bornes avec son chiffre (bague 1, 2…), comme sur le croquis de Kévin.
+
+
+## v67 — Bibliothèque des règles (29/10/2026)
+- Demande de Kévin : rendre toutes les règles consultables par un novice, séparer le tableau du câblage et filtrer par validation.
+- Domaines, familles, types, recherche insensible aux accents et synonymes, filtres combinables avec compteurs, pages de 24 règles. Questions et historique ont leur propre vue.
+- Fiches avec résumé, contexte, vérifications et exemple de consultation ; texte intégral, paramètres, preuves et historique dans les détails techniques.
+- Validation distincte de la prise en charge logicielle : automatique, partielle, alerte, manuelle, non intégrée ou à documenter. Les modifications locales retirent toute affirmation d’automatisation non revue.
+- Accès direct « Règles du tableau » depuis Tableau. Les 117 règles, identifiants, données exportées et moteurs de calcul sont conservés.
+- Architecture : `src/cablage/regles-library.js` contient uniquement les métadonnées de présentation et filtres ; `regles-data.js` reste la référence métier.
+- Vérifications : tests purs de classification, recherche, combinaisons, conservation des données et modifications locales ; parcours navigateur adaptés à la pagination.
