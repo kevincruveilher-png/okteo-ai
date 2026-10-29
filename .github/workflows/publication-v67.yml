@@ -1,0 +1,33 @@
+name: Publication bibliothèque v67
+on:
+  push:
+    branches: [publication-bibliotheque-v67]
+permissions:
+  contents: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 9f85fe39e692f30bcffca7909a3739b76c07b7be
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Publier sans réécrire l’historique
+        shell: bash
+        run: |
+          git fetch origin gh-pages
+          git worktree add /tmp/okteo-pages origin/gh-pages
+          cp -a dist/. /tmp/okteo-pages/
+          touch /tmp/okteo-pages/.nojekyll
+          cd /tmp/okteo-pages
+          git config user.name "Oktéo deploy"
+          git config user.email "deploy@okteo.local"
+          git add -A
+          git commit -m "Mise en ligne v67 : bibliothèque des règles"
+          git push origin HEAD:gh-pages
