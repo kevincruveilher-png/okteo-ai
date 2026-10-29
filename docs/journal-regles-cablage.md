@@ -699,7 +699,7 @@ Source : recherche documentaire transmise par Kévin le 29/10/2026 (00:08) : « 
 *Dimensionnement du tableau et réserves*
 
 **R-144 · Réserve de 20 % d'emplacements** — `a_valider` · `supposee`
-- Description : en maison individuelle, le tableau garde au moins 20 % d'emplacements libres. La règle de 6 modules au minimum concerne seulement le logement collectif. Le logiciel calcule `modules_installes × 1,2`, arrondi au module supérieur, avant de choisir le coffret.
+- Description : en maison individuelle, le tableau garde au moins 20 % d'emplacements libres. La règle de 6 modules au minimum concerne seulement le logement collectif. Le logiciel calcule `modules_installes / 0,8`, arrondi au module supérieur, avant de choisir le coffret.
 - Paramètres : `reserve_pct = 20`, `arrondi = module_superieur`, réglables
 - Source : Promotelec, brochure NF C 15-100 (https://www.promotelec.com/app/uploads/2023/08/Promotelec_Brochure-NFC_15-100-V2.pdf) ; Legrand, guide 2024.
 
@@ -1209,3 +1209,5 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | H-042 | 28/10/2026 | R-094, Q-77, Q-86, Q-87 | Proposition | Q-86, Q-87 ouvertes | Mise à jour 62 : mode Économique = le moins de cuivre, note « belle pieuvre » commune ; volets en Par pièce dans la boîte de leur pièce, deux boîtes de volets en Équilibrée si les volets sont aux deux bouts de la maison (supposés, à valider) | Réponses de Kévin du 28/10/2026 (08:38–08:46), décisions laissées à Claude | IA (à valider par Kévin) | — |
 | H-043 | 28/10/2026 | Q-88 | Proposition | Q-88 ouverte | Mode « Par zone » (jour / nuit / garage) ajouté au logiciel, définition des zones à valider | Demande de Kévin du 28/10/2026 (08:46) | IA (à valider par Kévin) | — |
 | H-044 | 29/10/2026 | R-050, R-101 à R-161, Q-89 à Q-110 | Création | Q-89 à Q-110 ouvertes | Règles d'implantation et de composition du tableau (NF C 15-100:2024) : référentiel, GTL, différentiels, protections, réserve, parafoudre, gestion d'énergie, étage et annexes ; toutes `a_valider` (`supposee` ou `inconnue`) | Recherche documentaire transmise par Kévin le 29/10/2026 (00:08) | IA (à valider par Kévin) | — |
+
+| H-045 | 29/10/2026 | R-144 | Correction du calcul | Capacité = modules occupés × 1,2 | Capacité minimale = arrondi supérieur(modules occupés / 0,8) ; modules libres ≥ arrondi supérieur(20 % de la capacité du coffret) | Correction mathématique pour conserver 20 % de la capacité totale libres, autorisée par Kévin (« go pour la correction »). Statut normatif inchangé | ChatGPT | — |

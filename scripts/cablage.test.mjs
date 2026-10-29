@@ -383,6 +383,27 @@ console.log("Tableau électrique (v46)");
   check("synchro : circuit disparu retiré, nouveau circuit signalé ; coffret 1 rangée trop petit → suggestion 3 rangées ; ajout sous un ID du bon type",
     !S2.rows.flat().some((x) => x.c === "C4") && S2.missing.map((c) => c.n).join() === "C20" && tableauIssues(S2, C).some((x) => /rangées pour un coffret de 1/.test(x)) && big.rows >= 3
       && protections(addBreaker(T.rows, { n: "C21", kind: "specialise", prot: 32 })).size === 14, big.id);
+  // v66.1 : régressions de composition (sans validation normative des données).
+  const many = mk("specialise", 8, 1, 20), split = autoTableau(many);
+  check("tableau : 8 spécialisés 20 A répartis sans dépasser le calibre calculé, au moins 2 ID",
+    split.rows.length >= 2 && !tableauIssues(split, many).some((x) => /R-119|R-124/.test(x))
+    && split.rows.flat().filter((x) => x.k === "cb").length === 8);
+  check("tableau : aucun calibre disponible au-delà de 63 A (pas de plafonnement silencieux)", idCalibre(many) === null);
+  const reserve = { model: "r9-13x2", rows: [[{ k: "mod", w: 11 }], [{ k: "mod", w: 10 }]] };
+  check("tableau : 21/26 modules = réserve insuffisante ; suggestion de la même marque",
+    tableauIssues(reserve, []).some((x) => /Réserve/.test(x)) && suggestModel(reserve).id !== reserve.model
+    && suggestModel(reserve).brand === "Schneider Electric");
+  const full = { model: "dv-13x4", rows: Array.from({ length: 5 }, () => [{ k: "mod", w: 10 }]) };
+  check("tableau : aucune suggestion si 5 rangées ou largeur hors catalogue", suggestModel(full) === null
+    && suggestModel({ model: "dv-13x4", rows: [[{ k: "mod", w: 19 }]] }) === null);
+  const prev = { ...T, rows: addModular(addModular(T.rows, "hc", 13, "CE"), "pf", 13) };
+  const prevJson = JSON.stringify(prev), rebuilt = autoTableau(C, { model: T.model, previous: prev });
+  const accessories = prev.rows.flat().filter((x) => x.k === "mod");
+  check("tableau : recalcul sans perte d'accessoires ni mutation de l'ancien tableau, revue demandée",
+    accessories.every((it) => rebuilt.rows.flat().some((x) => x.id === it.id && x.label === it.label && x.w === it.w && x.reviewPlacement))
+    && JSON.stringify(prev) === prevJson && tableauIssues(rebuilt, C).some((x) => /Accessoires conservés/.test(x)));
+  check("tableau : minimum de 2 ID même avec un seul circuit, aucun ID sur un projet vide",
+    autoTableau(mk("specialise", 1, 1, 20)).rows.length === 2 && autoTableau([]).rows.length === 0);
   // v66 : règles du tableau NF C 15-100:2024 (R-101 à R-161, à valider)
   const one = autoTableau([...mk("eclairage", 2, 1, 10), ...mk("prises", 2, 3, 16)]), oneIds = one.rows.map((r) => r[0]);
   check("R-119 / R-123 / R-127 : 4 circuits = 2 différentiels quand même, éclairage et prises chacun sous les 2", oneIds.length === 2 && !tableauIssues(one, [...mk("eclairage", 2, 1, 10), ...mk("prises", 2, 3, 16)]).some((x) => /R-119|R-123/.test(x)));

@@ -2,7 +2,7 @@
 // - coffret au choix (Schneider Electric Resi9 ou Legrand Drivia, 1 à 4 rangées de 13 ou 18 modules), dessiné module
 //   par module, marque en tête (v49) ; appareillage modulaire (prise 2P+T, parafoudre, télérupteurs du plan, contacteur
 //   heures creuses…) ajouté depuis une liste, déplaçable, supprimable ;
-// - placement automatique (NF C 15-100 simplifiée : ID type A pour les spécialisés, ID type AC selon la surface,
+// - placement automatique (NF C 15-100 simplifiée : ID type A pour les spécialisés, ID type AC selon les circuits et la charge,
 //   8 circuits au plus par ID) ; chaque disjoncteur se glisse ailleurs (même rangée ou autre rangée) ;
 // - la manette d'un disjoncteur (ou d'un différentiel) coupe / remet le circuit pour le mode essai ;
 // - alertes : circuit sans différentiel, spécialisé hors type A, plus de 8 circuits, rangée trop pleine, réserve 20 %.
@@ -64,12 +64,14 @@ export function mountTableauPage(el, { api }) {
         <span class="tb-brand ${brandCls}" title="Marque du coffret">${M.brand === "Legrand" ? "legrand" : "Schneider<small>Electric</small>"}</span>
         <label class="f">Appareillage <select id="tb-mod" title="Ajouter un appareil modulaire au tableau (sur la rangée qui a le plus de place)"><option value="">＋ Appareil modulaire…</option>${Object.entries(MODS).map(([k, D]) => `<option value="${k}">${esc(D.n)} — ${String(D.w).replace(".", ",")} mod.</option>`).join("")}</select></label>
         ${nTL > hasTL ? `<button id="tb-tl" title="Un télérupteur par allumage à télérupteur du plan (T1, T2…)">＋ Télérupteurs du plan (${nTL - hasTL})</button>` : ""}
-        ${sug.id !== M.id && (T.rows.length > M.rows || used > total) ? `<button id="tb-sug" title="Le plus petit coffret qui contient le tableau avec 20 % de réserve">→ ${esc(sug.name)}</button>` : ""}
-        <button id="tb-auto" title="Refaire la disposition : ID type A pour les spécialisés, ID type AC selon la surface, 8 circuits au plus par ID (un seul Ctrl+Z)">Placer automatiquement</button>
+        ${sug && sug.id !== M.id && (T.rows.length > M.rows || T.rows.some((r) => rowMods(r) > M.mods) || total - used < Math.ceil(total * 0.2)) ? `<button id="tb-sug" title="Le plus petit coffret qui contient le tableau avec 20 % de réserve">→ ${esc(sug.name)}</button>` : ""}
+        ${!sug ? `<span class="warn">Aucun coffret ${esc(M.brand)} du catalogue ne convient à cette disposition avec la réserve prévue.</span>` : ""}
+        ${T.rows.flat().some((it) => it.reviewPlacement) ? `<button id="tb-reviewed" title="Après contrôle des emplacements et des raccordements des accessoires conservés">Valider la revue des accessoires</button>` : ""}
+        <button id="tb-auto" title="Refaire la disposition : ID type A pour les spécialisés, ID type AC selon les circuits et la charge, 8 circuits au plus par ID (accessoires conservés à vérifier ; un seul Ctrl+Z)">Placer automatiquement</button>
         <button id="tb-addid" title="Ajouter un interrupteur différentiel sur une nouvelle rangée">＋ Différentiel</button>
         <button id="tb-essai" title="Revenir au plan en mode essai : les disjoncteurs coupés ici éteignent leurs lumières">💡 Essai sur le plan</button>
       </div>
-      ${issues.length ? `<div class="warnbox">${issues.map((x) => `<p class="warn sm">⚠ ${esc(x)}</p>`).join("")}</div>` : `<p class="ok sm">✓ Conforme aux règles vérifiées (différentiels, type A, 8 circuits par ID, réserve de 20 %).</p>`}
+      ${issues.length ? `<div class="warnbox">${issues.map((x) => `<p class="warn sm">⚠ ${esc(x)}</p>`).join("")}</div>` : `<p class="ok sm">✓ Aucun écart détecté par les contrôles disponibles. Règles à valider par le BE ; matériels génériques.</p>`}
       ${T.missing.length ? `<div class="tb-miss"><b>Circuits pas encore au tableau :</b> ${T.missing.map((c) => `<button data-add="${esc(c.n)}" title="L'ajouter sous un différentiel du bon type">＋ ${esc(c.n)} ${esc(c.name || KIND[c.kind] || "")}</button>`).join(" ")}</div>` : ""}
       <div class="tb-box ${brandCls}" style="--mods:${M.mods}"><div class="tb-cap"><span class="tb-brand ${brandCls}">${M.brand === "Legrand" ? "legrand" : "Schneider<small>Electric</small>"}</span><span class="mut sm">${esc(M.range)} · ${M.rows} × ${M.mods} modules</span></div>${rows}</div>
       <p class="mut sm">Glissez un disjoncteur ou un différentiel pour le déplacer (sur un autre appareil = juste avant lui, sur une place libre = en fin de rangée). Un différentiel protège les disjoncteurs à sa droite. La manette coupe ou remet le circuit pour le mode essai.</p>
@@ -81,7 +83,9 @@ export function mountTableauPage(el, { api }) {
     const $ = (s) => el.querySelector(s);
     $("#tb-model").onchange = (e) => save({ ...T, model: e.target.value });
     const sg = $("#tb-sug"); if (sg) sg.onclick = () => save({ ...T, model: suggestModel(T).id });
-    $("#tb-auto").onclick = () => { save(autoTableau(api.cab.circuits || [], { model: T.model, area: area() })); api.setHint("Tableau disposé automatiquement. Ctrl+Z pour revenir."); };
+    $("#tb-auto").onclick = () => { save(autoTableau(api.cab.circuits || [], { model: T.model, previous: T })); api.setHint("Tableau disposé automatiquement ; accessoires conservés à vérifier. Ctrl+Z pour revenir."); };
+    const reviewed = $("#tb-reviewed");
+    if (reviewed) reviewed.onclick = () => save({ ...T, rows: T.rows.map((r) => r.map(({ reviewPlacement, ...it }) => it)) });
     $("#tb-addid").onclick = () => save({ ...T, rows: newId(T.rows, "AC") });
     $("#tb-mod").onchange = (e) => { const t = e.target.value; if (!t) return; save({ ...T, rows: addModular(T.rows, t, modelOf(T.model).mods) }); api.setHint(`${MODS[t].n} ajouté au tableau : glissez-le où vous voulez. Ctrl+Z pour annuler.`); };
     const tlb = $("#tb-tl");

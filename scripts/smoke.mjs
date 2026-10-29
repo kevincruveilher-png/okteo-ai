@@ -1830,6 +1830,35 @@ try {
     if (!ok) throw new Error(JSON.stringify({ opened, lg, pc, gone }));
     return true;
   });
+  await check("tableau v66.1 : recalcul conserve le contacteur ; revue et Ctrl+Z", async () => {
+    await page.click('#tabs button[data-tab="tableau"]');
+    await page.selectOption("#tb-mod", "hc");
+    const before = await ev(() => JSON.stringify(okteo.cab.tableau));
+    await page.click("#tb-auto");
+    const kept = await ev(() => okteo.cab.tableau.rows.flat().some((x) => x.t === "hc" && x.reviewPlacement));
+    await page.click("#tb-reviewed");
+    const reviewed = await ev(() => !okteo.cab.tableau.rows.flat().some((x) => x.reviewPlacement));
+    await ev(() => { okteo.undo(); okteo.undo(); });
+    const restored = await ev(() => JSON.stringify(okteo.cab.tableau));
+    await ev(() => okteo.undo());
+    if (!kept || !reviewed || restored !== before) throw new Error("Accessoire ou annulation perdus");
+    return true;
+  });
+  await check("tableau v66.1 : réserve seule propose un coffret ; aucune solution sans plantage", async () => {
+    const original = await ev(() => JSON.parse(JSON.stringify(okteo.cab.tableau || null)));
+    try {
+      await ev(() => okteo.setCab({ tableau: { model: "r9-13x2", rows: [
+        [{ k: "mod", id: "reserve1", t: "del", w: 11 }], [{ k: "mod", id: "reserve2", t: "del", w: 10 }]
+      ] } }));
+      await page.waitForSelector("#tb-sug");
+      await page.click("#tb-sug");
+      const changed = await ev(() => okteo.cab.tableau.model !== "r9-13x2");
+      await ev(() => okteo.setCab({ tableau: { model: "dv-13x4", rows: Array.from({ length: 5 }, (_, i) => [{ k: "mod", id: "overflow" + i, t: "del", w: 10 }]) } }));
+      const noSolution = await ev(() => document.querySelector("#tableau").textContent.includes("Aucun coffret Legrand") && !document.querySelector("#tb-sug"));
+      if (!changed || !noSolution) throw new Error("Suggestion incorrecte ou absence non signalée");
+      return true;
+    } finally { await page.evaluate((tableau) => okteo.setCab({ tableau }), original); }
+  });
   await check("onglet Tableau : coffret Resi9 dessiné, disjoncteurs glissés d'une rangée à l'autre (un Ctrl+Z), manette = circuit coupé pour l'essai", async () => {
     if (!(await ev(() => (okteo.cab.circuits || []).length))) await ev(() => okteoExt.cablage.auto());
     await page.click('#tabs button[data-tab="tableau"]'); await page.waitForSelector("#tableau .tb-box");

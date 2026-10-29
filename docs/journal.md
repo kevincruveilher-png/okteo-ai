@@ -281,6 +281,28 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Version 66.1 (29/10/2026) — correction de la composition du tableau
+Demande de Kévin : « go pour la correction », après audit du code v66 par ChatGPT.
+- Conservation des accessoires lors de « Placer automatiquement » : identifiants, libellés et largeurs conservés,
+  même rangée et ordre relatif entre accessoires. Les positions par rapport aux disjoncteurs sont à revoir : le modèle
+  ne connaît pas leurs raccordements électriques. Alerte persistante et bouton de revue ; le tout reste annulable.
+- R-144 : réserve calculée sur la capacité totale du coffret, et non sur les modules occupés. Journal de règles
+  corrigé (H-045) et données régénérées ; statut `a_valider` inchangé, aucune certification normative ajoutée.
+- Groupes dépassant 63 A selon la règle aval actuelle fractionnés ; au moins deux ID même si tous les circuits
+  sont spécialisés. Si un circuit seul dépasse la gamme, alerte explicite demandant une étude.
+- Suggestion dans la marque choisie ; `suggestModel` renvoie `null` si aucune solution. Proposition affichée aussi
+  pour réserve insuffisante ou rangée trop large. Aucun coffret trop petit proposé par défaut.
+- Message de résultat limité aux contrôles disponibles, sans annoncer une conformité globale.
+- Tests : six régressions moteur et deux régressions navigateur (accessoire conservé, revue, Ctrl+Z ; suggestion et absence de solution).
+- Vérification locale : syntaxe de 88 fichiers, 41 contrôles murs, 86 contrôles câblage et 176 contrôles chantiers
+  réussis ; build Vite réussi. Tests MAILLARD et smoke navigateur non exécutés jusqu'au bout : Chromium absent du
+  cache Playwright, puis Chromium système bloqué à la création du socket par l'environnement de cette session.
+  Les deux régressions navigateur restent à exécuter avant livraison. Aucune modification distante publiée :
+  le contrôle automatique de la session a refusé l'envoi GitHub en attendant une autorisation explicite.
+- Limites conservées : appareillage générique, classification spécialisée simplifiée, règle amont non calculée,
+  IRVE/parafoudre/chauffage détaillés hors périmètre. Le recalcul explicite redispose les disjoncteurs ; pas de
+  verrouillage individuel ajouté. Les changements de circuits restent synchronisés par leur numéro Cn.
+
 ## Version 66 (29/10/2026) — livrée : règles du tableau électrique (NF C 15-100:2024)
 Version du logiciel : 0.66.0 (la 65, contour de la maison et obstacles, reste à faire). Demandé par Kévin (29/10, 00:08) :
 « il va falloir faire une maj et implanter ces nouvelles règles » (recherche documentaire sur le tableau).

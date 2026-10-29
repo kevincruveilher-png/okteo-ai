@@ -1,6 +1,6 @@
 // Généré par scripts/regles-import.mjs depuis docs/journal-regles-cablage.md — ne pas modifier à la main.
 export const REGLES_BASE = {
- "version": "2026-10-28.44",
+ "version": "2026-10-28.45",
  "rules": [
   {
    "id": "R-001",
@@ -2935,7 +2935,7 @@ export const REGLES_BASE = {
    "id": "R-144",
    "titre": "Réserve de 20 % d'emplacements",
    "categorie": "tableau",
-   "description": "en maison individuelle, le tableau garde au moins 20 % d'emplacements libres. La règle de 6 modules au minimum concerne seulement le logement collectif. Le logiciel calcule `modules_installes × 1,2`, arrondi au module supérieur, avant de choisir le coffret.",
+   "description": "en maison individuelle, le tableau garde au moins 20 % d'emplacements libres. La règle de 6 modules au minimum concerne seulement le logement collectif. Le logiciel calcule `modules_installes / 0,8`, arrondi au module supérieur, avant de choisir le coffret.",
    "details": [],
    "condition": "",
    "action": "",
@@ -4994,6 +4994,17 @@ export const REGLES_BASE = {
    "apres": "Règles d'implantation et de composition du tableau (NF C 15-100:2024) : référentiel, GTL, différentiels, protections, réserve, parafoudre, gestion d'énergie, étage et annexes ; toutes `a_valider` (`supposee` ou `inconnue`)",
    "motif": "Recherche documentaire transmise par Kévin le 29/10/2026 (00:08)",
    "par": "IA (à valider par Kévin)",
+   "code_valide": null
+  },
+  {
+   "id": "H-045",
+   "date": "29/10/2026",
+   "regle": "R-144",
+   "action": "Correction du calcul",
+   "avant": "Capacité = modules occupés × 1,2",
+   "apres": "Capacité minimale = arrondi supérieur(modules occupés / 0,8) ; modules libres ≥ arrondi supérieur(20 % de la capacité du coffret)",
+   "motif": "Correction mathématique pour conserver 20 % de la capacité totale libres, autorisée par Kévin (« go pour la correction »). Statut normatif inchangé",
+   "par": "ChatGPT",
    "code_valide": null
   }
  ]

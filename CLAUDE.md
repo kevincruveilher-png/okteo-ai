@@ -391,6 +391,11 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `GTL_INTERDIT` (R-105), `tableauIssues(tab, circuits, ctx {tabRoom, rj45})` (alertes préfixées « R-1xx : ») ;
   `tabCtx(api)` (tableau-page.js) passé aussi à `buildTableauPdf(..., {ctx})` ; `idsAC(area)` n'est plus utilisé.
   Journal : R-101 à R-161, Q-89 à Q-110 (regles-import accepte `Q-\d{2,3}`).
+- v66.1 : `autoTableau(circuits, {model, previous})` conserve les accessoires de `previous` (rangée, identifiant,
+  largeur, libellé), avec `reviewPlacement` jusqu'à revue par le BE. Fractionne les groupes au-delà de 63 A calculés.
+  `idCalibre` et `suggestModel` peuvent retourner `null` (aucun matériel disponible). Suggestions dans la même marque,
+  réserve sur capacité totale ; H-045 corrige R-144 sans modifier son statut normatif. Tests de régression dans
+  cablage.test.mjs et smoke.mjs. Les références d'appareils et leur raccordement électrique restent à compléter.
 - Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
   poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.

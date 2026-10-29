@@ -3,7 +3,7 @@
 // Convention : un interrupteur différentiel (ID) protège les disjoncteurs placés à sa droite sur la même rangée,
 // jusqu'au prochain ID.
 // Placement automatique (NF C 15-100, simplifié) : circuits spécialisés (lave-linge, plaque, four…) sur un ID type A,
-// les autres répartis sur des ID type AC (1 jusqu'à 35 m², 2 jusqu'à 100 m², 3 au-delà), au plus 8 circuits par ID ;
+// les autres répartis sur des ID type AC selon les circuits et la charge calculée, au plus 8 circuits par ID ;
 // une rangée par ID. Les circuits de communication (RJ45) n'ont pas de disjoncteur.
 
 // coffrets : Schneider Electric Resi9 et Legrand Drivia, 1 à 4 rangées de 13 ou 18 modules
@@ -57,11 +57,11 @@ export function nbIdCommuns(n) { return n ? Math.max(ID_MIN, Math.ceil(n / MAX_P
 const HEAVY = /chauff|radiat|convect|sèche-serv|seche-serv|plancher|irve|recharge|borne|ballon|cumulus|ceth/i;
 export const isHeavy = (c) => c && (c.kind === "chauffage" || HEAVY.test(`${c.label || ""} ${c.name || ""}`));
 export function idCalibreMin(cs) { return cs.reduce((s, c) => s + (c.prot || 16) * (isHeavy(c) ? 1 : 0.5), 0); }
-export function idCalibre(cs) { const need = idCalibreMin(cs); return ID_CALIBRES.find((a) => a >= need) || ID_CALIBRES[ID_CALIBRES.length - 1]; }
+export function idCalibre(cs) { const need = idCalibreMin(cs); return ID_CALIBRES.find((a) => a >= need) || null; }
 // R-105 : pièces où le tableau (GTL) ne se pose pas ; la cuisine reste une question (Q-91)
 export const GTL_INTERDIT = /salle d.?eau|salle de bain|\bbains?\b|\bsdb\b|\bsde\b|douche|placard|dressing|escalier/i;
 
-export function autoTableau(circuits, { model = DEFAULT_MODEL, area = 100 } = {}) {
+export function autoTableau(circuits, { model = DEFAULT_MODEL, previous = null } = {}) {
   const C = (circuits || []).filter(hasBreaker);
   const spec = C.filter(needsA), rest = C.filter((c) => !needsA(c));
   const groups = [];
@@ -73,11 +73,35 @@ export function autoTableau(circuits, { model = DEFAULT_MODEL, area = 100 } = {}
   for (let i = 0; i < nAC; i++) groups.push({ type: "AC", a: 40, cs: [] });
   order.forEach((c, i) => groups[i % nAC].cs.push(c));
   for (let i = 0; i < spec.length; i += MAX_PER_ID) groups.push({ type: "A", a: 40, cs: spec.slice(i, i + MAX_PER_ID) });
+  // Fractionner les groupes qui dépassent le plus grand calibre disponible.
+  for (let i = 0; i < groups.length; i++) {
+    const g = groups[i];
+    if (g.cs.length > 1 && idCalibre(g.cs) === null) {
+      const moved = [];
+      while (g.cs.length > 1 && idCalibre(g.cs) === null) moved.unshift(g.cs.pop());
+      groups.push({ type: g.type, cs: moved });
+    }
+  }
+  const active = groups.filter((g) => g.cs.length);
+  if (C.length && active.length < ID_MIN) {
+    const g = active[0];
+    active.push({ type: g.type, cs: g.cs.length > 1 ? g.cs.splice(Math.ceil(g.cs.length / 2)) : [] });
+  }
   // R-148 : un différentiel en tête de chaque rangée ; R-124 : son calibre d'après ses circuits
-  const rows = groups.filter((g) => g.cs.length || g.type === "A").map((g) => [
-    { k: "id", id: uid("i"), a: idCalibre(g.cs), type: g.type, w: 2 },
+  const rows = active.map((g) => [
+    { k: "id", id: uid("i"), a: idCalibre(g.cs) ?? 63, type: g.type, w: 2 },
     ...g.cs.map((c) => ({ k: "cb", id: uid("d"), c: c.n, a: c.prot || 16, w: 1 })),
   ]);
+  // Les accessoires ne portent pas de liaison électrique explicite. Conserver leur
+  // rangée et leur ordre relatif ; ne pas inventer un rattachement à un circuit.
+  (previous?.rows || []).forEach((row, i) => {
+    const mods = row.filter((it) => it.k === "mod").map((it) => ({ ...it, reviewPlacement: true }));
+    if (!mods.length) return;
+    while (rows.length <= i) rows.push([]);
+    const firstId = row.findIndex((it) => it.k === "id");
+    const before = mods.filter((it) => firstId < 0 || row.findIndex((x) => x.id === it.id) < firstId);
+    rows[i] = [...before, ...rows[i], ...mods.filter((it) => !before.includes(it))];
+  });
   return { model, rows };
 }
 
@@ -112,7 +136,8 @@ export function tableauIssues(tab, circuits, ctx = {}) {
   rows0: for (const r of tab.rows) { let cur = null; for (const it of r) { if (it.k === "id") cur = it; else if (it.k === "mod" && MODS[it.t] && MODS[it.t].under && !cur) { out.push(`${MODS[it.t].s} : à placer à droite d'un interrupteur différentiel.`); break rows0; } } }
   for (const [id, n] of count) if (n > MAX_PER_ID) out.push(`Un différentiel ${id.a} A type ${id.type} protège ${n} circuits (8 au plus).`);
   const used = tab.rows.reduce((s, r) => s + rowMods(r), 0), total = M.rows * M.mods;
-  if (total - used < Math.ceil(used * 0.2)) out.push(`Réserve insuffisante : ${total - used} modules libres (norme : 20 % de réserve, soit ${Math.ceil(used * 0.2)}).`);
+  if (total - used < Math.ceil(total * 0.2)) out.push(`Réserve insuffisante : ${total - used} modules libres (règle R-144 : 20 % du coffret libres, soit ${Math.ceil(total * 0.2)}).`);
+  if (tab.rows.flat().some((it) => it.reviewPlacement)) out.push("Accessoires conservés après recalcul : vérifier leur emplacement et leurs raccordements, puis valider la revue.");
   // ---------- v66 : règles NF C 15-100:2024 (R-101 à R-161, à valider) ----------
   const ids = tab.rows.flat().filter((x) => x.k === "id"), C = (circuits || []).filter(hasBreaker);
   if (C.length && ids.length < ID_MIN) out.push(`R-119 : ${ids.length} interrupteur différentiel ; il en faut 2 au moins dans un logement.`);
@@ -120,7 +145,7 @@ export function tableauIssues(tab, circuits, ctx = {}) {
   const famIds = (kind) => { const ns = C.filter((c) => c.kind === kind).map((c) => c.n), set = new Set(); tab.rows.flat().filter((x) => x.k === "cb" && ns.includes(x.c)).forEach((x) => { const id = prot.get(x.id); if (id) set.add(id); }); return { n: ns.length, ids: set.size }; };
   for (const [kind, nom] of [["eclairage", "d'éclairage"], ["prises", "de prises"]]) { const f = famIds(kind); if (f.n >= 2 && f.ids < 2) out.push(`R-123 : les ${f.n} circuits ${nom} sont tous sous le même différentiel ; répartissez-les sous 2 différentiels au moins.`); }
   // R-124 : calibre de chaque différentiel
-  ids.forEach((id) => { const cs = tab.rows.flat().filter((x) => x.k === "cb" && prot.get(x.id) === id).map((x) => byN.get(x.c)).filter(Boolean), need = idCalibreMin(cs); if (cs.length && id.a < need) out.push(`R-124 : différentiel ${id.a} A trop petit pour ses circuits (il faut au moins ${String(+need.toFixed(1)).replace(".", ",")} A : ${idCalibre(cs)} A).`); });
+  ids.forEach((id) => { const cs = tab.rows.flat().filter((x) => x.k === "cb" && prot.get(x.id) === id).map((x) => byN.get(x.c)).filter(Boolean), need = idCalibreMin(cs); if (cs.length && id.a < need) out.push(`R-124 : différentiel ${id.a} A trop petit pour ses circuits (il faut au moins ${String(+need.toFixed(1)).replace(".", ",")} A : ${idCalibre(cs) === null ? "répartir les circuits ou étudier une autre protection" : idCalibre(cs) + " A"}).`); });
   // R-129 / R-130 : calibres de l'éclairage et des prises ; R-129 : 2 circuits d'éclairage au moins ; R-134 : 3 spécialisés au moins
   const ecl = C.filter((c) => c.kind === "eclairage");
   if (ecl.length === 1) out.push("R-129 : un seul circuit d'éclairage ; le logement en demande 2 au moins.");
@@ -137,8 +162,8 @@ export function tableauIssues(tab, circuits, ctx = {}) {
 // plus petit coffret qui contient le tableau (rangées et modules), avec la réserve de 20 %
 export function suggestModel(tab) {
   const used = tab.rows.reduce((s, r) => s + rowMods(r), 0), widest = Math.max(0, ...tab.rows.map(rowMods));
-  return MODELS.slice().sort((a, b) => a.rows * a.mods - b.rows * b.mods)
-    .find((m) => m.rows >= tab.rows.length && m.mods >= widest && m.rows * m.mods - used >= Math.ceil(used * 0.2)) || MODELS[MODELS.length - 1];
+  return MODELS.filter((m) => m.brand === modelOf(tab.model).brand).sort((a, b) => a.rows * a.mods - b.rows * b.mods)
+    .find((m) => m.rows >= tab.rows.length && m.mods >= widest && m.rows * m.mods - used >= Math.ceil(m.rows * m.mods * 0.2)) || null;
 }
 
 // déplacer un élément (id) vers la rangée r, avant l'élément before (ou en fin de rangée) ; renvoie de nouvelles rangées
