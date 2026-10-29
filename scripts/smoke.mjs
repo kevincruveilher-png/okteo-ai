@@ -2025,7 +2025,7 @@ try {
     await page.waitForSelector("#etude .et-step");
     const r = await ev(() => ({ steps: [...document.querySelectorAll("#etude .et-step")].map((b) => b.querySelector("b").textContent), pc: document.querySelector("#etude .et-pc").textContent, where: document.querySelectorAll("#et-where li").length }));
     await page.click('#etude .et-step[data-n="2"]');
-    const alt = await ev(() => [...document.querySelectorAll("#etude .et-box table tr")].slice(1).map((tr) => tr.textContent));
+    const alt = await ev(() => [...document.querySelectorAll("#et-alternatives tr")].slice(1).map((tr) => tr.textContent));
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/etude.png" });
     if (!(r.steps.length === 9 && /1\. Lecture du plan/.test(r.steps[0]) && /9\. Contrôle/.test(r.steps[8]) && /Précontrôle — ✓ les \d+ règles utiles/.test(r.pc) && /supposées/.test(r.pc) && r.where > 0 && alt.length === 4 && alt.some((t) => /retenu/.test(t)) && !alt.some((t) => /retenu/.test(t) && /✗/.test(t)))) throw new Error(JSON.stringify({ r, alt }));
     return true;
