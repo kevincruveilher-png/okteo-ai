@@ -725,7 +725,7 @@ export function drawFx() {
   const items = [];
   if (layers.appareils.on && K.tab === "plan") {
     const by = Object.fromEntries(state.app.map((a) => [a.id, a])), ss = symView();
-    if (pref("halos")) list.filter(it => it.kind !== "implantation").forEach((it) => it.ids.forEach((id) => { const a0 = by[id], a = a0 && ((K.dispPos && K.dispPos.get(id)) || a0); if (a) items.push({ key: id, kind: "halo", x: a.x, y: a.y, r: 1.5 * ss }); }));
+    if (pref("halos")) list.filter(it => it.kind !== "implantation" && (it.kind !== "vmc" || it.bloquant)).forEach((it) => it.ids.forEach((id) => { const a0 = by[id], a = a0 && ((K.dispPos && K.dispPos.get(id)) || a0); if (a) items.push({ key: id, kind: "halo", x: a.x, y: a.y, r: 1.5 * ss }); }));
     state.app.filter(implantationPending).forEach(a0 => { const a = K.dispPos?.get(a0.id) || a0; items.push({ key:a0.id, kind:"placement", pulse:a0.implantation?.origine === "vmc", x:a.x, y:a.y, r:1.65*ss }); });
     if (K.testMode) litSet().forEach((id) => { const a0 = by[id], a = a0 && ((K.dispPos && K.dispPos.get(id)) || a0); if (a) items.push({ key: id, kind: "glow", x: a.x, y: a.y, r: Math.max(1.4, 4 * ss) }); });
   }
