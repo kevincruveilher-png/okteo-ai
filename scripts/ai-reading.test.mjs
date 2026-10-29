@@ -59,7 +59,8 @@ if (process.argv.includes('--browser')) {
   await page.keyboard.press('Control+z');assert.equal(await page.evaluate((id)=>okteo.state.app.find(a=>a.id===id).commande,light.id),undefined);
   await page.keyboard.press('Control+y');assert.equal(await page.evaluate((id)=>okteo.state.app.find(a=>a.id===id).commande.mode,light.id),'detecteur');
   const serialized=await page.evaluate(async()=>{const {buildOkteo}=await import('/src/ext/okteo-file.js');return JSON.parse(await(await buildOkteo(okteo.ch,okteo.packData())).text());});
-  assert.equal(serialized.dessin.app[0].qty,4);assert.equal(serialized.dessin.app[1].calibre,32);assert.equal(serialized.dessin.app[3].commande.mode,'detecteur');
+  const savedState=JSON.parse(serialized.dessin.s);
+  assert.equal(savedState.app[0].qty,4);assert.equal(savedState.app[1].calibre,32);assert.equal(savedState.app[3].commande.mode,'detecteur');
   await page.evaluate(()=>okteo.saveNow());
   await page.reload();await page.waitForFunction(()=>window.okteoExt);const restored=await page.evaluate(()=>okteo.allApps());assert.equal(restored[0].qty,4);assert.equal(restored[1].calibre,32);assert.equal(restored[3].commande.mode,'detecteur');
   await page.evaluate(()=>okteo.setTab('bibliotheque'));await page.locator('#sy-search').fill('PC32');await page.locator('[data-symbol="PC32"]').click();assert.match(await page.locator('#sy-detail').innerText(),/32 A/);

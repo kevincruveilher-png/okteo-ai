@@ -1,5 +1,5 @@
 name: Verification MAJ 1-2 et bibliotheque
-on: [push, create]
+on: [push]
 permissions:
   contents: read
 jobs:
@@ -23,10 +23,13 @@ jobs:
       - name: Parcours lecture IA
         run: npm run test:lecture:navigateur
       - name: Parcours bibliotheque
+        if: always()
         run: npm run test:symboles:navigateur
       - name: Compilation
+        if: always()
         run: npm run build
       - name: Controle du resultat global
+        if: always()
         env:
           FULL_OUTCOME: ${{ steps.full.outcome }}
         run: |
