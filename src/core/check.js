@@ -5,6 +5,8 @@
 // - essai : état des commandes (interrupteurs, va-et-vient : inversion), télérupteurs (bouton-poussoir), disjoncteurs ;
 //   lampLit(id) dit si une lumière est allumée ; essaiPress(id) actionne une commande (ou la commande d'une lumière).
 // - testAll() : actionne chaque commande et liste celles qui n'allument rien ou qui allument une lumière d'un autre circuit.
+import { implantationPending } from "../cablage/equipements.js";
+import { permanentDetector } from "../cablage/detecteur.js";
 import { K } from "./k.js";
 import { TYPES } from "./model.js";
 import { appIndex, allLinks } from "./levels.js";
@@ -12,6 +14,8 @@ import { linkRole } from "./attach.js";
 import { circuitMap } from "./render.js";
 
 export const CHECK_KINDS = {
+  implantation: "Emplacement à préciser",
+  detecteur: "Commande détecteur contradictoire",
   cmd: "Commande sans lumière",
   lum: "Commande non identifiée",
   lecture: "Information du plan à préciser",
@@ -48,10 +52,12 @@ export function controlIssues() {
   const idx = appIndex(), { lights, cmds } = linkTables(idx), out = [];
   for (const [id, { lv, a }] of idx) {
     if (a.t === "INCONNU" || a.aiStatus === "a_identifier" || a.aiStatus === "a_confirmer") out.push({ kind: "lecture", ids: [id], lv });
+    if (implantationPending(a)) out.push({ kind:"implantation", ids:[id], lv });
+    if (permanentDetector(a) && cmds.has(id)) out.push({ kind:"detecteur", ids:[id], lv });
     const r = linkRole(a.t);
     if (r === "c" && !lights.has(id)) out.push({ kind: "cmd", ids: [id], lv });
     // un volet sans commande filaire est un volet connecté (micromodule, R-096) : normal
-    else if (r === "l" && !cmds.has(id) && a.t !== "VR" && a.t !== "VEL") out.push({ kind: "lum", ids: [id], lv });
+    else if (r === "l" && !cmds.has(id) && a.t !== "VR" && a.t !== "VEL" && !permanentDetector(a)) out.push({ kind: "lum", ids: [id], lv });
   }
   // va-et-vient : une lumière commandée par un seul va-et-vient (il en faut deux, ou un va-et-vient et des permutateurs)
   const seen = new Set();

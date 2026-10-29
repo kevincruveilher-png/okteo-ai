@@ -15,6 +15,7 @@ import { allLinks, belowData, crossLinks } from "./levels.js";
 import { getCab } from "../cablage/settings.js";
 import { portLayout, portXY } from "../cablage/boites.js";
 import { chooseBows, BOW0, curve, polyCross } from "../cablage/trace.js";
+import { implantationPending } from "../cablage/equipements.js";
 import { APPAREILS, raccOf } from "../cablage/appareils.js";
 
 // ---------- rendu ----------
@@ -718,7 +719,8 @@ export function drawFx() {
   const items = [];
   if (layers.appareils.on && K.tab === "plan") {
     const by = Object.fromEntries(state.app.map((a) => [a.id, a])), ss = symView();
-    if (pref("halos")) list.forEach((it) => it.ids.forEach((id) => { const a0 = by[id], a = a0 && ((K.dispPos && K.dispPos.get(id)) || a0); if (a) items.push({ key: id, kind: "halo", x: a.x, y: a.y, r: 1.5 * ss }); }));
+    if (pref("halos")) list.filter(it => it.kind !== "implantation").forEach((it) => it.ids.forEach((id) => { const a0 = by[id], a = a0 && ((K.dispPos && K.dispPos.get(id)) || a0); if (a) items.push({ key: id, kind: "halo", x: a.x, y: a.y, r: 1.5 * ss }); }));
+    state.app.filter(implantationPending).forEach(a0 => { const a = K.dispPos?.get(a0.id) || a0; items.push({ key:a0.id, kind:"placement", x:a.x, y:a.y, r:1.65*ss }); });
     if (K.testMode) litSet().forEach((id) => { const a0 = by[id], a = a0 && ((K.dispPos && K.dispPos.get(id)) || a0); if (a) items.push({ key: id, kind: "glow", x: a.x, y: a.y, r: Math.max(1.4, 4 * ss) }); });
   }
   // doutes du câblage (v53, okteo.setDoubts) : pastille en haut à droite de la boîte, sur le niveau ouvert

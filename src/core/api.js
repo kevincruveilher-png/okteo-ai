@@ -322,6 +322,19 @@ window.okteo = {
     showSide();
     return list.length;
   },
+  // v69 : une proposition métier sur plusieurs niveaux ; une seule annulation, sans changer le niveau ouvert.
+  applyEquipmentProposal({ adds = [], updates = [] } = {}) {
+    const idx = appIndex(), levels = new Set(CH.levels.map(l => l.id));
+    if (adds.some(d => !TYPES[d.t] || !levels.has(d.lv) || !Number.isFinite(d.x) || !Number.isFinite(d.y)) || updates.some(d => !idx.has(d.id) || d.t && !TYPES[d.t])) throw new Error("Proposition d'équipements invalide : aucune modification.");
+    if (!adds.length && !updates.length) return { added:0, updated:0, ids:[] };
+    snapshot();
+    updates.forEach(d => { const a = idx.get(d.id).a; if (d.t) a.t = d.t; Object.assign(a, readingData(d)); });
+    const ids = [];
+    const place = list => list.forEach(d => { const a = { id:uidA(), t:d.t, x:d.x, y:d.y, h:d.h ?? TYPES[d.t].h, ...readingData(d) }; state.app.push(a); ids.push(a.id); });
+    for (const lv of levels) { const list = adds.filter(d => d.lv === lv); if (!list.length) continue; if (lv === K.LV.cur) place(list); else withLevel(lv, () => place(list)); }
+    markDirty(); draw(); showSide();
+    return { added:adds.length, updated:updates.length, ids };
+  },
   // ajoute des appareils relevés ({t,x,y,h?}) et leurs liaisons ({c,l} = indices dans list) : un seul pas d'annulation.
   // Les appareils muraux se collent au mur le plus proche (≤ 60 cm) et restent attachés à leur distance de l'angle.
   importDevices(list, links = [], {

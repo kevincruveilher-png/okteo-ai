@@ -1,5 +1,6 @@
 // Oktéo AI — cœur : Panneau de droite : propriétés de l'objet sélectionné, calques.
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
+import { implantationPending } from "../cablage/equipements.js";
 import { readingData } from "../walls/ai-data.js";
 import { K } from "./k.js";
 import { CH, TYPES, dist, layers, node, nodeById, segById, segDir, segLen, state, uidS } from "./model.js";
@@ -420,6 +421,7 @@ export function showSide() {
       ["Commande relue", a.commande ? `${a.commande.mode} · alimentation ${a.commande.alimentation} · ${a.commande.preuve || "à confirmer"}` : null],
     ].filter(([,v]) => v != null && v !== "").map(([k,v]) => `<p><b>${k}</b> : ${safe(v)}</p>`).join("")}</details>` : "";
     b.innerHTML = `<h3>Appareil · <span style="color:var(--accent2)">${rm[a.id] || ""}</span></h3>
+     ${a.implantation ? `<div class="placement-note"><b>${implantationPending(a) ? "Halo violet : emplacement à préciser" : "Emplacement confirmé"}</b><p>${safe(a.implantation.motif || "")}</p>${implantationPending(a) ? `<button id="f-placement-confirm" title="Confirmer la position actuelle après déplacement ou vérification">Confirmer cet emplacement</button>` : `<button id="f-placement-review">Remettre à préciser</button>`}</div>` : ""}
      ${reading}<div class="prop">
       <div class="field full"><label>Type</label><select id="f_t">${Object.keys(TYPES).map(t => `<option value="${t}"${t === a.t ? " selected" : ""}>${TYPES[t].n}</option>`).join("")}</select></div>
       ${m ? `<div class="field"><label>Depuis l'angle A <span class="u">cm</span></label><input id="f_dA" type="number" step="1" value="${Math.round(m.dA * 100)}"></div>
@@ -435,6 +437,9 @@ export function showSide() {
       draw();
       showSide();
     };
+    const confirmPlacement = b.querySelector("#f-placement-confirm"), reviewPlacement = b.querySelector("#f-placement-review");
+    if (confirmPlacement) confirmPlacement.onclick = () => { snapshot(); a.implantation = { ...a.implantation, etat:"confirmee", origine:"manuel", motif:"Position confirmée par le dessinateur." }; markDirty(); re(); };
+    if (reviewPlacement) reviewPlacement.onclick = () => { snapshot(); a.implantation = { ...a.implantation, etat:"a_preciser", motif:"Position remise à préciser par le dessinateur." }; markDirty(); re(); };
     if (m) {
       b.querySelector("#f_dA").onchange = e => {
         snapshot();

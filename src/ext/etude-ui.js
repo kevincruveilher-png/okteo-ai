@@ -1,6 +1,7 @@
 // Étude du câblage (v53) : onglet « Étude », doutes sur le plan et compteur, « Pourquoi ? » au clic sur une boîte ou une
 // gaine, commande « Câbler le chantier » (précontrôle d'abord : rien n'est câblé si une règle bloquante manque),
 // rapport de câblage (PDF) et statistiques par règle (toutes les études de ce PC).
+import { equipmentProposal, completerEquipements } from "./equipements-etude.js";
 import { reportHTML, reportText } from "./ai-recheck-ui.js";
 import { getCab } from "../cablage/settings.js";
 import { getJournal } from "../cablage/regles.js";
@@ -29,16 +30,20 @@ export function etudeNow(api, { alternatives = true } = {}) {
 // « Câbler le chantier » : précontrôle, puis circuits (si aucun), boîtes (les boîtes verrouillées ou déplacées à la main
 // restent), circuits par boîte, trace de l'étude enregistrée dans le chantier — un seul Ctrl+Z. Renvoie un compte rendu.
 export function cabler(api) {
-  const S = cabS(api), J = getJournal(), items = api.allApps(), links = api.allLinks(), mode = api.cab.mode || "proximite";
-  if (!items.filter((a) => a.t !== "TAB").length) return { ok: false, text: "Je ne peux pas câbler : le plan n'a pas encore d'appareils." };
-  const C0 = (api.cab.circuits || []).length ? api.cab.circuits : computeCircuits(items, links, S);
+  const S = cabS(api), J = getJournal(), current = api.allApps(), links = api.allLinks(), mode = api.cab.mode || "proximite";
+  if (!current.filter((a) => a.t !== "TAB").length) return { ok: false, text: "Je ne peux pas câbler : le plan n'a pas encore d'appareils." };
+  const proposal = equipmentProposal(api), patch = new Map(proposal.updates.map(u => [u.id,u]));
+  const items = [...current.map(a => ({...a,...(patch.get(a.id)||{})})), ...proposal.adds.map((a,i)=>({...a,id:"proposition-"+i}))];
+  const C0 = studyCircuits(api.cab.circuits || [], items, links, S);
   const pc = precontrole(J, contextOf({ items, links, circuits: C0, boxes: api.cab.boxes || [], mode, W: null }));
   if (!pc.ok) return { ok: false, pc, text: `Je ne peux pas câbler : il manque ${pc.bloquants.length} règle${pc.bloquants.length > 1 ? "s" : ""} — ${pc.bloquants.map((r) => `${r.id} ${r.titre}`).join(" ; ")}.` };
   const keepIds = (api.cab.boxes || []).filter((b) => b.locked || b.manual).map((b) => b.id);
-  const r = autoBoxes(api, keepIds, 0, mode, C0);
-  const circuits = S.circuitsParBoite ? circuitsByBox(items, links, r.boxes, S) : C0;
-  let tr = null;
+  let tr = null, r, circuits;
   api.batch(() => {
+    api.applyEquipmentProposal(proposal);
+    const actual = api.allApps(), base = studyCircuits(api.cab.circuits || [], actual, links, S);
+    r = autoBoxes(api, keepIds, 0, mode, base);
+    circuits = S.circuitsParBoite ? circuitsByBox(actual, links, r.boxes, S) : base;
     api.setCab({ circuits, boxes: r.boxes });
     tr = etudeNow(api);
     api.setCab({ etude: light(tr) });
@@ -47,6 +52,15 @@ export function cabler(api) {
   saveStats(api, tr);
   const c = tr.counts;
   return { ok: true, trace: tr, text: `Câblé : ${r.boxes.length} boîtes (${MODES[mode] || mode}), ${circuits.length} circuits${keepIds.length ? `, ${keepIds.length} boîte${keepIds.length > 1 ? "s" : ""} gardée${keepIds.length > 1 ? "s" : ""}` : ""}. ${c.bloque} bloqué${c.bloque > 1 ? "s" : ""}, ${c.doute} doute${c.doute > 1 ? "s" : ""}, ${c.suppose} règle${c.suppose > 1 ? "s" : ""} supposée${c.suppose > 1 ? "s" : ""} : onglet Étude. Ctrl+Z pour revenir.` };
+}
+// Complète les circuits des seuls ajouts métier, sans effacer les circuits manuels existants.
+function studyCircuits(existing, items, links, S) {
+  if (!existing.length) return computeCircuits(items, links, S);
+  const covered = new Set(existing.flatMap(c=>c.apps)), kinds = new Set(["FOUR","LV","PLAQ","LL","SL","ANT"]);
+  const missing = items.filter(a => a.aiOrigin === "regle" && kinds.has(a.t) && !covered.has(a.id));
+  let id = Math.max(0,...existing.map(c=>+(String(c.id).match(/^c(\d+)$/)?.[1]||0))), n = Math.max(0,...existing.map(c=>+(String(c.n).match(/^C(\d+)$/)?.[1]||0)));
+  const ids = new Set(existing.map(c=>c.id));
+  return [...existing,...computeCircuits(missing,[],S).map(c=>{ do{id++;}while(ids.has("c"+id));return {...c,id:"c"+id,n:c.kind === "comm" ? "COM" : "C"+(++n)}; })];
 }
 const light = (tr) => ({ ...tr, steps: tr.steps.map((s) => ({ ...s, decisions: s.decisions.map(({ rule, state, text, box }) => ({ rule, state, text, box })) })) });
 function saveStats(api, tr) { const all = store(KEY, {}); all[api.chantierKey || api.ch.nom] = light(tr); storeSet(KEY, all); }
@@ -81,8 +95,10 @@ export function mountEtudePage(el, { api, askRule }) {
     const stats = allStats();
     el.innerHTML = `<div class="params-in etude">
       <div class="et-head"><h2>Étude du câblage</h2><span class="mut">${esc(api.ch.nom)} · pieuvre ${esc(MODES[api.cab.mode || "proximite"] || "")}</span><span class="grow"></span>
+        <button id="et-equipements" title="Prévoir four, LV, plaques en cuisine, LL/SL au cellier et une antenne si prises TV, sans doublon">Compléter les équipements</button>
         <button class="on" id="et-cabler" title="Précontrôle des règles, puis circuits, boîtes (les boîtes verrouillées restent) et circuits par boîte ; un seul Ctrl+Z pour revenir">⚡ Câbler le chantier</button>
         <button id="et-report" title="Rapport de câblage (PDF) : étapes, modes étudiés, tout ce qui coince avec la question à poser">📄 Rapport de câblage</button></div>
+      <p class="placement-legend">Halo violet : emplacement précis à définir. Déplacez l’équipement puis confirmez sa position dans Propriétés.</p>
       ${msg ? `<p class="et-msg ${/^Je ne peux pas/.test(msg) ? "warn" : "ok"}">${esc(msg)}</p>` : ""}
       <div class="et-pc ${pc.ok ? "" : "bad"}"><b>Précontrôle</b> — ${pc.ok ? `✓ les ${pc.rules.length} règles utiles à ce chantier sont connues${pc.supposees.length ? ` ; ${pc.supposees.length} sont supposées (résultat « à vérifier ») : ${pc.supposees.map((r) => `<a href="#" data-rule="${r.id}" title="${esc(r.titre)}">${r.id}</a>`).join(" ")}` : ""}.`
         : `✕ Je ne peux pas câbler : il manque ${pc.bloquants.length} règle${pc.bloquants.length > 1 ? "s" : ""} — ${pc.bloquants.map((r) => `<b>${r.id}</b> ${esc(r.titre)}`).join(" ; ")}.`}
@@ -109,6 +125,7 @@ export function mountEtudePage(el, { api, askRule }) {
   function wire() {
     el.querySelectorAll(".et-step").forEach((b) => (b.onclick = () => { cur = +b.dataset.n; render(); }));
     el.querySelectorAll("[data-rule]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); api.setTab("params"); setTimeout(() => window.okteoExt?.pages?.params?.ui?.regles?.open(a.dataset.rule), 80); }));
+    el.querySelector("#et-equipements").onclick = () => { const r = completerEquipements(api); msg = r.text; render(); };
     el.querySelector("#et-cabler").onclick = () => { const r = cabler(api); msg = r.text; render(); };
     const iac = el.querySelector("#et-ia-copy");
     if (iac) iac.onclick = async () => { const t = reportText(api); el.__iaText = t; try { await Promise.race([navigator.clipboard.writeText(t), new Promise((_, no) => setTimeout(() => no(new Error("délai")), 1500))]); iac.textContent = "✓ Rapport copié"; } catch { iac.textContent = "Copie impossible : sélectionnez le rapport"; } };

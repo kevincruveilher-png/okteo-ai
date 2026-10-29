@@ -1,10 +1,11 @@
 // Données de lecture v68 : partagées par conversion, API et relecture. Aucun moteur de câblage ici.
+import { implantationData } from '../cablage/equipements.js';
 export const AI_SYSTEM = "Tu es dessinateur au bureau d'études électricité d'un fabricant de pieuvres électriques pour maisons individuelles. Tu relèves des plans avec précision et tu réponds uniquement en JSON.";
 export const UNKNOWN_TYPE = "INCONNU";
 const clean = (v) => typeof v === "string" ? v.trim() : "";
 // Ne copie que les champs documentés : aucune donnée du fournisseur ne devient une propriété arbitraire du modèle.
 export function readingData(d = {}) {
-  const out = {};
+  const out = { ...implantationData(d) };
   if (d.qty === null) { out.qty = null; out.aiStatus = "a_confirmer"; }
   else if (Number.isInteger(d.qty) && d.qty > 0) out.qty = d.qty;
   if (Number.isFinite(d.calibre) && d.calibre > 0) out.calibre = d.calibre;

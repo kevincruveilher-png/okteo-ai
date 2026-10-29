@@ -335,6 +335,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     }));
     apps.forEach((a) => {
       if (disp.has(a.id)) { doc.setDrawColor(150, 150, 150); doc.setLineWidth(0.1); doc.line(X(a.x), Y(a.y), PX(a), PY(a)); doc.setFillColor(150, 150, 150); doc.circle(X(a.x), Y(a.y), 0.25, "F"); }
+      if (a.implantation?.etat === "a_preciser") { doc.setDrawColor(153,84,220); doc.setLineWidth(.25); doc.circle(PX(a),PY(a),u*1.6,"S"); }
       symbol(doc, a.t, PX(a), PY(a), u, a.rot || 0, o.circuits ? rgb(a.color) : null);
     });
     // boîtes : carré, nom au-dessus, faces A–D, points d'accroche (pleins = gaine raccordée, couleur du circuit),

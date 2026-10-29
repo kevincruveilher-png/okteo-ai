@@ -414,6 +414,7 @@ export function okteoGeo() {
     hDef: TYPES[a.t].h,
     rep: reps[a.id],
     name: TYPES[a.t].n,
+    ...(a.implantation ? { implantation: { ...a.implantation } } : {}),
     room: (roomAt(a.x, a.y) || {}).name || null,
     xlink: xl[a.id] || null,
     rot: appRot(a),

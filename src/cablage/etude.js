@@ -82,10 +82,10 @@ export function buildTrace(inp) {
   // 1. lecture du plan
   const nApp = items.filter((a) => a.t !== "TAB").length;
   add(1, { rule: null, state: items.some((a) => a.t === "TAB") ? "applique" : "doute", text: `${nApp} appareils, ${new Set(items.map((a) => a.room).filter(Boolean)).size} pièces${items.some((a) => a.t === "TAB") ? "" : " — pas de tableau sur le plan : alimentations et lignes directes sans longueur"}`, question: items.some((a) => a.t === "TAB") ? null : "Poser le tableau sur le plan" });
-  const KIND = { cmd: ["R-070", "commande sans lumière"], lum: ["R-070", "lumière sans commande"], vv: ["R-071", "va-et-vient incomplet"], int2: ["R-071", "deux interrupteurs simples sur la même lumière (va-et-vient ?)"], circ: ["R-007", "appareil sans circuit"], split: ["R-002", "allumage coupé entre deux boîtes"], nobox: ["R-001", "appareil sans boîte"] };
+  const KIND = { implantation: [null,"emplacement à préciser (halo violet)"], detecteur: [null,"commande détecteur contradictoire"], lecture: [null,"information du plan à préciser"], cmd: ["R-070", "commande sans lumière"], lum: ["R-070", "lumière sans commande"], vv: ["R-071", "va-et-vient incomplet"], int2: ["R-071", "deux interrupteurs simples sur la même lumière (va-et-vient ?)"], circ: ["R-007", "appareil sans circuit"], split: ["R-002", "allumage coupé entre deux boîtes"], nobox: ["R-001", "appareil sans boîte"] };
   for (const c of ctl) {
     const [rule, what] = KIND[c.kind] || [null, c.kind];
-    add(c.kind === "circ" ? 4 : c.kind === "nobox" ? 3 : c.kind === "split" ? 5 : 1, { rule, state: c.kind === "split" ? "bloque" : "doute", text: `${what} : ${c.ids.map((id) => by.get(id)?.rep || id).join(", ")}`, ids: c.ids, question: "Corriger le plan (liaisons, commandes)" });
+    add(c.kind === "circ" ? 4 : c.kind === "nobox" ? 3 : c.kind === "split" ? 5 : 1, { rule, state: c.kind === "split" ? "bloque" : "doute", text: `${what} : ${c.ids.map((id) => by.get(id)?.rep || id).join(", ")}`, ids: c.ids, question: c.kind === "implantation" ? "Déplacer puis confirmer dans Propriétés" : "Corriger le plan (liaisons, commandes)" });
   }
   // 2. mode de pieuvre et alternatives (score Q-77)
   const alts = alternatives.map((a) => ({ mode: a.mode, name: a.name, score: scoreOf(a.W), chosen: a.mode === mode, note: a.note ? a.note.note : null, noteOk: a.note ? a.note.ok : true })).sort((a, b) => cmpScore(a.score, b.score));

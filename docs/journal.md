@@ -970,3 +970,12 @@ Validation v67 : 89 fichiers contrôlés, 8 tests de bibliothèque, 41 murs, 86 
 - Déploiement Pages réussi : https://github.com/kevincruveilher-png/okteo-ai/actions/runs/40931140474.
 - Vérification HTTP : `https://kevincruveilher-png.github.io/okteo-ai/version.json` répond 200 et annonce `0.68.0` / source `93b045f0d9eca35c20703968715918e15a8663f9`.
 - Cette dernière consignation ne change que le journal, pas le code du build publié. Les réserves et lots futurs décrits ci-dessus restent applicables.
+
+## v69 — MAJ 3/4 : équipements et détecteurs (29/10/2026)
+
+- Autorisation : « Go maj 3 et 4 et push sur git ». Base `main` : `539fa13fa8fdb08a559e212bcd9cea5465de4b5e`, bibliothèque et MAJ 1/2 conservées.
+- MAJ 3 : cinq équipements systématiques selon pièce, antenne si TV, sans doublon ni déplacement d’existant ; PC32 cuisine attribué aux plaques en conservant la lecture. Propositions avec halo violet et confirmation explicite, état indépendant des doutes électriques, sauvegarde/export/PDF et annulation multi-niveaux.
+- Accès Étude + catalogue ; complément automatique après précontrôle lors du câblage. Ajouts de circuits sans effacer les circuits existants, hormis le recalcul historique du mode par boîte. Une consultation d’onglet ne modifie pas le chantier.
+- MAJ 4 : raccordement phase/neutre/terre au circuit éclairage de la boîte uniquement si détecteur intégré, alimentation permanente et preuve confirmés. Détecteur séparé/ambigu reste à résoudre ; commande manuelle contradictoire = doute bloquant. Pas de retour flottant ni interrupteur inventé.
+- Transmission : `docs/equipements-v69.md`, API `applyEquipmentProposal`, `implantation` sauvegardée, modules purs `equipements.js` et `detecteur.js`. Tests dédiés + smoke ajoutés. VMC et charte graphique hors périmètre.
+- Validation et publication : résultats à consigner après les contrôles, avant conclusion de la livraison.

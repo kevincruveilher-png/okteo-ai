@@ -806,3 +806,6 @@ body.mode-ia .iapane{display:flex;flex-direction:column;gap:8px;background:var(-
 @media(max-width:1000px){.sy-page{padding:12px}.sy-layout{grid-template-columns:minmax(0,1fr) 250px}.sy-grid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}}
 @media(max-width:720px){.sy-layout{grid-template-columns:1fr}.sy-detail{position:static;max-height:none}.sy-head{flex-wrap:wrap}}
 .main.sy-active>#side{display:none!important}
+
+/* v69 : état d’implantation, distinct des incertitudes électriques. */
+.fx-placement{pointer-events:none}.placement-note{border-left:3px solid #9954dc;padding:8px 10px;margin:8px 0;background:rgba(153,84,220,.08)}.placement-note p,.placement-legend{font-size:12px;line-height:1.45}.placement-legend{color:#8950c2}

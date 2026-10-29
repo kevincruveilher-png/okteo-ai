@@ -361,3 +361,7 @@ Vérifications : `npm run test:symboles` ; parcours Chromium : `npm run test:sym
 Les quantités de blocs, calibres, inscriptions et symboles inconnus sont conservés et consultables dans les propriétés. Une prise 32 A n'est plus regroupée avec PC20. Le prompt à copier inclut le rôle dessinateur ; les détecteurs sont interprétés dans la relecture ciblée, sans inventer d'interrupteur. La bibliothèque de symboles est intégrée dans l'onglet **Symboles**, avec recherche, liens vers les règles, variantes BE et insertion des types connus. Les fiches modifiées restent propres au navigateur.
 
 Périmètre, données et limites : [Relevé IA v68](docs/releve-ia-v68.md). Tests ciblés : `npm run test:lecture` et `npm run test:lecture:navigateur`.
+
+### v69 — équipements systématiques et détecteurs (MAJ 3/4)
+Dans Étude, « Compléter les équipements » prévoit les équipements manquants et l’antenne s’il existe une prise TV. « Câbler le chantier » effectue aussi cette étape après précontrôle. Le halo violet demande de préciser puis confirmer la position dans Propriétés ; les appareils déjà implantés sont conservés. Les luminaires à détecteur intégré confirmé sont raccordés en alimentation permanente, avec un doute bloquant en cas de commande contradictoire.
+Périmètre et limites : [Équipements v69](docs/equipements-v69.md). Tests : `npm run test:equipements` et `npm run test:equipements:navigateur`.

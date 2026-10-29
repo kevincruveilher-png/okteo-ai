@@ -2355,6 +2355,18 @@ try {
     if (!(r.has && r.closed && r.first && r.info >= 2 && open)) throw new Error(JSON.stringify({ r, open }));
     return true;
   });
+  await check("MAJ 3/4 : équipements accessibles dans Étude et catalogue ; propositions sans doublon, détecteur confirmé seulement", async () => {
+    const r = await ev(async () => {
+      const {proposeEquipements}=await import('/src/cablage/equipements.js');
+      const {permanentDetector}=await import('/src/cablage/detecteur.js');
+      const p=proposeEquipements({items:[{t:'TV'}],level:okteo.level.id});
+      const q=proposeEquipements({items:p.adds,level:okteo.level.id});
+      okteo.setTab('etude');
+      return {button:!!document.querySelector('#et-equipements'), command:okteoExt.catalog.some(c=>c.id==='etude.equipements'), adds:p.adds.length, duplicates:q.adds.length, unsafe:permanentDetector({t:'APP'})};
+    });
+    if(!(r.button && r.command && r.adds===6 && r.duplicates===0 && !r.unsafe))throw new Error(JSON.stringify(r));
+    return true;
+  });
   await page.screenshot({ path: process.env.OKTEO_SHOT || "scripts/derniere-capture.png" });
 } finally {
   await browser.close(); await server.close(); mock.close();
