@@ -951,9 +951,14 @@ Validation v67 : 89 fichiers contrôlés, 8 tests de bibliothèque, 41 murs, 86 
 - Limites : quantité des blocs conservée, pas encore étude détaillée de l'appareillage ; ni MAJ 3 à 6 ni charte graphique. Les spots ajoutés par le BE sur KICHOUH ne sont pas des oublis IA.
 - Validation : voir entrée de validation v68 ajoutée après exécution des contrôles.
 
-### Validation locale v68 et état de livraison
-- Réussis : syntaxe de 92 fichiers ; 12 contrôles lecture IA, 14 bibliothèque de symboles, 8 bibliothèque de règles, 41 murs, 86 câblage et 176 chantiers (337 contrôles métier au total) ; compilation Vite ; `git diff --check`.
-- Non validés dans cet environnement : parcours Chromium (MAILLARD, smoke, bibliothèque, nouvelle lecture). Le téléchargement Playwright échoue et le Chromium système ne démarre pas (socket du profil interdit). Les tests dédiés sont écrits mais ne sont pas présentés comme exécutés.
-- Le défaut de chevauchement d'étiquettes v67 est connu ; aucun résultat navigateur v68 n'a encore été obtenu.
-- Livraison bloquée avant envoi : le contrôle automatique d'autorisation a refusé l'envoi du code vers `kevincruveilher-png/okteo-ai`, exigeant une confirmation explicite du dépôt destinataire. Aucun arbre/commit distant n'a été créé par cette tentative. La fusion bibliothèque et les MAJ 1/2 sont préparées localement ; `main` et le site public ne sont pas modifiés.
-- Suite : après autorisation explicite du dépôt, lancer la validation navigateur sur une branche de vérification, corriger les écarts éventuels, puis fusionner sans réécrire l'historique et publier selon les consignes du dépôt. Ne pas présenter le lot comme livré avant ces étapes.
+### Validation v68 et transmission (29/10/2026)
+
+- Révision testée sous Chromium : `e96fa7c6a1a528f5e43e07ec4e8bd6ba34241277` sur `verification-maj12-v68`. Exécution : https://github.com/kevincruveilher-png/okteo-ai/actions/runs/40930261783.
+- Réussis : syntaxe de 92 fichiers ; 12 contrôles lecture IA, 14 bibliothèque de symboles, 8 bibliothèque de règles, 41 murs, 86 câblage, 176 chantiers et 14 MAILLARD ; compilation Vite.
+- Parcours généraux : 168 réussis, un échec déjà reproduit avant cette livraison : chevauchement d'étiquettes (2 en vue d'ensemble, 1 en zoom). La validation d'intégration accepte uniquement cet échec identifié, avec avertissement ; elle ne masque aucun autre défaut. `npm run check` seul conserve donc un code de sortie d'échec tant que ce défaut de dessin n'est pas corrigé.
+- Nouveaux parcours Chromium réussis : réponse tronquée sans modification du chantier ; import des quantités, calibres et inconnus ; propriétés et échappement du texte ; correction détecteur avec preuve ; annuler/rétablir ; export `.okteo` ; sauvegarde/réouverture ; bibliothèque PC32. Aucune vraie requête à un fournisseur IA.
+- Parcours bibliothèque réussis : recherche, catégories/origines, thèmes clair/sombre, insertion, fiches BE sans substitution automatique, édition locale, conservation des règles métier et absence d'injection HTML. Capture de la bibliothèque examinée.
+- Attentes historiques actualisées : inconnus désormais conservés ; sept onglets avec Symboles ; libellé « commande non identifiée ». Le test d'export lit bien `dessin.s`, le format de sauvegarde existant. Aucun ancien test fonctionnel supprimé.
+- La bibliothèque `feature/bibliotheque-symboles` est intégrée en conservant son historique et les styles de la bibliothèque des règles v67. Les modifications de fiches restent propres au navigateur : pas de base partagée créée.
+- Documentation du format, du premier cycle et des limites : `docs/releve-ia-v68.md`. La bibliothèque et les MAJ 1/2 constituent le périmètre autorisé ; les équipements systématiques, halos violets, antenne automatique, raccordement détecteur et réseau VMC restent réservés aux lots suivants.
+- Publication : construire la révision validée de `main`, mettre à jour `gh-pages` sans réécrire son historique et vérifier la version déployée. `version.json` identifie le commit source du build ; les workflows de vérification/publication restent sur leurs branches de travail.
