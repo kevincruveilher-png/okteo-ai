@@ -330,7 +330,7 @@ window.okteo = {
     snapshot();
     updates.forEach(d => { const a = idx.get(d.id).a; if (d.t) a.t = d.t; Object.assign(a, readingData(d)); });
     const ids = [];
-    const place = list => list.forEach(d => { const a = { id:uidA(), t:d.t, x:d.x, y:d.y, h:d.h ?? TYPES[d.t].h, ...readingData(d) }; state.app.push(a); ids.push(a.id); });
+    const place = list => list.forEach(d => { const a = { id:uidA(), t:d.t, x:d.x, y:d.y, h:d.h ?? TYPES[d.t].h, ...readingData(d) }; state.app.push(a); ids[adds.indexOf(d)] = a.id; });
     for (const lv of levels) { const list = adds.filter(d => d.lv === lv); if (!list.length) continue; if (lv === K.LV.cur) place(list); else withLevel(lv, () => place(list)); }
     markDirty(); draw(); showSide();
     return { added:adds.length, updated:updates.length, ids };

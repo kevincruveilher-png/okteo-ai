@@ -1,3 +1,4 @@
+import {ductPath,ductReport} from '../cablage/vmc.js';
 // Oktéo AI — cœur : Niveaux (RDC, R+1…), liaisons entre niveaux, géométrie pour l'impression.
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
 import { K } from "./k.js";
@@ -465,6 +466,7 @@ export function okteoGeo() {
     };
   });
   return {
+    ventilation: (K.CAB.vmc?.visible === false ? [] : K.CAB.vmc?.ducts || []).map(d=>({ ...d, ...ductReport(d,[...appIndex()].map(([id,v])=>({...v.a,id,lv:v.lv}))), points:ductPath(d,[...appIndex()].map(([id,v])=>({...v.a,id,lv:v.lv}))) })).filter(d=>d.points.some(p=>p.lv === K.LV.cur)),
     walls,
     joints,
     openings,

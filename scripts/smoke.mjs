@@ -2367,6 +2367,10 @@ try {
     if(!(r.button && r.command && r.adds===6 && r.duplicates===0 && !r.unsafe))throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("MAJ 5/6 : VMC et comparaison accessibles avec diagnostics séparés", async () => {
+    await ev(()=>okteo.setTab('etude'));
+    return await ev(()=>!!document.querySelector('#vm-prepare') && !!document.querySelector('#cp-form') && okteoExt.catalog.some(c=>c.id==='etude.vmc') && okteoExt.catalog.some(c=>c.id==='etude.comparaison'));
+  });
   await page.screenshot({ path: process.env.OKTEO_SHOT || "scripts/derniere-capture.png" });
 } finally {
   await browser.close(); await server.close(); mock.close();

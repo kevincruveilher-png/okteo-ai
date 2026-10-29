@@ -24,6 +24,8 @@ export const APPAREILS = {
   PC32: { n: "Prise / sortie 32 A (usage à préciser)", r: "P", h: 30, lab: "32", groupe: "Cuisine et spécialisés", mural: true, racc: "direct", lignes: [{ fils: "6 R+B+V/J", gaine: 20 }], circuit: { section: 6, prot: 32 } },
   RAD: { n: "Radiateur (convecteur, fil pilote)", r: "C", h: 30, lab: "RAD", groupe: "Chauffage et ventilation", mural: true, racc: "direct", lignes: [{ fils: "1,5 B+N+M+V/J", gaine: 16 }], circuit: { section: 1.5, prot: 16 } },
   SS: { n: "Sèche-serviette", r: "SS", h: 30, lab: "SS", groupe: "Chauffage et ventilation", mural: true, racc: "direct", lignes: [{ fils: "1,5 BF+M+V/J", gaine: 16 }], circuit: { section: 1.5, prot: 10 } },
+  VEX: { n: "Bouche extraction VMC", r: "EX", h: null, lab: "EX", groupe: "Chauffage et ventilation", racc: "aucun", lignes: [] },
+  VREJ: { n: "Rejet VMC toiture", r: "REJ", h: null, lab: "REJ", groupe: "Chauffage et ventilation", racc: "aucun", lignes: [] },
   VMCG: { n: "Caisson VMC", r: "VMC", h: null, lab: "VMC", groupe: "Chauffage et ventilation", racc: "direct", lignes: [{ fils: "1,5 R+B+V/J", gaine: 16 }], circuit: { section: 1.5, prot: 2 } },
   CVMC: { n: "Commande VMC", r: "C VMC", h: 110, lab: "CV", groupe: "Chauffage et ventilation", mural: true, racc: "direct", lignes: [{ fils: "1,5 GR+N", gaine: 16 }] },
   CLIM: { n: "Climatisation", r: "CLIM", h: null, lab: "CLI", groupe: "Chauffage et ventilation", racc: "direct", lignes: [{ cable: "4G1,5", gaine: 20 }], circuit: { section: 1.5, prot: 16 } },

@@ -365,3 +365,7 @@ Périmètre, données et limites : [Relevé IA v68](docs/releve-ia-v68.md). Test
 ### v69 — équipements systématiques et détecteurs (MAJ 3/4)
 Dans Étude, « Compléter les équipements » prévoit les équipements manquants et l’antenne s’il existe une prise TV. « Câbler le chantier » effectue aussi cette étape après précontrôle. Le halo violet demande de préciser puis confirmer la position dans Propriétés ; les appareils déjà implantés sont conservés. Les luminaires à détecteur intégré confirmé sont raccordés en alimentation permanente, avec un doute bloquant en cas de commande contradictoire.
 Périmètre et limites : [Équipements v69](docs/equipements-v69.md). Tests : `npm run test:equipements` et `npm run test:equipements:navigateur`.
+
+### v70 — VMC et comparaison plan / BE (MAJ 5/6)
+Étude propose un réseau VMC modifiable (bouches, commande cuisine, gaines et rejet limité à 3 m), avec emplacements violets à confirmer et longueurs 3D si altitudes renseignées. La comparaison sépare blocs, points physiques, repères BE et gaines ; sa référence est saisie et appariée explicitement. Diagnostics des pièces et du tableau, export et sauvegarde dans le chantier.
+Détails : [VMC et comparaison v70](docs/vmc-comparaison-v70.md). Tests : `npm run test:vmc` et `npm run test:vmc:navigateur`.

@@ -176,7 +176,7 @@ export function checkCircuits(circuits, items, S) {
     if (c.kind === "specialise" && c.apps.length > 1) issues.push({ c: c.id, msg: `${c.n} : circuit spécialisé avec ${c.apps.length} appareils` });
     if (c.kind === "volets") { const P = c.apps.map((id) => items.find((a) => a.id === id)).filter((a) => a && a.t !== "CVR").reduce((s2, a) => s2 + (+(a.p ?? S.puissanceMoteur ?? 50) || 50), 0), cap = (c.prot >= 16 ? 3680 : 2300); if (P > cap) issues.push({ c: c.id, msg: `${c.n} : ${P} W de moteurs de volets (max ${cap} W en ${c.prot} A)` }); }
   }
-  const need = (a) => !["TAB", "EQL"].includes(a.t) && !(a.t === "VMC" && !S.vmcCablee) && !(a.t === "HOTTE" && raccOf(a) === "a_choisir");
+  const need = (a) => !["TAB", "EQL", "VEX", "VREJ"].includes(a.t) && !(a.t === "VMC" && !S.vmcCablee) && !(a.t === "HOTTE" && raccOf(a) === "a_choisir");
   const orphans = items.filter((a) => need(a) && !inC.has(a.id)).map((a) => a.id);
   return { issues, orphans };
 }

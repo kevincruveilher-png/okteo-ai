@@ -1,3 +1,4 @@
+import {ductPath} from '../cablage/vmc.js';
 // Oktéo AI — cœur : Dessin du plan (SVG) : fond, murs, ouvertures, pièces, appareils, étiquettes sans chevauchement.
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
 import { K } from "./k.js";
@@ -11,7 +12,7 @@ import { controlIssues, essai, litSet } from "./check.js";
 import { fxDraw } from "./fx.js";
 import { bbox, currentGroup, groupPoints, isSel, multi } from "./groups.js";
 import { placeHud } from "./hud.js";
-import { allLinks, belowData, crossLinks } from "./levels.js";
+import { allLinks, appIndex, belowData, crossLinks } from "./levels.js";
 import { getCab } from "../cablage/settings.js";
 import { portLayout, portXY } from "../cablage/boites.js";
 import { chooseBows, BOW0, curve, polyCross } from "../cablage/trace.js";
@@ -701,6 +702,11 @@ export function draw() {
       h += `<line x1="${K.calib.a.x}" y1="${K.calib.a.y}" x2="${b.x}" y2="${b.y}" stroke="var(--accent2)" stroke-width="0.05" stroke-dasharray="0.25 0.12"/>` + cross(b);
     }
   }
+  if (K.CAB.vmc?.visible !== false) for(const d of K.CAB.vmc?.ducts || []) {
+    const pts=ductPath(d,[...appIndex()].map(([id,v])=>({...v.a,id,lv:v.lv})));
+    if(pts.length && pts.some(p=>p.lv === K.LV.cur))h+=`<polyline class="vmc-duct" points="${pts.map(p=>`${p.x},${p.y}`).join(' ')}" fill="none" stroke="#219b9b" stroke-width="0.055" stroke-dasharray="0.22 0.12" pointer-events="none"><title>Ventilation ${d.kind === 'rejet' ? 'rejet' : 'extraction'}</title></polyline>`;
+    if(pts.length && new Set(pts.filter(p=>p.lv).map(p=>p.lv)).size>1){const at=pts.find(p=>p.lv===K.LV.cur);if(at)h+=`<text x="${at.x+.2}" y="${at.y-.2}" font-size=".15" fill="#219b9b" pointer-events="none">VMC entre niveaux (projection)</text>`;}
+  }
   h += `</g>`;
   sv.innerHTML = h;
   if (typeof placeHud === "function") placeHud();
@@ -720,7 +726,7 @@ export function drawFx() {
   if (layers.appareils.on && K.tab === "plan") {
     const by = Object.fromEntries(state.app.map((a) => [a.id, a])), ss = symView();
     if (pref("halos")) list.filter(it => it.kind !== "implantation").forEach((it) => it.ids.forEach((id) => { const a0 = by[id], a = a0 && ((K.dispPos && K.dispPos.get(id)) || a0); if (a) items.push({ key: id, kind: "halo", x: a.x, y: a.y, r: 1.5 * ss }); }));
-    state.app.filter(implantationPending).forEach(a0 => { const a = K.dispPos?.get(a0.id) || a0; items.push({ key:a0.id, kind:"placement", x:a.x, y:a.y, r:1.65*ss }); });
+    state.app.filter(implantationPending).forEach(a0 => { const a = K.dispPos?.get(a0.id) || a0; items.push({ key:a0.id, kind:"placement", pulse:a0.implantation?.origine === "vmc", x:a.x, y:a.y, r:1.65*ss }); });
     if (K.testMode) litSet().forEach((id) => { const a0 = by[id], a = a0 && ((K.dispPos && K.dispPos.get(id)) || a0); if (a) items.push({ key: id, kind: "glow", x: a.x, y: a.y, r: Math.max(1.4, 4 * ss) }); });
   }
   // doutes du câblage (v53, okteo.setDoubts) : pastille en haut à droite de la boîte, sur le niveau ouvert
@@ -747,7 +753,7 @@ export function circuitMap() {
   });
   // appareils qui devraient être dans un circuit (pas le tableau, pas les bouches VMC non câblées)
   // (v54 : ni l'équipotentielle locale, raccordée à la terre de sa boîte, ni une hotte dont le raccordement reste à choisir)
-  m.__need = a => !["TAB", "VMC", "EQL", "INCONNU"].includes(a.t) && !(a.t === "CVR" && (K.CAB.choix || {}).commandeVolet === "connecte") && !(a.t === "HOTTE" && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "a_choisir");
+  m.__need = a => !["TAB", "VMC", "VEX", "VREJ", "EQL", "INCONNU"].includes(a.t) && !(a.t === "CVR" && (K.CAB.choix || {}).commandeVolet === "connecte") && !(a.t === "HOTTE" && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "a_choisir");
   // partent en ligne directe du tableau (ou du coffret) : pas d'alerte rouge avant la répartition
   m.__direct = a => ["RJ45", "PC20", "SC"].includes(a.t) || (APPAREILS[a.t] && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "direct");
   return m;

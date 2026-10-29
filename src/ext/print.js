@@ -381,6 +381,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     doc.restoreGraphicsState();
     doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(area.x, area.y, area.w, area.h);
   
+    for(const d of geo.ventilation || []) { const pts=d.points;if(pts.length>1){doc.setDrawColor(33,155,155);doc.setLineWidth(.3);doc.setLineDashPattern([1.4,.8],0);for(let i=1;i<pts.length;i++)doc.line(X(pts[i-1].x),Y(pts[i-1].y),X(pts[i].x),Y(pts[i].y));doc.setLineDashPattern([],0);} }
     // ---------- bandeau : légende, échelle graphique, cartouche ----------
     const by = Lay.H - MARGIN - BAND + 4, bh = BAND - 4;
     const present = o.appareils ? COLS.filter((t) => geo.apps.some((a) => a.t === t)) : [];

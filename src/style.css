@@ -809,3 +809,6 @@ body.mode-ia .iapane{display:flex;flex-direction:column;gap:8px;background:var(-
 
 /* v69 : état d’implantation, distinct des incertitudes électriques. */
 .fx-placement{pointer-events:none}.placement-note{border-left:3px solid #9954dc;padding:8px 10px;margin:8px 0;background:rgba(153,84,220,.08)}.placement-note p,.placement-legend{font-size:12px;line-height:1.45}.placement-legend{color:#8950c2}
+
+@keyframes vmcPlacement{50%{opacity:.3}}.vmc-pulse{animation:vmcPlacement 1.6s ease-in-out infinite}@media(prefers-reduced-motion:reduce){.vmc-pulse{animation:none}}
+#vm-comparaison{margin-top:20px}#vm-comparaison p{white-space:normal}#vm-comparaison label{display:inline-flex;flex-direction:column;gap:4px;margin:6px}#vm-comparaison input,#vm-comparaison select{max-width:260px}#cp-form{display:flex;flex-wrap:wrap;align-items:end}#cp-apps{min-height:100px}.vm-table{overflow:auto}.vm-ducts textarea{display:block;width:min(600px,95%)}.vm-ducts details{padding:8px;border-bottom:1px solid var(--line)}

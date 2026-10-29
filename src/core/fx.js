@@ -33,6 +33,7 @@ export function fxDraw(items) {
   root.querySelectorAll(":scope > g[data-k]").forEach((g) => {
     const it = want.get(g.dataset.k);
     if (it) {
+      g.classList.toggle("vmc-pulse", !!it.pulse);
       g.setAttribute("transform", tr(it));
       if (g.classList.contains("gone")) { g.classList.remove("gone"); clearTimeout(+g.dataset.t); }
       want.delete(g.dataset.k);
@@ -44,6 +45,7 @@ export function fxDraw(items) {
   for (const [k, it] of want) {
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
     g.setAttribute("class", it.kind === "glow" ? "fx-glow" : it.kind === "doubt" ? "fx-doubt" + (it.bloquant ? " blq" : "") : it.kind === "placement" ? "fx-placement" : "fx-halo");
+    g.classList.toggle("vmc-pulse", !!it.pulse);
     g.dataset.k = k;
     g.setAttribute("transform", tr(it));
     g.innerHTML = tpl(it);

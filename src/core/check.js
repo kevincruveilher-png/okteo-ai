@@ -1,3 +1,4 @@
+import {ductReport} from '../cablage/vmc.js';
 // Contrôle permanent du plan (v43) et mode essai (v45).
 // - controlIssues() : ce qui ne va pas, sur tous les niveaux (calcul léger, refait à chaque dessin) :
 //   commande sans lumière, lumière sans commande, va-et-vient incomplet, appareil sans circuit (quand des circuits
@@ -14,6 +15,7 @@ import { linkRole } from "./attach.js";
 import { circuitMap } from "./render.js";
 
 export const CHECK_KINDS = {
+  vmc: "Parcours VMC à vérifier",
   implantation: "Emplacement à préciser",
   detecteur: "Commande détecteur contradictoire",
   cmd: "Commande sans lumière",
@@ -59,6 +61,8 @@ export function controlIssues() {
     // un volet sans commande filaire est un volet connecté (micromodule, R-096) : normal
     else if (r === "l" && !cmds.has(id) && a.t !== "VR" && a.t !== "VEL" && !permanentDetector(a)) out.push({ kind: "lum", ids: [id], lv });
   }
+  const vmItems=[...idx].map(([id,v])=>({...v.a,id,lv:v.lv}));
+  for(const d of K.CAB.vmc?.ducts || []){const r=ductReport(d,vmItems);if(r.status!=="ok")out.push({kind:"vmc",ids:[d.from,d.to].filter(id=>idx.has(id)),lv:idx.get(d.from)?.lv || K.LV.cur,bloquant:r.status==="bloque",text:r.text});}
   // va-et-vient : une lumière commandée par un seul va-et-vient (il en faut deux, ou un va-et-vient et des permutateurs)
   const seen = new Set();
   for (const [lid, cs] of cmds) {

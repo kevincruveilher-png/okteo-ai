@@ -1,3 +1,4 @@
+import {mountVmcComparaison} from './vmc-comparaison.js';
 // Étude du câblage (v53) : onglet « Étude », doutes sur le plan et compteur, « Pourquoi ? » au clic sur une boîte ou une
 // gaine, commande « Câbler le chantier » (précontrôle d'abord : rien n'est câblé si une règle bloquante manque),
 // rapport de câblage (PDF) et statistiques par règle (toutes les études de ce PC).
@@ -56,7 +57,7 @@ export function cabler(api) {
 // Complète les circuits des seuls ajouts métier, sans effacer les circuits manuels existants.
 function studyCircuits(existing, items, links, S) {
   if (!existing.length) return computeCircuits(items, links, S);
-  const covered = new Set(existing.flatMap(c=>c.apps)), kinds = new Set(["FOUR","LV","PLAQ","LL","SL","ANT"]);
+  const covered = new Set(existing.flatMap(c=>c.apps)), kinds = new Set(["FOUR","LV","PLAQ","LL","SL","ANT","VMCG","CVMC"]);
   const missing = items.filter(a => a.aiOrigin === "regle" && kinds.has(a.t) && !covered.has(a.id));
   let id = Math.max(0,...existing.map(c=>+(String(c.id).match(/^c(\d+)$/)?.[1]||0))), n = Math.max(0,...existing.map(c=>+(String(c.n).match(/^C(\d+)$/)?.[1]||0)));
   const ids = new Set(existing.map(c=>c.id));
@@ -119,6 +120,8 @@ export function mountEtudePage(el, { api, askRule }) {
           <table class="rg-tab"><tr><th>Mode</th><th>Étudié</th><th>Retenu</th><th>Le plus économique</th><th>Signal</th></tr>${stats.modes.map((m) => `<tr><td>${esc(m.name)}</td><td>${m.etudie}</td><td>${m.retenu}</td><td>${m.meilleur}</td><td class="warn">${esc(m.signal)}</td></tr>`).join("")}</table>
           <button id="et-stats-exp" title="Fichier JSON des études de ce PC, pour regrouper plusieurs PC">⤓ Exporter les statistiques</button>` : `<p class="mut">Les statistiques se remplissent à chaque « Câbler le chantier ».</p>`}</details>
     </div>`;
+    el.querySelector(".params-in").insertAdjacentHTML("beforeend", '<div id="vm-comparaison"></div>');
+    mountVmcComparaison(el.querySelector("#vm-comparaison"),api);
     wire();
   }
   const stepOf = (n) => STEPS[n - 1];
@@ -142,6 +145,7 @@ export function mountEtudePage(el, { api, askRule }) {
       } else askRule && askRule(d.rule, `Règle ${d.rule} : cas observé sur le chantier ${api.ch.nom} (étape ${d.step} ${d.stepTitle}) : « ${d.text} ». Propose une modification de la règle (avant / après), ou dis-moi pourquoi elle est juste.`);
     }));
   }
+  document.addEventListener("okteo:saved", () => { if(api.tab === "etude" && !el.querySelector("input:focus,textarea:focus,select:focus"))render(); });
   render();
   return { render, get trace() { return tr; }, get el() { return el; } };
 }

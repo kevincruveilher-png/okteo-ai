@@ -998,3 +998,18 @@ Validation v67 : 89 fichiers contrôlés, 8 tests de bibliothèque, 41 murs, 86 
 - Vérification HTTP : `https://kevincruveilher-png.github.io/okteo-ai/version.json` répond 200 avec `0.69.0` et la source `a3facdfb02058eee8d6229b91007ae5e370f7d2b`.
 - Cette consignation finale ne modifie que le journal ; le code déployé reste celui de la révision validée. VMC et charte graphique réservées aux lots suivants.
 - Déploiement Pages réussi : https://github.com/kevincruveilher-png/okteo-ai/actions/runs/40935356917.
+
+## v70 — MAJ 5/6 : VMC, comparaisons et diagnostics
+
+- Autorisation Kévin : « Maj 5 et 6 ». Base `96e5100bc044a9322659573b80008cc6a789f8ac`. Périmètre du lot 6 retrouvé dans la note acceptée : comparaisons et diagnostics des pièces/tableau ; charte et ouvrants exclus.
+- MAJ 5 : réseau VMC indépendant, réutilisation des bouches existantes, groupe proposé près de la trappe identifiée puis dégagement/garage hors garage, bouches WC/SDB/cuisine, commande cuisine associée, rejet. Emplacements provisoires clignotants violets et confirmation ; ajout d’une bouche et de sa gaine, parcours modifiables avec altitudes, rejet >3 m bloquant, longueurs minimales si altitudes absentes. Affichage indépendant, export géométrie/PDF, sauvegarde et annulation.
+- MAJ 6 : formulaire source/preuve et appariement explicite, comparaison séparant blocs/points physiques/repères/gaines, ajout BE distinct d’oubli IA, mal interprété/à préciser/appariement perdu. Diagnostics pièces/tableau et rapport JSON. Pas de lecture automatique de dossier BE promise.
+- Ajustement API : identifiants des ajouts renvoyés dans l’ordre d’entrée sur plusieurs niveaux ; nécessaire pour ne pas croiser les gaines.
+- Transmission : `docs/vmc-comparaison-v70.md`, CLAUDE et README mis à jour ; modules et catalogue complétés. Vérifications à consigner après exécution.
+
+### Validation locale v70 et blocage de publication
+
+- Réussis localement : 98 fichiers vérifiés en syntaxe ; 15 nouveaux tests VMC/comparaison ; 13 équipements/détecteurs, 12 lecture IA, 14 symboles, 8 règles, 41 murs, 86 câblage et 176 chantiers. Compilation Vite réussie. Les bouches passives ne sont pas ajoutées aux circuits électriques ; ancien type VMC câblé et alias PC EXT testés.
+- `npm run check` s’arrête au lancement Chromium utilisé par MAILLARD : navigateur Playwright absent ; le Chromium système est également empêché par le runtime (`socket() failed: Operation not permitted`). MAILLARD, smoke et parcours navigateur MAJ 5/6 restent donc à exécuter. Aucune réussite navigateur v70 ni publication n’est revendiquée.
+- Le contrôle automatique a rejeté deux fois la création de l’arbre GitHub vers le dépôt public `kevincruveilher-png/okteo-ai`, jugeant « Maj 5 et 6 » insuffisamment explicite pour cette publication. Le second essai suivait la vérification du dépôt public, de l’origin et des fichiers modifiés ; après ce second refus, aucun autre moyen d’envoi n’a été tenté.
+- Travail conservé sur la branche locale `integration/maj-5-6-v70`, avec workflow de vérification prêt. Prochaine étape : confirmation explicite de Kévin pour l’envoi vers ce dépôt public, puis tests Chromium, correction des éventuels défauts, intégration `main` et publication Pages. La version en ligne v69 n’a pas été modifiée par ce lot.
