@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: c7fa163a0b5e0d629281e89878d51ee7a113120d
+          ref: 8ffa5904d20702ebffc2dafa0556d24600722da9
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -20,3 +20,29 @@ jobs:
       - run: npm run check
       - run: npm run build
         if: always()
+      - name: Vérifier et capturer la bibliothèque
+        if: always()
+        run: |
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          import { spawn } from 'node:child_process';
+          const server = spawn('npx', ['vite','--host','127.0.0.1','--port','5173'], {stdio:'ignore'});
+          try {
+            for(let i=0;i<60;i++){try{await fetch('http://127.0.0.1:5173');break;}catch{await new Promise(r=>setTimeout(r,500));}}
+            const browser = await chromium.launch();
+            const page = await browser.newPage({viewport:{width:1500,height:1000}});
+            await page.goto('http://127.0.0.1:5173');
+            await page.waitForFunction(()=>window.okteo&&window.okteoExt);
+            await page.evaluate(()=>{document.documentElement.dataset.theme='light';okteo.setTab('params');});
+            await page.waitForSelector('#ps-regles .rg-row');
+            await page.locator('#ps-regles').evaluate(el=>el.scrollIntoView({block:'start'}));
+            console.log('OKTEO_SCREENSHOT:'+ (await page.screenshot({type:'jpeg',quality:60})).toString('base64'));
+            await page.locator('[data-domain="tableau"]').click();
+            await page.fill('#rg-f-q','R-144');
+            await page.locator('.rg-row[data-id="R-144"]').click();
+            if(await page.locator('.rg-fiche').count()!==1)throw Error('Fiche manquante');
+            await page.locator('#ps-regles').evaluate(el=>el.scrollIntoView({block:'start'}));
+            console.log('OKTEO_FICHE:'+ (await page.screenshot({type:'jpeg',quality:60})).toString('base64'));
+            await browser.close();
+          } finally {server.kill();}
+          JS
