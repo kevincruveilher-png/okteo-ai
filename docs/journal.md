@@ -962,3 +962,11 @@ Validation v67 : 89 fichiers contrôlés, 8 tests de bibliothèque, 41 murs, 86 
 - La bibliothèque `feature/bibliotheque-symboles` est intégrée en conservant son historique et les styles de la bibliothèque des règles v67. Les modifications de fiches restent propres au navigateur : pas de base partagée créée.
 - Documentation du format, du premier cycle et des limites : `docs/releve-ia-v68.md`. La bibliothèque et les MAJ 1/2 constituent le périmètre autorisé ; les équipements systématiques, halos violets, antenne automatique, raccordement détecteur et réseau VMC restent réservés aux lots suivants.
 - Publication : construire la révision validée de `main`, mettre à jour `gh-pages` sans réécrire son historique et vérifier la version déployée. `version.json` identifie le commit source du build ; les workflows de vérification/publication restent sur leurs branches de travail.
+
+### Publication v68 confirmée
+
+- Build source : `93b045f0d9eca35c20703968715918e15a8663f9` (`main`, MAJ 1/2 et bibliothèque intégrée).
+- Construction/publication : https://github.com/kevincruveilher-png/okteo-ai/actions/runs/40931077854 ; commit `gh-pages` : `472df74629da93c898855da77b6cc09ad04a1f1f`, ajouté sans réécriture d'historique.
+- Déploiement Pages réussi : https://github.com/kevincruveilher-png/okteo-ai/actions/runs/40931140474.
+- Vérification HTTP : `https://kevincruveilher-png.github.io/okteo-ai/version.json` répond 200 et annonce `0.68.0` / source `93b045f0d9eca35c20703968715918e15a8663f9`.
+- Cette dernière consignation ne change que le journal, pas le code du build publié. Les réserves et lots futurs décrits ci-dessus restent applicables.
