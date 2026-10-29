@@ -779,3 +779,30 @@ body.mode-ia .iapane{display:flex;flex-direction:column;gap:8px;background:var(-
 
 #ps-regles .rg-fiche>td{white-space:normal}
 #ps-regles .rg-dl{grid-template-columns:110px minmax(0,1fr)}
+/* Bibliothèque de symboles : charte native, grille dense et fiche latérale. */
+.sy-page{padding:18px 20px;max-width:1800px;margin:auto}
+.sy-head{display:flex;gap:8px;align-items:center;margin-bottom:12px}.sy-head h2{margin:0;font-size:19px}.sy-head p{margin:3px 0 0;font-size:12px}
+.sy-filters{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:14px}.sy-filters input{flex:1;min-width:180px}.sy-filters select{max-width:220px}.sy-filters span{font-size:11px}
+.sy-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px;align-items:start}
+.sy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:7px;align-content:start}
+.sy-card{min-width:0;display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 5px;border-radius:7px;min-height:105px;background:var(--panel)}
+.sy-card.chosen{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--panel2)}
+.sy-preview{width:38px;height:38px;display:flex;align-items:center;justify-content:center}.sy-preview svg,.sy-large svg{width:100%;height:100%;background:transparent}
+.sy-preview img,.sy-large img{max-width:100%;max-height:100%;object-fit:contain}.sy-preview:has(img),.sy-large:has(img){background:#fff;border-radius:4px}
+.sy-name{font-size:11px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-align:center;min-height:28px}
+.sy-tag{display:inline-block;font:10px/1.3 var(--ff);padding:1px 5px;border:1px solid var(--line);border-radius:4px;color:var(--mut)}.sy-be{color:var(--warn);border-color:var(--warn);font-size:9px}
+.sy-detail{padding:14px;border:1px solid var(--line);background:var(--panel);border-radius:8px;min-width:0;position:sticky;top:12px;max-height:calc(100vh - 235px);overflow:auto}
+.sy-large{width:78px;height:78px;display:flex;align-items:center;justify-content:center;margin:0 auto 9px}.sy-missing{font:28px var(--fm);color:var(--warn)}
+.params .sy-detail .sy-title{color:var(--fg);text-transform:none;font-size:16px;margin:9px 0 3px;letter-spacing:0}
+.sy-actions{display:flex;gap:5px;flex-wrap:wrap;margin:12px 0}.sy-actions button{font-size:11px;padding:5px 7px}.sy-actions button:first-child{background:var(--accent);color:#fff}
+.sy-detail dl{display:grid;gap:3px;font-size:12px;margin:12px 0}.sy-detail dt{color:var(--mut);font-size:10px}.sy-detail dd{margin:0 0 6px;overflow-wrap:anywhere}
+.params .sy-warning{border-left:2px solid var(--warn);padding-left:8px;font-size:11px}.params .sy-small{font-size:10px}.sy-notes{white-space:pre-wrap;overflow-wrap:anywhere}
+.sy-detail h4{margin:16px 0 6px;font-size:12px}.sy-rule{border-top:1px solid var(--line);padding:7px 0;font-size:11px}.sy-rule summary{cursor:pointer}.params .sy-rule p{font-size:11px;overflow-wrap:anywhere}
+.sy-detail label{display:flex;flex-direction:column;gap:4px;margin:10px 0;font-size:11px;color:var(--mut)}.sy-detail input,.sy-detail textarea,.sy-detail select{width:100%;font-size:12px;color:var(--fg)}
+.sy-detail textarea{font-family:var(--ff);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px;resize:vertical}
+.sy-form-error{color:var(--accent2)}.sy-upload-preview{font-size:11px;color:var(--mut);padding:8px;border:1px dashed var(--line)}.sy-upload-preview img{display:block;max-width:100%;max-height:90px;background:white}
+.sy-message{color:var(--mut);font-size:11px;min-height:16px}
+@media(min-width:1600px){.sy-layout{grid-template-columns:minmax(0,1fr) 300px}.sy-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}}
+@media(max-width:1000px){.sy-page{padding:12px}.sy-layout{grid-template-columns:minmax(0,1fr) 250px}.sy-grid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}}
+@media(max-width:720px){.sy-layout{grid-template-columns:1fr}.sy-detail{position:static;max-height:none}.sy-head{flex-wrap:wrap}}
+.main.sy-active>#side{display:none!important}

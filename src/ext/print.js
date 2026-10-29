@@ -472,6 +472,7 @@ export function symbol(doc, t, x, y, u, rot = 0, col = null) {
     case "VV": sq(0.55); tick(); doc.line(x - 0.1 * u, y + 0.3 * u, x + 0.5 * u, y - 0.3 * u); break;
     case "BP": sq(0.55); doc.setFillColor(...C); doc.circle(x, y, 0.2 * u, "F"); break;
     case "VMC": sq(0.8); txt(SHORT.VMC); break;
+    case "INCONNU": sq(0.8); txt("?"); break;
     case "SC": sq(0.6); doc.line(x - 0.85 * u, y - 0.85 * u, x + 0.85 * u, y + 0.85 * u); doc.line(x + 0.85 * u, y - 0.85 * u, x - 0.85 * u, y + 0.85 * u); break;
     case "TAB": doc.setFillColor(...C); doc.roundedRect(x - u, y - 1.2 * u, 2 * u, 2.4 * u, 0.2 * u, 0.2 * u, "FD"); txt(SHORT.TAB, true); break;
     default: { sq(0.8); const D = APPAREILS[t]; if (D) { doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(3, u * (D.lab.length > 2 ? 0.55 : 0.8) * 72 / 25.4)); doc.setTextColor(...C); doc.text(D.lab, x, y + u * 0.05, { align: "center", baseline: "middle" }); } }

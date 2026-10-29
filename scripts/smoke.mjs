@@ -671,7 +671,7 @@ try {
     await page.keyboard.press("Control+z");
     const undone = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.length, app: okteo.state.app.length }));
     const r = { img: !!img && img.source.data.length > 20000, P, after, undone, before, txt: txt.includes("Séjour") };
-    if (!r.img || P.walls !== 7 || P.nodes !== 6 || P.coupes !== 2 || P.op !== 2 || P.dev !== 3 || P.links !== 1 || !P.prev || !r.txt
+    if (!r.img || P.walls !== 7 || P.nodes !== 6 || P.coupes !== 2 || P.op !== 2 || P.dev !== 4 || P.links !== 1 || !P.prev || !r.txt
       || after.segs !== 7 || after.rooms !== "Chambre,Séjour" || after.app !== before.app || after.op !== 2
       || undone.segs !== before.segs || undone.rooms !== before.rooms || undone.app !== before.app) throw new Error(JSON.stringify(r));
     return true;
@@ -724,7 +724,7 @@ try {
     const A = await ev(() => ({ int: (okteo.state.app.find((a) => a.t === "INT") || {}).h, rad: okteo.state.app.some((a) => a.t === "RAD"), lia: okteo.state.lia.length }));
     await page.keyboard.press("Control+z");
     const back = await ev(() => okteo.state.app.length);
-    const ok = cons && P.t === "RAD,VR,CVR,INT,LUM" && P.h === "0,0,110,120,0" && P.links === "CVR>VR,INT>LUM" && A.int === 120 && A.rad && A.lia === 2 && back === n0;
+    const ok = cons && P.t === "RAD,VR,CVR,INT,LUM,INCONNU" && P.h === "0,0,110,120,0,0" && P.links === "CVR>VR,INT>LUM" && A.int === 120 && A.rad && A.lia === 2 && back === n0;
     if (!ok) throw new Error(JSON.stringify({ cons, P, A, back, n0 }));
     return true;
   });

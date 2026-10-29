@@ -418,3 +418,6 @@ Dépôt privé `kevincruveilher-png/okteo-ai`, branche `main`. Kévin modifie au
 
 ### Bibliothèque des règles (v67)
 `src/cablage/regles-library.js` : domaines/familles/types, recherche et état d’application ; métadonnées de consultation, jamais moteur normatif. `src/ext/regles-ui.js` : fiches paginées, filtres, vues Questions/Historique ; `openRulesLibrary(api, domaine)` pour un accès ciblé. Conserver les identifiants et données métier. Une règle validée n’est pas forcément automatisée ; tout périmètre non relu reste « À documenter ». Tests dédiés : `scripts/regles-library.test.mjs`.
+
+### Relevé IA v68 (MAJ 1/2)
+`src/walls/ai-data.js` : introduction commune, métadonnées de lecture et validation du relevé. `INCONNU` est un vrai objet consultable sans circuit inventé ; `PC32` est un calibre générique, pas forcément PLAQ. `aiReading` et `cab.releves[lv].evidence` gardent l'original. `lectures` en relecture → `readingData` → `api.updateApps`, en un batch annulable. Ne pas utiliser `commande` pour générer le câblage détecteur avant MAJ 4. Notes détaillées et périmètre : `docs/releve-ia-v68.md`. Tests : `scripts/ai-reading.test.mjs` (+ `--browser`). Bibliothèque de symboles fusionnée sans écraser les règles v67.

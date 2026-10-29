@@ -47,6 +47,8 @@ export function glyph(t) {
       return sq(0.55) + `<circle r="0.2" class="gf"/>`;
     case "VMC":
       return sq(0.8) + `<text y="0.3" class="gl">V</text>`;
+    case "INCONNU":
+      return sq(0.8) + `<text y="0.3" class="gl">?</text>`;
     case "SC":
       return sq(0.6) + `<path d="M-0.85 -0.85L0.85 0.85M0.85 -0.85L-0.85 0.85" class="gs"/>`;
     case "TAB":
@@ -743,7 +745,7 @@ export function circuitMap() {
   });
   // appareils qui devraient être dans un circuit (pas le tableau, pas les bouches VMC non câblées)
   // (v54 : ni l'équipotentielle locale, raccordée à la terre de sa boîte, ni une hotte dont le raccordement reste à choisir)
-  m.__need = a => !["TAB", "VMC", "EQL"].includes(a.t) && !(a.t === "CVR" && (K.CAB.choix || {}).commandeVolet === "connecte") && !(a.t === "HOTTE" && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "a_choisir");
+  m.__need = a => !["TAB", "VMC", "EQL", "INCONNU"].includes(a.t) && !(a.t === "CVR" && (K.CAB.choix || {}).commandeVolet === "connecte") && !(a.t === "HOTTE" && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "a_choisir");
   // partent en ligne directe du tableau (ou du coffret) : pas d'alerte rouge avant la répartition
   m.__direct = a => ["RJ45", "PC20", "SC"].includes(a.t) || (APPAREILS[a.t] && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "direct");
   return m;

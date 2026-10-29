@@ -281,6 +281,20 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Bibliothèque de symboles (29/10/2026) — première intégration à relire
+Demande de Kévin : commencer la bibliothèque, conserver la charte du logiciel de base et réduire les étiquettes pour afficher plus de symboles. Consultation et insertion ; variantes BE signalées non reconnues ; modifications sans code pour le moment.
+- Nouvel onglet **Symboles**, dans la navigation existante, et commande `symbols.open` dans Ctrl+K. Couleurs, typographies et thèmes clair/sombre repris de `src/style.css` ; cartes compactes et panneau de fiche intégré. Le panneau Propriétés est masqué uniquement sur cette page pour laisser de la place à la grille.
+- Les types viennent de `api.TYPES` : aucun catalogue parallèle d’appareils natifs. Nouvelle API `symbolMarkup(type)` pour utiliser exactement les mêmes dessins SVG que le plan, via l’interface publique du cœur.
+- Recherche sans accents, mots cumulés (nom, identifiant, source, notes, règles), filtres catégorie/origine, aperçu, hauteur par défaut et raccordement actuel. Insérer revient au plan et active l’outil de pose existant ; aucune implantation automatique.
+- Fiches liées aux règles réelles du journal (`getJournal`) : description, source, certitude et statut affichés sans requalifier une règle en règle validée. Les liens sont éditables et les identifiants vérifiés ; les fiches ne modifient pas les règles exécutées par le moteur.
+- BE : ajout d’une fiche avec image PNG/JPEG/WebP (5 Mo max, réduite à 600 px), source, notes et correspondance facultative. Sans correspondance : « Non reconnu par Oktéo », insertion bloquée. Une correspondance manuelle autorise la pose du symbole Oktéo désigné ; elle ne forme pas les détecteurs/IA au dessin BE. Les vrais dessins BE restent à fournir.
+- Cas KICHOUH 32 A : une fiche d’attente, sans faux dessin ni correspondance imposée. **PLAQ existe déjà** dans le catalogue (32 A) ; ne pas confondre absence du type et échec de reconnaissance. Cette mise à jour n’altère pas les relevés IA ni les détecteurs existants.
+- Pas de halo violet dans la bibliothèque : cette couleur garde le sens d’emplacement à préciser sur le plan. Statut BE affiché en orange.
+- Modification des métadonnées et des fiches BE sans code, conformément à la demande actuelle. Stockage local `okteo.symbols.v1`, historique et export JSON avec images ; échec d’enregistrement signalé. Aucun partage multi-postes ni réimport ajouté à cette première version ; le futur contrôle par code reste à réaliser.
+- Fichiers : `src/ext/symbols-data.js`, `src/ext/symbols-ui.js`, intégration `main.js`, `catalog.js`, `index.html`, onglets `controls.js`, API `api.js`, styles et tests.
+- Validation : build Vite et syntaxe réussis ; tests murs 41/41, câblage 86/86, chantiers 176/176 ; bibliothèque 14/14 (données, recherche, liens réels, sauvegarde et quota). Régressions navigateur ajoutées (`npm run test:symboles:navigateur`) mais **non exécutées** : Chromium local refuse les sockets du profil (`Operation not permitted`) ; l’outil navigateur distant ne démarre pas. MAILLARD et smoke navigateur restent non vérifiés dans cet environnement (Chromium Playwright absent). Contrôle visuel à réaliser avant publication.
+- Travail préparé sur une branche dédiée ; aucune publication du logiciel en production dans cette intervention.
+
 ## Version 66.1 (29/10/2026) — correction de la composition du tableau
 Demande de Kévin : « go pour la correction », après audit du code v66 par ChatGPT.
 - Conservation des accessoires lors de « Placer automatiquement » : identifiants, libellés et largeurs conservés,
@@ -927,3 +941,19 @@ Mise à jour prévue avant l'impression. Plan d'ensemble : 41 mise en page, 42 P
 - Vérifications : tests purs de classification, recherche, combinaisons, conservation des données et modifications locales ; parcours navigateur adaptés à la pagination.
 
 Validation v67 : 89 fichiers contrôlés, 8 tests de bibliothèque, 41 murs, 86 câblage, 176 chantiers, 14 MAILLARD et 168 parcours navigateur réussis (Actions 40883533722). L’unique échec global concerne le chevauchement d’étiquettes déjà reproduit sur v66/v66.1 (2 en vue d’ensemble, 1 en zoom) ; aucun moteur de dessin modifié ici. Build réussi. La capture visuelle a révélé puis permis de corriger un héritage `white-space: nowrap` dans les fiches ; contrôle ciblé du débordement après correction.
+
+## v68 — MAJ 1/2 du relevé IA et fusion de la bibliothèque de symboles (29/10/2026)
+
+- Autorisation de Kévin : MAJ 1 et 2 seulement, avec intégration de `feature/bibliotheque-symboles` dans le tronc. Les styles et fonctions de la bibliothèque des règles v67 sont conservés.
+- MAJ 1 : informations de lecture structurées (`qty`, calibre, inscriptions, regroupement, origine, incertitude), type `INCONNU` visible plutôt qu'ignoré, `PC32` distinct de PC20/PLAQ, réponse source conservée. Propriétés consultables, champs repris par les API et les fichiers existants sans migration destructive. Préflight avant remplacement des appareils.
+- MAJ 2 : introduction dessinateur dans « Copier la consigne », prompt initial fidèle aux quantités/calibres, libellé « Commande non identifiée », interprétation des détecteurs réservée à la relecture ciblée existante. La rubrique `lectures` conserve mode/alimentation/preuve ; sans preuve, à confirmer. Aucun raccordement détecteur automatique ajouté (MAJ 4 différée).
+- Documentation de transmission : `docs/releve-ia-v68.md`. Nouveaux tests dans `scripts/ai-reading.test.mjs`, avec parcours Chromium ; attentes historiques adaptées uniquement à la conservation des inconnus.
+- Limites : quantité des blocs conservée, pas encore étude détaillée de l'appareillage ; ni MAJ 3 à 6 ni charte graphique. Les spots ajoutés par le BE sur KICHOUH ne sont pas des oublis IA.
+- Validation : voir entrée de validation v68 ajoutée après exécution des contrôles.
+
+### Validation locale v68 et état de livraison
+- Réussis : syntaxe de 92 fichiers ; 12 contrôles lecture IA, 14 bibliothèque de symboles, 8 bibliothèque de règles, 41 murs, 86 câblage et 176 chantiers (337 contrôles métier au total) ; compilation Vite ; `git diff --check`.
+- Non validés dans cet environnement : parcours Chromium (MAILLARD, smoke, bibliothèque, nouvelle lecture). Le téléchargement Playwright échoue et le Chromium système ne démarre pas (socket du profil interdit). Les tests dédiés sont écrits mais ne sont pas présentés comme exécutés.
+- Le défaut de chevauchement d'étiquettes v67 est connu ; aucun résultat navigateur v68 n'a encore été obtenu.
+- Livraison bloquée avant envoi : le contrôle automatique d'autorisation a refusé l'envoi du code vers `kevincruveilher-png/okteo-ai`, exigeant une confirmation explicite du dépôt destinataire. Aucun arbre/commit distant n'a été créé par cette tentative. La fusion bibliothèque et les MAJ 1/2 sont préparées localement ; `main` et le site public ne sont pas modifiés.
+- Suite : après autorisation explicite du dépôt, lancer la validation navigateur sur une branche de vérification, corriger les écarts éventuels, puis fusionner sans réécrire l'historique et publier selon les consignes du dépôt. Ne pas présenter le lot comme livré avant ces étapes.

@@ -1,11 +1,12 @@
 // Oktéo AI — cœur : Interface publique window.okteo (extensions, assistant, tests).
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
+import { readingData } from "../walls/ai-data.js";
 import { K } from "./k.js";
 import { addLimit } from "../walls/rooms.js";
 import { CH, PAL, PLAN, TYPES, VB, layers, node, nodeById, segById, state, uidA, uidN, uidO, uidR, uidS } from "./model.js";
 import { markDirty, packData, snapshot, writeNow } from "./persist.js";
 import { fit, renumberReps, repMap, rotExtent, rotateView, syncVB } from "./view.js";
-import { draw, drawFx, gaineCrossings, sv } from "./render.js";
+import { draw, drawFx, gaineCrossings, glyph, sv } from "./render.js";
 import { attach, reattach, roomArea, roomPoly, snapToWall, wallMounted } from "./attach.js";
 import { bbox, clampOpenings, clearSel, duplicateGroup, multi, normalizeSel, openCenter, roomAt, selectAll, transformGroup } from "./groups.js";
 import { wallMeasure } from "./interact.js";
@@ -102,6 +103,7 @@ export function init7() {
 window.okteo = {
   state,
   TYPES,
+  symbolMarkup: (type) => TYPES[type] ? glyph(type) : "",
   PAL,
   layers,
   sv,
@@ -212,7 +214,8 @@ window.okteo = {
       // v57 : équipement hors plan (ajouté d'après le devis, à vérifier) ; point que l'IA n'a pas trouvé en relecture
       ...(a.hp ? { hp: true } : {}),
       ...(a.aiNo ? { aiNo: a.aiNo } : {}),
-      ...(a.hNo ? { hNo: true } : {})
+      ...(a.hNo ? { hNo: true } : {}),
+      ...readingData(a)
     }));
     const out = [];
     for (const l of CH.levels) out.push(...(l.id === K.LV.cur ? one(l.id) : withLevel(l.id, () => one(l.id))));
@@ -324,6 +327,8 @@ window.okteo = {
   importDevices(list, links = [], {
     replace = false
   } = {}) {
+    // Préflight avant snapshot/remplacement : aucun chantier partiellement effacé sur donnée invalide.
+    if (!Array.isArray(list) || list.some((d) => !d || !TYPES[d.t] || !Number.isFinite(d.x) || !Number.isFinite(d.y))) throw new Error("Import annulé : appareil ou position invalide.");
     snapshot();
     if (replace) {
       state.app = [];
@@ -344,7 +349,8 @@ window.okteo = {
         x: +(+p.x).toFixed(3),
         y: +(+p.y).toFixed(3),
         h: d.h || TYPES[d.t].h,
-        auto: true
+        auto: true,
+        ...readingData(d)
       };
       if (d.pt) na.pt = true; // v57 : prise de plan de travail relevée
       if (d.hp) na.hp = true; // v57 : équipement hors plan (à vérifier avec le devis)
@@ -450,6 +456,7 @@ window.okteo = {
       if (!e) continue;
       const a = e.a;
       if (u.t && TYPES[u.t]) a.t = u.t;
+      Object.assign(a, readingData(u));
       if (u.h != null && u.h > 0) { a.h = u.h; delete a.hNo; }
       if (u.pt === true || u.pt === false) a.pt = u.pt;
       if (u.x != null && u.y != null) {

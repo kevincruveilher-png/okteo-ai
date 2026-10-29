@@ -2,12 +2,14 @@
 // remise au propre de la géométrie (murs redressés, sommets fusionnés, jonctions en T coupées), conversion pixels → mètres.
 // L'IA travaille en pixels de l'image envoyée ; `map` = { x0, y0, sx, sy } : x (m) = x0 + u × sx, y (m) = y0 + v × sy.
 
+import { AI_SYSTEM, UNKNOWN_TYPE, readingData, validateReleve } from "./ai-data.js";
 import { APPAREILS } from "../cablage/appareils.js";
 
 // types relevés (v55.1 : les 12 de base + les appareils du journal, R-084) — description donnée à l'IA
 const BASE_TYPES = {
   PC16: "prise de courant 16 A",
-  PC20: "prise spécialisée 20 A ou 32 A dont l'usage n'est pas écrit (sinon FOUR, LL, LV, SL, PLAQ)",
+  PC20: "prise spécialisée 20 A dont l'usage n'est pas écrit (jamais 32 A)",
+  INCONNU: "symbole visible dont le type reste à identifier : conserver sa position et son inscription",
   RJ45: "prise réseau RJ45 / téléphone",
   LUM: "point lumineux au plafond (DCL)",
   APP: "applique murale",
@@ -21,6 +23,7 @@ const BASE_TYPES = {
 };
 // précisions pour reconnaître les appareils du journal sur un plan
 const HINT = {
+  PC32: "prise ou sortie 32 A sans usage établi (ne jamais convertir en PC20)",
   RAD: "radiateur électrique / convecteur", SS: "sèche-serviette (salle de bain)", VMCG: "caisson / groupe VMC (combles)",
   CVMC: "commande de VMC (grande vitesse)", CLIM: "climatisation (unité ou alimentation)", AQA: "pompe à chaleur / Aqua Air / PAC",
   BOUCHE: "bouche de diffusion motorisée", FOUR: "prise du four", LL: "prise du lave-linge", LV: "prise du lave-vaisselle",
@@ -64,19 +67,20 @@ ${coords}
 ${types}
   Prends le type le plus précis : une prise marquée « LL » ou « lave-linge » est LL, pas PC20 ; un chauffe-eau est CETH, pas SC ; une commande de volet est CVR, pas SC ni INT. SC seulement si l'usage n'est pas reconnaissable.
   Une prise posée le long du plan de travail de la cuisine (souvent écrite « H:1.10m » ou « PT ») : ajoute "pt": true.
-  Plusieurs symboles côte à côte (boîtier double ou triple, prises alignées au plan de travail) : relève CHAQUE symbole séparément.
+  Plusieurs symboles côte à côte : relève CHAQUE symbole séparément. Un symbole unique marqué « bloc 2 prises » ou « bloc 4 prises » : un objet avec "qty": 2 ou 4 et "inscription" exacte ; si la quantité est illisible, "qty": null. Ne crée pas de centres individuels inventés. Un bloc n'est ni un nombre de repères BE ni un nombre de gaines.
+  Conserve les inscriptions électriques utiles dans "inscription" (notamment ALIM DÉTECTEUR), les regroupements dans "aiGroup" si visibles et les doutes dans "aiNote" avec "aiStatus": "a_identifier" ou "a_confirmer". "aiOrigin": "plan" pour une observation, "interpretation" pour une déduction. Un calibre écrit se conserve dans "calibre" : 32 A reste 32 A (PC32 si usage inconnu, PLAQ seulement si l'usage plaque est établi). Un symbole inconnu reste INCONNU, jamais remplacé par un type voisin.
 - Liaisons : [indice de la commande, indice de l'appareil commandé] dans la liste des appareils (indices à partir de 0) :
   INT, VV ou BP vers LUM, APP ou SPOT ; CVR vers VR ou VEL.
   Un allumage commandé de plusieurs endroits : chaque VV (ou BP) est relié à TOUTES les lumières qu'il commande. Une commande qui allume plusieurs lumières : une liaison par lumière.
-  Points extérieurs (appliques, spots en façade, terrasse) : leur commande est presque toujours À L'INTÉRIEUR, près de la porte ou de la baie la plus proche, souvent dans un boîtier double avec une autre commande ; suis le trait de liaison. Chaque lumière doit avoir sa commande ; sinon dis-le dans "remarques".
+  Points extérieurs (appliques, spots en façade, terrasse) : leur commande est presque toujours À L'INTÉRIEUR, près de la porte ou de la baie la plus proche, souvent dans un boîtier double avec une autre commande ; suis le trait de liaison. Une lumière sans commande visible est signalée « commande non identifiée » dans "aiNote" ; ne lui invente pas de commande. L’interprétation détaillée appartient au premier cycle de correction.
   Chaque volet (VR) a en général sa commande (CVR) à côté de la fenêtre, à l'intérieur : cherche-la.
 - Ignore les annotations ajoutées à la main sur le plan (écritures manuscrites, surlignages, traits de feutre, tampons) : ne relève que le dessin et les symboles de l'électricité.
-- N'invente rien : ce que tu ne vois pas reste absent. Mets dans "remarques" ce qui est douteux, appareil par appareil.`;
+- N'invente rien : ce que tu ne vois pas reste absent. Une information visible mais mal comprise reste présente, à identifier. Mets les doutes par appareil dans "aiNote" et leur synthèse dans "remarques".`;
 }
 const JSON_FORM = `{"murs":[{"x1":0,"y1":0,"x2":0,"y2":0,"ep":20}],
  "ouvertures":[{"x":0,"y":0,"l":90,"t":"porte","gx":0,"gy":0,"vx":0,"vy":0},{"x":0,"y":0,"l":240,"t":"garage"}],
  "pieces":[{"nom":"Cuisine","x":0,"y":0}],
- "appareils":[{"t":"PC16","x":0,"y":0},{"t":"INT","x":0,"y":0,"h":110},{"t":"LUM","x":0,"y":0},{"t":"PC16","x":0,"y":0,"h":110,"pt":true}],
+ "appareils":[{"t":"PC16","x":0,"y":0},{"t":"INT","x":0,"y":0,"h":110},{"t":"LUM","x":0,"y":0},{"t":"PC16","x":0,"y":0,"h":110,"pt":true,"qty":4,"inscription":"BLOC 4 PRISES","aiOrigin":"plan"}],
  "liaisons":[[1,2]],
  "remarques":"décompte par type, puis ce qui est douteux"}`;
 
@@ -90,7 +94,9 @@ ${JSON_FORM}`;
 }
 // relevé sans clé (v36) : consigne à copier dans une conversation neuve avec le PDF joint ; la réponse se colle dans Oktéo
 export function pastePrompt({ page = 1 } = {}) {
-  return `Voici le plan d'une maison individuelle (PDF joint, page ${page}). Ignore les autres pages du PDF (plan du bureau d'études, notices).
+  return `${AI_SYSTEM}
+
+Voici le plan d'une maison individuelle (PDF joint, page ${page}). Ignore les autres pages du PDF (plan du bureau d'études, notices).
 ${promptBody(`- Coordonnées en PIXELS de l'image entière de la page ${page} (origine en haut à gauche, x vers la droite, y vers le bas), nombres entiers. Donne la taille de cette image dans "ref" (W = largeur, H = hauteur en pixels) : sans "ref", la réponse ne peut pas être placée.
 - Mesure les positions sur l'image (pas à l'estime) : les murs doivent tomber sur les murs du plan.`, METHOD_PASTE(page))}
 
@@ -136,6 +142,7 @@ export function doorSense(A, B, t, g, v) {
 }
 // Réponse de l'IA → { nodes, walls, openings } (format du relevé automatique), pieces, devices, links, stats
 export function aiToPlan(raw, map, { defEp = 0.2, mergeTol = 0.15, axisTol = 4 } = {}) {
+  validateReleve(raw);
   const P = (u, v) => ({ x: map.x0 + u * map.sx, y: map.y0 + v * map.sy });
   const stats = { mursLus: 0, redresses: 0, coupes: 0, ouverturesPerdues: 0 };
 
@@ -228,10 +235,17 @@ export function aiToPlan(raw, map, { defEp = 0.2, mergeTol = 0.15, axisTol = 4 }
     .filter((r) => r.name && ok(r.x, r.y)).map((r) => ({ ...r, size: 1 }));
   const devIdx = [], devices = [];
   (raw.appareils || []).forEach((d, i) => {
-    const t = String(d.t || "").toUpperCase(), u = num(d.x), v = num(d.y);
-    if (!AI_TYPES[t] || !ok(u, v)) return;
+    const originalType = String(d.t || "").toUpperCase(), u = num(d.x), v = num(d.y);
+    let t = AI_TYPES[originalType] ? originalType : UNKNOWN_TYPE;
+    // Répare uniquement le conflit explicite 32 A / PC20 ; ne devine pas l'usage plaque.
+    const data = readingData(d);
+    if (t === "PC20" && data.calibre === 32) t = "PC32";
+    if (!AI_TYPES[originalType] || t === UNKNOWN_TYPE) { data.aiType = originalType; data.aiStatus = "a_identifier"; }
+    if (t !== originalType) data.aiType = originalType;
+    data.aiOrigin ||= "plan";
+    data.aiReading = { ...readingData(d), t: originalType, x: u, y: v, ...(d.h != null ? { h: d.h } : {}) };
     const h = num(d.h);   // hauteur écrite sur le plan (cm), gardée si plausible
-    devIdx[i] = devices.length; devices.push({ t, ...P(u, v), ...(h > 0 && h <= 300 ? { h: Math.round(h) } : { hNo: true }), ...(t === "PC16" && (d.pt === true || d.pt === "true") ? { pt: true } : {}) });
+    devIdx[i] = devices.length; devices.push({ t, ...P(u, v), ...data, ...(h > 0 && h <= 300 ? { h: Math.round(h) } : { hNo: true }), ...(t === "PC16" && (d.pt === true || d.pt === "true") ? { pt: true } : {}) });
   });
   const links = [];
   (raw.liaisons || []).forEach((l) => {
@@ -251,7 +265,8 @@ export function aiToPlan(raw, map, { defEp = 0.2, mergeTol = 0.15, axisTol = 4 }
     walls: segs.map((s) => ({ a: re.get(s.a), b: re.get(s.b), ep: +s.ep.toFixed(3) })),
     openings,
     pieces, devices, links, lost,
-    remarques: String(raw.remarques || "").slice(0, 600),
+    remarques: String(raw.remarques || ""),
+    evidence: JSON.parse(JSON.stringify(raw)),
     stats,
   };
 }

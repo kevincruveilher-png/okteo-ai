@@ -34,7 +34,8 @@ export function recordReleve(api, plan, { mode = "", info = "", counts = {}, usa
     date: new Date().toISOString(), mode, info, nope: [],
     pieces: (plan.pieces || []).map((p) => ({ name: p.name, x: +p.x.toFixed(3), y: +p.y.toFixed(3) })),
     lost: (plan.lost || []).map((o) => ({ x: +o.x.toFixed(3), y: +o.y.toFixed(3), w: o.w, kind: o.kind })),
-    remarques: String(plan.remarques || "").slice(0, 600),
+    remarques: String(plan.remarques || ""),
+    ...(plan.evidence ? { evidence: plan.evidence } : {}),
     rapport: [{ type: "releve", date: new Date().toISOString(), info, counts, ...(usage ? { tin: usage.in, tout: usage.out, tokens: usage.in + usage.out } : {}) }],
   });
 }
@@ -115,7 +116,7 @@ export function createRecheck({ api, aiReleve }) {
   function wireReset() { const r = card.querySelector("#rk-reset"); if (r) r.onclick = () => { done.clear(); open({ ids: only ? [...only] : null }); }; }
 
   const parse = (text) => parseCorrections(text, { apps: ctx().apps, openings: ops, frame, points });
-  const summary = (c) => [["liaison", "liaisons", c.links.length], ["appareil ajouté", "appareils ajoutés", c.adds.length], ["type changé", "types changés", c.types.length], ["appareil déplacé", "appareils déplacés", c.moves.length],
+  const summary = (c) => [["information relue", "informations relues", (c.readings || []).length], ["liaison", "liaisons", c.links.length], ["appareil ajouté", "appareils ajoutés", c.adds.length], ["type changé", "types changés", c.types.length], ["appareil déplacé", "appareils déplacés", c.moves.length],
     ["appareil supprimé", "appareils supprimés", c.dels.length], ["hauteur", "hauteurs", c.heights.length], ["ouverture", "ouvertures", c.opens.length], ["sens de porte", "sens de portes", c.doors.length],
     ["mur ajouté", "murs ajoutés", c.walls.length], ["introuvable", "introuvables", c.nopeKeys.length]]
     .filter(([, , n]) => n).map(([w1, w2, n]) => `<b>${n}</b> ${n > 1 ? w2 : w1}`).join(", ");
@@ -154,9 +155,9 @@ export function createRecheck({ api, aiReleve }) {
       if (c.walls.length) { api.addWalls(c.walls); redoRooms(); }
       if (c.adds.length || c.links.length) {
         const L = c.links.map((k) => ({ c: String(k.c).startsWith("add:") ? +k.c.slice(4) : k.c, l: String(k.l).startsWith("add:") ? +k.l.slice(4) : k.l }));
-        api.importDevices(c.adds.map((d) => ({ t: d.t, x: d.x, y: d.y, h: d.h })), L);
+        api.importDevices(c.adds, L);
       }
-      const upd = [...c.types.map((u) => ({ id: u.id, t: u.t })), ...c.moves.map((u) => ({ id: u.id, x: u.x, y: u.y })), ...c.heights.map((u) => ({ id: u.id, h: u.h, pt: u.pt }))];
+      const upd = [...(c.readings || []), ...c.types, ...c.moves.map((u) => ({ id: u.id, x: u.x, y: u.y })), ...c.heights.map((u) => ({ id: u.id, h: u.h, pt: u.pt }))];
       if (upd.length) api.updateApps(upd);
       if (c.dels.length) api.removeApps(c.dels.map((d) => d.id));
       c.opens.forEach((o) => { if (o.id || o.lost != null) api.placeOpening({ id: o.id, x: o.x, y: o.y, w: o.w, kind: o.kind }); });
@@ -168,7 +169,7 @@ export function createRecheck({ api, aiReleve }) {
       report = recheckReport(points, c, still);
       // jamais redemandés : introuvables, remarques reprises, ouvertures perdues posées
       const closed = [...c.nopeKeys.map((k) => k.key), ...report.rows.filter((r) => r.state === "corrigé" && /^(rem|perdue:)/.test(r.key)).map((r) => r.key)];
-      saveReleve(api, lv(), { nope: [...new Set([...(rel0.nope || []), ...closed])], rapport: [...(rel0.rapport || []), { type: "relecture", date: new Date().toISOString(), ...meta, total: report.total, ok: report.ok, pct: report.pct, rows: report.rows, errors: c.errors.slice(0, 10) }] });
+      saveReleve(api, lv(), { nope: [...new Set([...(rel0.nope || []), ...closed])], rapport: [...(rel0.rapport || []), { type: "relecture", date: new Date().toISOString(), ...meta, total: report.total, ok: report.ok, pct: report.pct, rows: report.rows, evidence: c.evidence, errors: c.errors.slice(0, 10) }] });
     });
     api.setPreview(null);
     lastReport = report;

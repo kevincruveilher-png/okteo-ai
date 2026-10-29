@@ -5,11 +5,12 @@
 //
 // Positions : en POURCENTAGE d'un cadre (x % depuis la gauche, y % depuis le haut) ; sans clé le cadre est la page
 // entière du PDF, avec clé c'est l'image envoyée. Le cadre est {x0, y0, w, h} en mètres (repère du plan).
+import { readingData, UNKNOWN_TYPE } from "./ai-data.js";
 import { parseAiJson, AI_TYPES } from "./ai-plan.js";
 
 const CMD = new Set(["INT", "VV", "BP", "CVR"]), LIGHT = new Set(["LUM", "SPOT", "APP", "VR", "VEL"]);
 export const RECHECK_KINDS = {
-  lum: "lumière sans commande", cmd: "commande sans lumière", vv: "va-et-vient seul", int2: "deux interrupteurs sur la même lumière",
+  lum: "commande non identifiée", cmd: "commande sans lumière", vv: "va-et-vient seul", int2: "deux interrupteurs sur la même lumière",
   piece: "pièce non fermée par les murs", type: "type à préciser", hors: "appareil hors des pièces", doublon: "doublon possible",
   rem: "doute signalé par l'IA", haut: "hauteur non écrite (cuisine)", ouv: "ouverture recentrée par le logiciel",
   perdue: "ouverture loin des murs", porte: "sens de porte non lu",
@@ -34,7 +35,7 @@ export function recheckPoints(ctx, { frame, done = new Set(), lv = null, radius 
   const { apps = [], issues = [], openings = [], missing = [], lost = [], remarques = "", nope = new Set(), kitchen = () => false } = ctx;
   const byId = new Map(apps.map((a) => [a.id, a])), cand = [];
   const skip = (key) => done.has(key) || nope.has(key);
-  const P = (a) => ({ id: a.id, rep: a.rep || a.t, t: a.t, room: a.room || "hors pièce", ...toPct(frame, a.x, a.y) });
+  const P = (a) => ({ ...readingData(a), id: a.id, rep: a.rep || a.t, t: a.t, room: a.room || "hors pièce", ...toPct(frame, a.x, a.y) });
   const nearOf = (a, want, ids) => apps.filter((b) => !ids.includes(b.id) && want.has(b.t) && Math.hypot(b.x - a.x, b.y - a.y) <= radius)
     .map((b) => ({ rep: b.rep || b.t, t: b.t, room: b.room, d: Math.hypot(b.x - a.x, b.y - a.y), ...toPct(frame, b.x, b.y) })).sort((p, q) => p.d - q.d).slice(0, 5);
   // 1. liaisons (contrôle du plan)
@@ -50,7 +51,7 @@ export function recheckPoints(ctx, { frame, done = new Set(), lv = null, radius 
   // 3. appareils : type vague, hors des pièces, hauteur non écrite en cuisine
   for (const a of apps) {
     if (a.aiNo) continue;
-    if ((a.t === "SC" || a.t === "PC20") && !skip("type:" + a.id)) cand.push({ key: "type:" + a.id, kind: "type", ids: [a.id], points: [P(a)], near: [] });
+    if ((a.t === "SC" || a.t === "PC20" || a.t === "PC32" || a.t === UNKNOWN_TYPE || a.aiStatus === "a_identifier" || a.aiStatus === "a_confirmer") && !skip("type:" + a.id)) cand.push({ key: "type:" + a.id, kind: "type", ids: [a.id], points: [P(a)], near: [] });
     if (a.out && !EXT_OK.has(a.t) && !skip("hors:" + a.id)) cand.push({ key: "hors:" + a.id, kind: "hors", ids: [a.id], points: [P(a)], near: [] });
     if (a.t === "PC16" && a.hNo && a.pt == null && kitchen(a.room) && !skip("haut:" + a.id)) cand.push({ key: "haut:" + a.id, kind: "haut", ids: [a.id], points: [P(a)], near: [] });
   }
@@ -73,12 +74,12 @@ export function recheckPoints(ctx, { frame, done = new Set(), lv = null, radius 
   return cand.slice(0, max);
 }
 
-const pt = (p) => `${p.rep} (${nm(p.t)}${p.room ? ", " + p.room : ""}) à x = ${p.x} %, y = ${p.y} %`;
+const pt = (p) => `${p.rep} (${nm(p.t)}${p.room ? ", " + p.room : ""}) à x = ${p.x} %, y = ${p.y} %${p.inscription ? ` ; inscription : ${JSON.stringify(p.inscription)}` : ""}${p.calibre ? ` ; calibre lu : ${p.calibre} A` : ""}${p.aiNote ? ` ; doute : ${JSON.stringify(p.aiNote)}` : ""}`;
 // question propre à chaque erreur : quoi regarder, où, ce qui est plausible
 function lineOf(P, i, zoom) {
   const [a, b] = P.points;
   const Q = {
-    lum: () => `${pt(a)} n'a pas de commande. Cherche l'interrupteur (ou le va-et-vient) qui l'allume : suis le trait de liaison ; pour un point extérieur, regarde à l'intérieur près de la porte ou de la baie la plus proche (souvent un boîtier double).`,
+    lum: () => `${pt(a)} : commande non identifiée (pas un défaut certain). Cherche l'interrupteur (ou le va-et-vient) qui l'allume : suis le trait de liaison ; pour un point extérieur, regarde à l'intérieur près de la porte ou de la baie la plus proche (souvent un boîtier double).`,
     cmd: () => `${pt(a)} ne commande aucune lumière. Quelle lumière allume-t-il ? Suis son trait de liaison.`,
     vv: () => `${pt(a)} est un va-et-vient seul sur ${b ? b.rep : "sa lumière"}. Où est le 2e va-et-vient (ou le bon type de commande) ?`,
     int2: () => `${P.points.map((p) => p.rep).join(", ")} commandent la même lumière avec un interrupteur simple : ce sont sans doute des va-et-vient, ou une liaison est fausse.`,
@@ -111,11 +112,15 @@ export function recheckPrompt(P, { mode = "paste", pass = 1, page = 1, zoom = nu
     ["portes", `[{"rep":"O4","gx":0,"gy":0,"vx":0,"vy":0}] = montant des gonds et point de l'arc du battant`, ["porte", "rem"]],
     ["murs", `[{"x1":0,"y1":0,"x2":0,"y2":0,"ep":10,"pour":"Cuisine"}] = mur qui manque (axe, épaisseur en cm)`, ["piece", "rem"]],
   ].filter(([, , k]) => k.some((x) => kinds.has(x)));
+  if (kinds.has("lum") || kinds.has("rem") || kinds.has("type")) rub.push(["lectures", `[{"rep":"AP1","inscription":"ALIM DETECTEUR","aiStatus":"a_confirmer","aiOrigin":"interpretation","commande":{"mode":"detecteur","detecteur":"integre","alimentation":"permanente","preuve":"inscription et symbole réellement visibles"}}] = observations et interprétation ; qty = quantité ou null, calibre = ampères lus, aiGroup = regroupement. Sans preuve visible, commande reste inconnue.`]);
   const form = `{${rub.map(([n]) => `"${n}":[]`).join(",")}${rub.length ? "," : ""}"introuvable":[{"rep":"L7","pourquoi":"…"}],"remarques":""}`;
   return `Relecture ciblée${pass > 1 ? ` (passe ${pass})` : ""} d'un plan électrique de maison déjà relevé. Le contrôle du logiciel signale ${P.length} point${P.length > 1 ? "s" : ""} à revoir.
 Positions en POURCENTAGE de ${where} : x depuis le bord gauche, y depuis le bord haut (0 à 100), avec une décimale.
 Repères : I = interrupteur, V = va-et-vient, B = poussoir, L = point lumineux, S = spot, AP = applique, P = prise, O = ouverture (comme dans le logiciel, pas forcément comme sur le plan).
 Ignore les annotations ajoutées à la main (écritures manuscrites, surlignages, traits de feutre).
+Préserve toute information visible : symbole inconnu = INCONNU, calibre 32 A = PC32 si l'usage n'est pas établi, jamais PC20. Ne devine pas de quantité ou de position. Ne transforme pas un calibre ni une inscription pour faire entrer l'appareil dans une catégorie connue.
+
+${kinds.has("lum") ? `Vérifie les détecteurs intégrés/séparés. Un détecteur inconnu reste INCONNU ; conserve ses liaisons visibles en remarques. Absence de liaison ≠ preuve de détecteur ou d’alimentation permanente. Renseigne commande dans lectures seulement sur preuve, sinon à confirmer. Cherche aussi les commandes éloignées sur le plan entier. Ne décide pas le câblage.` : ""}
 
 ${P.map((x, i) => lineOf(x, i, zoom)).join("\n")}
 
@@ -130,19 +135,24 @@ ${form}`;
 // réponse → corrections (en mètres) + ce qui a été fait pour chaque point (rapport)
 export function parseCorrections(text, { apps, openings = [], frame, points = [] }) {
   const raw = typeof text === "string" ? parseAiJson(text) : text || {};
+  for (const k of ["ajouts", "liaisons", "types", "deplacer", "supprimer", "hauteurs", "ouvertures", "portes", "murs", "introuvable", "lectures"])
+    if (k in raw && !Array.isArray(raw[k])) throw new Error(`Corrections ${k} : une liste est attendue.`);
   const U = (v) => String(v == null ? "" : v).trim().toUpperCase();
   const byRep = new Map(), opRep = new Map(), errors = [];
   apps.forEach((a) => { if (a.rep) byRep.set(U(a.rep), a); });
   openings.forEach((o) => opRep.set(U(o.rep), o));
-  const pct = (x, y) => { x = +x; y = +y; return x >= 0 && x <= 100 && y >= 0 && y <= 100 ? fromPct(frame, x, y) : null; };
+  const pct = (x, y) => { if (x == null || y == null || x === "" || y === "") return null; x = +x; y = +y; return x >= 0 && x <= 100 && y >= 0 && y <= 100 ? fromPct(frame, x, y) : null; };
   const app = (rep, what) => { const a = byRep.get(U(rep)); if (!a) errors.push(`${what} ${esc0(rep)} : repère inconnu`); return a || null; };
   // ajouts (tout type de la liste du relevé)
   const adds = [];
   (raw.ajouts || []).forEach((d) => {
-    const t = U(d.t), p = pct(d.x, d.y);
-    if (!AI_TYPES[t] || !p) { errors.push(`ajout ignoré (${esc0(d.t)} ${d.x}/${d.y})`); return; }
+    const original = U(d.t), p = pct(d.x, d.y);
+    if (!p) throw new Error("Ajout sans position valide : aucune correction appliquée.");
+    const t = original === "PC20" && readingData(d).calibre === 32 ? "PC32" : AI_TYPES[original] ? original : UNKNOWN_TYPE;
+    const data = readingData(d);
+    if (t === UNKNOWN_TYPE) { data.aiType = original; data.aiStatus = "a_identifier"; }
     const h = +d.h;
-    adds.push({ t, ...p, ...(h > 0 && h <= 300 ? { h: Math.round(h) } : {}), pour: d.pour ? U(d.pour) : null, rep: d.rep ? U(d.rep) : null });
+    adds.push({ t, ...p, ...data, ...(h > 0 && h <= 300 ? { h: Math.round(h) } : {}), pour: d.pour ? U(d.pour) : null, rep: d.rep ? U(d.rep) : null });
   });
   const ref = (rep) => { const R = U(rep); if (byRep.has(R)) return byRep.get(R).id; const i = adds.findIndex((a) => a.rep === R); return i >= 0 ? "add:" + i : null; };
   const role = (k) => { if (k.startsWith("add:")) return CMD.has(adds[+k.slice(4)].t) ? "c" : LIGHT.has(adds[+k.slice(4)].t) ? "l" : null; const a = apps.find((x) => x.id === k); return a && CMD.has(a.t) ? "c" : a && LIGHT.has(a.t) ? "l" : null; };
@@ -162,8 +172,24 @@ export function parseCorrections(text, { apps, openings = [], frame, points = []
     if (CMD.has(d.t) && LIGHT.has(p.t)) links.push({ c: "add:" + i, l: p.id, txt: `${d.t} ajouté et relié à ${d.pour}` });
     else if (LIGHT.has(d.t) && CMD.has(p.t)) links.push({ c: p.id, l: "add:" + i, txt: `${d.t} ajouté et relié à ${d.pour}` });
   });
-  const types = [], moves = [], dels = [], heights = [], opens = [], doors = [], walls = [];
-  (raw.types || []).forEach((d) => { const a = app(d.rep, "type"), t = U(d.t); if (!a) return; if (!AI_TYPES[t]) { errors.push(`type inconnu ${esc0(d.t)}`); return; } if (t !== a.t) types.push({ id: a.id, t, txt: `${U(d.rep)} : ${a.t} → ${t}` }); });
+  const types = [], moves = [], dels = [], heights = [], opens = [], doors = [], walls = [], readings = [];
+  (raw.types || []).forEach((d) => {
+    const a = app(d.rep, "type"); if (!a) return;
+    const original = U(d.t), t = original === "PC20" && (a.calibre === 32 || readingData(d).calibre === 32) ? "PC32" : AI_TYPES[original] ? original : UNKNOWN_TYPE;
+    const data = readingData(d);
+    if (a.calibre === 32 && data.calibre && data.calibre !== 32) { errors.push(`${U(d.rep)} : calibre 32 A conservé ; contradiction à vérifier`); delete data.calibre; data.aiStatus = "a_confirmer"; }
+    if (t === UNKNOWN_TYPE) { data.aiType = original; data.aiStatus = "a_identifier"; }
+    else if (a.t === UNKNOWN_TYPE) data.aiStatus ||= "lu";
+    if (t !== a.t || Object.keys(data).length) types.push({ id: a.id, t, ...data, txt: `${U(d.rep)} : ${a.t} → ${t}` });
+  });
+  (raw.lectures || []).forEach((d) => {
+    const a = app(d.rep, "lecture"); if (!a) return;
+    const data = readingData(d);
+    if (data.calibre && a.calibre === 32 && data.calibre !== 32) { errors.push(`${U(d.rep)} : calibre 32 A conservé ; contradiction à vérifier`); delete data.calibre; data.aiStatus = "a_confirmer"; }
+    if (data.commande && data.commande.mode === "inconnue") data.aiStatus = "a_confirmer";
+    // Une simple qualification ne crée ni liaison ni raccordement (MAJ 4 distincte).
+    if (Object.keys(data).length) readings.push({ id: a.id, ...data, ...(data.calibre === 32 && a.t === "PC20" ? { t: "PC32" } : {}), txt: `${U(d.rep)} : informations relues${data.commande ? ` (${data.commande.mode}, ${data.commande.alimentation})` : ""}` });
+  });
   (raw.deplacer || []).forEach((d) => { const a = app(d.rep, "déplacement"), p = pct(d.x, d.y); if (a && p) moves.push({ id: a.id, ...p, txt: `${U(d.rep)} déplacé` }); });
   (raw.supprimer || []).forEach((d) => { const r = d && typeof d === "object" ? d.rep : d, a = app(r, "suppression"); if (a) dels.push({ id: a.id, why: String((d && d.pourquoi) || "").slice(0, 160), txt: `${U(r)} supprimé${d && d.pourquoi ? " (" + String(d.pourquoi).slice(0, 80) + ")" : ""}` }); });
   (raw.hauteurs || []).forEach((d) => { const a = app(d.rep, "hauteur"); if (!a) return; const h = +d.h, u = { id: a.id }; if (h > 0 && h <= 300) u.h = Math.round(h); if (d.pt === true || d.pt === false) u.pt = d.pt; if (u.h || "pt" in u) heights.push({ ...u, txt: `${U(d.rep)} : ${u.h ? u.h + " cm" : "hauteur inchangée"}${u.pt === true ? ", plan de travail" : u.pt === false ? ", pas de plan de travail" : ""}` }); });
@@ -188,16 +214,16 @@ export function parseCorrections(text, { apps, openings = [], frame, points = []
   const hit = (pred, txt) => points.forEach((P) => { if (pred(P)) acts.get(P.key).push(txt); });
   links.forEach((k) => hit((P) => P.ids.includes(idOfAdd(k.c)) || P.ids.includes(idOfAdd(k.l)), k.txt));
   adds.forEach((d, i) => { if (d.pour && !links.some((k) => k.c === "add:" + i || k.l === "add:" + i)) hit((P) => P.points.some((p) => U(p.rep) === d.pour), `${d.t} ajouté pour ${d.pour}`); });
-  [...types, ...moves, ...dels, ...heights].forEach((u) => hit((P) => P.ids.includes(u.id), u.txt));
+  [...types, ...moves, ...dels, ...heights, ...readings].forEach((u) => hit((P) => P.ids.includes(u.id), u.txt));
   opens.forEach((u) => hit((P) => (u.id && P.ids.includes(u.id)) || (u.lost != null && P.kind === "perdue" && P.points[0].lost === u.lost), u.txt));
   doors.forEach((u) => hit((P) => P.ids.includes(u.id), u.txt));
   walls.forEach((u) => hit((P) => P.kind === "piece" && (!u.pour || U(P.points[0].rep) === U(u.pour)), u.txt));
-  const nCorr = links.length + adds.length + types.length + moves.length + dels.length + heights.length + opens.length + doors.length + walls.length;
+  const nCorr = readings.length + links.length + adds.length + types.length + moves.length + dels.length + heights.length + opens.length + doors.length + walls.length;
   if (String(raw.remarques || "").trim() || nCorr) hit((P) => P.kind === "rem", "doutes repris");
   const nopeOf = new Map(nopeKeys.map((n) => [n.key, n.why]));
   const silent = points.filter((P) => !acts.get(P.key).length && !nopeOf.has(P.key)).map((P) => P.key);
   const count = nCorr;
-  return { links, adds, types, moves, dels, heights, opens, doors, walls, nope, nopeKeys, acts, silent, errors, count, remarques: String(raw.remarques || "").slice(0, 600) };
+  return { readings, evidence: JSON.parse(JSON.stringify(raw)), links, adds, types, moves, dels, heights, opens, doors, walls, nope, nopeKeys, acts, silent, errors, count, remarques: String(raw.remarques || "").slice(0, 600) };
 }
 const esc0 = (v) => String(v == null ? "" : v).slice(0, 20);
 

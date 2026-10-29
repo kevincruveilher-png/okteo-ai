@@ -347,3 +347,17 @@ Claude lit automatiquement `CLAUDE.md` à l'ouverture du dossier : il sait ce qu
 - Le dessin est sauvegardé dans le navigateur (localStorage). Il est propre à chaque adresse :
   le dessin fait dans l'artefact Claude n'apparaît pas ici. Utiliser **Exporter** pour garder un fichier JSON.
 - Conseil : mettre le dossier sous Git (VS Code → icône « Contrôle de code source » → Initialiser) pour pouvoir revenir en arrière.
+
+### Bibliothèque de symboles (première intégration)
+
+Onglet **Symboles** : catalogue compact des appareils actuels, recherche, filtres, règles liées et bouton **Insérer sur le plan**. **+ Symbole BE** conserve un dessin original et sa source ; sans correspondance explicite, sa pose reste bloquée. Une correspondance manuelle ne forme pas la reconnaissance IA.
+
+Les fiches se modifient sans code pour l’instant et se conservent sur le navigateur utilisé ; **Exporter** produit un JSON avec les images et l’historique. Le partage multi-postes, le réimport et le verrouillage par code sont à développer.
+
+Vérifications : `npm run test:symboles` ; parcours Chromium : `npm run test:symboles:navigateur`.
+
+### v68 — relevé IA et symboles
+
+Les quantités de blocs, calibres, inscriptions et symboles inconnus sont conservés et consultables dans les propriétés. Une prise 32 A n'est plus regroupée avec PC20. Le prompt à copier inclut le rôle dessinateur ; les détecteurs sont interprétés dans la relecture ciblée, sans inventer d'interrupteur. La bibliothèque de symboles est intégrée dans l'onglet **Symboles**, avec recherche, liens vers les règles, variantes BE et insertion des types connus. Les fiches modifiées restent propres au navigateur.
+
+Périmètre, données et limites : [Relevé IA v68](docs/releve-ia-v68.md). Tests ciblés : `npm run test:lecture` et `npm run test:lecture:navigateur`.

@@ -2,6 +2,7 @@
 // qui renvoie murs, ouvertures, pièces, appareils et liaisons en pixels de l'image. Ils sont convertis en mètres,
 // remis au propre (src/walls/ai-plan.js) et montrés en aperçu orange PAR-DESSUS le dessin actuel, pour comparer
 // avec le relevé sans IA. On coche ce qu'on garde (murs / pièces / appareils) : un seul Ctrl+Z annule l'ajout.
+import { AI_SYSTEM } from "../walls/ai-data.js";
 import { chat, PROVIDERS } from "./ai.js";
 import { settings } from "./settings.js";
 import { aiPrompt, pastePrompt, parseAiJson, aiToPlan, MIN_REF_W } from "../walls/ai-plan.js";
@@ -10,7 +11,7 @@ import { autoScale } from "./pdf-page.js";
 import { esc } from "./util.js";
 import { recordReleve } from "./ai-recheck-ui.js";
 
-const SYSTEM = "Tu es dessinateur au bureau d'études électricité d'un fabricant de pieuvres électriques pour maisons individuelles. Tu relèves des plans avec précision et tu réponds uniquement en JSON.";
+const SYSTEM = AI_SYSTEM;
 
 // image du fond, rognée aux bords du dessin (marges blanches retirées) et réduite à maxPx de grand côté
 async function fondImage(api, { maxPx = 1568, maxB64 = 0 } = {}) {
@@ -90,6 +91,7 @@ export function createAiReleve({ api, openParams }) {
       ${row("walls", "Murs", plan.walls.length, `${plan.openings.length} ouvertures (${nP} portes${plan.stats.portesOrientees ? `, dont ${plan.stats.portesOrientees} avec leur sens` : ""}, ${plan.openings.length - nP - nG} fenêtres${nG ? `, ${nG} porte(s) de garage` : ""})`, S.segs.filter((s) => !s.virt).length)}
       ${row("rooms", "Pièces", keep.rooms ? rooms.length : roomsFor(keep.walls).length, keep.rooms && rooms.length ? esc(rooms.map((r) => r.name).join(", ")) : plan.pieces.length && !rooms.length && keep.rooms ? "les murs ne ferment aucune pièce" : "", S.rooms.length)}
       ${row("devices", "Appareils", plan.devices.length, `${plan.links.length} liaisons`, S.app.length)}
+      ${plan.devices.some((d) => d.t === "INCONNU" || d.qty != null || d.calibre || d.inscription) ? `<details class="sm"><summary>Informations conservées (quantités, calibres et symboles à préciser)</summary><ul>${plan.devices.filter((d) => d.t === "INCONNU" || d.qty != null || d.calibre || d.inscription).map((d) => `<li>${esc(d.t)}${d.aiType ? ` · type reçu ${esc(d.aiType)}` : ""}${d.qty != null ? ` · ${d.qty} prise(s) physique(s)` : ""}${d.calibre ? ` · ${d.calibre} A` : ""}${d.inscription ? ` · ${esc(d.inscription)}` : ""}</li>`).join("")}</ul><p>Les quantités de blocs sont conservées ; la détermination complète des mécanismes et pontages appartient à une prochaine étape.</p></details>` : ""}
       ${plan.remarques ? `<p class="mut sm">Remarque de l'IA : ${esc(plan.remarques)}</p>` : ""}
       ${plan.stats.ouverturesPerdues ? `<p class="warn sm">⚠ ${plan.stats.ouverturesPerdues} ouverture(s) loin de tout mur, ignorée(s).</p>` : ""}
       ${plan.stats.ouverturesAjustees ? `<p class="mut sm">${plan.stats.ouverturesAjustees} ouverture(s) recentrée(s) ou rétrécie(s) pour tenir sur leur morceau de mur : vérifiez-les sur le plan.</p>` : ""}
@@ -125,7 +127,8 @@ export function createAiReleve({ api, openParams }) {
     lastText = String(text || "");
     let raw;
     try { raw = parseAiJson(lastText); } catch (e) { message("La réponse de l'IA n'est pas exploitable : " + esc(e.message) + " Cliquez « Refaire » pour redemander.", [{ label: "Refaire", run: open }, { label: "Fermer", run: () => {} }]); return null; }
-    plan = aiToPlan(raw, map, { defEp: api.state.wallEp });
+    try { plan = aiToPlan(raw, map, { defEp: api.state.wallEp }); }
+    catch (e) { api.setPreview(null); plan = null; message("Import annulé : " + esc(e.message)); return null; }
     meta = info;
     keep = { walls: plan.walls.length > 0, rooms: plan.pieces.length > 0 || plan.walls.length > 0, devices: plan.devices.length > 0 };
     preview(); render();

@@ -1,5 +1,6 @@
 // Oktéo AI — cœur : Panneau de droite : propriétés de l'objet sélectionné, calques.
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
+import { readingData } from "../walls/ai-data.js";
 import { K } from "./k.js";
 import { CH, TYPES, dist, layers, node, nodeById, segById, segDir, segLen, state, uidS } from "./model.js";
 import { markDirty, save, snapshot } from "./persist.js";
@@ -412,8 +413,14 @@ export function showSide() {
     const a = state.app.find(x => x.id === K.sel.id);
     const rm = repMap();
     const m = a.seg ? wallMeasure(a.seg, a.x, a.y) : null;
+    const rd = readingData(a), safe = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const reading = Object.keys(rd).length ? `<details class="ai-reading"><summary>Informations relevées sur le plan</summary>${[
+      ["Quantité physique", a.qty === null ? "à confirmer" : a.qty], ["Calibre lu", a.calibre ? a.calibre + " A" : null],
+      ["Inscription", a.inscription], ["Regroupement", a.aiGroup], ["Type reçu", a.aiType], ["État", a.aiStatus], ["Origine", a.aiOrigin], ["À préciser", a.aiNote],
+      ["Commande relue", a.commande ? `${a.commande.mode} · alimentation ${a.commande.alimentation} · ${a.commande.preuve || "à confirmer"}` : null],
+    ].filter(([,v]) => v != null && v !== "").map(([k,v]) => `<p><b>${k}</b> : ${safe(v)}</p>`).join("")}</details>` : "";
     b.innerHTML = `<h3>Appareil · <span style="color:var(--accent2)">${rm[a.id] || ""}</span></h3>
-     <div class="prop">
+     ${reading}<div class="prop">
       <div class="field full"><label>Type</label><select id="f_t">${Object.keys(TYPES).map(t => `<option value="${t}"${t === a.t ? " selected" : ""}>${TYPES[t].n}</option>`).join("")}</select></div>
       ${m ? `<div class="field"><label>Depuis l'angle A <span class="u">cm</span></label><input id="f_dA" type="number" step="1" value="${Math.round(m.dA * 100)}"></div>
       <div class="field"><label>Depuis l'angle B <span class="u">cm</span></label><input id="f_dB" type="number" step="1" value="${Math.round(m.dB * 100)}"></div>` : ""}
@@ -448,7 +455,9 @@ export function showSide() {
     }
     b.querySelector("#f_t").onchange = e => {
       snapshot();
+      const wasUnknown = a.t === "INCONNU";
       a.t = e.target.value;
+      if (wasUnknown && a.t !== "INCONNU") { a.aiStatus = a.qty === null ? "a_confirmer" : "lu"; a.aiOrigin = "interpretation"; }
       if (a.h == null && TYPES[a.t].h != null) a.h = TYPES[a.t].h;
       markDirty();
       re();

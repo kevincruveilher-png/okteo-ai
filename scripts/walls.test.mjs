@@ -138,8 +138,8 @@ console.log("Relevé par l'IA : remise au propre de la réponse");
   const axisOk = P.walls.every((w) => { const A = P.nodes[w.a], B = P.nodes[w.b]; return Math.abs(A.x - B.x) < 1e-9 || Math.abs(A.y - B.y) < 1e-9; });
   check("réponse lue malgré le texte autour ; murs redressés, sommets fusionnés, jonctions en T coupées : 2 pièces fermées",
     P.walls.length === 7 && P.nodes.length === 6 && P.stats.coupes === 2 && axisOk && R.length === 2 && R.some((r) => r.name === "Séjour {1}"), JSON.stringify({ w: P.walls.length, n: P.nodes.length, s: P.stats, rooms: R.map((r) => r.name) }));
-  check("ouverture loin des murs ignorée, type inconnu ignoré, liaison remise dans le bon sens (commande → lumière)",
-    P.openings.length === 1 && P.openings[0].kind === "porte" && P.stats.ouverturesPerdues === 1 && P.devices.length === 2 && P.links.length === 1 && P.devices[P.links[0].c].t === "INT", JSON.stringify({ o: P.openings, d: P.devices, l: P.links }));
+  check("ouverture loin des murs ignorée, type inconnu conservé, liaison remise dans le bon sens (commande → lumière)",
+    P.openings.length === 1 && P.openings[0].kind === "porte" && P.stats.ouverturesPerdues === 1 && P.devices.length === 3 && P.devices[2].t === "INCONNU" && P.links.length === 1 && P.devices[P.links[0].c].t === "INT", JSON.stringify({ o: P.openings, d: P.devices, l: P.links }));
 }
 {
   // v55.2 : réponse recopiée avec des guillemets typographiques ; porte coupée par une jonction en T (mur de 60 cm)

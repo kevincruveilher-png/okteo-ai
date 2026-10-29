@@ -13,7 +13,8 @@ import { circuitMap } from "./render.js";
 
 export const CHECK_KINDS = {
   cmd: "Commande sans lumière",
-  lum: "Lumière sans commande",
+  lum: "Commande non identifiée",
+  lecture: "Information du plan à préciser",
   vv: "Va-et-vient incomplet",
   int2: "Deux interrupteurs sur la même lumière",
   nobox: "Appareil dans aucune boîte",
@@ -46,6 +47,7 @@ export function linkTables(idx = appIndex()) {
 export function controlIssues() {
   const idx = appIndex(), { lights, cmds } = linkTables(idx), out = [];
   for (const [id, { lv, a }] of idx) {
+    if (a.t === "INCONNU" || a.aiStatus === "a_identifier" || a.aiStatus === "a_confirmer") out.push({ kind: "lecture", ids: [id], lv });
     const r = linkRole(a.t);
     if (r === "c" && !lights.has(id)) out.push({ kind: "cmd", ids: [id], lv });
     // un volet sans commande filaire est un volet connecté (micromodule, R-096) : normal

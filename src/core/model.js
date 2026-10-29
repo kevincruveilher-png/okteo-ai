@@ -73,6 +73,7 @@ export const layers = {
 };
 
 export const TYPES = {
+  INCONNU: { n: "Symbole à identifier", h: null, r: "INC" },
   PC16: {
     n: "Prise 16 A",
     h: 30,

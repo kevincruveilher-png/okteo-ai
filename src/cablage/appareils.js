@@ -21,6 +21,7 @@ export const sansCvr = (items, S) => (S && S.voletsConnectes ? items.filter((a) 
 export const GROUPES = ["Chauffage et ventilation", "Cuisine et spécialisés", "Extérieur", "Volets roulants", "Courant faible", "Terre et attentes"];
 
 export const APPAREILS = {
+  PC32: { n: "Prise / sortie 32 A (usage à préciser)", r: "P", h: 30, lab: "32", groupe: "Cuisine et spécialisés", mural: true, racc: "direct", lignes: [{ fils: "6 R+B+V/J", gaine: 20 }], circuit: { section: 6, prot: 32 } },
   RAD: { n: "Radiateur (convecteur, fil pilote)", r: "C", h: 30, lab: "RAD", groupe: "Chauffage et ventilation", mural: true, racc: "direct", lignes: [{ fils: "1,5 B+N+M+V/J", gaine: 16 }], circuit: { section: 1.5, prot: 16 } },
   SS: { n: "Sèche-serviette", r: "SS", h: 30, lab: "SS", groupe: "Chauffage et ventilation", mural: true, racc: "direct", lignes: [{ fils: "1,5 BF+M+V/J", gaine: 16 }], circuit: { section: 1.5, prot: 10 } },
   VMCG: { n: "Caisson VMC", r: "VMC", h: null, lab: "VMC", groupe: "Chauffage et ventilation", racc: "direct", lignes: [{ fils: "1,5 R+B+V/J", gaine: 16 }], circuit: { section: 1.5, prot: 2 } },
