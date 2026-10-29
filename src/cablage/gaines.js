@@ -28,7 +28,7 @@
 // fonction (ex. marron repéré orange), âme en trop isolée.
 import { gaineFor, packAlim } from "./gaine.js";
 import { FACES, portLayout } from "./boites.js";
-import { permanentDetector } from "./detecteur.js";
+import { permanentDetector, manuallyControlledLights } from "./detecteur.js";
 import { APPAREILS, lignesOf, parseFils, gaineLabel, raccOf, isFaible, sansCvr } from "./appareils.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
@@ -110,6 +110,7 @@ const down = (h, S) => S.traversee + (h == null ? 0 : Math.max(0, S.hsp - h / 10
 export function computeWiring({ items: items0, links, circuits, boxes, levels = [], S }) {
   const items = sansCvr(items0, S);
   const byId = new Map(items.map((a) => [a.id, a]));
+  const manualLights = manuallyControlledLights(items, links);
   const circOf = new Map(); circuits.forEach((c) => c.apps.forEach((id) => circOf.set(id, c)));
   const lvIdx = (lv) => Math.max(0, levels.indexOf(lv));
   const tab = items.find((a) => a.t === "TAB") || null;
@@ -185,11 +186,11 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
       const cOf = (a) => circOf.get(a.id) || c;
       if (!c) continue;
       const lab = lights.map((a) => a.rep).join(" ") || "—";
-      if (!cmds.length && lights.length && lights.every(permanentDetector)) {
+      if (!cmds.length && lights.length && lights.every(a=>permanentDetector(a) && !manualLights.has(a.id))) {
         lights.forEach(l => role.set(l.id, [["phase","P"+cOf(l).id],["neutre","N"+cOf(l).id],["terre","T"]]));
         continue;
       }
-      if (cmds.length && lights.some(permanentDetector)) doubt("R-070", `${b.n} : ${lab}, détecteur intégré déclaré mais commande manuelle liée ; fonctionnement à confirmer`, b.n, true);
+      if (lights.some(a=>permanentDetector(a) && manualLights.has(a.id))) doubt("R-070", `${b.n} : ${lab}, détecteur intégré déclaré mais commande manuelle liée ; fonctionnement à confirmer`, b.n, true);
       if (!cmds.length) { issues.push(`${b.n} : ${lab} sans commande (retour lampe non raccordé)`); }
       if (!lights.length) { cmds.forEach((k) => role.set(k.id, [["phase", "P" + cOf(k).id], ["retour", null]])); issues.push(`${b.n} : ${cmds.map((k) => k.rep).join(" ")} ne commande aucune lumière`); continue; }
       const R = net("R" + gi, `Retour lampe ${lab}`, "retour").key;

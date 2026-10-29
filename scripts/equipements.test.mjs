@@ -1,7 +1,7 @@
 // MAJ 3/4 : propositions métier distinctes des observations et alimentation détecteur justifiée.
 import assert from 'node:assert/strict';
 import {proposeEquipements, implantationPending} from '../src/cablage/equipements.js';
-import {permanentDetector} from '../src/cablage/detecteur.js';
+import {permanentDetector, manuallyControlledLights} from '../src/cablage/detecteur.js';
 import {readingData} from '../src/walls/ai-data.js';
 import {computeCircuits} from '../src/cablage/circuits.js';
 import {computeWiring} from '../src/cablage/gaines.js';
@@ -24,8 +24,10 @@ const lamp={id:'l',t:'APP',lv:'rdc',x:3,y:2,h:180,rep:'AP1',commande};
 function wiring(a,links=[],other=[]){const items=[tab,a,...other],circuits=computeCircuits(items,links,S);return computeWiring({items,links,circuits,boxes:[{id:'b',n:'LI01',lv:'rdc',x:2,y:2,apps:[a.id,...other.map(a=>a.id)]}],levels:['rdc'],S});}
 test('Détecteur intégré : preuve et alimentation permanente toutes nécessaires',()=>{assert.ok(permanentDetector(lamp));for(const c of [{...commande,preuve:''},{...commande,detecteur:'separe'},{...commande,alimentation:'inconnue'},{...commande,mode:'manuelle'}])assert.ok(!permanentDetector({...lamp,commande:c}));assert.ok(!permanentDetector({...lamp,t:'PC16'}));});
 test('Applique confirmée : phase/neutre/terre 1,5 mm², même phase alimentation, sans retour flottant',()=>{const w=wiring(lamp),b=w.boxes[0],g=b.gaines.find(g=>g.appIds?.includes('l')||g.id==='l');assert.ok(g,JSON.stringify(b.gaines));assert.deepEqual(g.wires.map(x=>x.fn).sort(),['neutre','phase','terre']);assert.ok(g.wires.every(x=>x.section===1.5));const phase=b.nets.find(n=>n.fn==='phase');assert.ok(phase.wires.length>=2);assert.ok(!b.nets.some(n=>n.fn==='retour'));assert.ok(!w.issues.some(t=>/sans commande/.test(t)));});
+test('Applique extérieure : câble 3G1,5, phase sur même borne que alimentation',()=>{const w=wiring({...lamp,ext:true}),b=w.boxes[0],g=b.gaines.find(g=>g.appId==='l');assert.equal(g.cable,'3G1,5');const phase=g.wires.find(f=>f.fn==='phase'),alim=b.gaines.find(g=>g.kind==='alim');assert.equal(phase.net,alim.wires.find(f=>f.fn==='phase').net);assert.equal(phase.n,alim.wires.find(f=>f.fn==='phase').n);assert.equal(phase.core,'marron');});
 test('Détecteur séparé ou non prouvé reste une commande à résoudre',()=>{for(const commande of [{mode:'detecteur',detecteur:'separe',alimentation:'permanente',preuve:'DET'},null]){const w=wiring({...lamp,commande});assert.ok(w.issues.some(t=>/sans commande/.test(t)));assert.ok(w.boxes[0].nets.some(n=>n.fn==='retour'));}});
 test('Commande manuelle contradictoire : doute bloquant et aucun raccordement permanent silencieux',()=>{const w=wiring(lamp,[{c:'i',l:'l'}],[{id:'i',t:'INT',lv:'rdc',x:1,y:1,rep:'I1'}]);assert.ok(w.doutes.some(d=>d.bloquant&&/détecteur intégré/.test(d.text)));assert.ok(w.boxes[0].nets.some(n=>n.fn==='retour'));});
+test('Contradiction transmise par chaîne ou autre boîte : alimentation permanente interdite',()=>{const items=[tab,lamp,{id:'l2',t:'LUM',rep:'L2',lv:'rdc',x:4,y:2},{id:'i',t:'INT',rep:'I1',lv:'rdc',x:1,y:1}],links=[{c:'i',l:'l2'},{c:'l2',l:'l'}];assert.ok(manuallyControlledLights(items,links).has('l'));const w=computeWiring({items,links,circuits:computeCircuits(items,links,S),boxes:[{id:'b',n:'LI01',lv:'rdc',x:2,y:2,apps:['l']}],levels:['rdc'],S});assert.ok(w.doutes.some(d=>d.bloquant&&/détecteur intégré/.test(d.text)));assert.ok(w.boxes[0].nets.some(n=>n.fn==='retour'));});
 console.log(`${n} vérifications équipements/détecteurs réussies.`);
 
 if(process.argv.includes('--browser')){
@@ -57,6 +59,14 @@ if(process.argv.includes('--browser')){
   assert.ok(await page.evaluate(id=>okteo.control.some(c=>c.kind==='lum'&&c.ids.includes(id)),id));
   await page.evaluate(({id,commande})=>okteo.updateApps([{id,commande}]),{id,commande});assert.ok(!await page.evaluate(id=>okteo.control.some(c=>c.kind==='lum'&&c.ids.includes(id)),id));
   await page.evaluate(({commande})=>okteo.importDevices([{t:'INT',x:0,y:0},{t:'APP',x:2,y:2,commande}],[{c:0,l:1}],{replace:true}),{commande});assert.ok(await page.evaluate(()=>okteo.control.some(c=>c.kind==='detecteur')));
+  const cab=await page.evaluate(async()=>{
+    const {cabler}=await import('/src/ext/etude-ui.js'),{computeCircuits}=await import('/src/cablage/circuits.js'),{getCab,setCab}=await import('/src/cablage/settings.js'),R=await import('/src/cablage/regles.js');
+    setCab({circuitsParBoite:false});okteo.importDevices([{t:'TV',x:1,y:1}],[],{replace:true});
+    const c=computeCircuits(okteo.allApps(),[],getCab())[0];c.id='manual9';c.note='Conservé par le BE';okteo.setCab({circuits:[c],boxes:[]});
+    const before=JSON.stringify(okteo.packData()),J=R.getJournal();R.apply(J,R.propose(J,{op:'modifier',id:'R-074',patch:{certitude:'inconnue',si_doute:'bloquer'},motif:'essai MAJ3'}));
+    const blocked=cabler(okteo),same=JSON.stringify(okteo.packData())===before;R.resetJournal();
+    const result=cabler(okteo);return{blocked:!blocked.ok,same,ok:result.ok,count:okteo.allApps().length,manual:okteo.cab.circuits.find(c=>c.id==='manual9'),circuits:okteo.cab.circuits.length};
+  });assert.ok(cab.blocked&&cab.same&&cab.ok);assert.equal(cab.count,7);assert.equal(cab.manual.note,'Conservé par le BE');assert.ok(cab.circuits>=6);await page.keyboard.press('Control+z');assert.equal(await page.evaluate(()=>okteo.allApps().length),1);
   assert.deepEqual(errors,[]);console.log('Parcours navigateur MAJ 3/4 réussis : ajout sans doublon, halos, confirmation, annulation, export, réouverture, multi-niveaux et détecteurs.');
  }finally{await browser?.close();await server.close();}
 }
