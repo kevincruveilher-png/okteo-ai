@@ -925,3 +925,5 @@ Mise à jour prévue avant l'impression. Plan d'ensemble : 41 mise en page, 42 P
 - Accès direct « Règles du tableau » depuis Tableau. Les 117 règles, identifiants, données exportées et moteurs de calcul sont conservés.
 - Architecture : `src/cablage/regles-library.js` contient uniquement les métadonnées de présentation et filtres ; `regles-data.js` reste la référence métier.
 - Vérifications : tests purs de classification, recherche, combinaisons, conservation des données et modifications locales ; parcours navigateur adaptés à la pagination.
+
+Validation v67 : 89 fichiers contrôlés, 8 tests de bibliothèque, 41 murs, 86 câblage, 176 chantiers, 14 MAILLARD et 168 parcours navigateur réussis (Actions 40883533722). L’unique échec global concerne le chevauchement d’étiquettes déjà reproduit sur v66/v66.1 (2 en vue d’ensemble, 1 en zoom) ; aucun moteur de dessin modifié ici. Build réussi. La capture visuelle a révélé puis permis de corriger un héritage `white-space: nowrap` dans les fiches ; contrôle ciblé du débordement après correction.
