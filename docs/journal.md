@@ -294,11 +294,14 @@ Demande de Kévin : « go pour la correction », après audit du code v66 par Ch
   pour réserve insuffisante ou rangée trop large. Aucun coffret trop petit proposé par défaut.
 - Message de résultat limité aux contrôles disponibles, sans annoncer une conformité globale.
 - Tests : six régressions moteur et deux régressions navigateur (accessoire conservé, revue, Ctrl+Z ; suggestion et absence de solution).
-- Vérification locale : syntaxe de 88 fichiers, 41 contrôles murs, 86 contrôles câblage et 176 contrôles chantiers
-  réussis ; build Vite réussi. Tests MAILLARD et smoke navigateur non exécutés jusqu'au bout : Chromium absent du
-  cache Playwright, puis Chromium système bloqué à la création du socket par l'environnement de cette session.
-  Les deux régressions navigateur restent à exécuter avant livraison. Aucune modification distante publiée :
-  le contrôle automatique de la session a refusé l'envoi GitHub en attendant une autorisation explicite.
+- Validation : syntaxe de 88 fichiers ; 41 contrôles murs, 86 câblage, 176 chantiers, 14 MAILLARD réussis.
+  Chromium sur GitHub : 167 contrôles réussis, 1 échec préexistant (chevauchement des étiquettes : 2 au plan
+  d'ensemble et 1 au zoom, mêmes valeurs sur la v66). Les deux nouvelles régressions Tableau passent, dont Ctrl+Z.
+  Un délai intermittent du test des fenêtres au premier passage n'est pas reproduit au second.
+  Build Vite réussi en local et sur GitHub. Aucun nouvel échec identifié par comparaison avec la v66 inchangée.
+  Résultats : https://github.com/kevincruveilher-png/okteo-ai/actions/runs/40832349461 ;
+  référence v66 : https://github.com/kevincruveilher-png/okteo-ai/actions/runs/40832066397.
+  Autorisation explicite de Kévin pour l'envoi GitHub et la publication après vérification.
 - Limites conservées : appareillage générique, classification spécialisée simplifiée, règle amont non calculée,
   IRVE/parafoudre/chauffage détaillés hors périmètre. Le recalcul explicite redispose les disjoncteurs ; pas de
   verrouillage individuel ajouté. Les changements de circuits restent synchronisés par leur numéro Cn.
