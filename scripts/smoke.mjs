@@ -828,7 +828,7 @@ try {
     const back = await ev(() => okteo.state.lia.length);
     await ev((ids) => okteo.removeApps(ids), ids);
     const r = { cons, list, prop: /1 liaison/.test(prop), after, back, n0 };
-    if (!cons || !/lumière sans commande/.test(list) || !r.prop || after.lia !== 1 || after.ctl !== 0 || back !== n0) throw new Error(JSON.stringify(r));
+    if (!cons || !/commande non identifiée/.test(list) || !r.prop || after.lia !== 1 || after.ctl !== 0 || back !== n0) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("relecture ciblée avec clé (v57) : image + consigne envoyées, corrections appliquées, arrêt quand plus rien à revoir, jetons comptés ; introuvable jamais redemandé", async () => {
@@ -2328,7 +2328,7 @@ try {
     await page.click('#tabs button[data-tab="boites"]');
     const back = await ev(() => okteo.tab);
     await page.click('#tabs button[data-tab="plan"]');
-    if (!(a.tab === "lignes" && a.on && a.vis && a.sub && a.n === 6 && !a.old && hid && back === "lignes")) throw new Error(JSON.stringify({ a, hid, back }));
+    if (!(a.tab === "lignes" && a.on && a.vis && a.sub && a.n === 7 && !a.old && hid && back === "lignes")) throw new Error(JSON.stringify({ a, hid, back }));
     return true;
   });
   await check("une seule fenêtre de travail : ouvrir le relevé des pièces ferme le relevé des murs ; la comparaison des modes ferme les deux", async () => {
