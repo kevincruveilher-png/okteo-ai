@@ -1,17 +1,17 @@
-name: Comparaison avec la version precedente
+name: Verification finale tableau 66.1
 on:
   push:
     branches: [verification-tableau-66-1]
 permissions:
   contents: read
 jobs:
-  baseline:
+  check:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: e096a510c49ed09fbf6a74ef0d07b46f65d8ed31
+          ref: f0a4de5dc5da3be22f1961f7ec773df1942f05d0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
