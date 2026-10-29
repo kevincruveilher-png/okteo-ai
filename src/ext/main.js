@@ -1,5 +1,6 @@
 // Point d'entrée des extensions d'Oktéo AI : panneau de droite, assistant, palette Ctrl+K, page Paramètres, infobulles.
 // Le cœur du logiciel (src/app.js) expose window.okteo ; tout ce qui est ici passe par cette interface.
+import { mountSymbols } from "./symbols-ui.js";
 import { buildCatalog, tooltipFor } from "./catalog.js";
 import { createPalette } from "./palette.js";
 import { createSidePanel } from "./panel.js";
@@ -78,6 +79,7 @@ function start() {
   // ---------- pages pleine largeur (remplacent la zone de dessin quand leur onglet est actif) ----------
   const stage = document.querySelector(".stage");
   const pages = {
+    bibliotheque: { el: document.getElementById("bibliotheque"), mount: (el) => mountSymbols(el, { api }), ui: null },
     params: { el: document.getElementById("params"), mount: (el) => mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, openPacks: () => { api.setTab("plan"); panel.show("packs"); }, api,
       askRule }), ui: null },
     etude: { el: document.getElementById("etude"), mount: (el) => mountEtudePage(el, { api, askRule }), ui: null },
@@ -91,6 +93,7 @@ function start() {
   const pgEl = document.getElementById("pg-pieuvre"), SUB = ["boites", "bandes", "lignes"];
   pgEl.querySelectorAll("[data-sub]").forEach((b) => (b.onclick = () => api.setTab(b.dataset.sub)));
   const onTab = (t) => {
+    document.querySelector(".main").classList.toggle("sy-active", t === "bibliotheque");
     stage.hidden = !!pages[t];
     pgEl.hidden = !SUB.includes(t);
     pgEl.querySelectorAll("[data-sub]").forEach((b) => { b.classList.toggle("on", b.dataset.sub === t); b.setAttribute("aria-pressed", String(b.dataset.sub === t)); });

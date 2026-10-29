@@ -238,7 +238,7 @@ export function setHint(s) {
 export function buildTabs() {
   const el = document.getElementById("tabs");
   // v64 : onglets réunis : « Pieuvre » = Boîtes, Bandes et Lignes directes (sous-onglets en haut de la page)
-  const items = [["chantiers", "Chantiers", null], ["plan", "Plan", null], ["etude", "Étude", null], ["boites", "Pieuvre", null], ["tableau", "Tableau", null], ["params", "Paramètres", null]];
+  const items = [["chantiers", "Chantiers", null], ["plan", "Plan", null], ["etude", "Étude", null], ["boites", "Pieuvre", null], ["tableau", "Tableau", null], ["bibliotheque", "Symboles", null], ["params", "Paramètres", null]];
   const on = (k) => K.tab === k || (k === "boites" && PIEUVRE_TABS.includes(K.tab));
   el.innerHTML = items.map(([k, n, s]) => `<button data-tab="${k}" class="${on(k) ? 'on' : ''}${k === "params" ? " tab-params" : ""}" ${s ? 'disabled' : ''}${k === "boites" ? ' title="Boîtes, bandes de câblage et lignes directes du chantier"' : ""}><span class="lbl">${n}</span>${s ? `<span class="soon">${s}</span>` : ""}</button>`).join("");
   el.querySelectorAll("button").forEach(b => b.onclick = () => {

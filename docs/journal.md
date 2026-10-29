@@ -281,6 +281,20 @@ v23 lisibilité, puis étages et découpage d'app.js. Kévin : envoyer 2–3 PDF
 - 2e relevé refait de zéro (autre moteur, sans les remarques de Kévin) : docs/exemples/PASQUIER_releve_ia_v2.json =
   32 murs, 17 ouvertures, 81 appareils (12 VV, 10 SC dont chauffe-eau et PAC, sonnette), 21 liaisons.
 
+## Bibliothèque de symboles (29/10/2026) — première intégration à relire
+Demande de Kévin : commencer la bibliothèque, conserver la charte du logiciel de base et réduire les étiquettes pour afficher plus de symboles. Consultation et insertion ; variantes BE signalées non reconnues ; modifications sans code pour le moment.
+- Nouvel onglet **Symboles**, dans la navigation existante, et commande `symbols.open` dans Ctrl+K. Couleurs, typographies et thèmes clair/sombre repris de `src/style.css` ; cartes compactes et panneau de fiche intégré. Le panneau Propriétés est masqué uniquement sur cette page pour laisser de la place à la grille.
+- Les types viennent de `api.TYPES` : aucun catalogue parallèle d’appareils natifs. Nouvelle API `symbolMarkup(type)` pour utiliser exactement les mêmes dessins SVG que le plan, via l’interface publique du cœur.
+- Recherche sans accents, mots cumulés (nom, identifiant, source, notes, règles), filtres catégorie/origine, aperçu, hauteur par défaut et raccordement actuel. Insérer revient au plan et active l’outil de pose existant ; aucune implantation automatique.
+- Fiches liées aux règles réelles du journal (`getJournal`) : description, source, certitude et statut affichés sans requalifier une règle en règle validée. Les liens sont éditables et les identifiants vérifiés ; les fiches ne modifient pas les règles exécutées par le moteur.
+- BE : ajout d’une fiche avec image PNG/JPEG/WebP (5 Mo max, réduite à 600 px), source, notes et correspondance facultative. Sans correspondance : « Non reconnu par Oktéo », insertion bloquée. Une correspondance manuelle autorise la pose du symbole Oktéo désigné ; elle ne forme pas les détecteurs/IA au dessin BE. Les vrais dessins BE restent à fournir.
+- Cas KICHOUH 32 A : une fiche d’attente, sans faux dessin ni correspondance imposée. **PLAQ existe déjà** dans le catalogue (32 A) ; ne pas confondre absence du type et échec de reconnaissance. Cette mise à jour n’altère pas les relevés IA ni les détecteurs existants.
+- Pas de halo violet dans la bibliothèque : cette couleur garde le sens d’emplacement à préciser sur le plan. Statut BE affiché en orange.
+- Modification des métadonnées et des fiches BE sans code, conformément à la demande actuelle. Stockage local `okteo.symbols.v1`, historique et export JSON avec images ; échec d’enregistrement signalé. Aucun partage multi-postes ni réimport ajouté à cette première version ; le futur contrôle par code reste à réaliser.
+- Fichiers : `src/ext/symbols-data.js`, `src/ext/symbols-ui.js`, intégration `main.js`, `catalog.js`, `index.html`, onglets `controls.js`, API `api.js`, styles et tests.
+- Validation : build Vite et syntaxe réussis ; tests murs 41/41, câblage 86/86, chantiers 176/176 ; bibliothèque 14/14 (données, recherche, liens réels, sauvegarde et quota). Régressions navigateur ajoutées (`npm run test:symboles:navigateur`) mais **non exécutées** : Chromium local refuse les sockets du profil (`Operation not permitted`) ; l’outil navigateur distant ne démarre pas. MAILLARD et smoke navigateur restent non vérifiés dans cet environnement (Chromium Playwright absent). Contrôle visuel à réaliser avant publication.
+- Travail préparé sur une branche dédiée ; aucune publication du logiciel en production dans cette intervention.
+
 ## Version 66.1 (29/10/2026) — correction de la composition du tableau
 Demande de Kévin : « go pour la correction », après audit du code v66 par ChatGPT.
 - Conservation des accessoires lors de « Placer automatiquement » : identifiants, libellés et largeurs conservés,

@@ -16,6 +16,8 @@ export function buildCatalog(api, hooks) {
   const C = [];
   const add = (cat, id, label, keys, desc, run) => C.push({ cat, id, label, keys: keys || "", desc, run: run || null });
 
+  add("Appareils", "symbols.open", "Bibliothèque de symboles", "", "Onglet Symboles : rechercher les appareils, consulter leurs dessins et règles liées, puis Insérer sur le plan. Variantes BE : dessin original conservé, correspondance explicite ; aucun apprentissage automatique. Modification sans code provisoirement.", () => api.setTab("bibliotheque"));
+
   // Dessiner
   add("Dessiner", "tool.sel", "Sélection", "V", "Cliquer un objet pour le sélectionner et le modifier ; glisser dans le vide pour un cadre de sélection.", T("sel"));
   add("Dessiner", "tool.piece", "Tracer une pièce", "E", "Glisser un rectangle : crée les 4 murs et la pièce d'un coup. Le nom se change dans le menu au-dessus de la pièce.", T("piece"));

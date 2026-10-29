@@ -10,7 +10,9 @@
     "deploy": "node scripts/deploy.mjs",
     "check": "node scripts/syntax.mjs && node scripts/walls.test.mjs && node scripts/cablage.test.mjs && node scripts/chantiers.test.mjs && node scripts/maillard.test.mjs && node scripts/smoke.mjs",
     "test:murs": "node scripts/walls.test.mjs",
-    "regles": "node scripts/regles-import.mjs"
+    "regles": "node scripts/regles-import.mjs",
+    "test:symboles": "node scripts/symbols.test.mjs",
+    "test:symboles:navigateur": "node scripts/symbols.test.mjs --browser"
   },
   "devDependencies": {
     "playwright": "^1.47.0",

@@ -5,7 +5,7 @@ import { addLimit } from "../walls/rooms.js";
 import { CH, PAL, PLAN, TYPES, VB, layers, node, nodeById, segById, state, uidA, uidN, uidO, uidR, uidS } from "./model.js";
 import { markDirty, packData, snapshot, writeNow } from "./persist.js";
 import { fit, renumberReps, repMap, rotExtent, rotateView, syncVB } from "./view.js";
-import { draw, drawFx, gaineCrossings, sv } from "./render.js";
+import { draw, drawFx, gaineCrossings, glyph, sv } from "./render.js";
 import { attach, reattach, roomArea, roomPoly, snapToWall, wallMounted } from "./attach.js";
 import { bbox, clampOpenings, clearSel, duplicateGroup, multi, normalizeSel, openCenter, roomAt, selectAll, transformGroup } from "./groups.js";
 import { wallMeasure } from "./interact.js";
@@ -102,6 +102,7 @@ export function init7() {
 window.okteo = {
   state,
   TYPES,
+  symbolMarkup: (type) => TYPES[type] ? glyph(type) : "",
   PAL,
   layers,
   sv,
