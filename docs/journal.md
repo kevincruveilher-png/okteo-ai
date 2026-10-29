@@ -990,3 +990,11 @@ Validation v67 : 89 fichiers contrôlés, 8 tests de bibliothèque, 41 murs, 86 
 
 - Révision finale testée : `0086649305b7504f476fde3d1a6258c43fc962d5`, branche `verification-maj34-v69`. Actions : https://github.com/kevincruveilher-png/okteo-ai/actions/runs/40934689444 (intégration réussie avec l’avertissement préexistant décrit ci-dessus).
 - Résultats : syntaxe 95 fichiers ; 13 équipements/détecteurs, 12 lecture IA, 14 symboles, 8 règles, 41 murs, 86 câblage, 176 chantiers, 14 MAILLARD ; smoke 169 réussis et le seul échec connu d’étiquettes. Parcours dédiés MAJ 3/4, MAJ 1/2 et bibliothèque réussis. Build réussi. Capture des halos et des propriétés examinée.
+
+### Publication v69 confirmée
+
+- Source du build : `a3facdfb02058eee8d6229b91007ae5e370f7d2b`, intégrée dans `main` et `integration/maj-3-4-v69` sans réécriture de l’historique.
+- Construction/publication réussie : https://github.com/kevincruveilher-png/okteo-ai/actions/runs/40935297543 ; commit `gh-pages` : `7988c9197a0be659eb245792a8abcc7f93975138`.
+- Vérification HTTP : `https://kevincruveilher-png.github.io/okteo-ai/version.json` répond 200 avec `0.69.0` et la source `a3facdfb02058eee8d6229b91007ae5e370f7d2b`.
+- Cette consignation finale ne modifie que le journal ; le code déployé reste celui de la révision validée. VMC et charte graphique réservées aux lots suivants.
+- Déploiement Pages réussi : https://github.com/kevincruveilher-png/okteo-ai/actions/runs/40935356917.
