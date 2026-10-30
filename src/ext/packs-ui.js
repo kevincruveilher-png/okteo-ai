@@ -14,10 +14,11 @@ import { pointInPoly } from "../walls/rooms.js";
 
 const KEY = "okteo.packs.v1";
 export function getPacks() {
+  if(globalThis.okteoPinned?.data.packs) return structuredClone(globalThis.okteoPinned.data.packs);
   try { const v = JSON.parse(localStorage.getItem(KEY) || "null"); if (Array.isArray(v) && v.length) return v; } catch { /* */ }
   return PACK_DEFAULTS.map((p) => ({ ...p }));
 }
-export function setPacks(list) { try { localStorage.setItem(KEY, JSON.stringify(list)); } catch { /* */ } }
+export function setPacks(list) { if(globalThis.okteoSession) {document.dispatchEvent(new CustomEvent("okteo:common-edit"));return;} try { localStorage.setItem(KEY, JSON.stringify(list)); } catch { /* */ } }
 const NAMES = { PC16: "prise", PC20: "prise spécialisée", RJ45: "RJ45", LUM: "point lumineux", APP: "applique", SPOT: "spot", INT: "interrupteur", VV: "va-et-vient", BP: "poussoir", VMC: "VMC", SC: "sortie de câble" };
 const DIRECT = new Set(["RJ45", "PC20", "SC", "TAB", "VMC"]);
 // pluriel des noms d'appareils : « 3 prises spécialisées », « 2 points lumineux », « 2 RJ45 », « 2 va-et-vient »

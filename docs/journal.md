@@ -1,3 +1,16 @@
+## 30/10/2026 — v72 : branche entreprise Cloudflare, comptes, secours et dossiers
+
+**État : branche `feat/web-entreprise-v72`, recette Edge/Cloudflare restante avant fusion.** Demande explicite « go and push » de Kévin. Base v71 `68c146f` préservée. Pas de modification des règles métier ni de la charte du plan.
+
+- Cause PDF vérifiée : Cloudflare sert `/src/app.js` / `/src/ext/main.js`. Build Vite + Worker Pages Advanced mode, worker PDF compilé, procédure précise `npm run build:web` → `dist`.
+- Backend `server/` + migration D1 : comptes, sessions, Kevin au bootstrap par secret, trois admins maximum, reset administrateur, permissions serveur, Claude centralisé, réservations de budget atomiques, versions communes et propositions. Aucun secret réel ni plan persistant côté serveur.
+- `src/web/` : connexion, administration, secours AES-GCM avec fichiers, verrou d'onglet, journaux d'éléments, dossiers autonomes v2 + contrôle SHA-256, finalisation Chantier / Rapport_Thibaut sans ZIP, compatibilité v1, ressources hors ligne et notification de version. Collage d'analyse conservé.
+- Paramètres et bibliothèque épinglés dans chaque chantier ; adoption explicite journalisée ; publication admin et retour arrière versionné. Édition guidée et JSON avancé.
+- Hypothèse budgétaire documentée : 30 chantiers/semaine, plafond initial réglable 50 USD/mois, limite initiale par compte 25 USD/mois, deux appels simultanés. Coût réel fournisseur non mesuré.
+- Vérifications : tests serveur/crypto/format et suites métier hors navigateur réussis ; compilation production réussie. `npm run check` bloqué au navigateur MAILLARD ; Chromium indisponible/interdit dans cet environnement, smoke et visuel non validés. Aucun déploiement Cloudflare réel ni appel payant.
+- Configuration requise avant usage : D1 `DB`, migration SQL, secrets `BOOTSTRAP_PASSWORD` / `ANTHROPIC_API_KEY`, correction build/output Cloudflare ; anciennes données navigateur à exporter puis retirer du poste partagé.
+- Transmission complète et retour arrière : [déploiement](deploiement-web-v72.md), [recette détaillée](recette-web-v72.md). Ne pas assimiler un push de branche à une mise en production validée.
+
 ## 30/10/2026 — v71 : rendu du plan KiTéOHM
 
 Demande de Kévin : conserver les symboles, adapter fond, murs, boîtes et gaines au modèle MAILLARD ; masquer les ouvrants en gardant les passages et les outils ; représenter alimentations et lignes directes par des flèches avec possibilité de réafficher leur parcours.

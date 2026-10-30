@@ -1,3 +1,4 @@
+import * as vault from "./web/vault.js";
 // Registre des chantiers, partagé par le cœur (app.js) et les extensions.
 // - la liste des chantiers (nom, numéro, pavillonneur, fond, statistiques) : localStorage "okteo.chantiers.v1"
 // - le dessin de chaque chantier : localStorage, clé propre au chantier (champ `key`)
@@ -73,6 +74,6 @@ async function tx(mode, fn) {
   const d = await db();
   return new Promise((res, rej) => { const t = d.transaction("files", mode); const st = t.objectStore("files"); const r = fn(st); t.oncomplete = () => res(r && r.result); t.onerror = () => rej(t.error); });
 }
-export const putFile = (key, blob) => tx("readwrite", (s) => s.put(blob, key));
-export const getFile = (key) => tx("readonly", (s) => s.get(key));
-export const delFile = (key) => tx("readwrite", (s) => s.delete(key));
+export const putFile = (key, blob) => globalThis.okteoSession ? vault.putBlob(key, blob) : tx("readwrite", (s) => s.put(blob, key));
+export const getFile = (key) => globalThis.okteoSession ? vault.getBlob(key) : tx("readonly", (s) => s.get(key));
+export const delFile = (key) => globalThis.okteoSession ? vault.removeBlob(key) : tx("readwrite", (s) => s.delete(key));

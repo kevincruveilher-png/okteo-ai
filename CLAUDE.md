@@ -1,3 +1,7 @@
+## Priorité de transmission v72 (30/10/2026)
+
+Voir `docs/deploiement-web-v72.md` et `docs/recette-web-v72.md` avant toute reprise. La branche entreprise ne doit pas être fusionnée/déployée sans bindings D1/secrets et recette Edge. Le nouveau déploiement cible **Cloudflare Pages** ; ne pas lancer automatiquement `npm run deploy` (ancien GitHub Pages) pour cette mission. La version prototype locale/GitHub conserve son ancien mode ; la version `build:web` utilise obligatoirement le backend authentifié. Aucune clé entreprise côté navigateur. Les chantiers restent locaux ; n'ajouter aucun stockage serveur de plans. Ne pas oublier le journal à chaque modification. Les détails historiques ci-dessous restent utiles mais les indications clés locales/relais local ne décrivent plus la cible entreprise.
+
 # Oktéo AI — consignes pour Claude
 
 ## Le projet

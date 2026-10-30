@@ -1,3 +1,4 @@
+import {ask,notify} from "../web/dialogs.js";
 // Réglages du câblage (pieuvre) — valeurs de base décidées avec Kévin le 25/10/2026, toutes modifiables
 // dans Paramètres → Câblage. Enregistrés sur ce PC (localStorage), communs à tous les chantiers.
 export const CAB_DEFAULTS = {
@@ -62,18 +63,20 @@ const OLD_DEFAULTS = { secPrises: 2.5, protPrises: 20, couleursCommande: "orange
 
 const KEY = "okteo.cablage.v1";
 export function getCab() {
+  if(globalThis.okteoPinned) return structuredClone(globalThis.okteoPinned.data.settings);
   let v = {};
   try { v = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch { v = {}; }
   if ((v._v || 1) < CAB_V) for (const [k, old] of Object.entries(OLD_DEFAULTS)) if ([].concat(old).includes(v[k])) delete v[k];
   return { ...CAB_DEFAULTS, ...v, _v: CAB_V };
 }
 export function setCab(patch) {
+  if(globalThis.okteoSession) {notify("Paramètres communs : ouvrez Compte / administration → Bibliothèque commune.");return getCab();}
   const v = { ...getCab(), ...patch, _v: CAB_V };
   try { localStorage.setItem(KEY, JSON.stringify(v)); } catch { /* */ }
   document.dispatchEvent(new CustomEvent("okteo:cab-settings"));
   return v;
 }
-export function resetCab() { try { localStorage.removeItem(KEY); } catch { /* */ } document.dispatchEvent(new CustomEvent("okteo:cab-settings")); return getCab(); }
+export function resetCab() { if(globalThis.okteoSession) return getCab(); try { localStorage.removeItem(KEY); } catch { /* */ } document.dispatchEvent(new CustomEvent("okteo:cab-settings")); return getCab(); }
 
 // fiche des réglages affichée dans Paramètres (v42 : groupes dans l'ordre du travail, avec une aide) :
 // [titre du groupe, [[clé, libellé, unité, type]…], aide]

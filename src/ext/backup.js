@@ -81,6 +81,7 @@ function paintChip() {
 
 // ---------- encart de la page Chantiers ----------
 export function backupBox() {
+  if (window.okteoSession) return `<section class="ch-bkp"><b>Secours local chiffré</b><p>Enregistrement automatique réservé à votre compte. Exportez pour conserver et transférer le chantier. Effacer les données du navigateur supprime le secours.</p></section>`;
   const s = status();
   if (!s.supported) return `<section class="ch-bkp"><b>Sauvegarde automatique</b><p class="mut sm">Disponible avec Chrome ou Edge. Ici : utilisez le bouton <b>Fichier</b> de chaque chantier.</p></section>`;
   return `<section class="ch-bkp"><b>Sauvegarde automatique</b>
@@ -117,6 +118,7 @@ function alertCard(message) {
 
 export async function initBackup(a) {
   api = a;
+  if (window.okteoSession) return { choose, reactivate, now, stop, status, setDir };
   try { await navigator.storage?.persist?.(); } catch { /* */ }
   const chip = document.querySelector("#savedot")?.parentElement;
   if (chip && !document.getElementById("bkp")) {
