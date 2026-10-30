@@ -15,9 +15,12 @@ export const isPdf = (file) => /pdf$/i.test(file.type) || /\.pdf$/i.test(file.na
 export const isImage = (file) => /^image\//i.test(file.type) || /\.(jpe?g|png|webp|bmp|gif)$/i.test(file.name);
 
 export async function openPdf(file) {
+  if (file.size > 50 * 1024 * 1024) throw new Error("PDF limité à 50 Mo. Réduisez le fichier avant import.");
   const L = await pdfjs();
   const data = new Uint8Array(await file.arrayBuffer());
-  return L.getDocument({ data }).promise;
+  const doc = await L.getDocument({ data }).promise;
+  if (doc.numPages > 30) { await doc.destroy(); throw new Error("PDF limité à 30 pages. Extrayez les pages utiles avant import."); }
+  return doc;
 }
 
 const toBlob = (canvas, q = 0.9) => new Promise((res) => canvas.toBlob(res, "image/jpeg", q));

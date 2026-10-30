@@ -1,3 +1,4 @@
+import {ask,notify} from "../web/dialogs.js";
 // Journal des règles de câblage (v51) — référence unique des règles KiTéOHM (boîtes, gaines, circuits, couleurs…).
 // Base : src/cablage/regles-data.js (généré depuis docs/journal-regles-cablage.md). Le journal vivant (règles modifiées,
 // historique) est rangé sur ce PC (localStorage `okteo.regles.v1`), commun à tous les chantiers ; export / import JSON.
@@ -20,6 +21,7 @@ const frDate = (iso) => iso.split("-").reverse().join("/");
 
 function read() { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch { return null; } }
 function write(J) {
+  if(globalThis.okteoSession) { notify("Modification des règles : ouvrez Compte / administration → Bibliothèque commune."); return getJournal(); }
   try { localStorage.setItem(KEY, JSON.stringify(J)); } catch { /* */ }
   if (typeof document !== "undefined") document.dispatchEvent(new CustomEvent("okteo:regles"));
   return J;
@@ -28,6 +30,7 @@ function write(J) {
 // journal en vigueur : la base, plus ce qui a été modifié sur ce PC. Une nouvelle base (journal relu par Claude)
 // remplace les règles jamais touchées ici et ajoute les nouvelles ; une règle modifiée sur ce PC garde sa version.
 export function getJournal() {
+  if(globalThis.okteoPinned) return structuredClone(globalThis.okteoPinned.data.rules);
   const B = REGLES_BASE, S = read();
   if (!S || !Array.isArray(S.rules)) return { ...clone(B), base: B.version };
   if (S.base === B.version) return S;

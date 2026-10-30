@@ -1,3 +1,4 @@
+import {recordInitial,readHistory,saveHistory} from "../web/history.js";
 // « Relevé par l'IA » (menu Relevé) : l'image du fond de plan est envoyée à l'IA (Claude, ou NVIDIA en version locale),
 // qui renvoie murs, ouvertures, pièces, appareils et liaisons en pixels de l'image. Ils sont convertis en mètres,
 // remis au propre (src/walls/ai-plan.js) et montrés en aperçu orange PAR-DESSUS le dessin actuel, pour comparer
@@ -117,6 +118,7 @@ export function createAiReleve({ api, openParams }) {
       // v61 : ce que la relecture ciblée et son rapport doivent savoir (pièces nommées, ouvertures perdues, remarques)
       recordReleve(api, keep.walls ? plan : { ...plan, lost: [] }, { mode: lastMode, info: meta, usage: lastUsage, counts: { murs: keep.walls ? plan.walls.length : 0, ouvertures: keep.walls ? plan.openings.length : 0, pieces: plan.pieces.length, appareils: keep.devices ? plan.devices.length : 0, liaisons: keep.devices ? plan.links.length : 0 } });
     });
+    const h=readHistory(api.ch.id); if(!h.initialDrawing) {h.initialAI={raw:lastText,context:meta,mode:lastMode,at:new Date().toISOString()};h.initialDrawing=JSON.parse(api.packData().s);saveHistory(api.ch.id,h);}
     card.hidden = true; plan = null;
     api.setHint(`Relevé IA ajouté : ${done.join(", ") || "rien"}. Ctrl+Z annule tout l'ajout.`);
     document.dispatchEvent(new CustomEvent("okteo:ai-releve", { detail: { done, devices: !!devAdded, mode: lastMode } }));
@@ -125,6 +127,7 @@ export function createAiReleve({ api, openParams }) {
   // réponse de l'IA (texte) → aperçu ; sert aussi aux tests (réponse préparée à l'avance)
   function fromText(text, map, info = "") {
     lastText = String(text || "");
+    recordInitial(api.ch.id,lastText,{map,info});
     let raw;
     try { raw = parseAiJson(lastText); } catch (e) { message("La réponse de l'IA n'est pas exploitable : " + esc(e.message) + " Cliquez « Refaire » pour redemander.", [{ label: "Refaire", run: open }, { label: "Fermer", run: () => {} }]); return null; }
     try { plan = aiToPlan(raw, map, { defEp: api.state.wallEp }); }

@@ -1,3 +1,5 @@
+> **Branche entreprise v72** : [configuration Cloudflare, comptes et exports](docs/deploiement-web-v72.md) · [résultats des tests et recette Edge restante](docs/recette-web-v72.md). Utiliser `npm run build:web` et publier `dist`. D1 et secrets requis. Cette branche doit être validée en preview avant production.
+
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).

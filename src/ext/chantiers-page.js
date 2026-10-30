@@ -1,3 +1,6 @@
+import {ask,notify} from "../web/dialogs.js";
+import {exportDirectory,pickProject,validateProject,acceptHistory,checkOlder} from "../web/exchange.js";
+import {event,readHistory,saveHistory,revisionLabel} from "../web/history.js";
 // Page « Chantiers » : chantier ouvert, nouveau chantier (avec fond de plan), liste, ouvrir, dupliquer,
 // supprimer, enregistrer en fichier .okteo et ouvrir un fichier .okteo.
 // Changer de chantier recharge la page (le cœur repart proprement sur le chantier choisi).
@@ -9,7 +12,7 @@ import { backupBox, wireBackupBox, onChange as onBackupChange } from "./backup.j
 
 const fmtDate = (t) => (t ? new Date(t).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
 
-export function openChantier(id, reload = () => location.reload()) { CHS.setCurrent(id); reload(); }
+export async function openChantier(id, reload = () => location.reload()) { CHS.setCurrent(id); await window.okteoFlush?.(); reload(); }
 
 // Prépare un fond (image + PDF d'origine) et l'enregistre pour le niveau ouvert du chantier `meta`
 async function storeFond(meta, file, pdfDoc, pageNo) {
@@ -73,7 +76,7 @@ export function mountChantiers(el, { api }) {
     el.innerHTML = `<div class="params-in wide">
       <h2>Chantiers</h2>
       <section class="ch-cur">
-        <h3>Chantier ouvert</h3>
+        <h3>Chantier ouvert</h3><div class="ch-actions"><button id="web-export">Exporter le dossier…</button><button id="web-final" class="on">Finaliser et exporter…</button><button id="web-history">Journal du chantier</button></div>
         <div class="ch-grid">
           <label class="f">Nom<input data-f="nom" value="${esc(cur.nom)}"></label>
           <label class="f">N° de dossier<input data-f="numero" value="${esc(cur.numero || "")}"></label>
@@ -88,7 +91,7 @@ export function mountChantiers(el, { api }) {
       </section>
       ${mode ? formHTML() : ""}
       <section>
-        <div class="ch-bar"><button class="on" id="ch-new">＋ Nouveau chantier</button>
+        <div class="ch-bar"><button id="web-import">Ouvrir un dossier Oktéo…</button><button class="on" id="ch-new">＋ Nouveau chantier</button>
           <label class="btnlike">Ouvrir un fichier .okteo<input id="ch-import" type="file" accept=".okteo,application/json" hidden></label>
           <span class="grow"></span><input id="ch-q" placeholder="Chercher (nom, n°, pavillonneur)" value="${esc(q)}"></div>
         <table class="ch-list"><thead><tr><th>Chantier</th><th>N°</th><th>Pavillonneur</th><th>Modifié</th><th>Contenu</th><th></th></tr></thead>
@@ -107,8 +110,14 @@ export function mountChantiers(el, { api }) {
 
   function wire() {
     paintBkp();
+    const report=e=>{if(e.name!=="AbortError")notify(e.message);};
+    el.querySelector("#web-export").onclick=()=>exportDirectory(api,false).catch(report);
+    el.querySelector("#web-final").onclick=()=>exportDirectory(api,true).catch(report);
+    el.querySelector("#web-import").onclick=()=>pickProject().then(importFile).catch(report);
+    el.querySelector("#web-history").onclick=()=>{const h=readHistory(cur.id);const d=document.createElement("dialog");d.style.cssText="max-width:900px;width:90vw;max-height:80vh;overflow:auto";const pre=document.createElement("pre");pre.style.whiteSpace="pre-wrap";pre.textContent=h.events.map(e=>`${e.at} · ${e.author} · ${e.type}\n${JSON.stringify(e.change)}${e.reason?"\nMotif : "+e.reason:""}`).join("\n\n")||"Aucun événement";const close=document.createElement("button");close.textContent="Fermer";close.onclick=()=>d.remove();d.append(close,pre);document.body.append(d);d.showModal();};
     el.querySelectorAll(".ch-cur input[data-f]").forEach((inp) => (inp.onchange = () => {
       const v = inp.value.trim(); if (inp.dataset.f === "nom" && !v) { inp.value = cur.nom; return; }
+      event(cur.id,"identite",{element:inp.dataset.f,before:cur[inp.dataset.f],after:v});
       cur[inp.dataset.f] = v; CHS.update(cur.id, { [inp.dataset.f]: v });
       const bd = document.querySelector(".badge"); if (bd) bd.textContent = cur.nom + (cur.numero ? " · " + cur.numero : "");
     }));
@@ -118,8 +127,8 @@ export function mountChantiers(el, { api }) {
     el.querySelector("#ch-fond").onclick = () => { mode = "fond"; pick = { file: null, doc: null, thumbs: [], page: 1, busy: "" }; render(); };
     el.querySelector("#ch-new").onclick = () => { mode = "new"; pick = { file: null, doc: null, thumbs: [], page: 1, busy: "" }; render(); el.querySelector("#nf-nom")?.focus(); };
     const qi = el.querySelector("#ch-q"); qi.oninput = () => { q = qi.value; const pos = qi.selectionStart; render(); const n = el.querySelector("#ch-q"); n.focus(); n.setSelectionRange(pos, pos); };
-    el.querySelector("#ch-import").onchange = (e) => importFile(e.target.files[0]);
-    el.querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => act(b.dataset.act, b.dataset.id)));
+    el.querySelector("#ch-import").onchange = (e) => importFile(e.target.files[0]).catch(err=>notify(err.message));
+    el.querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => act(b.dataset.act, b.dataset.id).catch(err=>notify(err.message))));
     if (mode) wireForm();
   }
 
@@ -184,7 +193,7 @@ export function mountChantiers(el, { api }) {
     if (a === "del") { confirmDel = id; render(); return; }
     if (a === "del-no") { confirmDel = null; render(); return; }
     if (a === "del-yes") {
-      try { localStorage.removeItem(c.key); localStorage.removeItem("okteo.chat." + c.id); } catch { /* */ }
+      try { localStorage.removeItem(c.key); localStorage.removeItem("okteo.chat." + c.id); localStorage.removeItem("okteo.audit." + c.id); } catch { /* */ }
       for (const l of CHS.levelsOf(c)) { await CHS.delFile(CHS.fondKey(c, l.id)).catch(() => {}); await CHS.delFile(CHS.pdfKey(c, l.id)).catch(() => {}); }
       CHS.remove(id); confirmDel = null; render(); return;
     }
@@ -197,23 +206,29 @@ export function mountChantiers(el, { api }) {
         const f = await CHS.getFile(CHS.fondKey(c, l.id)).catch(() => null); if (f) await CHS.putFile(CHS.fondKey(copy, l.id), f);
         const p = await CHS.getFile(CHS.pdfKey(c, l.id)).catch(() => null); if (p) await CHS.putFile(CHS.pdfKey(copy, l.id), p);
       }
+      saveHistory(nid,structuredClone(readHistory(c.id)));event(nid,"copie",{source:c.id});
       CHS.add(copy); render(); return;
     }
+    if (a === "file" && window.okteoSession && id === cur.id) { await exportDirectory(api,false).catch(e=>{if(e.name!=="AbortError")notify(e.message);}); return; }
     if (a === "file") { if (id === cur.id) api.saveNow(); await exportFile(c); }
   }
 
   async function exportFile(c) {
-    download(await buildOkteo(c, c.id === cur.id ? api.packData() : null), fileName(c));
+    const h=readHistory(c.id);h.revision++;h.parentRevision=h.head;h.head=crypto.randomUUID();saveHistory(c.id,h);event(c.id,"export-fichier",{revision:h.revision,head:h.head,parent:h.parentRevision});
+    download(await buildOkteo(c, c.id === cur.id ? api.packData() : null), fileName(c).replace(/\.okteo$/, "_"+revisionLabel(h.revision)+".okteo"));
   }
 
   async function importFile(file) {
     if (!file) return;
+    if(file.size>150*1024*1024){notify("Dossier limité à 150 Mo. Contactez un administrateur.");return;}
     let j;
     try { j = JSON.parse(await file.text()); } catch { j = null; }
     if (!j || j.format !== "okteo-chantier") { el.querySelector(".ch-bar").insertAdjacentHTML("afterend", `<p class="warn">« ${esc(file.name)} » n'est pas un fichier de chantier Oktéo.</p>`); return; }
+    try {validateProject(j);} catch(e) {notify(e.message);return;}
+    if(!await checkOlder(j)) return;
     const src = j.chantier || {};
     const id = CHS.newId(src.nom || "import", src.numero);
-    const meta = { ...src, id, key: CHS.dataKey(id), updated: Date.now(), fond: null };
+    const meta = { ...src, ruleSnapshot: j.ruleSnapshot || src.ruleSnapshot, id, key: CHS.dataKey(id), updated: Date.now(), fond: null };
     if (j.fond) {
       const { image, pdf, ...f } = j.fond;
       if (image) { await CHS.putFile(CHS.fondKey(meta), await dataURLToBlob(image)); f.src = "idb"; }
@@ -225,7 +240,9 @@ export function mountChantiers(el, { api }) {
       if (F.image) await CHS.putFile(CHS.fondKey(meta, lid), await dataURLToBlob(F.image));
       if (F.pdf) await CHS.putFile(CHS.pdfKey(meta, lid), await dataURLToBlob(F.pdf));
     }
+    meta.levels=CHS.levelsOf(meta).map(l=>({...l,fond:l.id===(meta.level||"rdc")?meta.fond:j.fonds?.[l.id]?.image?{...l.fond,src:"idb"}:l.fond}));
     if (j.dessin) CHS.writeData(meta, j.dessin);
+    acceptHistory(j,id);
     CHS.add(meta);
     api.saveNow(); openChantier(id);
   }

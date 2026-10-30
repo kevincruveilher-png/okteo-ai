@@ -16,6 +16,8 @@ export function buildCatalog(api, hooks) {
   const C = [];
   const add = (cat, id, label, keys, desc, run) => C.push({ cat, id, label, keys: keys || "", desc, run: run || null });
 
+  add("Chantiers", "web.export", "Exporter le dossier / finaliser", "", "Chantiers : export autonome sans ZIP, rapport Thibaut et journal des modifications.", () => api.setTab("chantiers"));
+  add("Paramètres", "web.account", "Compte et administration", "", "Comptes, budget Claude, versions communes et propositions (version entreprise).", () => window.okteoAccount ? window.okteoAccount() : api.setTab("params"));
   add("Appareils", "symbols.open", "Bibliothèque de symboles", "", "Onglet Symboles : rechercher les appareils, consulter leurs dessins et règles liées, puis Insérer sur le plan. Variantes BE : dessin original conservé, correspondance explicite ; aucun apprentissage automatique. Modification sans code provisoirement.", () => api.setTab("bibliotheque"));
 
   // Dessiner

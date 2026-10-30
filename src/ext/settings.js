@@ -24,9 +24,9 @@ let envKeys = { anthropic: false, nvidia: false, online: false, checked: false }
 const listeners = new Set();
 
 export const settings = {
-  get() { const s = store(KEY, DEF); return { ...DEF, ...s, keys: { ...DEF.keys, ...(s.keys || {}) }, models: { ...DEF.models, ...(s.models || {}) } }; },
+  get() { const s = store(KEY, DEF); if (globalThis.okteoSession) return { ...DEF, provider: "anthropic", keys: {anthropic:"",nvidia:""}, models: {anthropic:"",nvidia:""} }; return { ...DEF, ...s, keys: { ...DEF.keys, ...(s.keys || {}) }, models: { ...DEF.models, ...(s.models || {}) } }; },
   set(patch) { const s = { ...this.get(), ...patch }; storeSet(KEY, s); listeners.forEach((f) => f(s)); return s; },
-  hasKey(p) { return !!(this.get().keys[p] || envKeys[p]); },
+  hasKey(p) { if (globalThis.okteoSession) return p === "anthropic"; return !!(this.get().keys[p] || envKeys[p]); },
   // fournisseur utilisé : celui choisi s'il a une clé, sinon le premier qui en a une
   activeProvider() {
     const s = this.get();
@@ -44,6 +44,7 @@ export const settings = {
 export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, openPacks, api, askRule }) {
   let regles = null;
   const card = (p) => {
+    if (globalThis.okteoSession) return p === "anthropic" ? `<div class="enterprise-ia"><b>Claude entreprise</b><p>Clé et modèle gérés par les administrateurs. Aucun secret sur ce poste. Le collage d’une analyse reste disponible.</p></div>` : "";
     const P = PROVIDERS[p], s = settings.get();
     const env = envKeys[p] ? `<span class="okk">clé trouvée dans .env</span>` : "";
     return `<div class="pcard" data-p="${p}">

@@ -46,13 +46,13 @@ function frenchError(status, body) {
 async function call(method, path, key, payload) {
   let res;
   try {
-    res = await fetch(path, { method, headers: { "content-type": "application/json", ...(key ? { "x-okteo-key": key } : {}) }, body: payload ? JSON.stringify(payload) : undefined });
+    res = await fetch(path, { method, headers: { "content-type": "application/json", ...(window.okteoSession ? {"x-okteo-user":window.okteoSession.user.id} : {}), ...(key ? { "x-okteo-key": key } : {}) }, body: payload ? JSON.stringify(payload) : undefined });
   } catch (e) {
     throw new AIError(frenchError(0, e.message), 0);
   }
   const txt = await res.text();
   let body; try { body = JSON.parse(txt); } catch { body = txt; }
-  if (!res.ok) throw new AIError(frenchError(res.status, body), res.status, rawMsg(body));
+  if (!res.ok) { if (window.okteoSession && res.status === 401) document.dispatchEvent(new CustomEvent("okteo:session-expired")); throw new AIError(window.okteoSession ? rawMsg(body) || "Service IA indisponible" : frenchError(res.status, body), res.status, rawMsg(body)); }
   return body;
 }
 
@@ -111,11 +111,12 @@ async function anthropicDirect(key, payload) {
   }
   const txt = await res.text();
   let body; try { body = JSON.parse(txt); } catch { body = txt; }
-  if (!res.ok) throw new AIError(frenchError(res.status, body), res.status, rawMsg(body));
+  if (!res.ok) { if (window.okteoSession && res.status === 401) document.dispatchEvent(new CustomEvent("okteo:session-expired")); throw new AIError(window.okteoSession ? rawMsg(body) || "Service IA indisponible" : frenchError(res.status, body), res.status, rawMsg(body)); }
   return body;
 }
 async function anthropicCall(key, payload) {
   const env = settings.env || {};
+  if (window.okteoSession) return call("POST", "/ai/anthropic", "", payload);
   if (env.checked && !env.online) return anthropicDirect(key, payload);
   try { return await call("POST", "/ai/anthropic", key, payload); }
   catch (e) { if (NO_RELAY.has(e.status) && key) return anthropicDirect(key, payload); throw e; }
@@ -125,7 +126,7 @@ export const relayOnline = () => !!(settings.env && settings.env.online);
 // Envoie une conversation ; renvoie { text, provider, model, ms, sawImage, switched? }.
 export async function chat({ system, messages, maxTokens = 1800, provider, model, think = false }) {
   const s = settings.get();
-  provider = provider || settings.activeProvider();
+  provider = window.okteoSession ? "anthropic" : provider || settings.activeProvider();
   if (!provider) throw new AIError("Aucune clé IA : ajoutez une clé Claude ou NVIDIA dans l'onglet Paramètres.", 0);
   model = model || s.models[provider] || PROVIDERS[provider].defaultModel;
   const key = s.keys[provider] || "";
@@ -143,6 +144,7 @@ export async function chat({ system, messages, maxTokens = 1800, provider, model
         : m.text,
     }));
     const body = await anthropicCall(key, { model, max_tokens: maxTokens, system, messages: msgs });
+    if(window.okteoSession){ model=body.okteo?.model||body.model||model;document.dispatchEvent(new CustomEvent("okteo:ai-cost")); }
     text = (body.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
     if (body.usage) usage = { in: body.usage.input_tokens || 0, out: body.usage.output_tokens || 0 };
   } else {

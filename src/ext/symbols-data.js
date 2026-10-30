@@ -1,3 +1,4 @@
+import {ask,notify} from "../web/dialogs.js";
 // Bibliothèque : métadonnées séparées des TYPES et des règles exécutées par le moteur.
 // Modifier une fiche ne change ni le symbole natif, ni le câblage, ni la reconnaissance IA.
 import { APPAREILS } from "../cablage/appareils.js";
@@ -14,10 +15,11 @@ const LINKS = {
 };
 export const GROUPS = [...new Set([...Object.values(BASE_GROUPS), ...Object.values(APPAREILS).map((d) => d.groupe)])];
 export function loadSymbols() {
+  if(globalThis.okteoPinned) return structuredClone(globalThis.okteoPinned.data.symbols);
   const s = store(KEY, null);
   return s && s.version === 1 && Array.isArray(s.be) && s.overrides && typeof s.overrides === "object" ? s : { version: 1, overrides: {}, be: [{ id: "be-kichouh-32a", origin: "be", name: "Prise 32 A — dessin BE à fournir", category: "Cuisine et spécialisés", type: "", image: "", source: "Retour de Kévin · test KICHOUH · 29/10/2026", rules: ["R-084"], notes: "L’IA a remplacé la prise 32 A par une PC20 lors du relevé. Le prompt historique regroupait 20 et 32 A sous PC20 ; ce regroupement est corrigé. PC32 conserve un calibre 32 A sans imposer l’usage plaque (PLAQ). Fournir le dessin original BE pour vérifier sa reconnaissance ; aucun dessin BE n’est inventé ici." }], history: [] };
 }
-export function saveSymbols(s) { return storeSet(KEY, s); }
+export function saveSymbols(s) { if(globalThis.okteoSession) {notify("Bibliothèque commune : ouvrez Compte / administration pour modifier les symboles.");return false;} return storeSet(KEY, s); }
 export function symbolEntries(types, s) {
   return Object.entries(types).map(([id, d]) => ({
     id, type: id, origin: "okteo", name: d.n, category: BASE_GROUPS[id] || APPAREILS[id]?.groupe || "Autres",

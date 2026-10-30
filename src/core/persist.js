@@ -1,3 +1,4 @@
+import {recordDrawing} from "../web/history.js";
 // Oktéo AI — cœur : Historique (annuler / rétablir) et enregistrement dans le navigateur.
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
 import { K } from "./k.js";
@@ -186,6 +187,7 @@ export function load() {
 
 export function markDirty() {
   K.dirty = true;
+  try { const previous=CHS.readData(CH); recordDrawing(CH.id, previous?.s ? JSON.parse(previous.s) : {}, JSON.parse(packState())); } catch(e) { K.saveFail="Journal : "+e.message; }
   save();
   paintStatus();
 }

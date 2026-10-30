@@ -4,3 +4,8 @@ dist/
 *.log
 .DS_Store
 scripts/derniere-capture.png
+
+.dev.vars
+.dev.vars.*
+.wrangler/
+wrangler.local.jsonc
