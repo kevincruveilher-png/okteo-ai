@@ -11,7 +11,9 @@ import { mountRegles } from "./regles-ui.js";
 import { CAB_RULES } from "../cablage/regles.js";
 
 // préférences d'affichage : [clé, libellé, aide]
-const PREF_FIELDS = [
+  const PREF_FIELDS = [
+    ["ouvrants", "Afficher les ouvrants", "Battants et arcs. Les passages restent ouverts lorsque cette option est désactivée."],
+    ["parcours", "Afficher les parcours complets", "Alimentations et lignes directes : afficher le trajet à la place des flèches. Les données de câblage sont conservées."],
   ["surfaces", "Afficher la surface des pièces (m²)", "Sur le plan, dans les panneaux, au relevé des pièces et à l'impression. La surface reste calculée (nombre de prises de la norme pour le séjour)."],
   ["halos", "Halo orange autour des appareils à vérifier", "Contrôle permanent : commande sans lumière, lumière sans commande, va-et-vient incomplet, appareil sans circuit, allumage coupé entre deux boîtes. Le compteur ⚠ en haut reste toujours actif."],
 ];

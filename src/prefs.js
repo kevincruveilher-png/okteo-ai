@@ -3,6 +3,8 @@
 const KEY = "okteo.prefs.v1";
 
 export const PREFS_DEFAULTS = {
+  ouvrants: false, // battants et arcs ; les passages restent ouverts
+  parcours: false, // alimentations et lignes directes complètes au lieu des flèches
   surfaces: false, // surface (m²) des pièces : sur le plan, dans les panneaux et à l'impression
   halos: true, // contrôle (v43) : halo orange animé autour des appareils à vérifier
   relectures: 2, // v57 : relectures automatiques par l'IA (avec clé) après un relevé, 0 à 3

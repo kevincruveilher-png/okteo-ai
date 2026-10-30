@@ -159,8 +159,8 @@ console.log("Relevé par l'IA : remise au propre de la réponse");
   const k = O.map((o) => `${o.kind}/${o.hinge}/${o.swing}`).join(",");
   check("portes : gond côté droit / gauche et ouverture d'un côté ou de l'autre du mur lus ; porte de garage sans battant ; sans indication : gauche, intérieur",
     k === "porte/d/ext,porte/g/int,garage/g/int,porte/g/int" && P.stats.portesOrientees === 2 && Math.abs(O[2].w - 2.4) < 1e-6, k);
-  check("prise de plan de travail (pt) gardée sur une PC16 seulement ; consigne : gonds, garage, commandes des points extérieurs",
-    P.devices[0].pt === true && !P.devices[1].pt && !P.devices[2].pt && /"gx"/.test(pastePrompt()) && /"garage"/.test(pastePrompt()) && /Points extérieurs/.test(pastePrompt()) && /"pt": true/.test(pastePrompt()), JSON.stringify(P.devices));
+  check("prise de plan de travail (pt) gardée sur une PC16 seulement ; consigne : passages sans gonds, garage, commandes des points extérieurs",
+    P.devices[0].pt === true && !P.devices[1].pt && !P.devices[2].pt && !/"gx"/.test(pastePrompt()) && /"garage"/.test(pastePrompt()) && /Points extérieurs/.test(pastePrompt()) && /"pt": true/.test(pastePrompt()), JSON.stringify(P.devices));
 }
 {
   // v57 : relecture ciblée : points du contrôle → consigne ; réponse → liaisons, ajouts, introuvables
@@ -196,12 +196,13 @@ console.log("Relevé par l'IA : remise au propre de la réponse");
     { id: "i9", t: "INT", x: 19.5, y: 9.5, rep: "I9", room: null, out: true }, { id: "ap1", t: "APP", x: 0.1, y: 5, rep: "AP1", room: null, out: true }];
   const openings = [{ id: "o1", rep: "O1", kind: "porte", w: 0.9, x: 6, y: 5, adj: true, sens: false }, { id: "o2", rep: "O2", kind: "fenetre", w: 1.2, x: 2, y: 0, sens: true }];
   const ctx = { apps, issues: [], openings, missing: [{ name: "Cellier", x: 15, y: 8 }], lost: [{ x: 10, y: 9.9, w: 0.8, kind: "fenetre" }], remarques: "doute sur le chauffe-eau du garage", kitchen: (r) => /Cuisine/.test(r || "") };
-  const P = recheckPoints(ctx, { frame }), K = P.map((x) => x.kind);
+  check("rendu KiTéOHM : pas de relecture des gonds, ouvertures toujours contrôlées", !recheckPoints(ctx, {frame}).some(p => p.kind === "porte") && recheckPoints(ctx, {frame}).some(p => p.kind === "ouv"));
+  const P = recheckPoints(ctx, { frame, maxDoors: 8 }), K = P.map((x) => x.kind);
   const txt = recheckPrompt(P, { mode: "paste", page: 3 });
   check("relecture étendue : pièce non fermée, type vague, appareil hors pièce (pas l'applique), doublon, doutes de l'IA, hauteur en cuisine, ouverture recentrée, ouverture perdue, porte sans sens ; liaisons d'abord, portes en dernier",
     ["piece", "type", "hors", "doublon", "rem", "haut", "ouv", "perdue", "porte"].every((k, i) => K[i] === k) && K.length === 9 && !P.some((x) => x.ids.includes("ap1"))
       && /page 3 du PDF joint/.test(txt) && ["\"types\"", "\"deplacer\"", "\"supprimer\"", "\"hauteurs\"", "\"ouvertures\"", "\"portes\"", "\"murs\""].every((r) => txt.includes(r)) && /O1 \(porte/.test(txt) && /X1 \(fenêtre/.test(txt) && /« Cellier »/.test(txt) && /doute sur le chauffe-eau/.test(txt), K.join(","));
-  const nope = recheckPoints({ ...ctx, nope: new Set(["piece:Cellier", "rem"]) }, { frame }).map((x) => x.kind);
+  const nope = recheckPoints({ ...ctx, nope: new Set(["piece:Cellier", "rem"]) }, { frame, maxDoors: 8 }).map((x) => x.kind);
   check("un point dit introuvable (ou les remarques déjà reprises) n'est jamais redemandé", !nope.includes("piece") && !nope.includes("rem") && nope.length === 7, nope.join(","));
   const C = parseCorrections(JSON.stringify({ types: [{ rep: "SC1", t: "CETH" }], deplacer: [{ rep: "I9", x: 50, y: 50 }], supprimer: [{ rep: "P3", pourquoi: "doublon" }], hauteurs: [{ rep: "P1", h: 110, pt: true }],
     ouvertures: [{ rep: "O1", x: 31, y: 50, l: 80, t: "porte" }, { rep: "X1", x: 50, y: 99, l: 80, t: "fenetre" }], portes: [{ rep: "O1", gx: 32, gy: 50, vx: 30, vy: 55 }],

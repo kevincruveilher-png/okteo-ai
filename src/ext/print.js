@@ -1,3 +1,4 @@
+import { arrowPoints, hatchLines } from "../plan-style.js";
 import { Placer, roomCandidates, spreadSymbols } from "../place.js";
 import { pref } from "../prefs.js";
 import { logoData, LOGO_RATIO } from "./logo.js";
@@ -34,6 +35,8 @@ export function rotateGeo(geo, deg) {
   const R = (p) => (p ? { ...p, x: p.x * c - p.y * s, y: p.x * s + p.y * c } : p), V = (v) => (v ? { ...v, x: v.x * c - v.y * s, y: v.x * s + v.y * c } : v);
   const RL = (L) => (L || []).map(R);
   const g = { ...geo, rot: d };
+  g.direct = (geo.direct || []).map(l => ({...l, a:R(l.a), b:R(l.b)}));
+  g.wallThickness = geo.wallThickness;
   g.walls = (geo.walls || []).map(RL);
   g.joints = RL(geo.joints);
   g.openings = (geo.openings || []).map((o) => ({ ...o, j1: R(o.j1), j2: R(o.j2), n: V(o.n), ...(o.hinge ? { hinge: R(o.hinge), leaf: R(o.leaf), arc: RL(o.arc) } : {}) }));
@@ -99,7 +102,7 @@ async function toDataURL(url) {
 
 // geoIn : une géométrie (exportGeometry) ou une liste (un niveau par page, même format et même échelle)
 export async function buildPlanPdf(geoIn, opts = {}) {
-  const o0 = { fond: false, cotes: true, reperes: true, liaisons: true, nomenclature: true, pieces: true, murs: true, ouvertures: true, appareils: true, boites: false, gaines: false, circuits: false, gaineNos: null, surfaces: !!pref("surfaces"), date: new Date(), ...opts };
+  const o0 = { ouvrants: !!pref("ouvrants"), parcours: !!pref("parcours"), fond: false, cotes: true, reperes: true, liaisons: true, nomenclature: true, pieces: true, murs: true, ouvertures: true, appareils: true, boites: false, gaines: false, circuits: false, gaineNos: null, surfaces: !!pref("surfaces"), date: new Date(), ...opts };
   const geos = (Array.isArray(geoIn) ? geoIn : [geoIn]).map((g) => rotateGeo(g, o0.rot || 0));
   const logo = o0.logo === false ? null : await logoData(); // logo KiTéOHM dans le cartouche (v50)
   // mise en page commune : calculée sur l'emprise de tous les niveaux réunis
@@ -197,12 +200,20 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       } catch { /* fond illisible : plan sans fond */ }
     }
     // pièces : fond très clair
-    doc.setFillColor(242, 246, 249);
+    doc.setFillColor(255, 255, 255);
     if (o.pieces) geo.rooms.forEach((r) => poly(r.poly, "F"));
     // murs
     doc.setFillColor(60, 60, 60); doc.setDrawColor(60, 60, 60); doc.setLineWidth(0.05);
-    if (o.murs) geo.walls.forEach((P) => poly(P, "F"));
-    if (o.murs) geo.joints.forEach((j) => doc.rect(X(j.x - j.e / 2), Y(j.y - j.e / 2), j.e * f, j.e * f, "F"));
+    if (o.murs) geo.joints.filter(j => j.e >= .16).forEach(j => {
+      const P = [{x:j.x-j.e/2,y:j.y-j.e/2},{x:j.x+j.e/2,y:j.y-j.e/2},{x:j.x+j.e/2,y:j.y+j.e/2},{x:j.x-j.e/2,y:j.y+j.e/2}];
+      doc.setFillColor(255); poly(P,"F"); doc.setLineWidth(.12); hatchLines(P,.14).forEach(([a,b]) => line(a,b));
+    });
+    if (o.murs) geo.walls.forEach((P, i) => {
+      const thick = geo.wallThickness?.[i] >= .16;
+      doc.setFillColor(thick ? 255 : 32); doc.setDrawColor(32); poly(P, thick ? "FD" : "F");
+      if (thick) { doc.setLineWidth(.12); hatchLines(P,.14).forEach(([a,b]) => line(a,b)); }
+    });
+    if (o.murs) geo.joints.filter(j => j.e < .16).forEach((j) => { doc.setFillColor(32); doc.rect(X(j.x - j.e / 2), Y(j.y - j.e / 2), j.e * f, j.e * f, "F"); });
     // limites de pièce (sans mur) : trait fin en pointillés
     if (o.pieces && geo.limits && geo.limits.length) {
       doc.setDrawColor(150, 150, 150); doc.setLineWidth(0.1); doc.setLineDashPattern([0.6, 0.6], 0);
@@ -211,7 +222,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     }
     // ouvertures
     doc.setDrawColor(40, 40, 40);
-    (o.ouvertures ? geo.openings : []).forEach((op) => {
+    (o.ouvertures && o.ouvrants ? geo.openings : []).forEach((op) => {
       const e2 = op.ep / 2, n = op.n;
       if (op.kind === "garage") {   // v57 : porte de garage, sans battant
         doc.setLineWidth(0.25); doc.setLineDashPattern([1, 0.6], 0); line(op.j1, op.j2); doc.setLineDashPattern([], 0);
@@ -319,14 +330,24 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       b.deps.forEach((d) => { const P = portOf(b, d); d.ends.forEach((e) => { if (e.route && e.route.length) bowF.push([P, ...e.route, e]); else bowL.push({ key: b.id + "|" + e.key, P, T: e }); }); });
       chooseBows(bowL, bowF).forEach((v, k) => bows.set(k, v));
     });
+    const arrowPdf = (a, b, label, color = [60,60,60]) => {
+      const P = arrowPoints(a,b,8/f); doc.setDrawColor(...color); doc.setLineWidth(.18);
+      line(P[0],P[1]); line(P[2],P[1]); line(P[3],P[1]);
+      doc.setTextColor(25); doc.setFont("helvetica","normal"); doc.setFontSize(6); doc.text(String(label),X(P[1].x),Y(P[1].y)+(P[1].y<a.y ? -1.3 : 2.5),{align:"center"});
+    };
+    if (o.gaines) (geo.direct || []).forEach(d => {
+      if (o.parcours && d.b) { doc.setDrawColor(...(d.faible ? [53,103,71] : [155,36,64])); doc.setLineWidth(.18); line(d.a,d.b); }
+      else arrowPdf(d.a,d.b || {x:d.a.x-.5,y:d.a.y+.5},d.label);
+    });
     if (o.gaines) boxes.forEach((b) => b.deps.forEach((d) => {
       const P = portOf(b, d);
       d.ends.forEach((e) => {
+        if (d.tab && !o.parcours) { arrowPdf(P,e.route?.[0] || e, b.alimLabel || b.n + "." + ((o.gaineNos || {})[b.id]?.tab || "01")); return; }
         let pts;
         if (e.route && e.route.length) pts = [P, ...e.route, e];
         else { const q = gaineCtrl(P, e, bows.get(b.id + "|" + e.key) ?? 0.15); pts = Array.from({ length: 17 }, (_, i) => { const t = i / 16, v = 1 - t; return { x: v * v * P.x + 2 * v * t * q.x + t * t * e.x, y: v * v * P.y + 2 * v * t * q.y + t * t * e.y }; }); }
         const c = d.tab ? [120, 120, 120] : rgb(e.color) || [130, 130, 130];
-        doc.setDrawColor(...c); doc.setLineWidth(d.tab ? 0.2 : 0.25);
+        doc.setDrawColor(...c); doc.setLineWidth(d.tab ? 0.2 : 0.15);
         if (d.tab) doc.setLineDashPattern([1.5, 1], 0);
         for (let i = 1; i < pts.length; i++) line(pts[i - 1], pts[i]);
         doc.setLineDashPattern([], 0);
@@ -346,30 +367,8 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       if (b.rot) { const C = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u2, v2]) => rotV(b, u2 * BS / 2, v2 * BS / 2)); doc.lines(C.slice(1).map((p, i) => [p[0] - C[i][0], p[1] - C[i][1]]), bx + C[0][0], by + C[0][1], [1, 1], "FD", true); }
       else doc.rect(bx - BS / 2, by - BS / 2, BS, BS, "FD");
       doc.setTextColor(20, 20, 20); doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(6, pt(BS * 0.28)));
-      doc.text(String(b.n), bx, by - BS / 2 - 3, { align: "center", baseline: "bottom" });
-      doc.setFont("helvetica", "normal"); doc.setFontSize(Math.max(4, pt(BS * 0.14))); doc.setTextColor(140, 140, 140);
-      [["A", 0, -1], ["B", 1, 0], ["C", 0, 1], ["D", -1, 0]].forEach(([fc, dx, dy]) => { const [rx, ry] = rotV(b, dx, dy); doc.text(fc, bx + rx * BS * 0.3, by + ry * BS * 0.3, { align: "center", baseline: "middle" }); });
-      const used = new Map(b.deps.filter((d) => d.face && d.slot != null).map((d) => [d.face + d.slot, d]));
-      const out = { A: [0, -1], B: [1, 0], C: [0, 1], D: [-1, 0] };
-      // rang d'un point dans sa suite de points voisins occupés (0, 1, 2…) : les n° alternent sur deux lignes
-      const runIdx = (fc, i) => { let k = 0; while (i - k - 1 >= 0 && used.has(fc + (i - k - 1))) k++; return k; };
-      for (const fc of ["A", "B", "C", "D"]) for (let i = 0; i < b.N; i++) {
-        const Pw = portW(b, fc, i), px = X(Pw.x), py = Y(Pw.y), d = used.get(fc + i);
-        const c = d ? (d.tab ? [20, 20, 20] : rgb((d.ends[0] || {}).color) || [130, 130, 130]) : null;
-        doc.setLineWidth(0.12); doc.setDrawColor(...(c || [150, 150, 150])); doc.setFillColor(...(c || [255, 255, 255]));
-        doc.circle(px, py, d ? 0.55 : 0.4, "FD");
-        const no = d && (d.tab ? nos.tab : d.ends.map((e) => nos[e.key]).find(Boolean));
-        if (no) {
-          const [ox, oy] = rotV(b, ...out[fc]).map((v) => Math.round(v * 1e6) / 1e6), vert = Math.abs(ox) > Math.abs(oy);
-          // n° sur un petit fond blanc, pour rester lisible par-dessus les gaines
-          // (toujours horizontal : sur les faces B et D, les n° voisins se suivent sans se chevaucher)
-          doc.setFont("helvetica", "bold"); doc.setFontSize(4);
-          const w = doc.getTextWidth(no) + 0.3, h = 1.45, tx = px + ox * (vert ? w / 2 + 0.75 : 0), ty = py + oy * (vert ? 0 : 1.55 + (runIdx(fc, i) % 2 ? 1.5 : 0)); // points voisins occupés : un sur deux décalé d'un cran
-          doc.setFillColor(255, 255, 255); doc.rect(tx - w / 2, ty - h / 2, w, h, "F");
-          doc.setTextColor(...(c || [0, 0, 0]));
-          doc.text(no, tx, ty, { align: "center", baseline: "middle" });
-        }
-      }
+      doc.text(String(b.n), bx, by, { align: "center", baseline: "middle" });
+
     });
     doc.setTextColor(200, 70, 40);
     repLabels.forEach((L) => {

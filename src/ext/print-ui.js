@@ -1,5 +1,6 @@
 // Fenêtre « Imprimer / PDF » : réglages (format, orientation, échelle, options), aperçu du PDF, téléchargement.
 import { buildPlanPdf, layoutPlan, rotateGeo } from "./print.js";
+import { pref } from "../prefs.js";
 import { esc, store, storeSet } from "./util.js";
 import { pdfjs } from "./fond-import.js";
 import { wiringNow } from "./cablage-data.js";
@@ -33,6 +34,8 @@ export function createPrintTool({ api }) {
         <label><input type="checkbox" data-k="fond"> Fond de plan (estompé)</label>
       </div>
       <div class="pr-ck">
+        <label><input type="checkbox" data-k="ouvrants"> Dessiner les ouvrants</label>
+        <label><input type="checkbox" data-k="parcours"> Parcours complets (au lieu des flèches)</label>
         <label id="pr-rotwrap" title="Le plan imprimé est tourné comme la vue à l'écran (boutons de rotation en bas du plan) ; décoché : plan dans le sens du PDF d'origine"><input type="checkbox" data-k="sensVue"> Dans le sens de la vue (<span id="pr-rotv">0</span>°)</label>
         <label><input type="checkbox" data-k="nomenclature"> Page 2 : nomenclature</label>
       </div>
@@ -51,7 +54,7 @@ export function createPrintTool({ api }) {
   // boîtes, gaines et couleurs de circuit seulement quand les circuits sont affichés (onglet Câblage)
   function fromView() {
     const L = api.layers || {}, on = (k) => !L[k] || L[k].on !== false, circ = !!api.showCircuits, has = (api.cab.boxes || []).length > 0;
-    Object.assign(opts, { murs: on("murs"), ouvertures: on("ouvertures"), pieces: on("pieces"), cotes: on("cotes"), appareils: on("appareils"),
+    Object.assign(opts, { ouvrants: !!pref("ouvrants"), parcours: !!pref("parcours"), murs: on("murs"), ouvertures: on("ouvertures"), pieces: on("pieces"), cotes: on("cotes"), appareils: on("appareils"),
       liaisons: on("liaisons"), circuits: circ, boites: circ && has && on("boites"), gaines: circ && has && on("gaines"), fond: on("fond") && !!opts.fond });
   }
   // n° des gaines par boîte : { boxId: { appId | "tab": "04" } } (repris du calcul des bandes)

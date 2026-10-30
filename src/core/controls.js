@@ -1,5 +1,6 @@
 // Oktéo AI — cœur : Barres d'outils, contrôles, démarrage.
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
+import { pref, setPref } from "../prefs.js";
 import { K } from "./k.js";
 import * as CHS from "../chantiers.js";
 import { CH, PAL, TYPES, dist, layers, node, nodeById, redo, state, uidS, undo } from "./model.js";
@@ -127,6 +128,8 @@ export function buildFilter() {
   const cur = Object.entries(VIEW_PRESETS).find(([, P]) => VIEW_KEYS.every(([k]) => viewOn(k) === P.on.includes(k)) && !!K.showCirc === P.circ);
   f.innerHTML = `<div class="vrow"><span class="tlab">Vue</span>` + Object.entries(VIEW_PRESETS).map(([id, P]) => `<button data-vp="${id}" class="vp ${cur && cur[0] === id ? "on" : ""}" title="${P.tip} (Alt+${P.key})">${P.name}<kbd>Alt+${P.key}</kbd></button>`).join("") + `</div>` +
     `<div class="vrow chips">` + VIEW_KEYS.map(([k, n, tip]) => `<button data-vk="${k}" class="vk ${viewOn(k) && (k !== "boites" && k !== "gaines" || K.showCirc) ? "on" : ""}" aria-pressed="${viewOn(k)}" title="${tip} : afficher / masquer">${n}</button>`).join("") + `</div>`;
+  f.innerHTML += `<div class="vrow chips">${[["ouvrants", "Ouvrants", "Afficher les battants et arcs pour dessiner les portes"], ["parcours", "Parcours complets", "Afficher le cheminement des alimentations et lignes directes à la place des flèches"]].map(([k,n,t]) => `<button data-pref="${k}" class="vk ${pref(k) ? "on" : ""}" aria-pressed="${!!pref(k)}" title="${t}">${n}</button>`).join("")}</div>`;
+  f.querySelectorAll("[data-pref]").forEach(b => b.onclick = () => setPref(b.dataset.pref, !pref(b.dataset.pref)));
   f.querySelectorAll("[data-vp]").forEach(b => (b.onclick = () => viewPreset(b.dataset.vp)));
   f.querySelectorAll("[data-vk]").forEach(b => (b.onclick = () => toggleView(b.dataset.vk, !(viewOn(b.dataset.vk) && (b.dataset.vk !== "boites" && b.dataset.vk !== "gaines" || K.showCirc)))));
 }
@@ -264,7 +267,7 @@ export function setTab(t) {
 // initialisation (étape 6 du démarrage)
 export function init6() {
 // préférences d'affichage (Paramètres → Affichage, v42) : surfaces des pièces…
-document.addEventListener("okteo:prefs", () => { draw(); showSide(); });
+document.addEventListener("okteo:prefs", () => { draw(); showSide(); buildFilter(); });
 // ---------- contrôles ----------
 document.getElementById("bg").addEventListener("input", e => {
   K.bgLevel = +e.target.value / 100;

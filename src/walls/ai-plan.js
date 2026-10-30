@@ -53,7 +53,7 @@ export const METHOD_PASTE = (page) => `Fais une image de TOUTE la page ${page} (
 export const MIN_REF_W = 3000;
 function promptBody(coords, first) {
   const types = Object.entries(AI_TYPES).map(([k, v]) => `  ${k} = ${v}`).join("\n");
-  return `Relève ce plan pour le redessiner : murs, portes et fenêtres, pièces, appareillage électrique et liaisons des commandes.
+  return `Relève ce plan pour le redessiner : murs, passages de portes et fenêtres, pièces, appareillage électrique et liaisons des commandes.
 
 ${method(first)}
 
@@ -61,7 +61,7 @@ Règles :
 ${coords}
 - Murs : un segment sur l'AXE du mur (milieu de son épaisseur), d'un angle à l'autre ; "ep" = épaisseur en cm (murs extérieurs souvent 20 à 30 cm, cloisons 5 à 10 cm). Les murs se rejoignent exactement aux angles et aux jonctions en T (même point).
 - Un mur PASSE à travers ses portes et fenêtres : ne le coupe jamais à une ouverture. Donne les ouvertures à part : centre sur l'axe du mur, largeur en cm, type "porte", "fenetre" ou "garage" (porte de garage sectionnelle ou basculante : grande, sans arc de battant). Chaque pièce doit être entièrement fermée par des murs.
-- Pour chaque porte (type "porte") : "gx","gy" = le montant où sont les gonds (là où pivote le battant), et "vx","vy" = un point au milieu de l'arc dessiné, du côté où la porte s'ouvre. Regarde l'arc du battant sur le plan.
+- Portes : relève seulement le centre du passage et sa largeur réelle, avec le type "porte". Le rendu laisse cet espace ouvert. Ne relève ni gonds, ni battant, ni arc, ni sens d’ouverture. Conserve impérativement chaque ouverture ; les axes des murs restent continus pour la détection des pièces.
 - Pièces : le nom écrit sur le plan et un point à l'intérieur de la pièce. Ne crée pas de pièce qui n'est pas écrite.
 - Appareils : le centre du symbole, son type parmi la liste ci-dessous, et "h" = hauteur en cm quand elle est écrite à côté (ex. « H:1.20m » → 120), sinon pas de "h".
 ${types}
@@ -78,7 +78,7 @@ ${types}
 - N'invente rien : ce que tu ne vois pas reste absent. Une information visible mais mal comprise reste présente, à identifier. Mets les doutes par appareil dans "aiNote" et leur synthèse dans "remarques".`;
 }
 const JSON_FORM = `{"murs":[{"x1":0,"y1":0,"x2":0,"y2":0,"ep":20}],
- "ouvertures":[{"x":0,"y":0,"l":90,"t":"porte","gx":0,"gy":0,"vx":0,"vy":0},{"x":0,"y":0,"l":240,"t":"garage"}],
+ "ouvertures":[{"x":0,"y":0,"l":90,"t":"porte"},{"x":0,"y":0,"l":240,"t":"garage"}],
  "pieces":[{"nom":"Cuisine","x":0,"y":0}],
  "appareils":[{"t":"PC16","x":0,"y":0},{"t":"INT","x":0,"y":0,"h":110},{"t":"LUM","x":0,"y":0},{"t":"PC16","x":0,"y":0,"h":110,"pt":true,"qty":4,"inscription":"BLOC 4 PRISES","aiOrigin":"plan"}],
  "liaisons":[[1,2]],

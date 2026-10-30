@@ -763,7 +763,7 @@ try {
     await page.keyboard.press("Control+z"); await page.keyboard.press("Control+z");
     const back = await ev(() => ({ app: okteo.state.app.length, segs: okteo.state.segs.length }));
     const r = { list, card: card.slice(0, 300), A, et: et.slice(0, 300), back, before };
-    const ok = /pièce non fermée/.test(list) && /type à préciser/.test(list) && /ouverture loin des murs/.test(list) && /sens de porte non lu/.test(list) && /doute signalé par l'IA/.test(list)
+    const ok = /pièce non fermée/.test(list) && /type à préciser/.test(list) && /ouverture loin des murs/.test(list) && !/sens de porte non lu/.test(list) && /doute signalé par l'IA/.test(list)
       && /« Cellier essai »/.test(txt) && /"portes"/.test(txt) && /chauffe-eau/.test(txt)
       && A.ceth && A.door.aiSens && A.nOp === 2 && A.rap === 2 && /points corrigés \(\d+ %\)/.test(card) && /sous réserve du contrôle BE/.test(card) && /introuvable/.test(card)
       && /4\/5 points corrigés \(80 %\)/.test(card) && /Réussite des relectures : 4\/5 points corrigés/.test(et) && /Relecture 1/.test(et) && back.app === before.app && back.segs === before.segs;

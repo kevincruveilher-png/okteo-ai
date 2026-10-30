@@ -1,3 +1,5 @@
+import { arrowPoints } from "../plan-style.js";
+import { planWiring } from "./plan-wiring.js";
 import {ductPath} from '../cablage/vmc.js';
 // Oktéo AI — cœur : Dessin du plan (SVG) : fond, murs, ouvertures, pièces, appareils, étiquettes sans chevauchement.
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
@@ -98,6 +100,10 @@ export function wallIntervals(seg) {
 }
 
 export function draw() {
+  sv.style.background = "#fff";
+  sv.style.setProperty("--wall", "#202020");
+  sv.style.setProperty("--fg", "#202020");
+  sv.style.setProperty("--panel", "#fff");
   syncVB();
   followWalls();
   ensureReps();
@@ -152,10 +158,11 @@ export function draw() {
     let rf = "";
     state.rooms.forEach(r => {
       const on = isSel("room", r.id) || GH && GH.rooms.has(r.id);
-      rf += `<polygon points="${roomPoly(r).map(p => p.x + "," + p.y).join(" ")}" fill="var(--accent)" opacity="${on ? 0.14 : 0.07}"/>`;
+      rf += `<polygon points="${roomPoly(r).map(p => p.x + "," + p.y).join(" ")}" fill="var(--accent)" opacity="${on ? 0.14 : 0}"/>`;
     });
     h += `<g>${rf}</g>`;
   }
+  h += `<defs><pattern id="wall-hatch" width="0.14" height="0.14" patternUnits="userSpaceOnUse"><rect width="0.14" height="0.14" fill="white"/><path d="M0 .14L.14 0" stroke="#222" stroke-width=".012"/></pattern></defs>`;
   // murs (intervalles pleins) + jonctions
   if (layers.murs.on) {
     let mp = "",
@@ -164,7 +171,7 @@ export function draw() {
       const d = segDir(seg);
       if (!d.a) return;
       const on = K.sel && (K.sel.kind === "seg" || K.sel.kind === "segDelAsk") && K.sel.id === seg.id || GH && GH.nodes.has(seg.a) && GH.nodes.has(seg.b);
-      const col = on ? 'var(--sel)' : 'var(--wall)';
+      const col = on ? 'var(--sel)' : epOf(seg) >= 0.16 ? "url(#wall-hatch)" : 'var(--wall)';
       if (seg.virt) {
         mp += `<line x1="${d.a.x}" y1="${d.a.y}" x2="${d.b.x}" y2="${d.b.y}" stroke="${on ? 'var(--sel)' : 'var(--mut)'}" stroke-width="${on ? 0.05 : 0.03}" stroke-dasharray="0.14 0.09"/>`;
         return;
@@ -177,7 +184,7 @@ export function draw() {
           ay = d.a.y + d.uy * s0,
           bxp = d.a.x + d.ux * s1,
           byp = d.a.y + d.uy * s1;
-        mp += `<polygon points="${ax + nx},${ay + ny} ${bxp + nx},${byp + ny} ${bxp - nx},${byp - ny} ${ax - nx},${ay - ny}" fill="${col}"/>`;
+        mp += `<polygon points="${ax + nx},${ay + ny} ${bxp + nx},${byp + ny} ${bxp - nx},${byp - ny} ${ax - nx},${ay - ny}" fill="${col}" stroke="${on ? "var(--sel)" : "#222"}" stroke-width=".012"/>`;
       });
     });
     state.nodes.forEach(n => {
@@ -185,12 +192,12 @@ export function draw() {
       state.segs.forEach(s => {
         if (s.a === n.id || s.b === n.id) e = Math.max(e, epOf(s));
       });
-      if (e > 0) jn += `<rect x="${n.x - e / 2}" y="${n.y - e / 2}" width="${e}" height="${e}" fill="var(--wall)"/>`;
+      if (e > 0) jn += `<rect x="${n.x - e / 2}" y="${n.y - e / 2}" width="${e}" height="${e}" fill="${e >= 0.16 ? "url(#wall-hatch)" : "var(--wall)"}"/>`;
     });
     h += `<g>${jn}${mp}</g>`;
   }
   // ouvertures (portes/fenêtres)
-  if (layers.ouvertures.on) {
+  if (layers.ouvertures.on && (pref("ouvrants") || ["porte", "fenetre"].includes(K.tool))) {
     let op = "";
     state.openings.forEach(o => {
       const seg = segById(o.seg);
@@ -316,6 +323,8 @@ export function draw() {
   }
   // boîtes de pieuvre (onglet Câblage) : gaines boîte → appareils depuis leur point d'accroche, alimentation depuis le tableau,
   // boîte carrée de taille fixe sur le plan (comme les symboles), ses points d'accroche sur chaque face, nom, cadenas
+  const wiring = K.showCirc ? planWiring() : { boxes: [], direct: [] };
+  const arrowSvg = (a, target, label, color = "#333") => { const P = arrowPoints(a, target, 30 * pmNow()), E = P[1]; return `<g class="supply-arrow" fill="none" stroke="${color}" stroke-width="${pmNow()}"><path d="M${a.x} ${a.y}L${E.x} ${E.y}M${P[2].x} ${P[2].y}L${E.x} ${E.y}L${P[3].x} ${P[3].y}"/><text x="${E.x}" y="${E.y + (E.y < a.y ? -5 : 11) * pmNow()}" stroke="white" stroke-width="${3 * pmNow()}" paint-order="stroke" fill="#222" font-size="${10 * pmNow()}" text-anchor="middle">${String(label).replace(/[&<>]/g, "")}</text></g>`; };
   const showBoxes = K.showCirc && layers.boites.on, showGaines = K.showCirc && layers.gaines.on;
   if ((showBoxes || showGaines) && (K.CAB.boxes || []).length) {
     const pm = pmNow(), cm = circuitMap(), byId = Object.fromEntries(state.app.map(a => [a.id, a])), tab = state.app.find(a => a.t === "TAB");
@@ -339,6 +348,7 @@ export function draw() {
       if (showGaines) {
         LY.deps.forEach(d => {
           if (d.tab) {
+            if (!pref("parcours")) { const gs = wiring.boxes.find(x => x.id === b.id)?.gaines.filter(g => g.kind === "alim") || []; bl += arrowSvg(d.P, (R.tab || [])[0] || tab, gs.map(g => g.no).join(" / ") || b.n + ".01"); return; }
             bl += `<path class="gaine alim" data-b="${b.id}" data-k="tab" d="${gpath("tab", d.P, tab)}" fill="none" stroke="var(--fg)" stroke-width="${1.2 * pm}" stroke-dasharray="${6 * pm} ${4 * pm}" opacity="0.45"/>`;
             return;
           }
@@ -347,18 +357,18 @@ export function draw() {
             bl += `<path class="gaine" data-b="${b.id}" data-k="${a.id}" d="${gpath(a.id, d.P, a)}" fill="none" stroke="${c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" opacity="${on ? 0.9 : 0.55}"/>`;
           });
         });
-        for (const pts of Object.values(R)) pts.forEach(p => {
+        for (const [key, pts] of Object.entries(R)) if (key !== "tab" || pref("parcours")) pts.forEach(p => {
           wp += `<circle class="wp" cx="${p.x}" cy="${p.y}" r="${(on ? 4 : 3) * pm}" fill="var(--panel)" stroke="${on ? "var(--sel)" : "var(--fg)"}" stroke-width="${1.4 * pm}"/>`;
         });
       }
       if (!showBoxes) return;
       const lk = lockPos(b, pm), fs = Math.min(S * 0.16, 9 * pm);
       bx += `<g class="box" data-id="${b.id}"><rect x="${b.x - S / 2}" y="${b.y - S / 2}" width="${S}" height="${S}" fill="var(--panel)" stroke="${on ? "var(--sel)" : "var(--fg)"}" stroke-width="${(on ? 2.4 : 1.6) * pm}"/>` +
-        `<text x="${b.x}" y="${b.y - S / 2 - 5 * pm}" text-anchor="middle" font-size="${11 * pm}" font-weight="700" font-family="var(--fm)" fill="var(--fg)">${b.n}</text>` +
-        ["A", "B", "C", "D"].map((f, i) => { const dx = [0, 1, 0, -1][i] * S * 0.3, dy = [-1, 0, 1, 0][i] * S * 0.3; return `<text x="${b.x + dx}" y="${b.y + dy}" text-anchor="middle" dominant-baseline="central" font-size="${fs}" font-family="var(--fm)" fill="var(--mut)">${f}</text>`; }).join("");
+        `<text x="${b.x}" y="${on ? b.y - S / 2 - 5 * pm : b.y + 4 * pm}" text-anchor="middle" font-size="${11 * pm}" font-weight="700" font-family="var(--fm)" fill="var(--fg)">${b.n}</text>` +
+        (on ? ["A", "B", "C", "D"] : []).map((f, i) => { const dx = [0, 1, 0, -1][i] * S * 0.3, dy = [-1, 0, 1, 0][i] * S * 0.3; return `<text x="${b.x + dx}" y="${b.y + dy}" text-anchor="middle" dominant-baseline="central" font-size="${fs}" font-family="var(--fm)" fill="var(--mut)">${f}</text>`; }).join("");
       // points d'accroche : vides = libres, pleins = une gaine y est raccordée (couleur de son circuit)
       const taken = new Map(LY.deps.filter(d => d.face && d.slot != null).map(d => [d.face + d.slot, d]));
-      for (const f of ["A", "B", "C", "D"]) for (let i = 0; i < LY.N; i++) {
+      for (const f of (on ? ["A", "B", "C", "D"] : [])) for (let i = 0; i < LY.N; i++) {
         const P = portXY(b, S, LY.N, f, i), d = taken.get(f + i), col = d ? (d.tab ? "var(--fg)" : (cm[d.apps[0].id] || {}).color || "var(--mut)") : null;
         bx += `<circle class="port${d ? " used" : ""}" data-f="${f}" data-i="${i}" cx="${P.x}" cy="${P.y}" r="${(d ? 1.9 : 1.4) * pm}" fill="${col || "var(--panel)"}" stroke="${col || "var(--mut)"}" stroke-width="${0.9 * pm}"/>`;
       }
@@ -387,6 +397,17 @@ export function draw() {
     h += `<g class="boxlinks">${bl}</g>`;
     K.__boxLayer = bx;
   } else K.__boxLayer = "";
+  if (showGaines) {
+    const index = appIndex();
+    const lines = wiring.direct.filter(g => g.lv === K.LV.cur).map(g => {
+      const a = index.get(g.appId)?.a, tab = [...index.values()].find(v => v.a.t === "TAB" && v.lv === g.lv)?.a || [...index.values()].find(v => v.a.t === "TAB")?.a;
+      if (!a) return "";
+      const color = g.faible ? "#356747" : "#9b2440";
+      if (pref("parcours") && tab) return `<path class="direct-route" d="M${a.x} ${a.y}L${tab.x} ${tab.y}" fill="none" stroke="${color}" stroke-width="${pmNow()}"/>`;
+      return arrowSvg(a, tab || {x:a.x-.5,y:a.y+.5}, g.etiquette || g.no, color);
+    }).join("");
+    h += `<g class="direct-lines">${lines}</g>`;
+  }
   // v58 : symboles sans chevauchement : affichage décalé (le long du mur pour un appareil mural), position réelle gardée,
   // trait de rappel vers la position réelle ; K.dispPos sert aussi aux repères, aux halos et à la sélection
   K.dispPos = layers.appareils.on ? spreadSymbols(state.app.map(a => ({ id: a.id, x: a.x, y: a.y, ...wallU(a) })), 1.9 * symView()) : new Map();
@@ -845,7 +866,7 @@ export function hitPort(wx, wy) {
   let best = null;
   for (const b of (K.CAB.boxes || []).filter(x => x.lv === K.LV.cur)) {
     const { S, N } = boxLayout(b, pm);
-    for (const f of ["A", "B", "C", "D"]) for (let i = 0; i < N; i++) {
+    for (const f of (on ? ["A", "B", "C", "D"] : [])) for (let i = 0; i < N; i++) {
       const P = portXY(b, S, N, f, i), d = dist(wx, wy, P.x, P.y);
       if (d <= 6 * pm && (!best || d < best.d)) best = { box: b, f, i, x: P.x, y: P.y, d };
     }
@@ -885,6 +906,7 @@ export function hitRoute(wx, wy) {
     LY.deps.forEach(d => d.keys.forEach(k => (start[k] = d.P)));
     const keys = [...b.apps.filter(id => byId[id]), ...(tab ? ["tab"] : [])];
     for (const key of keys) {
+      if (key === "tab" && !pref("parcours")) continue;
       const P0 = start[key] || b, pts = [P0, ...(R[key] || []), key === "tab" ? tab : byId[key]];
       for (let i = 1; i < pts.length - 1; i++) {
         const d = dist(wx, wy, pts[i].x, pts[i].y);

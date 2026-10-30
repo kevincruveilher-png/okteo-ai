@@ -1,0 +1,41 @@
+import {build,preview} from 'vite';
+import config from '../vite.config.js';
+import {chromium} from 'playwright';
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+await build({...config({mode:'production'}),configFile:false,logLevel:'error'});
+const server=await preview({configFile:false,preview:{port:5197,strictPort:true}});
+const browser=await chromium.launch(process.env.OKTEO_TEST_BROWSER ? {channel:process.env.OKTEO_TEST_BROWSER} : {});
+const page=await browser.newPage({viewport:{width:1600,height:1000}}),errors=[];
+page.on('pageerror',e=>errors.push(e.message));
+try {
+ await page.goto('http://localhost:5197'); await page.waitForFunction(()=>window.okteoExt);
+ const fixture=JSON.parse(fs.readFileSync('docs/chantiers/MAILLARD_kevin.okteo'));
+ await page.evaluate(f=>{
+   const a=okteo, data=JSON.parse(f.dessin.s); Object.assign(a.state,...['nodes','segs','rooms','app','lia','openings','dims'].map(k=>({[k]:data[k]||[]})));
+   a.state.wallEp=data.wallEp || .2;
+   a.setTab('plan'); a.viewPreset('cab');
+   const ids=a.state.app.filter(x=>['PC16','LUM','INT'].includes(x.t)).slice(0,7).map(x=>x.id);
+   const direct=a.state.app.find(x=>x.t==='PC20') || a.state.app.find(x=>x.t==='RJ45');
+   a.setCab({circuits:[{id:'test-c',n:'C1',kind:'prise',section:2.5,prot:20,apps:ids,color:'#222222'},...(direct?[{id:'test-d',n:'C2',kind:'special',direct:true,section:2.5,prot:20,apps:[direct.id],color:'#9b2440'}]:[])],boxes:[{id:'test-b',n:'LI01',lv:a.level.id,x:5,y:5,apps:ids,routes:{tab:[{x:4,y:4},{x:3,y:5}]}}]});
+   a.fit(); a.draw();
+ },fixture);
+ assert.equal(errors.length,0,errors.join('\n'));
+ const before=await page.evaluate(()=>JSON.stringify({state:okteo.state,cab:okteo.cab}));
+ assert(await page.locator('.supply-arrow').count()>0);
+ assert.equal(await page.locator('.gaine.alim').count(),0);
+ await page.screenshot({path:'../visual-fleches.png'});
+ await page.locator('[data-pref="parcours"]').click();
+ assert(await page.locator('.gaine.alim').count()>0);
+ assert(await page.locator('.direct-route').count()>0);
+ await page.locator('[data-pref="ouvrants"]').click();
+ assert.equal(await page.evaluate(()=>JSON.stringify({state:okteo.state,cab:okteo.cab})),before);
+ await page.screenshot({path:'../visual-parcours.png'});
+ await page.locator('[data-pref="parcours"]').click();await page.locator('[data-pref="ouvrants"]').click();
+ await page.evaluate(()=>okteoExt.printer.open());
+ await page.waitForFunction(()=>okteoExt.printer.last,{timeout:30000});
+ const bytes=await page.evaluate(async()=>Array.from(new Uint8Array(await okteoExt.printer.last.blob.arrayBuffer())));
+ fs.writeFileSync('../visual-plan.pdf',Buffer.from(bytes));
+ assert.equal(errors.length,0,errors.join('\n'));
+ console.log('PASS: arrows, full supply/direct paths, display toggles preserve all model data, PDF generation, no browser errors');
+}finally{await browser.close(); await server.httpServer.close();}

@@ -30,7 +30,7 @@ export const state = {
 
 export const layers = {
   fond: {
-    on: true,
+    on: false,
     lock: false
   },
   pieces: {

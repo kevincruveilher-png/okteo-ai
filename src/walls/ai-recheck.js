@@ -31,7 +31,7 @@ export const issueKey = (it) => it.kind + ":" + [...it.ids].sort().join(",");
 // (openingsInfo), missing [{name, x, y}] (pièces nommées non fermées), lost [{x, y, w, kind}] (ouvertures perdues),
 // remarques (texte de l'IA au relevé), nope (clés déjà dites introuvables), kitchen(room) → vrai si cuisine }.
 // Les points déjà demandés (done) ou introuvables ne sont jamais redemandés.
-export function recheckPoints(ctx, { frame, done = new Set(), lv = null, radius = 6, max = 20, maxDoors = 8 } = {}) {
+export function recheckPoints(ctx, { frame, done = new Set(), lv = null, radius = 6, max = 20, maxDoors = 0 } = {}) {
   const { apps = [], issues = [], openings = [], missing = [], lost = [], remarques = "", nope = new Set(), kitchen = () => false } = ctx;
   const byId = new Map(apps.map((a) => [a.id, a])), cand = [];
   const skip = (key) => done.has(key) || nope.has(key);
@@ -109,7 +109,7 @@ export function recheckPrompt(P, { mode = "paste", pass = 1, page = 1, zoom = nu
     ["supprimer", `[{"rep":"P13","pourquoi":"…"}] = appareil qui n'existe pas (doublon, note prise pour un symbole)`, ["hors", "doublon", "rem"]],
     ["hauteurs", `[{"rep":"P20","h":110,"pt":true}]`, ["haut", "rem"]],
     ["ouvertures", `[{"rep":"O3","x":50.2,"y":30.1,"l":90,"t":"porte"}] = vraie position et largeur (cm) ; "t" : porte, fenetre ou garage`, ["ouv", "perdue", "rem"]],
-    ["portes", `[{"rep":"O4","gx":0,"gy":0,"vx":0,"vy":0}] = montant des gonds et point de l'arc du battant`, ["porte", "rem"]],
+    ["portes", `[{"rep":"O4","gx":0,"gy":0,"vx":0,"vy":0}] = montant des gonds et point de l'arc du battant`, ["porte"]],
     ["murs", `[{"x1":0,"y1":0,"x2":0,"y2":0,"ep":10,"pour":"Cuisine"}] = mur qui manque (axe, épaisseur en cm)`, ["piece", "rem"]],
   ].filter(([, , k]) => k.some((x) => kinds.has(x)));
   if (kinds.has("lum") || kinds.has("rem") || kinds.has("type")) rub.push(["lectures", `[{"rep":"AP1","inscription":"ALIM DETECTEUR","aiStatus":"a_confirmer","aiOrigin":"interpretation","commande":{"mode":"detecteur","detecteur":"integre","alimentation":"permanente","preuve":"inscription et symbole réellement visibles"}}] = observations et interprétation ; qty = quantité ou null, calibre = ampères lus, aiGroup = regroupement. Sans preuve visible, commande reste inconnue.`]);

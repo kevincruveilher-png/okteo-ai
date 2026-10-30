@@ -1,3 +1,14 @@
+## 30/10/2026 — v71 : rendu du plan KiTéOHM
+
+Demande de Kévin : conserver les symboles, adapter fond, murs, boîtes et gaines au modèle MAILLARD ; masquer les ouvrants en gardant les passages et les outils ; représenter alimentations et lignes directes par des flèches avec possibilité de réafficher leur parcours.
+
+- Fond blanc, pièces sans aplat ; fond PDF toujours disponible par le calque Fond, désactivé par défaut pour les nouveaux réglages. Murs de 16 cm et plus hachurés, cloisons fines noires (classification par épaisseur, pas une détection sémantique des façades).
+- Boîtes nommées dans leur carré ; sélection : faces et ports d’édition disponibles. Gaines fines. Flèches avec les étiquettes issues du calcul de câblage.
+- Boutons Ouvrants / Parcours complets dans les vues, préférences et palette de fonctions ; options équivalentes dans Imprimer. Les ouvertures, routes d’alimentation et longueurs sont conservées. Les lignes directes suivent le trajet rectiligne utilisé par le calcul existant ; aucun éditeur de détour des lignes directes n’est ajouté.
+- Prompt commun aux modes avec clé et copier/coller : centres et largeurs des passages uniquement, axes continus ; plus de demande de gonds/arc. Relecture du sens désactivée par défaut ; compatibilité de lecture des anciens champs conservée.
+- Vérification : compilation production, 42 tests murs/relevé, 86 tests câblage, 176 tests chantiers ; test navigateur ciblé sous Edge (flèches, parcours, invariance du modèle et génération PDF), inspection des PNG et du PDF.
+- Limite locale : suite smoke et essai MAILLARD complets bloqués par le chargement natif esbuild de la configuration Vite sous Windows ; Chromium headless local refuse le lancement (EPERM). Le test ciblé utilise la compilation avec configuration chargée par Node et Edge (`OKTEO_TEST_BROWSER=msedge`).
+
 # Oktéo AI — journal de développement
 
 Prototype navigateur de l'outil de dessin (artefact) : https://claude.ai/artifact/7Lb91H5P2y8eCbcgr4eKDu

@@ -1,3 +1,4 @@
+import { planWiring } from "./plan-wiring.js";
 import {ductPath,ductReport} from '../cablage/vmc.js';
 // Oktéo AI — cœur : Niveaux (RDC, R+1…), liaisons entre niveaux, géométrie pour l'impression.
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
@@ -270,6 +271,7 @@ export function removeLevel(id) {
 // géométrie d'impression du niveau ouvert (ou d'un autre via withLevel)
 export function okteoGeo() {
   followWalls();
+  const wallThickness = [];
   const walls = [],
     joints = [],
     openings = [],
@@ -300,6 +302,7 @@ export function okteoGeo() {
         ay = d.a.y + d.uy * s0,
         bx = d.a.x + d.ux * s1,
         by = d.a.y + d.uy * s1;
+      wallThickness.push(e);
       walls.push([{
         x: ax + nx,
         y: ay + ny
@@ -445,6 +448,7 @@ export function okteoGeo() {
   }));
   // boîtes de pieuvre du niveau (v48) : centre, nom, points d'accroche (face + n°) et gaines (bout, points de passage,
   // couleur du circuit) ; la taille sur le papier est choisie à l'impression, comme celle des symboles
+  const wiring = planWiring();
   const tabA = state.app.find(a => a.t === "TAB");
   const boxes = (K.CAB.boxes || []).filter(b => b.lv === K.LV.cur).map(b => {
     const LY = boxLayout(b, 1), R = b.routes || {};
@@ -453,6 +457,7 @@ export function okteoGeo() {
       n: b.n,
       x: b.x,
       y: b.y,
+      alimLabel: wiring.boxes.find(x => x.id === b.id)?.gaines.filter(g => g.kind === "alim").map(g => g.no).join(" / "),
       locked: !!b.locked,
       N: LY.N,
       deps: LY.deps.map(d => ({
@@ -470,6 +475,8 @@ export function okteoGeo() {
     walls,
     joints,
     openings,
+    wallThickness,
+    direct: wiring.direct.filter(g => g.lv === K.LV.cur).map(g => { const a = byId[g.appId]; const tab = tabA || [...appIndex().values()].find(v => v.a.t === "TAB")?.a; return a && {a:{x:a.x,y:a.y},b:tab ? {x:tab.x,y:tab.y}:null,label:g.etiquette || g.no,faible:g.faible}; }).filter(Boolean),
     wallDims,
     limits,
     rooms,

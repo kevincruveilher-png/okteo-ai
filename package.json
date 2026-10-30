@@ -1,8 +1,8 @@
 {
   "name": "okteo-ai",
-  "version": "0.70.0",
+  "version": "0.71.0",
   "private": true,
-  "description": "Oktéo AI — logiciel de dessin pour bureau d'études de pieuvres électriques (prototype navigateur)",
+  "description": "OktÃ©o AI â€” logiciel de dessin pour bureau d'Ã©tudes de pieuvres Ã©lectriques (prototype navigateur)",
   "scripts": {
     "dev": "vite --open",
     "build": "vite build",
@@ -18,7 +18,8 @@
     "test:equipements": "node scripts/equipements.test.mjs",
     "test:equipements:navigateur": "node scripts/equipements.test.mjs --browser",
     "test:vmc": "node scripts/vmc-comparaison.test.mjs",
-    "test:vmc:navigateur": "node scripts/vmc-comparaison.test.mjs --browser"
+    "test:vmc:navigateur": "node scripts/vmc-comparaison.test.mjs --browser",
+    "test:plan:navigateur": "node scripts/plan-style.browser.mjs"
   },
   "devDependencies": {
     "playwright": "^1.47.0",
