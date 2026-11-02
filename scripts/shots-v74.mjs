@@ -21,16 +21,6 @@ try {
   console.log(info);
   await page.waitForTimeout(1500);
   await page.screenshot({ path: "shots/plan.png" });
-  // diagnostic : outil Liaison sur une commande puis sa lumière
-  await page.evaluate(() => { okteoExt.panel.close("assistant"); document.querySelector(".tour-invite")?.remove(); okteo.setTool("lien"); });
-  const t = await page.evaluate(() => { const x = okteo.state.lia[0], A = okteo.state.app, c = A.find((a) => a.id === x.c), l = A.find((a) => a.id === x.l); okteo.zoomTo([c.id, l.id]); return { cid: c.id, lid: l.id }; });
-  await page.waitForTimeout(600);
-  const pp = await page.evaluate((t) => { const A = okteo.state.app, c = A.find((a) => a.id === t.cid), l = A.find((a) => a.id === t.lid); return { c: okteo.toClient(c.x, c.y), l: okteo.toClient(l.x, l.y), ls: okteo.shownAt(l.id), lw: { x: l.x, y: l.y } }; }, t);
-  await page.mouse.click(pp.c.x, pp.c.y); const h1 = await page.evaluate(() => document.getElementById("hint").textContent);
-  const top = await page.evaluate((p) => { const e = document.elementFromPoint(p.l.x, p.l.y); return e && (e.tagName + "." + e.getAttribute("class") + " dev=" + (e.closest("g.dev")?.dataset.id || "") + " id=" + e.id); }, pp);
-  await page.mouse.click(pp.l.x, pp.l.y); const h2 = await page.evaluate(() => document.getElementById("hint").textContent);
-  console.log("DIAG", JSON.stringify({ pp, h1, top, h2 }));
-  await page.evaluate(() => { okteo.setTool("sel"); });
   // v74 MAJ 3 : baignoire dans la salle de bains, contre le mur du haut (vérification visuelle des volumes)
   console.log(await page.evaluate(() => { const r = okteo.state.rooms.find((x) => /bain/i.test(x.name)); if (!r || !r.poly) return "pas de salle de bains"; const P = r.poly, x0 = Math.min(...P.map((p) => p.x)), y0 = Math.min(...P.map((p) => p.y)); okteo.importDevices([{ t: "BAIG", x: x0 + 0.86, y: y0 + 0.39 }]); return "baignoire posée, " + okteo.control.filter((c) => c.kind === "sdb").length + " alerte(s) sdb"; }));
   await page.evaluate(() => { const r = okteo.state.rooms.find((x) => /bain/i.test(x.name)); if (r) okteo.zoomTo([r.id]); });

@@ -17,6 +17,8 @@ Branche `feat/plan-ftz-v74`.
 - Logement PMR : `meta.pmr`, case `#ch-pmr` (fiche du chantier), `isPmr()` / `hDefault(t)` (model.js : 30 → 40 cm pour
   les nouveaux appareils, `hDef` de l'impression), `api.setPmr(on, {apply})` (remonte / redescend ceux déjà posés, un
   Ctrl+Z ; événement `okteo:pmr`), `api.pmr`.
+- Légende : plaques multipostes posées ajoutées (avant la boîte et la flèche). Symbole FTZ à l'écran : petit disque de clic
+  invisible `circle.fhit` (un symbole sans remplissage, comme le point lumineux, laissait passer le clic vers la liaison).
 - Tests : charte.test.mjs (+3 : couleurs, symboles, plaques), smoke « plan du BE (v74 MAJ 4) ».
 
 ## 03/11/2026 — v74 MAJ 3 : volumes de la salle de bain
