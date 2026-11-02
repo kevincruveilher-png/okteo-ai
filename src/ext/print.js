@@ -459,7 +459,8 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     doc = new JsPDF2({ orientation: "landscape", unit: "mm", format: "a3" });
     const cart = C.pages[0].cartouche;
     const area = { x: S.OX + 2, y: S.OY + 2, w: 406, h: cart.top - 3 };
-    const ext = extentOf(geo), ew = ext.x1 - ext.x0, eh = ext.y1 - ext.y0;
+    // cadrage sur ce qui est imprimé : murs, appareils, noms de pièces (un contour de pièce mal relevé ne décentre pas le plan)
+    const ext = extentOf({ ...geo, rooms: geo.rooms.map((r) => ({ poly: r.label ? [r.label] : [] })) }), ew = ext.x1 - ext.x0, eh = ext.y1 - ext.y0;
     const scale = [50, 75, 100, 150, 200].find((s) => ew * 1000 / s <= area.w && eh * 1000 / s <= area.h) || 200;
     const Lay = { paper: "A3", orient: "paysage", W: S.A3.W, H: S.A3.H, scale, f: 1000 / scale, area, fits: ew * 1000 / scale <= area.w && eh * 1000 / scale <= area.h, ext };
     const cx = (ext.x0 + ext.x1) / 2, cy = (ext.y0 + ext.y1) / 2;

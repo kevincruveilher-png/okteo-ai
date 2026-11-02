@@ -1084,7 +1084,7 @@ body.aw-on{overflow:hidden}
 .prep-view{flex:1;min-width:0;position:relative;display:flex;align-items:center;justify-content:center;background:#5b6773;padding:12px;overflow:auto}
 .prep-sheet{position:relative;width:min(100%,calc((96vh - 24px) * 420 / 297));aspect-ratio:420/297;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.35)}
 .prep-bg{position:absolute;inset:0;width:100%;height:100%}
-.prep-ov{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.prep-ov{position:absolute;inset:0;width:100%;height:100%;touch-action:none;background:none}
 .prep-ov .pit{cursor:move}
 .prep-ov .pit.on .hit{stroke:#0B6E99;stroke-width:.3;stroke-dasharray:1 .6}
 .prep-ov .hdl{fill:#fff;stroke:#0B6E99;stroke-width:.35;cursor:nwse-resize}
