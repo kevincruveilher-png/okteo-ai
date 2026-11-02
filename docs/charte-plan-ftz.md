@@ -16,7 +16,7 @@ constructeur). D'autres PLAN_EXPE FTZ seront fournis par Kévin.
    (alimentation de boîte, lignes directes).
 5. **Zones de texte** : encadrées ou non, outil de mise en forme complet (couleur, gras, italique, taille…).
 6. **Couleur par boîte**, ordre FTZ : LI01 rouge, LI02 vert, LI03 magenta, LI04 bleu, LI05 noir, LI06 orange,
-   LI07 violet ; à partir de LI08 le cycle recommence.
+   LI07 violet ; à partir de LI08 le cycle recommence. **Ordre verrouillé** (Kévin, 02/11) même si les plans FTZ varient.
 7. **Noms de pièces abrégés** (SEJOUR, DEGT, DRESS, CH1, SDB…) : table de correspondance modifiable dans Paramètres.
 8. **Cartouche** : Client = constructeur / entreprise (ex. MENUISERIE ISOLATION DU CENTRE (MIDC)), Chantier, N° =
    n° d'affaire (ex. AF26074879), Échelle, Dessinateur, Date → nouveaux champs de la fiche chantier.
@@ -43,10 +43,20 @@ constructeur). D'autres PLAN_EXPE FTZ seront fournis par Kévin.
 - La légende est en haut à droite (VILLANOVA) ou en haut à gauche (MAILLARD) : coin libre. EVRARD n'en a pas.
 - Encart image produit possible (« GIGA OCTO ! » sur VILLANOVA).
 - **Couleurs des boîtes : l'ordre n'est pas le même d'un plan à l'autre** (EVRARD LI02 vert / LI03 magenta / LI04 bleu ;
-  VILLANOVA LI02 magenta / LI03 bleu / LI04 vert) → cycle par défaut + couleur modifiable par boîte.
+  VILLANOVA LI02 magenta / LI03 bleu / LI04 vert) → décision : on verrouille l'ordre EVRARD (point 6).
 - **Murs** : hachurés en diagonale (VILLANOVA, MAILLARD) ou gris plein + cloisons ondulées (EVRARD) : suit le plan du
   constructeur → style de bâti au choix par chantier.
 - **Deux types de boîte** : boîte carrée (combles) et « boîte pavillonnaire pot de centre » (cercle vert autour du point
-  lumineux, ex. LI04 sur L10).
+  lumineux, ex. LI04 sur L10 ; posée au plafond avec la documentation fournisseur « GIGA OCTO » en image). **Plus tard.**
 - Zone hachurée en pointillés autour de la douche (volumes de la SDB) = « zone interdite ».
 - Radiateurs électriques sur le plan électrique, radiateurs à eau sur le plan plomberie (décision de Kévin).
+
+## Compléments (Kévin, 02/11/2026, soir)
+- EVRARD a été « imprimé » en PDF par PDFCreator (imprimante virtuelle : textes transformés en traits, A3 réduit en A4) ;
+  VILLANOVA a été exporté par FTZ lui-même. Cartouche et textes viennent de FTZ dans les deux cas.
+- Images : documentation fournisseur (ex. pose des boîtes pot de centre), pas de la publicité.
+- Murs : le style suit les conventions de dessin du plan du constructeur. Piste : un **type de mur** par mur (maçonnerie,
+  cloison plâtre, doublage / cloison isolée) dessiné selon la convention, deviné au relevé d'après les aplats du PDF.
+- Schémas unifilaires : à faire aussi.
+- **Deux dossiers séparés** : le dossier du client (ses documents : plans constructeur, cuisiniste…) et le dossier du
+  bureau d'études (pieuvre, équipements / lignes directes, plomberie, tableau, unifilaire). Pas d'annexes mélangées.
