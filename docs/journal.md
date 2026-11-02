@@ -1,6 +1,7 @@
 ## 03/11/2026 — v74 MAJ 2 : bâti du plan du BE (types de murs, noms abrégés, cotes des boîtes)
 
-Branche `feat/plan-ftz-v74`.
+Branche `feat/plan-ftz-v74`, fusionnée dans `main` sur « go and push » de Kévin (GitHub Actions : check complet, smoke
+174/174, test:web vert).
 - **Type de mur** (`seg.mat` : `maconnerie` | `cloison` | `doublage`, absent = automatique) : `matOf(seg)` (model.js) =
   le type posé, sinon 16 cm et plus, ou mur de façade (un côté hors de toute pièce, `wallFacade`) de 10 cm et plus =
   maçonnerie, sinon cloison. Propriétés du mur : `#f_mat`. API `wallMats()`, `setWallMat(ids, mat)` (annulable).
