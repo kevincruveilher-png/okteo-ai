@@ -14,6 +14,28 @@ Défauts bloquants corrigés :
 - **Délai IA** : 3 min coupait les relevés (5 à 10 min mesurés sur MAILLARD) et gardait la réservation « incertaine ».
   `AI_TIMEOUT` = 15 min ; un appel « pending » ne devient incertain qu'après ce délai + 1 min.
 
+**Régressions de la v71 trouvées et corrigées** (la v71 n'avait jamais pu passer les tests navigateur : ~30 contrôles
+smoke en échec, identiques sur `main`) :
+- depuis v71, `draw()` recalcule le câblage pour les flèches ; un appareil d'une boîte sans circuit (état normal pendant
+  l'édition) faisait planter `computeWiring` (`circOf.get(id).kind`) → plan figé. Lecture protégée dans `gaines.js`,
+  `plan-wiring.js` ne fait plus jamais planter le dessin, test de régression dans `cablage.test.mjs` ;
+- `hitPort` utilisait une variable `on` inexistante (saisie des points d'accroche cassée) ;
+- l'image du plan envoyée à l'IA (« Analyser le plan ») ne contenait plus le fond, masqué par défaut depuis v71 ;
+- tests smoke mis à jour pour les choix volontaires de v71/v72 (ouvrants masqués, points d'accroche sur la boîte
+  sélectionnée, murs #202020 hachurés, boîtes imprimées sans faces ni n° de gaine, relecture sans sens des portes, nom de
+  fichier `.okteo` avec révision), avec le détail affiché en cas d'échec ; délai PDF 30 s.
+- **défaut connu depuis v66 corrigé** : étiquettes qui se chevauchaient de 1 à 3 px (`place.js` hauteur réelle 1,4 ×
+  la police ; noms de pièces mesurés lettre par lettre, `nameEm`).
+
+**Validation (GitHub Actions, Chromium, 2 passages identiques, run 41450303488)** : syntaxe 112 fichiers ; VMC 15,
+équipements 13, lecture IA 12, symboles 14, règles 8, murs 42, câblage 87, chantiers 176, MAILLARD 14, **smoke 171/171** ;
+parcours navigateur VMC, MAJ 3/4, MAJ 1/2, bibliothèque ; serveur `test:web` 11/11 ; `build:web` réussi. `npm run check`
+est entièrement vert pour la première fois depuis v66. Non vérifié : le déploiement Cloudflare réel (D1, secrets, Edge),
+aucune vraie clé Claude utilisée.
+
+À trancher par Kévin : le plan imprimé v71 n'a plus les n° de gaine ni les lettres de face autour des boîtes (ils
+restent sur les bandes) — voulu ?
+
 Harmonisation : `CLAUDE.md` commence par « À LIRE EN PREMIER » (valable pour toutes les IA, `AGENTS.md` y renvoie) ;
 README, feuille de route et `scripts/deploy.mjs` ne parlent plus de GitHub Pages ; pages de redirection prêtes dans
 `docs/redirection-github-pages/` (gardent le `#` des anciens QR) ; script temporaire `_tmp_li05.mjs` retiré.

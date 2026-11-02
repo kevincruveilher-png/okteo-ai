@@ -1,3 +1,7 @@
+> **Mise à jour v72.1 (02/11/2026, Claude)** : toute la suite, navigateur compris, a été exécutée sur GitHub Actions
+> (Chromium) : 100 % réussie, deux passages (voir `docs/journal.md`). Restent à faire : les étapes 1 à 12 ci-dessous sur
+> le vrai Cloudflare (D1, secrets, Edge, PDF réel, vraie clé Claude). Nouveau : la page `bande.html` est publique (QR).
+
 # Recette v72 — résultats et contrôles de livraison
 
 ## Exécuté dans l'environnement de développement
