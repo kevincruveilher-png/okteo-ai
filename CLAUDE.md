@@ -457,6 +457,11 @@ Logo `.brand` (`.brand-mark`, `.brand-word`, `.brand-e`) ; icônes `TI` en 24 ×
 `public/login.html` = accueil animé (CSS seul). `src/ext/attente.js` = page d'attente `.aw` (jeux) du relevé IA, montrée
 après 2 s seulement (`okteoExt.aiReleve.attente`). Planches source : artefact « Oktéo AI — Identité de marque ».
 
+### Préparation d'impression v74 (plan A3 du BE)
+`src/print/ftz-charte.json` (généré par `scripts/charte/ftz-charte.mjs` depuis des PDF FTZ hors dépôt, sans donnée client),
+`src/print/ftz-sheet.js` (feuille, cartouche, légende, encarts), `buildPlanPdf(geo, {ftz})` (print.js `buildFtz`),
+`src/ext/prep-ui.js` (`okteoExt.prep`, `meta.impression`, images `img:<chantier>:<id>`). Décisions : `docs/charte-plan-ftz.md`.
+
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,
 sessions, budget Claude (D1, `migrations/0001_enterprise.sql`), relais Claude avec réservation atomique.

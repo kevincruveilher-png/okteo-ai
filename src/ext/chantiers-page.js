@@ -81,6 +81,9 @@ export function mountChantiers(el, { api }) {
           <label class="f">Nom<input data-f="nom" value="${esc(cur.nom)}"></label>
           <label class="f">N° de dossier<input data-f="numero" value="${esc(cur.numero || "")}"></label>
           <label class="f">Pavillonneur<input data-f="client" value="${esc(cur.client || "")}"></label>
+          <label class="f" title="Champ « Client » du cartouche du plan : le constructeur ou l'entreprise qui commande l'étude (vide = le pavillonneur)">Client du BE (cartouche)<input data-f="clientBE" value="${esc(cur.clientBE || "")}" placeholder="${esc(cur.client || "ex. MENUISERIE ISOLATION DU CENTRE (MIDC)")}"></label>
+          <label class="f" title="Champ « N° » du cartouche du plan">N° d'affaire<input data-f="affaire" value="${esc(cur.affaire || "")}" placeholder="ex. AF26074879"></label>
+          <label class="f" title="Champ « Dess. » du cartouche du plan (initiales)">Dessinateur<input data-f="dessinateur" value="${esc(cur.dessinateur || "")}" placeholder="ex. GS / ACR"></label>
         </div>
         <div class="ch-fond"><span>Fond du niveau « ${esc((CHS.levelsOf(cur).find((l) => l.id === (cur.level || "rdc")) || {}).name || "RDC")} » : <b>${esc(cur.fond ? cur.fond.name : "aucun")}</b>${cur.fond && cur.fond.reprise ? ` <span class="mut sm">(échelle reprise du niveau « ${esc(cur.fond.reprise)} »)</span>` : ""} ${cur.fond ? (cur.fond.calibre ? `<span class="okk">✓ à l'échelle (${(cur.fond.w).toFixed(2)} m de large)</span>` : `<span class="warn">échelle à régler</span>`) : ""}</span>
           <span class="grow"></span>

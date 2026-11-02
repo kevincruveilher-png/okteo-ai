@@ -1640,6 +1640,31 @@ try {
     if (!sizeOk) throw new Error(`taille ${vp.width}×${vp.height}`);
     return doc.numPages === 2 && t1.includes("ESSAI") && t1.includes("1:" + lay.scale) && t1.includes("Garage") && t1.includes("Chambre 1") && t1.includes("PLAN") && t2.includes("Nomenclature") && dl.suggestedFilename().endsWith(".pdf");
   });
+  await check("préparation d'impression (v74) : A3 du BE recto boîtes / verso lignes directes, légende, cartouche, encart texte", async () => {
+    await page.click(".pr-prep");
+    await page.waitForSelector(".prep-back:not([hidden])");
+    await page.waitForFunction(() => okteoExt.prep.bg && document.querySelector(".prep-wait[hidden]"), null, { timeout: 30000 });
+    const bg = await ev(() => ({ pages: okteoExt.prep.bg.pages, legends: okteoExt.prep.bg.legends.map((l) => l.page), boxes: document.querySelectorAll(".prep-boxes [data-box]").length }));
+    await ev(() => okteoExt.prep.addItem("text"));
+    await page.fill("#ps-text", "ZONE TEST PREPA");
+    await page.fill('[data-c="affaire"]', "AF12345"); await page.press('[data-c="affaire"]', "Tab");
+    await page.waitForTimeout(400);
+    const n = await ev(() => document.querySelectorAll(".prep-ov .pit").length);
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".prep-dl")]);
+    const f = path.join(os.tmpdir(), "okteo-prep.pdf"); await dl.saveAs(f);
+    const doc = await pdfjsNode.getDocument({ data: new Uint8Array(fs.readFileSync(f)), verbosity: 0 }).promise;
+    const vp = (await doc.getPage(1)).getViewport({ scale: 1 });
+    const txt = async (p) => (await (await doc.getPage(p)).getTextContent()).items.map((i) => i.str).join(" ");
+    const t1 = await txt(1), t2 = await txt(2);
+    const saved = await ev(() => { const c = JSON.parse(localStorage.getItem("okteo.chantiers.v1") || "[]").find((x) => x.id === localStorage.getItem("okteo.current")) || {}; return { aff: c.affaire, items: (c.impression?.items || []).length }; });
+    await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
+    const closed = await ev(() => document.querySelector(".prep-back").hidden);
+    await page.keyboard.press("Control+p"); await page.waitForSelector(".pr-back:not([hidden])");
+    await page.waitForFunction(() => okteoExt.printer.last && !document.querySelector(".pr-wait:not([hidden])"), null, { timeout: 30000 });
+    const r = { bg, n, w: Math.round(vp.width), h: Math.round(vp.height), pages: doc.numPages, t1: t1.includes("ZONE TEST PREPA") && t1.includes("AF12345") && t1.includes("ESSAI"), t2: t2.includes("ZONE TEST PREPA"), leg: t2.includes("Tableau"), saved, closed };
+    if (!(bg.pages === 2 && bg.legends.join() === "2" && bg.boxes > 0 && n >= 2 && r.w === 1191 && r.h === 842 && r.pages === 2 && r.t1 && !r.t2 && saved.aff === "AF12345" && saved.items === 1 && closed)) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("onglet Étapes : plan, échelle, murs, pièces, appareils, liaisons, circuits, impression cochés", async () => {
     await ev(() => okteoExt.panel.show("steps")); await page.waitForTimeout(250);
     const r = await ev(() => ({ done: document.querySelectorAll(".steps li.done").length, next: document.querySelector(".steps li.next b")?.textContent || "" }));

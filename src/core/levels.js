@@ -476,7 +476,7 @@ export function okteoGeo() {
     joints,
     openings,
     wallThickness,
-    direct: wiring.direct.filter(g => g.lv === K.LV.cur).map(g => { const a = byId[g.appId]; const tab = tabA || [...appIndex().values()].find(v => v.a.t === "TAB")?.a; return a && {a:{x:a.x,y:a.y},b:tab ? {x:tab.x,y:tab.y}:null,label:g.etiquette || g.no,faible:g.faible}; }).filter(Boolean),
+    direct: wiring.direct.filter(g => g.lv === K.LV.cur).map(g => { const a = byId[g.appId]; const tab = tabA || [...appIndex().values()].find(v => v.a.t === "TAB")?.a; return a && {appId:g.appId,a:{x:a.x,y:a.y},b:tab ? {x:tab.x,y:tab.y}:null,label:g.etiquette || g.no,faible:g.faible}; }).filter(Boolean),
     wallDims,
     limits,
     rooms,
@@ -496,7 +496,10 @@ export function okteoGeo() {
     chantier: {
       nom: CH.nom,
       numero: CH.numero || "",
-      client: CH.client || ""
+      client: CH.client || "",
+      clientBE: CH.clientBE || "",      // v74 : cartouche FTZ (Client, N° d'affaire, Dessinateur)
+      affaire: CH.affaire || "",
+      dessinateur: CH.dessinateur || ""
     },
     level: levelName(),
     levelId: K.LV.cur

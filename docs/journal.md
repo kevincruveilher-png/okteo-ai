@@ -1,3 +1,25 @@
+## 02/11/2026 (nuit) — v74 MAJ 1 : préparation d'impression (plan A3 au format du BE)
+
+Branche `feat/plan-ftz-v74`. Bouton « Préparation d'impression (A3 BE)… » dans la fenêtre Imprimer, commande du
+catalogue `file.prep`, `okteoExt.prep` (open, close, addItem, select, bg, prep, last).
+- `src/print/ftz-sheet.js` (pur, jsPDF) : cadre, cartouche FTZ (logo KiTéOHM HD `public/assets/kiteohm-logo-hd.png`),
+  textes avec compression horizontale (`Tz`), légende = seulement les symboles utilisés + boîte « LI » + flèche « ligne
+  vers le tableau », `freeCorner` (coin libre), encarts `drawItem` (texte encadré ou non, flèche, ⚠, zone interdite
+  hachurée rectangle/ellipse, image), `ENCARTS` (encarts types).
+- `src/ext/print.js` : `buildPlanPdf(geo, {ftz})` → `buildFtz` : A3 paysage, échelle 1/50 sinon 1/75…1/200, une page
+  par entrée de `pages` [{boxes "all"|[ids], direct, autres, legend, legendAt}] ; par défaut recto = toutes les boîtes,
+  verso = lignes directes + légende. `drawPlan` : options `appIds`, `boxIds`, `directOn`, `bare` (sans cadre ni bandeau).
+- `src/ext/prep-ui.js` : feuille rendue par pdf.js (sans les encarts) + calque SVG en mm pour poser/glisser/agrandir les
+  encarts ; légende déplaçable (glisser) ou « coin libre » ; panneau de style du texte (police, taille, gras, italique,
+  alignement, couleurs, cadre, fond blanc) ; « Garder comme encart type » (localStorage `okteo.encarts.v1`, tous chantiers).
+  Enregistré dans le chantier : `meta.impression` {pages, items, date} ; images dans le stockage des fichiers
+  (`img:<chantier>:<id>`, JPEG ≤ 1600 px). Champs du cartouche ajoutés à la fiche chantier : `clientBE`, `affaire`,
+  `dessinateur` (aussi dans `exportGeometry().chantier`).
+- Le plan de travail n'est jamais touché : cartouche, légende et encarts n'existent que dans cette vue et le PDF.
+- Smoke : test « préparation d'impression (v74) » (2 pages A3, légende au verso, encart texte au recto seulement, champ
+  enregistré). `scripts/shots-v74.mjs` : captures EVRARD câblé (CI).
+- Pas encore : symboles FTZ sur le plan lui-même, couleurs verrouillées des boîtes, noms de pièces abrégés (MAJ 2 et 3).
+
 ## 02/11/2026 (nuit) — v74 (fondation) : relevé de la charte des plans FTZ
 
 Branche `feat/plan-ftz-v74` (partie de `feat/charte-v73`, pas encore sur `main`). Objectif de Kévin : un plan Oktéo
