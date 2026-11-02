@@ -12,9 +12,9 @@ try {
     await page.goto("http://localhost:5290/"); await page.waitForFunction(() => window.okteo && window.okteoExt);
     await page.waitForTimeout(800);
     await page.screenshot({ path: `shots/travail-${w}.png` });
-    await page.click("#theme"); await page.waitForTimeout(300);
+    await page.evaluate(() => document.getElementById("theme").click()); await page.waitForTimeout(300);
     await page.screenshot({ path: `shots/travail-clair-${w}.png` });
-    await page.click("#theme");
+    await page.evaluate(() => document.getElementById("theme").click());
     await page.evaluate(() => { window.__j = okteoExt.aiReleve.attente.start(); });
     await page.waitForSelector(".aw:not([hidden])"); await page.click("#aw-start"); await page.waitForTimeout(900);
     await page.screenshot({ path: `shots/attente-${w}.png` });
