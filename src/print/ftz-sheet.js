@@ -280,3 +280,18 @@ export function drawBoxCotes(doc, cotes, X, Y, plan, area, walls = []) {
   }
   return drawn;
 }
+
+// ---------- v74 MAJ 4 : symboles FTZ sur le plan imprimé ----------
+// tracé d'un symbole tourné de rot degrés autour de son centre (toutes les valeurs de « d » sont des couples x y)
+export function rotD(d, deg) {
+  if (!deg) return d;
+  const t = (deg * Math.PI) / 180, c = Math.cos(t), s = Math.sin(t);
+  let k = 0, x = 0;
+  return d.replace(/-?[\d.]+(?:e-?\d+)?/g, (v) => { if (k++ % 2 === 0) { x = +v; return v; } const y = +v; return `__${(x * c - y * s).toFixed(4)} ${(x * s + y * c).toFixed(4)}`; })
+    .replace(/-?[\d.]+(?:e-?\d+)? __/g, "");
+}
+// un symbole de la charte centré sur (cx, cy) mm, agrandi k fois, tourné de rot degrés
+export function drawSymbol(doc, sym, cx, cy, k = 1, rot = 0) {
+  for (const p of sym.paths) drawPath(doc, rot ? { ...p, d: rotD(p.d, rot) } : p, cx, cy, k);
+  for (const t of sym.texts || []) drawText(doc, { ...t, sy: t.sy * k, sx: t.sx * k, at: [t.at[0] * k, t.at[1] * k] }, cx, cy);
+}

@@ -3,7 +3,7 @@
 import { implantationPending } from "../cablage/equipements.js";
 import { readingData } from "../walls/ai-data.js";
 import { K } from "./k.js";
-import { BATI_STYLES, CH, MATS, TYPES, batiStyle, dist, layers, matOf, node, nodeById, segById, segDir, segLen, state, uidS } from "./model.js";
+import { BATI_STYLES, CH, MATS, TYPES, batiStyle, hDefault, dist, layers, matOf, node, nodeById, segById, segDir, segLen, state, uidS } from "./model.js";
 import * as CHS from "../chantiers.js";
 import { markDirty, save, snapshot } from "./persist.js";
 import { repMap } from "./view.js";
@@ -476,7 +476,7 @@ export function showSide() {
       const wasUnknown = a.t === "INCONNU";
       a.t = e.target.value;
       if (wasUnknown && a.t !== "INCONNU") { a.aiStatus = a.qty === null ? "a_confirmer" : "lu"; a.aiOrigin = "interpretation"; }
-      if (a.h == null && TYPES[a.t].h != null) a.h = TYPES[a.t].h;
+      if (a.h == null && hDefault(a.t) != null) a.h = hDefault(a.t);
       markDirty();
       re();
     };

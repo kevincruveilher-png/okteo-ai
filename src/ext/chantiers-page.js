@@ -84,6 +84,7 @@ export function mountChantiers(el, { api }) {
           <label class="f" title="Champ « Client » du cartouche du plan : le constructeur ou l'entreprise qui commande l'étude (vide = le pavillonneur)">Client du BE (cartouche)<input data-f="clientBE" value="${esc(cur.clientBE || "")}" placeholder="${esc(cur.client || "ex. MENUISERIE ISOLATION DU CENTRE (MIDC)")}"></label>
           <label class="f" title="Champ « N° » du cartouche du plan">N° d'affaire<input data-f="affaire" value="${esc(cur.affaire || "")}" placeholder="ex. AF26074879"></label>
           <label class="f" title="Champ « Dess. » du cartouche du plan (initiales)">Dessinateur<input data-f="dessinateur" value="${esc(cur.dessinateur || "")}" placeholder="ex. GS / ACR"></label>
+          <label class="ck" title="Logement accessible (PMR) : prises, RJ45 et TV à 40 cm au lieu de 30, comme l'indiquent les légendes du BE. Cocher remonte aussi les appareils déjà posés à 30 cm (Ctrl+Z pour annuler)."><input type="checkbox" id="ch-pmr" ${cur.pmr ? "checked" : ""}> Logement PMR (prises à 40 cm)</label>
         </div>
         <div class="ch-fond"><span>Fond du niveau « ${esc((CHS.levelsOf(cur).find((l) => l.id === (cur.level || "rdc")) || {}).name || "RDC")} » : <b>${esc(cur.fond ? cur.fond.name : "aucun")}</b>${cur.fond && cur.fond.reprise ? ` <span class="mut sm">(échelle reprise du niveau « ${esc(cur.fond.reprise)} »)</span>` : ""} ${cur.fond ? (cur.fond.calibre ? `<span class="okk">✓ à l'échelle (${(cur.fond.w).toFixed(2)} m de large)</span>` : `<span class="warn">échelle à régler</span>`) : ""}</span>
           <span class="grow"></span>
@@ -124,6 +125,7 @@ export function mountChantiers(el, { api }) {
       cur[inp.dataset.f] = v; CHS.update(cur.id, { [inp.dataset.f]: v });
       const bd = document.querySelector(".badge"); if (bd) bd.textContent = cur.nom + (cur.numero ? " · " + cur.numero : "");
     }));
+    el.querySelector("#ch-pmr")?.addEventListener("change", (e) => { const n = api.setPmr(e.target.checked); cur.pmr = e.target.checked; e.target.closest("label").title = `${n} appareil${n > 1 ? "s" : ""} ${e.target.checked ? "remontés à 40 cm" : "redescendus à 30 cm"}`; });
     el.querySelector("#ch-calib")?.addEventListener("click", () => api.startCalib());
     el.querySelector("#ch-walls")?.addEventListener("click", () => document.dispatchEvent(new CustomEvent("okteo:walls")));
     el.querySelector("#ch-devices")?.addEventListener("click", () => document.dispatchEvent(new CustomEvent("okteo:devices")));

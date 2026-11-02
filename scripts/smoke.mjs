@@ -1681,6 +1681,33 @@ try {
     if (!(r0.thick && r0.thin && w.mat === "doublage" && w.wave > 0 && back === r0.was && gris.st === "gris" && gris.grey > 0 && gris.hatch === 0 && pdf.cotes.length >= 1 && r.abrev && !r.full && r.cm)) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("plan du BE (v74 MAJ 4) : symboles FTZ à l'écran (préférence), gaines à la couleur de la boîte, PMR, feuille A3 (repères Courier, plaques)", async () => {
+    await page.waitForFunction(() => document.querySelectorAll("#sv g.dev g.ftz").length > 0, null, { timeout: 15000 });
+    const scr = await ev(() => {
+      const ftz = document.querySelectorAll("#sv g.dev g.ftz").length, dev = document.querySelectorAll("#sv g.dev").length;
+      okteo.showCircuits = true;
+      const g = document.querySelector("#sv path.gaine:not(.alim)"), b = g && okteo.cab.boxes.find((x) => x.id === g.dataset.b);
+      const col = g && g.getAttribute("stroke"), n = b && b.n;
+      return { ftz, dev, col, n };
+    });
+    await ev(async () => { const m = await import("/src/prefs.js"); m.setPref("charteBE", false); });
+    const off = await ev(() => ({ ftz: document.querySelectorAll("#sv g.dev g.ftz").length, col: document.querySelector("#sv path.gaine:not(.alim)")?.getAttribute("stroke") }));
+    await ev(async () => { const m = await import("/src/prefs.js"); m.setPref("charteBE", true); okteo.showCircuits = false; });
+    const pmr = await ev(() => {
+      const p = okteo.state.app.find((a) => a.t === "PC16" && a.h === 30), id = p && p.id;
+      const n = okteo.setPmr(true), h = okteo.state.app.find((a) => a.id === id)?.h, ch = okteo.pmr;
+      okteo.undo(); okteo.setPmr(false, { apply: false });
+      return { n, h, ch, back: okteo.state.app.find((a) => a.id === id)?.h, after: okteo.pmr };
+    });
+    const pdf = await ev(async () => { const r = await okteoExt.prep.build(true); return { plq: r.plaques.flatMap((p) => p.list).length, bytes: Array.from(new Uint8Array(await r.blob.arrayBuffer())) }; });
+    const doc = await pdfjsNode.getDocument({ data: new Uint8Array(pdf.bytes), verbosity: 0 }).promise;
+    const fonts = new Set(), items = [];
+    for (const n of [1, 2]) { const pg = await doc.getPage(n), tc = await pg.getTextContent(); tc.items.forEach((i) => { items.push(i.str); fonts.add(tc.styles[i.fontName]?.fontFamily || i.fontName); }); }
+    const r = { scr, off, pmr, plq: pdf.plq, courier: [...fonts].some((f) => /courier|monospace/i.test(f)), prof: items.filter((x) => x === "PROF 50").length };
+    const colors = ["#FF0000", "#008000", "#FF00FF", "#0000FF", "#000000", "#FF8000", "#800080"];
+    if (!(scr.ftz > 5 && scr.ftz <= scr.dev && scr.col === colors[(parseInt(scr.n.replace(/\D/g, ""), 10) - 1) % 7] && off.ftz === 0 && off.col !== scr.col && pmr.n >= 1 && pmr.h === 40 && pmr.ch && pmr.back === 30 && !pmr.after && r.courier && r.prof === r.plq)) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("salle de bain (v74 MAJ 3) : douche à l'italienne posée, volumes dessinés, luminaire dedans signalé, annulable", async () => {
     const r = await ev(() => {
       const room = okteo.state.rooms[0], P = room.poly || [{ x: room.x0, y: room.y0 }, { x: room.x1, y: room.y1 }];

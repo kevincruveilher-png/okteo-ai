@@ -6,7 +6,7 @@ import { K } from "./k.js";
 import * as CHS from "../chantiers.js";
 import { labelPoint } from "../walls/rooms.js";
 import { isSani, roomFor, saniRect, volumesOf } from "../cablage/volumes.js";
-import { CH, LKEYS, TYPES, batiStyle, dist, epOf, matOf, nodeById, segById, segDir, state, symScaleOf } from "./model.js";
+import { CH, LKEYS, TYPES, batiStyle, hDefault, dist, epOf, matOf, nodeById, segById, segDir, state, symScaleOf } from "./model.js";
 import { markDirty, snapshot } from "./persist.js";
 import { fit, repMap } from "./view.js";
 import { appRot, boxLayout, circuitMap, draw, wallIntervals, wallU } from "./render.js";
@@ -422,7 +422,7 @@ export function okteoGeo() {
     x: a.x,
     y: a.y,
     h: a.h,
-    hDef: TYPES[a.t].h,
+    hDef: hDefault(a.t),
     rep: reps[a.id],
     name: TYPES[a.t].n,
     ...(a.implantation ? { implantation: { ...a.implantation } } : {}),

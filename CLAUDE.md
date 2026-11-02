@@ -1,4 +1,4 @@
-# À LIRE EN PREMIER — état du projet (mis à jour le 03/11/2026, v74 MAJ 2)
+# À LIRE EN PREMIER — état du projet (mis à jour le 03/11/2026, v74 MAJ 3)
 
 Ce fichier sert à TOUTES les IA qui travaillent sur le dépôt (Claude, ChatGPT/Codex…) : `AGENTS.md` y renvoie.
 Plusieurs IA se sont succédé (Claude jusqu'à v66, ChatGPT v67 à v72, Claude depuis v72.1) : garder une seule source de
@@ -16,7 +16,7 @@ vérité, celle-ci, et tenir `docs/journal.md` à jour à CHAQUE modification (e
   `public/assets/fond-evrard-04949.jpg`). Décision de Kévin attendue (dépôt privé ou retrait des plans). N'en ajouter aucun.
 - Ne lancer une mise à jour que sur ordre de Kévin ; ne rien pousser sur `main` sans son « go ». Branches de travail :
   `feat/…`, vérification par GitHub Actions sur une branche `verification-…` supprimée après usage.
-- `npm run check` entièrement vert (03/11/2026, v74 MAJ 2 : smoke 174/174). Sans navigateur en local : faire tourner les
+- `npm run check` entièrement vert (03/11/2026, v74 MAJ 3 : smoke 175/175). Sans navigateur en local : faire tourner les
   tests sur GitHub Actions (workflow temporaire sur une branche `verification-…`, voir journal v72.1).
 
 # Oktéo AI — consignes pour Claude
@@ -466,6 +466,8 @@ MAJ 2 : `matOf(seg)` / `seg.mat` (maconnerie | cloison | doublage), `batiStyle()
 `drawBoxCotes` (ftz-sheet.js).
 MAJ 3 : `src/cablage/volumes.js` (sanitaires BAIG / RECV / DITAL = appareils sans circuit ni repère, `a.sw/sd/srot` ;
 `volumesOf`, `checkVolumes` → contrôle `sdb` ; `exportGeometry().volumes`).
+MAJ 4-5 : `src/print/ftz-symbols.js` (`boxColor`, `ftzSymbol`, `plaques`), préférence `charteBE` (symboles FTZ à l'écran
+`g.ftz`, gaines couleur de boîte), `drawPlan(..., {ftzSyms})`, PMR (`meta.pmr`, `hDefault`, `api.setPmr`).
 
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,
