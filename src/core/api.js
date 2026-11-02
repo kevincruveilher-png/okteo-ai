@@ -3,7 +3,7 @@
 import { readingData } from "../walls/ai-data.js";
 import { K } from "./k.js";
 import { addLimit } from "../walls/rooms.js";
-import { CH, PAL, PLAN, TYPES, VB, layers, node, nodeById, segById, state, uidA, uidN, uidO, uidR, uidS } from "./model.js";
+import { CH, MATS, PAL, PLAN, TYPES, VB, batiStyle, epOf, layers, matOf, node, nodeById, segById, state, uidA, uidN, uidO, uidR, uidS } from "./model.js";
 import { markDirty, packData, snapshot, writeNow } from "./persist.js";
 import { fit, renumberReps, repMap, rotExtent, rotateView, syncVB } from "./view.js";
 import { draw, drawFx, gaineCrossings, glyph, sv } from "./render.js";
@@ -11,7 +11,7 @@ import { attach, reattach, roomArea, roomPoly, snapToWall, wallMounted } from ".
 import { bbox, clampOpenings, clearSel, duplicateGroup, multi, normalizeSel, openCenter, roomAt, selectAll, transformGroup } from "./groups.js";
 import { wallMeasure } from "./interact.js";
 import { worldToScreen } from "./hud.js";
-import { delSel, showSide } from "./panel.js";
+import { delSel, setBatiStyle, showSide } from "./panel.js";
 import { VIEW_PRESETS, applyCalib, applyRatio, buildFilter, buildTools, hintFor, resetTransient, setHint, setRoomTxt, setTab, toggleView, viewPreset } from "./controls.js";
 import { addLevel, allLinks, appIndex, levelFondInfo, levelName, loadFondImage, okteoGeo, removeLevel, renameLevel, switchLevel, withLevel } from "./levels.js";
 import { CIRC_COLORS } from "./render.js";
@@ -743,6 +743,22 @@ window.okteo = {
   },
   setRoomTxt(f) {
     setRoomTxt(f);
+  },
+  // v74 MAJ 2 : style du bâti (hachures | gris) et type de chaque mur (maconnerie | cloison | doublage | null = auto)
+  get batiStyle() {
+    return batiStyle();
+  },
+  setBatiStyle,
+  wallMats() {
+    return state.segs.filter(s => !s.virt).map(s => ({ id: s.id, mat: matOf(s), set: s.mat || null, ep: epOf(s) }));
+  },
+  setWallMat(ids, mat) {
+    const L = (Array.isArray(ids) ? ids : [ids]).map(segById).filter(s => s && !s.virt);
+    if (!L.length || (mat && !MATS[mat])) return 0;
+    snapshot();
+    L.forEach(s => { if (mat) s.mat = mat; else delete s.mat; });
+    markDirty(); draw(); showSide();
+    return L.length;
   },
   // v58 : boîtes des noms de pièces affichés [{id, x0, y0, x1, y1, cx, cy}] et position AFFICHÉE d'un appareil
   get roomLabels() {

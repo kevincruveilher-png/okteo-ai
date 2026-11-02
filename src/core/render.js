@@ -1,4 +1,4 @@
-import { arrowPoints } from "../plan-style.js";
+import { arrowPoints, wallLook, wavePoints } from "../plan-style.js";
 import { planWiring } from "./plan-wiring.js";
 import {ductPath} from '../cablage/vmc.js';
 // Oktéo AI — cœur : Dessin du plan (SVG) : fond, murs, ouvertures, pièces, appareils, étiquettes sans chevauchement.
@@ -6,7 +6,7 @@ import {ductPath} from '../cablage/vmc.js';
 import { K } from "./k.js";
 import { labelPoint, pointInPoly } from "../walls/rooms.js";
 import { Placer, roomCandidates, spreadSymbols, textBox } from "../place.js";
-import { TYPES, VB, dist, epOf, layers, nodeById, pmNow, segById, segDir, segLen, state, symView } from "./model.js";
+import { TYPES, VB, batiStyle, dist, epOf, layers, matOf, nodeById, pmNow, segById, segDir, segLen, state, symView } from "./model.js";
 import { V2W, W2V, autoSymCm, ensureReps, pxPerVB, repMap, syncVB, viewTransform, viewWorldBox } from "./view.js";
 import { followWalls, gaineCtrl, linkCtrl, linkRole, openHandles, roomArea, roomPoly } from "./attach.js";
 import { pref } from "../prefs.js";
@@ -176,7 +176,8 @@ export function draw() {
       const d = segDir(seg);
       if (!d.a) return;
       const on = K.sel && (K.sel.kind === "seg" || K.sel.kind === "segDelAsk") && K.sel.id === seg.id || GH && GH.nodes.has(seg.a) && GH.nodes.has(seg.b);
-      const col = on ? 'var(--sel)' : epOf(seg) >= 0.16 ? "url(#wall-hatch)" : 'var(--wall)';
+      const look = wallLook(matOf(seg), batiStyle());
+      const col = on ? 'var(--sel)' : look.hatch ? "url(#wall-hatch)" : look.fill;
       if (seg.virt) {
         mp += `<line x1="${d.a.x}" y1="${d.a.y}" x2="${d.b.x}" y2="${d.b.y}" stroke="${on ? 'var(--sel)' : 'var(--mut)'}" stroke-width="${on ? 0.05 : 0.03}" stroke-dasharray="0.14 0.09"/>`;
         return;
@@ -190,14 +191,16 @@ export function draw() {
           bxp = d.a.x + d.ux * s1,
           byp = d.a.y + d.uy * s1;
         mp += `<polygon points="${ax + nx},${ay + ny} ${bxp + nx},${byp + ny} ${bxp - nx},${byp - ny} ${ax - nx},${ay - ny}" fill="${col}" stroke="${on ? "var(--sel)" : "#222"}" stroke-width=".012"/>`;
+        if (look.wave && !on) mp += `<polyline class="wave" points="${wavePoints({ x: ax, y: ay }, { x: bxp, y: byp }, e2 * 2).map((p) => p.x.toFixed(3) + "," + p.y.toFixed(3)).join(" ")}" fill="none" stroke="#222" stroke-width=".01"/>`;
       });
     });
     state.nodes.forEach(n => {
-      let e = 0;
+      let e = 0, top = null;
       state.segs.forEach(s => {
-        if (s.a === n.id || s.b === n.id) e = Math.max(e, epOf(s));
+        if ((s.a === n.id || s.b === n.id) && epOf(s) > e) { e = epOf(s); top = s; }
       });
-      if (e > 0) jn += `<rect x="${n.x - e / 2}" y="${n.y - e / 2}" width="${e}" height="${e}" fill="${e >= 0.16 ? "url(#wall-hatch)" : "var(--wall)"}"/>`;
+      const lk = top && wallLook(matOf(top), batiStyle());
+      if (e > 0) jn += `<rect x="${n.x - e / 2}" y="${n.y - e / 2}" width="${e}" height="${e}" fill="${lk.hatch ? "url(#wall-hatch)" : lk.fill}"/>`;
     });
     h += `<g>${jn}${mp}</g>`;
   }

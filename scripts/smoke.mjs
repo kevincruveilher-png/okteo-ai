@@ -1665,6 +1665,22 @@ try {
     if (!(bg.pages === 2 && bg.legends.join() === "2" && bg.boxes > 0 && n === 1 && r.w === 1191 && r.h === 842 && r.pages === 2 && r.t1 && !r.t2 && saved.aff === "AF12345" && saved.items === 1 && closed)) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("bâti du BE (v74 MAJ 2) : type de mur, style gris, noms abrégés bleus, cotes des boîtes sur la feuille A3", async () => {
+    const r0 = await ev(() => { const M = okteo.wallMats(), thick = M.find((m) => m.mat === "maconnerie"); return { n: M.length, thin: M[M.length - 1].id, was: M[M.length - 1].mat, thick: !!thick }; });
+    const w = await ev((id) => { okteo.setWallMat(id, "doublage"); return { wave: document.querySelectorAll("#sv polyline.wave").length, mat: okteo.wallMats().find((m) => m.id === id).mat }; }, r0.thin);
+    await ev(() => okteo.undo ? okteo.undo() : document.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true })));
+    const back = await ev((id) => okteo.wallMats().find((m) => m.id === id).mat, r0.thin);
+    await ev(() => okteo.setBatiStyle("gris"));
+    const gris = await ev(() => ({ st: okteo.batiStyle, hatch: [...document.querySelectorAll("#sv polygon")].filter((p) => p.getAttribute("fill") === "url(#wall-hatch)").length, grey: [...document.querySelectorAll("#sv polygon")].filter((p) => p.getAttribute("fill") === "#9A9A9A").length }));
+    const pdf = await ev(async () => { const r = await okteoExt.prep.build(true); return { cotes: (r.cotes[0] || { list: [] }).list.map((c) => c.cm), bytes: Array.from(new Uint8Array(await r.blob.arrayBuffer())) }; });
+    await ev(() => okteo.setBatiStyle("hachures"));
+    const doc = await pdfjsNode.getDocument({ data: new Uint8Array(pdf.bytes), verbosity: 0 }).promise;
+    const items = (await (await doc.getPage(1)).getTextContent()).items.map((i) => i.str.trim()).filter(Boolean);
+    const t1 = items.join(" ");
+    const r = { r0, w, back, gris, cotes: pdf.cotes, abrev: t1.includes("CH1"), full: t1.includes("Chambre 1"), cm: pdf.cotes.every((c) => items.includes(String(c))) };
+    if (!(r0.thick && r0.thin && w.mat === "doublage" && w.wave > 0 && back === r0.was && gris.st === "gris" && gris.grey > 0 && gris.hatch === 0 && pdf.cotes.length >= 2 && r.abrev && !r.full && r.cm)) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("onglet Étapes : plan, échelle, murs, pièces, appareils, liaisons, circuits, impression cochés", async () => {
     await ev(() => okteoExt.panel.show("steps")); await page.waitForTimeout(250);
     const r = await ev(() => ({ done: document.querySelectorAll(".steps li.done").length, next: document.querySelector(".steps li.next b")?.textContent || "" }));

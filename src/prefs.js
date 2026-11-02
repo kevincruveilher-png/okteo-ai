@@ -12,6 +12,7 @@ export const PREFS_DEFAULTS = {
   prixIn: 0, // v63 : prix des jetons d'entrée de l'IA, € par million (0 = non renseigné)
   prixOut: 0, // v63 : prix des jetons de sortie, € par million
   tauxHoraire: 0, // v63 : coût horaire du technicien BE, € / h (0 = non renseigné)
+  abrev: "", // v74 : abréviations des noms de pièces du plan imprimé (vide = table par défaut, src/print/abrev.js)
 };
 
 export function getPrefs() {

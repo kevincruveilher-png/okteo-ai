@@ -20,6 +20,7 @@ try {
   const info = await page.evaluate(() => { try { if (!okteo.cab.boxes.length) okteoExt.catalog.find((c) => c.id === "etude.cabler").run(); } catch (e) { return "cabler : " + e.message; } return `${okteo.state.app.length} appareils, ${okteo.cab.boxes.length} boîtes`; });
   console.log(info);
   await page.waitForTimeout(1500);
+  await page.screenshot({ path: "shots/plan.png" });
   await page.evaluate(() => okteoExt.prep.open());
   await page.waitForFunction(() => okteoExt.prep.bg && document.querySelector(".prep-wait[hidden]"), null, { timeout: 60000 });
   await page.evaluate(() => { const P = okteoExt.prep; P.addItem("enc", { type: "text", w: 52, text: "EMPLACEMENT BOITE\nEN ATTENTE DANS COMBLES\nA DEFINIR AVANT POSE", font: "courier", size: 9, bold: true, color: "#FF0000", frame: "round", frameColor: "#FF0000", frameW: 0.3, align: "center", x: 30, y: 30 }); P.addItem("warn"); P.addItem("arrow"); P.addItem("zone"); });

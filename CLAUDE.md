@@ -461,6 +461,9 @@ après 2 s seulement (`okteoExt.aiReleve.attente`). Planches source : artefact �
 `src/print/ftz-charte.json` (généré par `scripts/charte/ftz-charte.mjs` depuis des PDF FTZ hors dépôt, sans donnée client),
 `src/print/ftz-sheet.js` (feuille, cartouche, légende, encarts), `buildPlanPdf(geo, {ftz})` (print.js `buildFtz`),
 `src/ext/prep-ui.js` (`okteoExt.prep`, `meta.impression`, images `img:<chantier>:<id>`). Décisions : `docs/charte-plan-ftz.md`.
+MAJ 2 : `matOf(seg)` / `seg.mat` (maconnerie | cloison | doublage), `batiStyle()` / `meta.bati` (hachures | gris),
+`wallLook` / `wavePoints` (plan-style.js, écran + papier), `src/print/abrev.js` (préférence `abrev`), `boxCotes` /
+`drawBoxCotes` (ftz-sheet.js).
 
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,

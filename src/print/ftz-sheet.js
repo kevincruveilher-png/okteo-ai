@@ -212,3 +212,65 @@ export const ENCARTS = [
   { id: "sdb", label: "Attention : interrupteur de SDB", item: { type: "text", w: 72, text: "ATTENTION DANS SDB L'INTERRUPTEUR A L'ENTREE DOIT ETRE A PLUS 1,80M DU MITIGEUR (DOUCHE DE PLAIN-PIED) ET A PLUS 60CM DU BORD D'UN BAC A DOUCHE OU INSTALLER UNE CLOISON FIXE ET PERENNE D'AU-MOINS 2,25M DE HAUT", font: "helvetica", size: 8, bold: true, color: "#FF0000", frame: "rect", frameColor: "#FF0000", frameW: 0.3, align: "center" } },
   { id: "hauteurs", label: "Liste des hauteurs (cuisine…)", item: { type: "text", w: 32, text: "P1 HT1.20M\nP2 HT0.30M", font: "courier", size: 8, bold: true, color: "#800080", frame: "round", frameColor: "#800080", frameW: 0.3, align: "center" } },
 ];
+
+// ---------- v74 MAJ 2 : cotes de position des boîtes (comme les plans du BE) ----------
+// Pour chaque boîte : distance horizontale et verticale entre le centre de la boîte et la face du mur le plus proche
+// (premier mur touché en partant de la boîte vers la gauche / la droite, puis vers le haut / le bas). En mètres.
+function rayHit(walls, x, y, dx, dy) {
+  let best = Infinity;
+  for (const P of walls) for (let i = 0; i < P.length; i++) {
+    const a = P[i], b = P[(i + 1) % P.length];
+    if (dy === 0) {
+      if ((a.y > y) === (b.y > y)) continue;
+      const t = (y - a.y) / (b.y - a.y), hx = a.x + t * (b.x - a.x), d = (hx - x) * dx;
+      if (d > 0.01 && d < best) best = d;
+    } else {
+      if ((a.x > x) === (b.x > x)) continue;
+      const t = (x - a.x) / (b.x - a.x), hy = a.y + t * (b.y - a.y), d = (hy - y) * dy;
+      if (d > 0.01 && d < best) best = d;
+    }
+  }
+  return best;
+}
+export function boxCotes(boxes, walls, max = 12) {
+  const out = [];
+  for (const b of boxes) {
+    const L = rayHit(walls, b.x, b.y, -1, 0), R = rayHit(walls, b.x, b.y, 1, 0), U = rayHit(walls, b.x, b.y, 0, -1), D = rayHit(walls, b.x, b.y, 0, 1);
+    const h = Math.min(L, R), v = Math.min(U, D);
+    if (h < max) out.push({ box: b.id, n: b.n, axis: "x", a: L <= R ? b.x - L : b.x + R, b: b.x, at: b.y, cm: Math.round(h * 100) });
+    if (v < max) out.push({ box: b.id, n: b.n, axis: "y", a: U <= D ? b.y - U : b.y + D, b: b.y, at: b.x, cm: Math.round(v * 100) });
+  }
+  return out;
+}
+// dessin : cotes horizontales au-dessus ou au-dessous du plan, verticales à gauche ou à droite (côté le plus proche de la
+// boîte), lignes d'attache jusqu'au bord du plan, valeur en cm (Courier gras 2,97 mm ×0,66, violet #800080)
+export const COTE_STYLE = { color: [128, 0, 128], w: 0.12, font: { font: "Courier-Bold", sy: 2.97, sx: 1.96, color: "#800080" }, gap: 6, step: 5 };
+export function drawBoxCotes(doc, cotes, X, Y, plan, area) {
+  const C = COTE_STYLE, used = { top: 0, bottom: 0, left: 0, right: 0 }, midX = (plan.x0 + plan.x1) / 2, midY = (plan.y0 + plan.y1) / 2;
+  const sorted = cotes.slice().sort((p, q) => Math.abs(p.a - p.b) - Math.abs(q.a - q.b));
+  const drawn = [];
+  doc.setDrawColor(...C.color); doc.setLineWidth(C.w); doc.setLineDashPattern([], 0);
+  const tick = (x, y) => doc.line(x - 0.7, y + 0.7, x + 0.7, y - 0.7);
+  for (const c of sorted) {
+    if (c.axis === "x") {
+      const side = Y(c.at) < midY ? "top" : "bottom", k = used[side]++;
+      let yy = side === "top" ? plan.y0 - C.gap - k * C.step : plan.y1 + C.gap + k * C.step;
+      yy = Math.max(area.y + 3, Math.min(area.y + area.h - 1, yy));
+      const xa = X(c.a), xb = X(c.b), edge = side === "top" ? plan.y0 : plan.y1;
+      doc.line(xa, yy, xb, yy); tick(xa, yy); tick(xb, yy);
+      [[xa, Y(c.at)], [xb, Y(c.at)]].forEach(([x]) => doc.line(x, yy + (side === "top" ? -1 : 1), x, edge + (side === "top" ? -0.5 : 0.5)));
+      drawText(doc, { str: String(c.cm), ...C.font, at: [(xa + xb) / 2 - String(c.cm).length * 0.9, yy - 0.8] });
+      drawn.push({ ...c, line: yy, side });
+    } else {
+      const side = X(c.at) < midX ? "left" : "right", k = used[side]++;
+      let xx = side === "left" ? plan.x0 - C.gap - k * C.step : plan.x1 + C.gap + k * C.step;
+      xx = Math.max(area.x + 3, Math.min(area.x + area.w - 3, xx));
+      const ya = Y(c.a), yb = Y(c.b), edge = side === "left" ? plan.x0 : plan.x1;
+      doc.line(xx, ya, xx, yb); tick(xx, ya); tick(xx, yb);
+      [ya, yb].forEach((y) => doc.line(xx + (side === "left" ? -1 : 1), y, edge + (side === "left" ? -0.5 : 0.5), y));
+      drawText(doc, { str: String(c.cm), ...C.font, angle: 90, at: [xx - 0.8, (ya + yb) / 2 + String(c.cm).length * 0.9] });
+      drawn.push({ ...c, line: xx, side });
+    }
+  }
+  return drawn;
+}

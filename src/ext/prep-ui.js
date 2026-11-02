@@ -49,6 +49,7 @@ export function createPrepTool({ api }) {
       <p class="mut sm">Feuille A3 au format des plans du BE. Les encarts se posent ici, jamais sur le plan de travail.</p>
       <div class="prep-pages" role="tablist"></div>
       <div class="prep-content"></div>
+      <label class="f prep-bati" title="Dessin de la maçonnerie pour tout le chantier, comme le plan du constructeur. Le type de chaque mur se règle dans ses Propriétés.">Maçonnerie<select id="prep-bati"><option value="hachures">Hachures (comme VILLANOVA, MAILLARD)</option><option value="gris">Gris plein (comme EVRARD)</option></select></label>
       <label class="f prep-sens" title="Auto : le plan est tourné d'un quart de tour s'il tient ainsi à une plus grande échelle (1/50 de préférence)">Sens du plan<select id="prep-sens"><option value="auto">Automatique (plus grande échelle)</option><option value="vue">Comme la vue</option><option value="0">Sans rotation</option><option value="90">Quart de tour à droite</option><option value="-90">Quart de tour à gauche</option></select></label>
       <details class="prep-sec" open><summary>Cartouche</summary>
         <label class="f">Client du BE<input data-c="clientBE"></label>
@@ -170,6 +171,7 @@ export function createPrepTool({ api }) {
         <div class="trow"><button class="sm" id="prep-all">Toutes les boîtes</button><button class="sm" id="prep-none">Aucune</button></div>` : `<p class="mut sm">Pas de boîte sur ce niveau (Câblage).</p>`}
       <label class="ck"><input type="checkbox" data-o="direct" ${pg.direct ? "checked" : ""}> Lignes directes</label>
       <label class="ck" title="Appareils qui ne sont ni dans une boîte ni en ligne directe"><input type="checkbox" data-o="autres" ${pg.autres !== false ? "checked" : ""}> Autres appareils</label>
+      <label class="ck" title="Distance de chaque boîte de la page au mur le plus proche, en cm (violet, hors du plan)"><input type="checkbox" data-o="cotes" ${pg.cotes !== false ? "checked" : ""}> Cotes des boîtes</label>
       <label class="ck"><input type="checkbox" data-o="legend" ${pg.legend ? "checked" : ""}> Légende sur cette page</label>
       ${pg.legendAt ? `<button class="sm" id="prep-legauto" title="Replacer la légende dans le coin libre">Légende : coin libre</button>` : ""}
     </details>`;
@@ -321,6 +323,8 @@ export function createPrepTool({ api }) {
     cur = Math.min(cur, P.pages.length - 1); sel = null;
     back.hidden = false; document.body.classList.add("prep-on");
     await ensureScratch(); await loadImages();
+    $("#prep-bati").value = api.batiStyle || "hachures";
+    $("#prep-bati").onchange = (e) => { api.setBatiStyle(e.target.value); bgSoon(); };
     $("#prep-sens").value = P.sens || "auto";
     $("#prep-sens").onchange = (e) => { P.sens = e.target.value; save(); bgSoon(); };
     paintPages(); paintCart(); paintEnc(); paintOv();
