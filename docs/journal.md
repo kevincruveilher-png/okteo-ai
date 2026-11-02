@@ -1,6 +1,7 @@
 ## 03/11/2026 — v74 MAJ 3 : volumes de la salle de bain
 
-Branche `feat/plan-ftz-v74`.
+Branche `feat/plan-ftz-v74`, fusionnée dans `main` sur « go and push » de Kévin (GitHub Actions : check complet, smoke
+175/175, test:web vert). Halo du contrôle sur l'appareil seulement (`sani` = id du sanitaire en cause).
 - `src/cablage/volumes.js` (pur) : sanitaires `SANI` (BAIG baignoire 170 × 75, RECV receveur 90 × 90, DITAL douche à
   l'italienne = pomme fixe), `saniRect` (dimensions `a.sw`/`a.sd` en m, rotation `a.srot`), `volumesOf(a, contour de la
   pièce)` → {v0, v1, v2} : volume 0/1 = emprise, 2 = 0,60 m autour (coins arrondis) ; italienne : 1 = 1,20 m autour de
