@@ -1,3 +1,18 @@
+## 02/11/2026 (après-midi) — v72.1 : mise en place Cloudflare et page blanche corrigée
+
+- Configuration faite par Kévin (avec Claude dans Chrome) : build `npm run build:web`, sortie `dist`, `NODE_VERSION=22`,
+  aperçus de branche actifs, secret `BOOTSTRAP_PASSWORD` (Production et Preview). `ANTHROPIC_API_KEY` pas encore créée :
+  l'IA est refusée avec un message clair, le reste fonctionne.
+- Bases D1 créées par Claude (connecteur Cloudflare), région Europe de l'Ouest, schéma `migrations/0001_enterprise.sql`
+  appliqué (sans `PRAGMA foreign_keys`, non accepté par D1 et inutile : D1 vérifie les clés étrangères) :
+  `okteo-accounts` (id 40d80429-695e-4208-a6d2-67c5cc14b3a5) liée en Production, `okteo-accounts-preview`
+  (id 8d62529a-9a01-4f9f-8cda-d5c0bf9512d4) liée en Preview, nom de liaison `DB`.
+- 1re compilation de l'aperçu réussie (416020b), mais **page blanche** : `env.ASSETS.fetch` de Cloudflare applique ses
+  redirections `.html` (`/login.html` → 308 `/login`) ; le Worker renvoyait cette redirection sans son adresse.
+  Correction : `assetPage()` suit les redirections internes (connexion et page bande). Test `web.test.mjs` avec un faux
+  ASSETS qui imite ce comportement (les tests précédents ne pouvaient pas le voir).
+- Aperçu : https://feat-web-entreprise-v72.okteo-ai.pages.dev (recette par Kévin dans Edge ou Chrome).
+
 ## 02/11/2026 — v72.1 : reprise de la v72 par Claude, une seule version en ligne
 
 **Contexte.** Kévin avait trois versions sans le savoir : GitHub Pages = v70 (29/10), Cloudflare `okteo-ai.pages.dev` =

@@ -3,6 +3,13 @@ import {random,hash,passwordHash,verify,validPassword,json,fail,body,cookie,iden
 // v72.1 : un relevé complet par Claude dure souvent 5 à 10 min (journal, essais MAILLARD) : 3 min coupait l'appel.
 export const AI_TIMEOUT=900000;
 export const PUBLIC_ASSET=/^\/assets\/[A-Za-z0-9_.-]+-[A-Za-z0-9_-]{8}\.(?:js|css)$/;
+// v72.1 : Cloudflare Pages applique html_handling à env.ASSETS.fetch : /login.html répond 308 vers /login, etc.
+// On suit ces redirections internes pour renvoyer le contenu de la page (sinon page blanche ou boucle).
+export async function assetPage(env,url,path){
+ let u=new URL(path,url),r;
+ for(let i=0;i<3;i++){r=await env.ASSETS.fetch(new Request(u));const loc=r.headers.get('location');if(r.status>=300&&r.status<400&&loc){u=new URL(loc,u);continue;}break;}
+ return r;
+}
 const now=()=>new Date().toISOString();
 const month=()=>{const parts=new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit'}).formatToParts(new Date());return parts.find(p=>p.type==='year').value+'-'+parts.find(p=>p.type==='month').value;};
 const run=(db,sql,...args)=>db.prepare(sql).bind(...args).run();
@@ -14,14 +21,14 @@ export async function handle(request,env,ctx={waitUntil(){}}) {
  const url=new URL(request.url),p=url.pathname,db=env.DB;
  if(!['GET','HEAD'].includes(request.method)&&request.headers.get('origin')!==url.origin)return json({error:{message:'Origine refusée.'}},403);
  if(['/login.html','/login','/login.js'].includes(p)){
-  const r=await env.ASSETS.fetch(new Request(new URL(p==='/login'?'/login.html':p,url),request));
+  const r=p==='/login.js'?await env.ASSETS.fetch(new Request(new URL(p,url))):await assetPage(env,url,'/login.html');
   return new Response(r.body,{status:r.status,headers:{'content-type':p==='/login.js'?'text/javascript; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store','x-frame-options':'DENY','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}});
  }
  // v72.1 : page bande du câbleur (QR code) publique, sans compte. Les données sont dans le # de l'adresse
  // (jamais envoyé au serveur). Seuls bande.html et les fichiers compilés à nom haché (js/css) sont servis sans session :
  // aucun plan, fond (dossier public/assets) ni API n'est exposé par cette exception.
  if(['GET','HEAD'].includes(request.method)&&(p==='/bande.html'||p==='/bande'||PUBLIC_ASSET.test(p))){
-  const r=await env.ASSETS.fetch(p==='/bande'?new Request(new URL('/bande.html',url),request):request),h=new Headers(r.headers);
+  const r=PUBLIC_ASSET.test(p)?await env.ASSETS.fetch(request):await assetPage(env,url,'/bande.html'),h=new Headers(r.headers);
   h.set('x-content-type-options','nosniff');h.set('referrer-policy','no-referrer');h.set('x-frame-options','DENY');
   if(!PUBLIC_ASSET.test(p)){h.set('cache-control','no-store');h.set('content-security-policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");}
   return new Response(r.body,{status:r.status,headers:h});

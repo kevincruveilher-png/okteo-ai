@@ -35,3 +35,13 @@ test('v72.1 : page bande du QR publique, rien d’autre sans session',async()=>{
  assert.equal((await handle(new Request('https://x/bande.html'),{ASSETS:f.env.ASSETS})).status,200);
  assert.equal((await handle(new Request('https://x/index.html'),{ASSETS:f.env.ASSETS})).status,503);});
 test('v72.1 : délai IA compatible avec un relevé de 10 minutes',async()=>{const {AI_TIMEOUT}=await import('../server/worker.js');assert(AI_TIMEOUT>=600000);});
+test('v72.1 : pages servies malgré les redirections .html de Cloudflare (page blanche du 02/11)',async()=>{
+ // ASSETS qui imite html_handling de Cloudflare Pages : /x.html -> 308 /x, /x -> contenu de x.html
+ const pages={'/login':'<title>Connexion</title>','/bande':'<title>Bande</title>','/':'<title>Oktéo</title>'};
+ const ASSETS={fetch:async(req)=>{const p=new URL(req.url).pathname;if(p.endsWith('.html')){const t=p==='/index.html'?'/':p.slice(0,-5);return new Response(null,{status:308,headers:{location:t}});}
+  return pages[p]?new Response(pages[p],{headers:{'content-type':'text/html'}}):new Response('js',{headers:{'content-type':'text/javascript'}});}};
+ const DB=fixture().env.DB,env={DB,ASSETS};
+ for(const [path,txt] of [['/login.html','Connexion'],['/login','Connexion'],['/bande.html','Bande'],['/bande','Bande']]){
+  const r=await handle(new Request('https://okteo.test'+path),env,{waitUntil(){}});assert.equal(r.status,200,path);assert.match(await r.text(),new RegExp(txt),path);}
+ const js=await handle(new Request('https://okteo.test/login.js'),env,{waitUntil(){}});assert.equal(js.status,200);
+});
