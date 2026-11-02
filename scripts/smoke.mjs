@@ -2381,7 +2381,8 @@ try {
     // 30 s comme les autres lectures du PDF EVRARD (15 s échouait une fois sur deux sur GitHub Actions)
     // v73.1 : en cas d'échec, l'état des cartes est affiché (étape, cartes visibles et leur titre)
     const cards = () => ev(() => [...document.querySelectorAll(".wcard, .cmpcard")].map((c) => ({ cls: c.className, hidden: c.hidden, shown: !!c.offsetParent, h: (c.querySelector(".wcard-h, .cmp-h")?.textContent || c.textContent).trim().slice(0, 60) })));
-    try { await page.waitForFunction(() => [...document.querySelectorAll(".wcard")].some((c) => !c.hidden && /Relevé des murs/.test(c.textContent)), null, { timeout: 30000 }); }
+    // v74 : attendre la FIN du relevé des murs (bouton « Ajouter ») : sinon sa carte se rouvre après celle des pièces
+    try { await page.waitForSelector(".wcard:not([hidden]) #w-ok", { timeout: 30000 }); }
     catch { throw new Error("murs : " + JSON.stringify(await cards())); }
     await ev(() => okteoExt.rooms.open());
     try { await page.waitForFunction(() => [...document.querySelectorAll(".wcard")].some((c) => !c.hidden && /Pièces/.test(c.querySelector(".wcard-h")?.textContent || "")), null, { timeout: 30000 }); }

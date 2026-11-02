@@ -9,6 +9,8 @@ impossible à distinguer d'un plan FTZ du BE. Décisions et analyse : `docs/char
 - `src/print/ftz-draw.js` : dessin SVG des symboles et du cartouche depuis la charte. `scripts/charte/planche.mjs` :
   planche de contrôle FTZ d'origine / Oktéo. Test `scripts/charte.test.mjs` (10) ajouté à `npm run check`.
 - Les plans de référence (EVRARD, VILLANOVA, MAILLARD) ne sont pas ajoutés au dépôt (public, vrais clients).
+- Test smoke « une seule fenêtre de travail » : il ouvrait le relevé des pièces avant la fin du relevé des murs (dont la
+  carte se rouvrait ensuite) ; il attend maintenant le bouton « Ajouter » des murs (échecs intermittents de v73.1).
 
 ## 02/11/2026 (nuit) — v73.1 : tailles adaptées à l'écran (retour de Kévin sur son portable)
 
