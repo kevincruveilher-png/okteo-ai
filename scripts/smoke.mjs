@@ -2379,16 +2379,20 @@ try {
   await check("une seule fenêtre de travail : ouvrir le relevé des pièces ferme le relevé des murs ; la comparaison des modes ferme les deux", async () => {
     await ev(() => { okteoExt.panel.close("assistant"); okteoExt.walls.open(); });
     // 30 s comme les autres lectures du PDF EVRARD (15 s échouait une fois sur deux sur GitHub Actions)
-    await page.waitForFunction(() => [...document.querySelectorAll(".wcard")].some((c) => !c.hidden && /Relevé des murs/.test(c.textContent)), null, { timeout: 30000 });
+    // v73.1 : en cas d'échec, l'état des cartes est affiché (étape, cartes visibles et leur titre)
+    const cards = () => ev(() => [...document.querySelectorAll(".wcard, .cmpcard")].map((c) => ({ cls: c.className, hidden: c.hidden, shown: !!c.offsetParent, h: (c.querySelector(".wcard-h, .cmp-h")?.textContent || c.textContent).trim().slice(0, 60) })));
+    try { await page.waitForFunction(() => [...document.querySelectorAll(".wcard")].some((c) => !c.hidden && /Relevé des murs/.test(c.textContent)), null, { timeout: 30000 }); }
+    catch { throw new Error("murs : " + JSON.stringify(await cards())); }
     await ev(() => okteoExt.rooms.open());
-    await page.waitForFunction(() => [...document.querySelectorAll(".wcard")].some((c) => !c.hidden && /Pièces/.test(c.querySelector(".wcard-h")?.textContent || "")), null, { timeout: 30000 });
+    try { await page.waitForFunction(() => [...document.querySelectorAll(".wcard")].some((c) => !c.hidden && /Pièces/.test(c.querySelector(".wcard-h")?.textContent || "")), null, { timeout: 30000 }); }
+    catch { throw new Error("pièces : " + JSON.stringify(await cards())); }
     const one = await ev(() => [...document.querySelectorAll(".wcard:not(.save-alert)")].filter((c) => !c.hidden && c.offsetParent).length);
     await ev(() => document.dispatchEvent(new CustomEvent("okteo:compare-modes")));
     await page.waitForSelector(".cmpcard", { timeout: 10000 });
     await page.waitForTimeout(200);
     const two = await ev(() => [...document.querySelectorAll(".wcard:not(.save-alert)")].filter((c) => !c.hidden && c.offsetParent).length);
     await page.keyboard.press("Escape");
-    if (!(one === 1 && two === 0)) throw new Error(JSON.stringify({ one, two }));
+    if (!(one === 1 && two === 0)) throw new Error(JSON.stringify({ one, two, cards: await cards() }));
     return true;
   });
   await check("panneau Câblage allégé : avec des boîtes, les Boîtes en premier, la liste des circuits repliée (ouvrable), aides en ⓘ", async () => {
