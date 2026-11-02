@@ -1,7 +1,7 @@
 // Oktéo AI — cœur : Mesures sur mur et interactions souris / clavier sur le plan.
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
 import { K } from "./k.js";
-import { TYPES, cornerHalf, dist, epOf, layers, node, nodeById, segById, segDir, segLen, state, uidA, uidD, uidO, uidR, uidS } from "./model.js";
+import { TYPES, cornerHalf, hDefault, dist, epOf, layers, node, nodeById, segById, segDir, segLen, state, uidA, uidD, uidO, uidR, uidS } from "./model.js";
 import { markDirty, save, snapshot } from "./persist.js";
 import { applyOrtho, evWorld, pxPerVB, repMap, snapWorld, tolM } from "./view.js";
 import { draw, hitBox, hitGaineEnd, hitLock, hitPort, hitRoute, sv } from "./render.js";
@@ -179,7 +179,7 @@ export function placeApp(t, p) {
     t,
     x: p.x,
     y: p.y,
-    h: TYPES[t].h
+    h: hDefault(t)
   };
   if (p.seg) {
     na.seg = p.seg;

@@ -466,6 +466,8 @@ MAJ 2 : `matOf(seg)` / `seg.mat` (maconnerie | cloison | doublage), `batiStyle()
 `drawBoxCotes` (ftz-sheet.js).
 MAJ 3 : `src/cablage/volumes.js` (sanitaires BAIG / RECV / DITAL = appareils sans circuit ni repère, `a.sw/sd/srot` ;
 `volumesOf`, `checkVolumes` → contrôle `sdb` ; `exportGeometry().volumes`).
+MAJ 4-5 : `src/print/ftz-symbols.js` (`boxColor`, `ftzSymbol`, `plaques`), préférence `charteBE` (symboles FTZ à l'écran
+`g.ftz`, gaines couleur de boîte), `drawPlan(..., {ftzSyms})`, PMR (`meta.pmr`, `hDefault`, `api.setPmr`).
 
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,

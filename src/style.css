@@ -1092,3 +1092,4 @@ body.aw-on{overflow:hidden}
 .prep-wait{position:absolute;top:14px;right:18px;background:rgba(0,0,0,.6);color:#fff;padding:4px 10px;border-radius:6px;font-size:12px}
 .prep-wait[hidden]{display:none}
 @media (max-width:760px){.prep{flex-direction:column}.prep-side{width:auto;max-height:45%;border-right:0;border-bottom:1px solid var(--line)}}
+#sv g.ftz path[fill="none"]{stroke-width:.26}

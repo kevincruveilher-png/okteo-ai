@@ -90,5 +90,24 @@ check("contrôle : prise et interrupteur en volume 1 ou 2 interdits, luminaire e
   const I = VOL.checkVolumes(apps, [room]), by = Object.fromEntries(I.map((x) => [x.id, x]));
   if (!(by.p1 && by.p1.v === 1 && by.p1.bloquant && by.i1 && by.i1.v === 2 && by.i1.bloquant && by.l1 && !by.l1.bloquant && !by.p2 && !by.l2 && I.length === 3)) throw new Error(JSON.stringify(I));
 });
+console.log("Plan pieuvre et équipements du BE (v74 MAJ 4)");
+const FS = await import("../src/print/ftz-symbols.js");
+const SH = await import("../src/print/ftz-sheet.js");
+check("couleurs des boîtes verrouillées : LI01 rouge, LI02 vert, LI03 magenta, LI04 bleu, LI05 noir, LI06 orange, LI07 violet, LI08 rouge", () =>
+  ["LI01", "LI02", "LI03", "LI04", "LI05", "LI06", "LI07", "LI08", "LI14"].map(FS.boxColor).join() === "#FF0000,#008000,#FF00FF,#0000FF,#000000,#FF8000,#800080,#FF0000,#800080");
+check("symboles FTZ : prise, prise haute, point lumineux, interrupteur, RJ45, tableau trouvés dans la charte ; tracé tourné", () => {
+  const I = FS.symIndex(C), n = (t, h) => FS.ftzSymbol(I, t, h)?.name;
+  const ok = n("PC16", 30) === "Prise de courant H0.30m (PMR H0.40m)" && n("PC16", 120) === "Prise de courant H1.20m" && n("LUM") === "Point lumineux" && n("INT") === "Interrupteur simple allumage" && n("RJ45") === "Prise RJ45 H0.30m (PMR H0.40m)" && n("TAB") === "Tableau d'alimentation générale basse tension" && FS.ftzSymbol(I, "XYZ") === null;
+  return ok && SH.rotD("M-2 1L3 0", 90) === "M-1.0000 -2.0000L0.0000 3.0000";
+});
+check("plaques multipostes : 2 appareils côte à côte = double horizontale, 3 superposés = triple verticale, isolé = rien", () => {
+  const w = { ux: 1, uy: 0 }, P = FS.plaques([
+    { id: "a", t: "INT", x: 1, y: 0, h: 110, wall: w }, { id: "b", t: "PC16", x: 1.08, y: 0, h: 110, wall: w },
+    { id: "c", t: "PC16", x: 4, y: 0, h: 30, wall: w }, { id: "d", t: "RJ45", x: 4.02, y: 0, h: 60, wall: w }, { id: "e", t: "PC16", x: 4.04, y: 0, h: 110, wall: w },
+    { id: "f", t: "PC16", x: 8, y: 0, h: 30, wall: w }, { id: "g", t: "LUM", x: 1.05, y: 0, h: null, wall: null }]);
+  const s2 = P.map((p) => `${p.name}:${p.ids.join("")}`).sort().join("|");
+  if (s2 !== "Plaque double Horizontale:ab|Plaque triple Verticale:cde") throw new Error(s2);
+  const I = FS.symIndex(C); return P.every((p) => I.has(p.name));
+});
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);
 if (fails.length) process.exit(1);

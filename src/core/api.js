@@ -2,8 +2,9 @@
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
 import { readingData } from "../walls/ai-data.js";
 import { K } from "./k.js";
+import * as CHS from "../chantiers.js";
 import { addLimit } from "../walls/rooms.js";
-import { CH, MATS, PAL, PLAN, TYPES, VB, batiStyle, epOf, layers, matOf, node, nodeById, segById, state, uidA, uidN, uidO, uidR, uidS } from "./model.js";
+import { CH, MATS, PAL, hDefault, isPmr, PLAN, TYPES, VB, batiStyle, epOf, layers, matOf, node, nodeById, segById, state, uidA, uidN, uidO, uidR, uidS } from "./model.js";
 import { markDirty, packData, snapshot, writeNow } from "./persist.js";
 import { fit, renumberReps, repMap, rotExtent, rotateView, syncVB } from "./view.js";
 import { draw, drawFx, gaineCrossings, glyph, sv } from "./render.js";
@@ -330,7 +331,7 @@ window.okteo = {
     snapshot();
     updates.forEach(d => { const a = idx.get(d.id).a; if (d.t) a.t = d.t; Object.assign(a, readingData(d)); });
     const ids = [];
-    const place = list => list.forEach(d => { const a = { id:uidA(), t:d.t, x:d.x, y:d.y, h:d.h ?? TYPES[d.t].h, ...readingData(d) }; state.app.push(a); ids[adds.indexOf(d)] = a.id; });
+    const place = list => list.forEach(d => { const a = { id:uidA(), t:d.t, x:d.x, y:d.y, h:d.h ?? hDefault(d.t), ...readingData(d) }; state.app.push(a); ids[adds.indexOf(d)] = a.id; });
     for (const lv of levels) { const list = adds.filter(d => d.lv === lv); if (!list.length) continue; if (lv === K.LV.cur) place(list); else withLevel(lv, () => place(list)); }
     markDirty(); draw(); showSide();
     return { added:adds.length, updated:updates.length, ids };
@@ -361,7 +362,7 @@ window.okteo = {
         t: d.t,
         x: +(+p.x).toFixed(3),
         y: +(+p.y).toFixed(3),
-        h: d.h || TYPES[d.t].h,
+        h: d.h || hDefault(d.t),
         auto: true,
         ...readingData(d)
       };
@@ -745,6 +746,24 @@ window.okteo = {
     setRoomTxt(f);
   },
   // v74 MAJ 2 : style du bâti (hachures | gris) et type de chaque mur (maconnerie | cloison | doublage | null = auto)
+  // v74 MAJ 4 : logement PMR : prises (et autres appareils posés à 30 cm) à 40 cm ; apply = remonter aussi ceux déjà posés
+  get pmr() {
+    return isPmr();
+  },
+  setPmr(on, { apply = true } = {}) {
+    Object.assign(CH, CHS.update(CH.id, { pmr: !!on }));
+    let n = 0;
+    if (apply) {
+      snapshot();
+      const from = on ? 30 : 40, to = on ? 40 : 30;
+      const all = [state.app, ...Object.entries(K.LV.data).filter(([id]) => id !== K.LV.cur).map(([, d]) => d.app || [])];
+      all.forEach(L => L.forEach(a => { if (TYPES[a.t] && TYPES[a.t].h === 30 && a.h === from) { a.h = to; n++; } }));
+      markDirty();
+    }
+    draw(); showSide();
+    document.dispatchEvent(new CustomEvent("okteo:pmr", { detail: { on: !!on, n } }));
+    return n;
+  },
   get batiStyle() {
     return batiStyle();
   },

@@ -21,6 +21,8 @@ import { chooseBows, BOW0, curve, polyCross } from "../cablage/trace.js";
 import { implantationPending } from "../cablage/equipements.js";
 import { APPAREILS, raccOf } from "../cablage/appareils.js";
 import { isSani, roomFor, saniRect, volumesOf } from "../cablage/volumes.js";
+import { boxColor, ftzSymbol, symIndex } from "../print/ftz-symbols.js";
+import { symbolSVG } from "../print/ftz-draw.js";
 
 // ---------- rendu ----------
 export const sv = document.getElementById("sv");
@@ -379,7 +381,7 @@ export function draw() {
           }
           d.apps.forEach(a => {
             const c = cm[a.id];
-            bl += `<path class="gaine" data-b="${b.id}" data-k="${a.id}" d="${gpath(a.id, d.P, a)}" fill="none" stroke="${c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" opacity="${on ? 0.9 : 0.55}"/>`;
+            bl += `<path class="gaine" data-b="${b.id}" data-k="${a.id}" d="${gpath(a.id, d.P, a)}" fill="none" stroke="${pref("charteBE") !== false ? boxColor(b.n) : c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" opacity="${on ? 0.9 : 0.55}"/>`;
           });
         });
         for (const [key, pts] of Object.entries(R)) if (key !== "tab" || pref("parcours")) pts.forEach(p => {
@@ -444,6 +446,7 @@ export function draw() {
       ss = symView(),
       rm = K.showReps ? repMap() : null;
     const circ = K.showCirc ? circuitMap() : null;
+    const FZS = ftzIdx();
     let ap = "";
     state.app.forEach(a => {
       if (isSani(a.t)) return;   // v74 : dessinés à leur vraie taille avec le bâti
@@ -463,7 +466,9 @@ export function draw() {
       if (aSel) ap += `<circle r="1.5" fill="none" stroke="var(--sel)" stroke-width=".12" stroke-dasharray=".3 .25"/>`;
       // v57 : équipement hors plan (ajouté d'après le devis) : carré pointillé violet « à vérifier avec le devis »
       if (a.hp) ap += `<rect class="hp-mark" x="-1.25" y="-1.25" width="2.5" height="2.5" rx=".3" fill="none" stroke="#8a4fd8" stroke-width=".12" stroke-dasharray=".35 .25"><title>Hors plan : à vérifier avec le devis</title></rect>`;
-      ap += glyph(a.t) + `</g>`;
+      const fs = FZS && ftzSymbol(FZS, a.t, a.h);
+      if (fs) ap += (col ? `<circle class="cring" r="1.35" fill="none" stroke="var(--c)" stroke-width=".16" opacity=".75"/>` : "") + `<g class="ftz" transform="scale(${(1.6 / 3.88).toFixed(4)})">${symbolSVG(fs)}</g></g>`;
+      else ap += glyph(a.t) + `</g>`;
       ap += `</g>`;
     });
     h += `<g>${ap}</g>`;
@@ -969,4 +974,15 @@ export function hitBox(wx, wy) {
   if (!K.showCirc || !layers.boites.on) return null;
   const pm = pmNow();
   return (K.CAB.boxes || []).find(b => { if (b.lv !== K.LV.cur) return false; const r = boxLayout(b, pm).S / 2 + 2 * pm; return Math.abs(b.x - wx) <= r && Math.abs(b.y - wy) <= r; }) || null;
+}
+
+// v74 MAJ 4 : symboles du BE (charte FTZ) chargés à la demande ; null tant qu'ils ne sont pas prêts ou si la préférence est coupée
+export function ftzIdx() {
+  if (pref("charteBE") === false) return null;
+  if (K.ftzIdx) return K.ftzIdx;
+  if (!K.ftzLoading) {
+    K.ftzLoading = true;
+    import("../print/ftz-charte.json").then((m) => { K.ftzIdx = symIndex(m.default); draw(); }).catch(() => { K.ftzLoading = false; });
+  }
+  return null;
 }

@@ -1,3 +1,24 @@
+## 03/11/2026 — v74 MAJ 4 et 5 : plan pieuvre et page 2 équipements aux couleurs du BE
+
+Branche `feat/plan-ftz-v74`.
+- `src/print/ftz-symbols.js` (pur) : `BOX_COLORS` / `boxColor(n)` (ordre verrouillé : LI01 rouge, LI02 vert, LI03 magenta,
+  LI04 bleu, LI05 noir, LI06 orange, LI07 violet, puis le cycle recommence), `symIndex(charte)`, `ftzSymbol(idx, t, h)`
+  (via `FTZ_NAMES`, prise haute si h ≥ 100), `plaques(apps)` (commandes / prises du même mur à moins de 25 cm → plaque
+  double ou triple, verticale si les hauteurs diffèrent de plus de 20 cm ; une boîte PROF 50 par plaque, **à confirmer
+  avec le BE**). ftz-sheet.js : `rotD`, `drawSymbol(doc, sym, cx, cy, k, rot)`.
+- Feuille A3 du BE (`buildFtz` → `drawPlan(..., {ftzSyms})`) : symboles FTZ à leur taille réelle (tournés pour les
+  appliques), repères Courier gras 2,97 mm ×0,95 noirs, boîtes = carré + nom Times vert, gaines à la couleur de la boîte,
+  plaques multipostes côté pièce + « PROF 50 » (Courier), légende avec les symboles FTZ (réduits à la hauteur de la rangée).
+  Page 2 (lignes directes) : libellé de la flèche à une place libre (Placer), omis s'il redit le repère : plus de
+  chevauchement « AQUA AIR ». Résultat de `buildFtz` : `plaques` [{page, list}].
+- Écran : préférence `charteBE` (vraie par défaut, Paramètres → Affichage « Plan aux symboles du BE (FTZ) ») : symboles FTZ
+  dans `g.dev` (`g.ftz`, chargés à la demande `ftzIdx()`, anneau `circle.cring` à la couleur du circuit quand les circuits
+  sont affichés), gaines à la couleur de la boîte. La barre d'outils garde les symboles Oktéo.
+- Logement PMR : `meta.pmr`, case `#ch-pmr` (fiche du chantier), `isPmr()` / `hDefault(t)` (model.js : 30 → 40 cm pour
+  les nouveaux appareils, `hDef` de l'impression), `api.setPmr(on, {apply})` (remonte / redescend ceux déjà posés, un
+  Ctrl+Z ; événement `okteo:pmr`), `api.pmr`.
+- Tests : charte.test.mjs (+3 : couleurs, symboles, plaques), smoke « plan du BE (v74 MAJ 4) ».
+
 ## 03/11/2026 — v74 MAJ 3 : volumes de la salle de bain
 
 Branche `feat/plan-ftz-v74`, fusionnée dans `main` sur « go and push » de Kévin (GitHub Actions : check complet, smoke

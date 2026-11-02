@@ -204,6 +204,12 @@ export function matOf(s) {
   const e = epOf(s);
   return e >= 0.16 || (e >= 0.1 && wallFacade(s)) ? "maconnerie" : "cloison";
 }
+// v74 MAJ 4 : logement PMR (case du chantier) : prises, RJ45, TV… à 40 cm au lieu de 30 (comme les légendes du BE)
+export const isPmr = () => !!(CH && CH.pmr);
+export function hDefault(t) {
+  const h = TYPES[t] ? TYPES[t].h : null;
+  return isPmr() && h === 30 ? 40 : h;
+}
 export const batiStyle = () => (CH && BATI_STYLES[CH.bati] ? CH.bati : "hachures");
 
 // demi-épaisseur des AUTRES murs qui arrivent à un sommet (pour mesurer depuis la face intérieure)

@@ -16,6 +16,7 @@ import { CAB_RULES } from "../cablage/regles.js";
     ["ouvrants", "Afficher les ouvrants", "Battants et arcs. Les passages restent ouverts lorsque cette option est désactivée."],
     ["parcours", "Afficher les parcours complets", "Alimentations et lignes directes : afficher le trajet à la place des flèches. Les données de câblage sont conservées."],
   ["surfaces", "Afficher la surface des pièces (m²)", "Sur le plan, dans les panneaux, au relevé des pièces et à l'impression. La surface reste calculée (nombre de prises de la norme pour le séjour)."],
+  ["charteBE", "Plan aux symboles du BE (FTZ)", "Symboles des plans FTZ sur le plan de travail et gaines à la couleur de leur boîte (LI01 rouge, LI02 vert, LI03 magenta, LI04 bleu, LI05 noir, LI06 orange, LI07 violet). Décoché : symboles Oktéo et gaines à la couleur du circuit. La barre d'outils garde les symboles Oktéo."],
   ["halos", "Halo orange autour des appareils à vérifier", "Contrôle permanent : commande sans lumière, lumière sans commande, va-et-vient incomplet, appareil sans circuit, allumage coupé entre deux boîtes. Le compteur ⚠ en haut reste toujours actif."],
 ];
 

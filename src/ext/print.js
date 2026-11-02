@@ -1,5 +1,7 @@
 import { arrowPoints, hatchLines, wallLook, wavePoints } from "../plan-style.js";
 import { ABREV_DEFAUT, abrevRoom, parseAbrev } from "../print/abrev.js";
+import { drawSymbol, drawText as ftzText } from "../print/ftz-sheet.js";
+import { boxColor, ftzSymbol, plaques, symIndex } from "../print/ftz-symbols.js";
 import { Placer, roomCandidates, spreadSymbols } from "../place.js";
 import { pref } from "../prefs.js";
 import { logoData, LOGO_RATIO } from "./logo.js";
@@ -264,7 +266,8 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     });
     // ---------- étiquettes placées sans chevauchement (boîtes en mm sur le papier) ----------
     const PL = new Placer(6), MM = 25.4 / 72;
-    const u = Math.max(geo.symU * f, 1.6);              // unité de symbole en mm (v58 : symbole d'au moins 2,5 mm imprimé)
+    const FZ = o.ftzSyms || null;   // v74 MAJ 4 : feuille du BE = symboles FTZ à leur taille réelle
+    const u = FZ ? 2.1 : Math.max(geo.symU * f, 1.6);   // unité de symbole en mm (v58 : symbole d'au moins 2,5 mm imprimé)
     const tw = (str, size, bold) => { doc.setFont("helvetica", bold ? "bold" : "normal"); doc.setFontSize(size); return doc.getTextWidth(String(str)); };
     const boxAt = (cx, cy, w, h) => ({ x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2 });
     const apps = o.appareils ? geo.apps.filter((a) => !o.appIds || o.appIds.has(a.id)) : [];   // v74 : appareils de la page
@@ -272,6 +275,19 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const disp = spreadSymbols(apps.map((a) => ({ id: a.id, x: X(a.x), y: Y(a.y), ...(a.wall ? { ux: a.wall.ux, uy: a.wall.uy } : {}) })), 1.9 * u);
     const PX = (a) => (disp.get(a.id) || { x: X(a.x) }).x, PY = (a) => (disp.get(a.id) || { y: Y(a.y) }).y;
     apps.forEach((a) => PL.add(boxAt(PX(a), PY(a), 2 * u, 2 * u)));      // les symboles sont des obstacles
+    // v74 MAJ 4 : plaques multipostes (appareils groupés sur un mur), décalées côté pièce, et leur boîte PROF 50 (à confirmer BE)
+    const plq = !FZ || o.plaques === false ? [] : plaques(apps).map((P) => {
+      const sym = FZ.get(P.name), L = (geo.rooms.find((r) => r.name === P.room) || {}).label || { x: P.x, y: P.y };
+      let nx = -P.wall.uy, ny = P.wall.ux; if ((L.x - P.x) * nx + (L.y - P.y) * ny < 0) { nx = -nx; ny = -ny; }
+      const ids = new Set(P.ids), pa = apps.filter((a) => ids.has(a.id)), mx = pa.reduce((s2, a) => s2 + PX(a), 0) / pa.length, my = pa.reduce((s2, a) => s2 + PY(a), 0) / pa.length;
+      const at = [mx + nx * 5.4, my + ny * 5.4], sw = sym ? sym.w : 6, sh = sym ? sym.h : 3;
+      PL.add(boxAt(at[0], at[1], sw, sh));
+      const lw = 7 * 0.6 * 2.97 * 0.95, lh = 3.2;
+      const cands = [[at[0] + sw / 2 + 1 + lw / 2, at[1]], [at[0] - sw / 2 - 1 - lw / 2, at[1]], [at[0], at[1] + sh / 2 + 0.6 + lh / 2], [at[0], at[1] - sh / 2 - 0.6 - lh / 2]].map(([x, y]) => boxAt(x, y, lw, lh));
+      const lab = cands.find((b) => PL.free(b)) || cands[0]; PL.add(lab);
+      return { ...P, sym, at, lab };
+    });
+    geo.__plaques = plq.map(({ sym, ...p }) => p);
     // boîtes de pieuvre (v48) : carré de taille fixe sur le papier (comme à l'écran : environ 3 symboles), obstacles aussi
     const boxes = o.boites || o.gaines ? (geo.boxes || []).filter((b) => !o.boxIds || o.boxIds.has(b.id)) : [];
     const BS = Math.max(3.6 * u, 9), BSm = BS / f;   // v58 : boîtes plus petites
@@ -304,10 +320,11 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       return { d, ux, uy, ang, x, y };
     });
     // repères (et hauteur hors standard) : autour du symbole, à la première place libre
-    const SR = Math.max(5, pt(u * 0.9));
+    const SR = FZ ? 2.97 * 72 / 25.4 : Math.max(5, pt(u * 0.9));
+    const twR = (str, size, bold) => { if (!FZ) return tw(str, size, bold); doc.setFont("courier", "bold"); doc.setFontSize(size); return doc.getTextWidth(String(str)) * 0.95; };
     const repLabels = !o.reperes ? [] : apps.map((a) => {
       const str = a.rep || "", hs = [a.h != null && a.h !== a.hDef ? `h ${fr(a.h / 100)}` : "", a.xlink || ""].filter(Boolean).join("  ");
-      const w = Math.max(tw(str, SR, true), hs ? tw(hs, SR) : 0), h = SR * MM * (hs ? 2.1 : 1.05), g = u * 1.05;
+      const w = Math.max(twR(str, SR, true), hs ? twR(hs, SR) : 0), h = SR * MM * (hs ? 2.1 : 1.05), g = u * 1.05;
       const ax = PX(a), ay = PY(a);
       const pos = [[g, -g - h / 2, "l"], [g, g + h / 2, "l"], [-g, -g - h / 2, "r"], [-g, g + h / 2, "r"], [g, 0, "l"], [-g, 0, "r"], [0, -g - h / 2, "c"], [0, g + h / 2, "c"]];
       for (const [dx, dy, al] of pos) {
@@ -362,14 +379,21 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       b.deps.forEach((d) => { const P = portOf(b, d); d.ends.forEach((e) => { if (e.route && e.route.length) bowF.push([P, ...e.route, e]); else bowL.push({ key: b.id + "|" + e.key, P, T: e }); }); });
       chooseBows(bowL, bowF).forEach((v, k) => bows.set(k, v));
     });
-    const arrowPdf = (a, b, label, color = [60,60,60]) => {
-      const P = arrowPoints(a,b,8/f); doc.setDrawColor(...color); doc.setLineWidth(.18);
+    const arrowPdf = (a, b, label, color = [60,60,60], rep = null) => {
+      const P = arrowPoints(a,b,8/f); doc.setDrawColor(...color); doc.setLineWidth(FZ ? .12 : .18);
       line(P[0],P[1]); line(P[2],P[1]); line(P[3],P[1]);
-      doc.setTextColor(25); doc.setFont("helvetica","normal"); doc.setFontSize(6); doc.text(String(label),X(P[1].x),Y(P[1].y)+(P[1].y<a.y ? -1.3 : 2.5),{align:"center"});
+      if (!FZ) { doc.setTextColor(25); doc.setFont("helvetica","normal"); doc.setFontSize(6); doc.text(String(label),X(P[1].x),Y(P[1].y)+(P[1].y<a.y ? -1.3 : 2.5),{align:"center"}); return; }
+      // v74 MAJ 4 : feuille du BE : libellé en Courier gras à une place libre près de la pointe (rien s'il redit le repère)
+      if (!label || String(label) === String(rep || "")) return;
+      const str = String(label), lw = str.length * 0.6 * 2.97 * 0.95, lh = 3.2, tx = X(P[1].x), ty = Y(P[1].y);
+      const cands = [[tx, ty - 2.4], [tx, ty + 2.6], [tx + lw / 2 + 1.2, ty], [tx - lw / 2 - 1.2, ty], [tx + lw / 2 + 1, ty - 2.4], [tx - lw / 2 - 1, ty + 2.6]].map(([x, y]) => boxAt(x, y, lw, lh));
+      const bx = cands.find((q) => PL.free(q)) || cands[0]; PL.add(bx);
+      ftzText(doc, { str, font: "Courier-Bold", sy: 2.97, sx: 2.82, at: [bx.x0, bx.y1 - 0.5], color: "#000000" });
     };
+    const repOfApp = new Map(geo.apps.map((a) => [a.id, a.rep]));
     if (o.gaines && o.directOn !== false) (geo.direct || []).forEach(d => {
       if (o.parcours && d.b) { doc.setDrawColor(...(d.faible ? [53,103,71] : [155,36,64])); doc.setLineWidth(.18); line(d.a,d.b); }
-      else arrowPdf(d.a,d.b || {x:d.a.x-.5,y:d.a.y+.5},d.label);
+      else arrowPdf(d.a,d.b || {x:d.a.x-.5,y:d.a.y+.5},d.label, [60,60,60], repOfApp.get(d.appId));
     });
     if (o.gaines) boxes.forEach((b) => b.deps.forEach((d) => {
       const P = portOf(b, d);
@@ -378,7 +402,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
         let pts;
         if (e.route && e.route.length) pts = [P, ...e.route, e];
         else { const q = gaineCtrl(P, e, bows.get(b.id + "|" + e.key) ?? 0.15); pts = Array.from({ length: 17 }, (_, i) => { const t = i / 16, v = 1 - t; return { x: v * v * P.x + 2 * v * t * q.x + t * t * e.x, y: v * v * P.y + 2 * v * t * q.y + t * t * e.y }; }); }
-        const c = d.tab ? [120, 120, 120] : rgb(e.color) || [130, 130, 130];
+        const c = d.tab ? [120, 120, 120] : FZ ? rgb(boxColor(b.n)) : rgb(e.color) || [130, 130, 130];
         doc.setDrawColor(...c); doc.setLineWidth(d.tab ? 0.2 : 0.15);
         if (d.tab) doc.setLineDashPattern([1.5, 1], 0);
         for (let i = 1; i < pts.length; i++) line(pts[i - 1], pts[i]);
@@ -389,7 +413,14 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     apps.forEach((a) => {
       if (disp.has(a.id)) { doc.setDrawColor(150, 150, 150); doc.setLineWidth(0.1); doc.line(X(a.x), Y(a.y), PX(a), PY(a)); doc.setFillColor(150, 150, 150); doc.circle(X(a.x), Y(a.y), 0.25, "F"); }
       if (a.implantation?.etat === "a_preciser") { doc.setDrawColor(153,84,220); doc.setLineWidth(.25); doc.circle(PX(a),PY(a),u*1.6,"S"); }
-      symbol(doc, a.t, PX(a), PY(a), u, a.rot || 0, o.circuits ? rgb(a.color) : null);
+      const fs = FZ && ftzSymbol(FZ, a.t, a.h);
+      if (fs) drawSymbol(doc, fs, PX(a), PY(a), 1, a.rot || 0);
+      else symbol(doc, a.t, PX(a), PY(a), u, a.rot || 0, o.circuits && !FZ ? rgb(a.color) : null);
+    });
+    // v74 MAJ 4 : plaques multipostes + « PROF 50 » (placés avant les repères)
+    if (FZ) plq.forEach((P) => {
+      if (P.sym) drawSymbol(doc, P.sym, P.at[0], P.at[1], 1, 0);
+      if (P.lab) ftzText(doc, { str: "PROF 50", font: "Courier-Bold", sy: 2.97, sx: 2.82, at: [P.lab.x0, P.lab.y1 - 0.5], color: "#000000" });
     });
     // boîtes : carré, nom au-dessus, faces A–D, points d'accroche (pleins = gaine raccordée, couleur du circuit),
     // n° de la gaine à côté de son point (onglet Bandes : LI01.04 → « 04 »)
@@ -398,6 +429,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       doc.setFillColor(255, 255, 255); doc.setDrawColor(20, 20, 20); doc.setLineWidth(0.35);
       if (b.rot) { const C = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u2, v2]) => rotV(b, u2 * BS / 2, v2 * BS / 2)); doc.lines(C.slice(1).map((p, i) => [p[0] - C[i][0], p[1] - C[i][1]]), bx + C[0][0], by + C[0][1], [1, 1], "FD", true); }
       else doc.rect(bx - BS / 2, by - BS / 2, BS, BS, "FD");
+      if (FZ) { const sw = String(b.n).length * 3.52 * 0.59 * 0.5; ftzText(doc, { str: String(b.n), font: "Times-Roman", sy: 3.52, sx: 2.08, at: [bx - sw, by + 1.2], color: "#008000" }); return; }
       doc.setTextColor(20, 20, 20); doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(6, pt(BS * 0.28)));
       doc.text(String(b.n), bx, by, { align: "center", baseline: "middle" });
 
@@ -405,6 +437,11 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     doc.setTextColor(200, 70, 40);
     repLabels.forEach((L) => {
       if (L.hidden) return;
+      if (FZ) {   // repères FTZ : Courier gras 2,97 mm, ×0,95, noir
+        doc.setTextColor(0, 0, 0); doc.setFont("courier", "bold"); doc.setFontSize(SR); doc.internal.write("95 Tz");
+        doc.text(L.str, L.x, L.y, { baseline: "top" }); if (L.hs) doc.text(L.hs, L.x, L.y + SR * MM * 1.05, { baseline: "top" });
+        doc.internal.write("100 Tz"); return;
+      }
       doc.setFont("helvetica", "bold"); doc.setFontSize(SR); doc.text(L.str, L.x, L.y, { baseline: "top" });
       if (L.hs) { doc.setFont("helvetica", "normal"); doc.text(L.hs, L.x, L.y + SR * MM * 1.05, { baseline: "top" }); }
     });
@@ -485,6 +522,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
   async function buildFtz(geo, o) {
     const F = o.ftz, C = F.charte || (await import("../print/ftz-charte.json")).default;
     const S = await import("../print/ftz-sheet.js");
+    const symIdx = symIndex(C);
     const JsPDF2 = await jspdf();
     doc = new JsPDF2({ orientation: "landscape", unit: "mm", format: "a3" });
     const cart = C.pages[0].cartouche;
@@ -502,7 +540,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const inBox = new Map(); (geo.boxes || []).forEach((b) => b.deps.forEach((d) => d.ends.forEach((e) => { if (e.key !== "tab") inBox.set(e.key, b.id); })));
     const direct = new Set((geo.direct || []).map((d) => d.appId).filter(Boolean));
     const pages = F.pages && F.pages.length ? F.pages : [{ boxes: "all", direct: false, autres: true, legend: false }, { boxes: [], direct: true, autres: false, legend: true }];
-    const used = [], legends = [], cotes = [], fields = { echelle: `1 / ${scale}`, ...F.fields };
+    const used = [], legends = [], cotes = [], plq = [], fields = { echelle: `1 / ${scale}`, ...F.fields };
     const pageApps = pages.map((pg) => {
       const ids = pg.boxes === "all" ? null : new Set(pg.boxes || []);
       return new Set(geo.apps.filter((a) => a.t === "TAB" || (inBox.has(a.id) ? !ids || ids.has(inBox.get(a.id)) : direct.has(a.id) ? pg.direct : pg.autres !== false)).map((a) => a.id));
@@ -512,7 +550,8 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       const pg = pages[i];
       if (i) doc.addPage("a3", "landscape");
       const boxIds = pg.boxes === "all" ? null : new Set(pg.boxes || []);
-      await drawPlan(geo, { ...o, bare: true, liaisons: false, ftzRooms: { rules: parseAbrev(pref("abrev") || ABREV_DEFAUT) }, appIds: pageApps[i], boxIds, directOn: !!pg.direct, boites: o.boites !== false && (pg.boxes === "all" || (pg.boxes || []).length > 0), gaines: o.gaines !== false }, Lay);
+      await drawPlan(geo, { ...o, bare: true, liaisons: false, ftzSyms: F.symbols === false ? null : symIdx, plaques: F.plaques, ftzRooms: { rules: parseAbrev(pref("abrev") || ABREV_DEFAUT) }, appIds: pageApps[i], boxIds, directOn: !!pg.direct, boites: o.boites !== false && (pg.boxes === "all" || (pg.boxes || []).length > 0), gaines: o.gaines !== false }, Lay);
+      plq.push({ page: i + 1, list: geo.__plaques || [] });
       // v74 MAJ 2 : cotes de position des boîtes de la page (violet), hors du plan
       const pgBoxes = (geo.boxes || []).filter((b) => pg.boxes === "all" || (pg.boxes || []).includes(b.id));
       if (pg.cotes !== false && pgBoxes.length && o.boites !== false) {
@@ -524,12 +563,17 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       if (pg.legend) {
         const rows = S.legendRows(used, { boxes: (geo.boxes || []).length > 0, arrow: (geo.boxes || []).length > 0 || direct.size > 0 });
         const size = S.legendSize(rows), at = pg.legendAt || S.freeCorner(area, plan, size);
-        legends.push({ page: i + 1, ...S.drawLegend(doc, rows, at[0], at[1], (d, t, x, y) => symbol(d, t, x, y, 1.8)) });
+        legends.push({ page: i + 1, ...S.drawLegend(doc, rows, at[0], at[1], (d, t, x, y, r) => {
+          const sym = symIdx.get(S.FTZ_NAMES[r.key] || "") || null;
+          if (!sym) return symbol(d, t, x, y, 1.8);
+          const k = Math.min(1, (S.rowH(r) - 0.8) / sym.h, (S.LEG.colS - 1.6) / sym.w);
+          S.drawSymbol(d, sym, x, y, k, 0);
+        }) });
       }
       if (!F.bg) (F.items || []).filter((it) => (it.page || 1) === i + 1).forEach((it) => S.drawItem(doc, it, F.images || {}));
     }
     doc.setProperties({ title: `Plan ${geo.chantier.nom} ${geo.chantier.numero}`.trim(), creator: "Oktéo AI — KiTéOHM" });
-    return { blob: doc.output("blob"), layout: Lay, pages: doc.getNumberOfPages(), legends, plan, area, ftz: true, rotated: F.rotated || 0, cotes };
+    return { blob: doc.output("blob"), layout: Lay, pages: doc.getNumberOfPages(), legends, plan, area, ftz: true, rotated: F.rotated || 0, cotes, plaques: plq };
   }
 }
 
