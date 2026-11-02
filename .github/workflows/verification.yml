@@ -1,5 +1,6 @@
 name: verification-charte-v73
 on: { push: { branches: ["verification-**"] } }
+permissions: { contents: write }
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -10,6 +11,15 @@ jobs:
         with: { node-version: 22 }
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      - run: mkdir -p shots && node scripts/shots-v74.mjs
+      - name: captures sur une branche à part
+        if: always()
+        run: |
+          git config user.name ci && git config user.email ci@example.invalid
+          git checkout --orphan shots-tmp && git rm -rq --cached .
+          git add -f shots && git commit -qm "captures v74"
+          git push -f origin shots-tmp:verification-charte-v73-captures
+          git checkout -q -f ${{ github.sha }}
       - run: npm run check
       - run: npm run build:web
       - run: npm run test:web
