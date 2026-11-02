@@ -1,6 +1,22 @@
-## Priorité de transmission v72 (30/10/2026)
+# À LIRE EN PREMIER — état du projet (mis à jour le 02/11/2026, v72.1)
 
-Voir `docs/deploiement-web-v72.md` et `docs/recette-web-v72.md` avant toute reprise. La branche entreprise ne doit pas être fusionnée/déployée sans bindings D1/secrets et recette Edge. Le nouveau déploiement cible **Cloudflare Pages** ; ne pas lancer automatiquement `npm run deploy` (ancien GitHub Pages) pour cette mission. La version prototype locale/GitHub conserve son ancien mode ; la version `build:web` utilise obligatoirement le backend authentifié. Aucune clé entreprise côté navigateur. Les chantiers restent locaux ; n'ajouter aucun stockage serveur de plans. Ne pas oublier le journal à chaque modification. Les détails historiques ci-dessous restent utiles mais les indications clés locales/relais local ne décrivent plus la cible entreprise.
+Ce fichier sert à TOUTES les IA qui travaillent sur le dépôt (Claude, ChatGPT/Codex…) : `AGENTS.md` y renvoie.
+Plusieurs IA se sont succédé (Claude jusqu'à v66, ChatGPT v67 à v72, Claude depuis v72.1) : garder une seule source de
+vérité, celle-ci, et tenir `docs/journal.md` à jour à CHAQUE modification (entrée datée en tête du journal).
+
+- **Une seule version en ligne : Cloudflare Pages, https://okteo-ai.pages.dev/** (déployée automatiquement depuis `main`,
+  commande de build `npm run build:web`, dossier `dist`, D1 `DB`, secrets `ANTHROPIC_API_KEY` / `BOOTSTRAP_PASSWORD` :
+  `docs/deploiement-web-v72.md`). L'ancienne adresse GitHub Pages (`kevincruveilher-png.github.io/okteo-ai`) est
+  fermée : la branche `gh-pages` ne contient plus qu'une redirection vers Cloudflare (`docs/redirection-github-pages/`).
+  `npm run deploy` ne publie plus rien. Le dépôt `okteo-ai-v14` est vide et inutile.
+- Accès à la version en ligne par compte (v72) ; seule la page `bande.html` du QR code est publique (données dans le
+  `#` de l'adresse, jamais envoyées au serveur). Clé Claude uniquement côté serveur. Aucun plan stocké côté serveur.
+- En local (`npm run dev`) : ancien mode prototype, clé saisie dans Paramètres ou `.env`, relais `/ai/*` de Vite.
+- **Dépôt GitHub PUBLIC** : il contient de vrais plans clients (`docs/chantiers`, `docs/exemples`, `docs/plans`,
+  `public/assets/fond-evrard-04949.jpg`). Décision de Kévin attendue (dépôt privé ou retrait des plans). N'en ajouter aucun.
+- Ne lancer une mise à jour que sur ordre de Kévin ; ne rien pousser sur `main` sans son « go ». Branches de travail :
+  `feat/…`, vérification par GitHub Actions sur une branche `verification-…` supprimée après usage.
+- Défaut connu : chevauchement d'étiquettes dans `scripts/smoke.mjs` depuis v66 (`npm run check` en échec à cause de lui seul).
 
 # Oktéo AI — consignes pour Claude
 
@@ -400,8 +416,8 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `idCalibre` et `suggestModel` peuvent retourner `null` (aucun matériel disponible). Suggestions dans la même marque,
   réserve sur capacité totale ; H-045 corrige R-144 sans modifier son statut normatif. Tests de régression dans
   cablage.test.mjs et smoke.mjs. Les références d'appareils et leur raccordement électrique restent à compléter.
-- Version en ligne : GitHub Pages, branche `gh-pages` = `dist/` (`vite.config.js` base "./"). Après chaque mise à jour
-  poussée : `npm run deploy` (scripts/deploy.mjs). Le relais `/ai/*` n'existe qu'en local.
+- Version en ligne : Cloudflare Pages (voir « À LIRE EN PREMIER »), construite par `npm run build:web` à chaque push sur
+  `main`. Le relais `/ai/*` de Vite n'existe qu'en local ; en ligne, `/ai/anthropic` est le Worker `server/worker.js`.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
 
 ## Vérification obligatoire
@@ -410,7 +426,7 @@ appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (80 : gaines, cir
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)
-Dépôt privé `kevincruveilher-png/okteo-ai`, branche `main`. Kévin modifie aussi le code dans VS Code : toujours
+Dépôt **public** `kevincruveilher-png/okteo-ai`, branche `main`. Kévin modifie aussi le code dans VS Code : toujours
 `git pull` (ou fetch + fusion) AVANT de commencer, et pousser à la fin de chaque mise à jour. Ne jamais réécrire l'historique.
 
 ## Pièges connus
@@ -432,3 +448,11 @@ Dépôt privé `kevincruveilher-png/okteo-ai`, branche `main`. Kévin modifie au
 
 ### VMC et comparaison v70 (MAJ 5/6)
 `src/cablage/vmc.js` : réseau aéraulique séparé (`cab.vmc`), propositions groupe/bouches/commande/rejet, parcours 3D, rejet >3 m bloquant ; altitudes absentes = minimum en plan, jamais validation. `VEX`/`VREJ` passifs exclus des circuits et orphelins, `BOUCHE` motorisée conservée distincte. `implantation.origine=vmc` clignote violet jusqu’à confirmation ; faîtage non reconnu automatiquement. Conserver positions et routes manuelles. `applyEquipmentProposal` ids suivent l’ordre d’entrée, même multi-niveaux. `src/cablage/comparaison.js` : lignes de référence avec source/preuve, appariements explicites uniques, blocs/points/repères/gaines séparés. Aucun ajout BE qualifié d’oubli automatiquement ; quantité concordante ne valide ni position ni câblage. UI Étude `vmc-comparaison.js` via API uniquement. Détails et limites : `docs/vmc-comparaison-v70.md`. Tests `scripts/vmc-comparaison.test.mjs` (+ `--browser`) et smoke. Charte et ouvrants reportés.
+
+### Entreprise Cloudflare v72 / v72.1
+`server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,
+sessions, budget Claude (D1, `migrations/0001_enterprise.sql`), relais Claude avec réservation atomique.
+`src/web/` : démarrage authentifié (`boot.js`, actif sur `*.pages.dev` ou build `--mode enterprise`), coffre chiffré
+remplaçant localStorage (`vault.js`), exports en dossiers (`exchange.js`), bibliothèque commune, administration.
+v72.1 : `PUBLIC_ASSET` (fichiers compilés hachés js/css) + `/bande.html` publics, `AI_TIMEOUT` 15 min, `PUBLIC_BASE`
+= pages.dev. Tests : `npm run test:web` (Node 24 ou 22 avec `node:sqlite`).

@@ -1,3 +1,27 @@
+## 02/11/2026 — v72.1 : reprise de la v72 par Claude, une seule version en ligne
+
+**Contexte.** Kévin avait trois versions sans le savoir : GitHub Pages = v70 (29/10), Cloudflare `okteo-ai.pages.dev` =
+`main` v71 servi sans compilation (sources brutes : import PDF cassé), branche `feat/web-entreprise-v72` (ChatGPT,
+30/10, PR #1) jamais publiée. Le dépôt `okteo-ai-v14` est vide. Décision de Kévin (02/11) : **Cloudflare seule
+adresse** ; Claude reprend la v72 (crédits ChatGPT épuisés).
+
+Relecture de la v72 : architecture saine (comptes, budget atomique, coffre chiffré, exports en dossiers, tests serveur).
+Défauts bloquants corrigés :
+- **QR code des bandes** : il pointait vers GitHub Pages et, sur Cloudflare, `bande.html` exigeait un compte → le
+  câbleur ne pouvait plus l'ouvrir. `PUBLIC_BASE` = `https://okteo-ai.pages.dev/` ; le Worker sert sans session
+  uniquement `/bande.html` et les fichiers compilés hachés (`PUBLIC_ASSET`, js/css) ; fonds, plans, version, API restent
+  fermés. Tests ajoutés dans `scripts/web.test.mjs`.
+- **Délai IA** : 3 min coupait les relevés (5 à 10 min mesurés sur MAILLARD) et gardait la réservation « incertaine ».
+  `AI_TIMEOUT` = 15 min ; un appel « pending » ne devient incertain qu'après ce délai + 1 min.
+
+Harmonisation : `CLAUDE.md` commence par « À LIRE EN PREMIER » (valable pour toutes les IA, `AGENTS.md` y renvoie) ;
+README, feuille de route et `scripts/deploy.mjs` ne parlent plus de GitHub Pages ; pages de redirection prêtes dans
+`docs/redirection-github-pages/` (gardent le `#` des anciens QR) ; script temporaire `_tmp_li05.mjs` retiré.
+
+Points ouverts signalés à Kévin : dépôt public avec plans clients ; plan Cloudflare gratuit peut-être trop juste en CPU
+(connexion PBKDF2, gros relevés) ; en mode clé, l'image du relevé est réduite à 1 568 px alors que les essais
+demandent ≥ 3 000 px (piste « zoom ciblé » de Notion) ; code v72 écrit en lignes très compactes, difficile à relire.
+
 ## 30/10/2026 — v72 : branche entreprise Cloudflare, comptes, secours et dossiers
 
 **État : branche `feat/web-entreprise-v72`, recette Edge/Cloudflare restante avant fusion.** Demande explicite « go and push » de Kévin. Base v71 `68c146f` préservée. Pas de modification des règles métier ni de la charte du plan.

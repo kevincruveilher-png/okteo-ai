@@ -1,10 +1,13 @@
-# Feuille de route — mises à jour 41 à 48 (rédigée le 26/10/2026)
+# Feuille de route (créée le 26/10/2026 pour les mises à jour 41 à 48, complétée depuis)
+
+> État au 02/11/2026 : v72.1. Les idées récentes (zoom ciblé, PDF.js haute résolution, OpenCV, OCR, assistant vocal)
+> sont suivies dans Notion (page « OKTÉO AI ») : non développées.
 
 Décidée avec Kévin le 26/10/2026. Détail des échanges : `docs/journal.md` (sections « À faire »).
 
 ## Règles de travail
 - **Une mise à jour à la fois**, lancée seulement quand Kévin dit « go ». Il fait avancer de mise à jour en mise à jour.
-- **Rien n'est poussé avant le « go » d'une mise à jour.** À la fin de chacune : `npm run check` vert, journal et CLAUDE.md à jour, `npm run deploy`, puis push (les commits de notes partent avec la 41).
+- **Rien n'est poussé avant le « go » d'une mise à jour.** À la fin de chacune : `npm run check` vert, journal et CLAUDE.md à jour, puis push (Cloudflare met en ligne) (les commits de notes partent avec la 41).
 - Chaque nouvelle fonction : entrée dans `src/ext/catalog.js`, étape dans la visite guidée si c'est une nouvelle zone de l'écran, test dans `scripts/smoke.mjs` (et `scripts/cablage.test.mjs` pour le moteur).
 - Kévin est débutant sur l'interface : infobulles, raccourcis affichés, le moins de clics possible. Les fonctions de câblage restent des options, jamais automatiques.
 

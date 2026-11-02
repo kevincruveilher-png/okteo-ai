@@ -1518,7 +1518,7 @@ try {
     await p2.click(".steps > li:first-child input"); await p2.reload(); await p2.waitForSelector(".steps > li");
     const kept = await p2.evaluate(() => document.querySelector(".steps > li:first-child input").checked && /1 \/ /.test(document.querySelector(".prog").textContent));
     await p2.close();
-    const ok = url.startsWith("https://kevincruveilher-png.github.io/okteo-ai/bande.html#b=") && r.h1.includes(bn) && r.steps === steps && r.ord === steps && r.svg && r.tr === 4 && r.wide && kept;
+    const ok = url.startsWith("https://okteo-ai.pages.dev/bande.html#b=") && r.h1.includes(bn) && r.steps === steps && r.ord === steps && r.svg && r.tr === 4 && r.wide && kept;
     if (!ok) throw new Error(JSON.stringify({ len: url.length, steps, bn, r, kept }));
     return true;
   });

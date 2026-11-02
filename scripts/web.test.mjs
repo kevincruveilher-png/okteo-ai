@@ -25,3 +25,13 @@ test('encrypted local recovery: ciphertext at rest, restore and account isolatio
  const restore=await import('../src/web/vault.js?test=restore');await restore.unlock(sa);assert.equal(window.localStorage.getItem('project'),'Private chantier A');
 });
 test('budget denied at zero and user mismatch rejected',async()=>{const f=fixture(),c=await f.admin();const r=await f.call('/api/session',undefined,c,{'x-okteo-user':'other-user'});assert.equal(r.status,401);const session=await (await f.call('/api/session',undefined,c)).json();await f.call('/api/admin/users/'+session.user.id,{ai_enabled:false},c);assert.equal((await f.call('/ai/anthropic',{messages:[],max_tokens:1},c)).status,403);});
+test('v72.1 : page bande du QR publique, rien d’autre sans session',async()=>{const f=fixture();
+ for(const p of ['/bande.html','/bande','/assets/bande-Ab12_cD3.js','/assets/index-Zz9yXw8v.css'])assert.equal((await f.call(p)).status,200,p);
+ const b=await f.call('/bande.html');assert.match(b.headers.get('content-security-policy')||'',/frame-ancestors 'none'/);
+ for(const p of ['/','/index.html','/assets/fond-evrard-04949.jpg','/assets/kiteohm-logo.png','/version.json','/sw.js'])assert.equal((await f.call(p)).status,302,p);
+ for(const p of ['/api/session','/ai/status'])assert.equal((await f.call(p)).status,401,p);
+ assert.equal((await f.call('/assets/../src/app.js')).status,302);
+ // sans base D1 : la bande reste lisible, le reste est fermé
+ assert.equal((await handle(new Request('https://x/bande.html'),{ASSETS:f.env.ASSETS})).status,200);
+ assert.equal((await handle(new Request('https://x/index.html'),{ASSETS:f.env.ASSETS})).status,503);});
+test('v72.1 : délai IA compatible avec un relevé de 10 minutes',async()=>{const {AI_TIMEOUT}=await import('../server/worker.js');assert(AI_TIMEOUT>=600000);});

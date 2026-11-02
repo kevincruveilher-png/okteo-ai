@@ -2,7 +2,9 @@
 // La feuille de boîte est réduite à l'essentiel (en-tête, faces, gaines et leurs fils, raccordements), compressée
 // (deflate) et mise dans l'adresse de la page « bande.html » de la version en ligne : le téléphone qui scanne le QR
 // ouvre la bande sans serveur ni compte, rien n'est envoyé sur Internet.
-export const PUBLIC_BASE = "https://kevincruveilher-png.github.io/okteo-ai/";
+// v72.1 : adresse unique de la version en ligne = Cloudflare Pages (GitHub Pages fermé, il redirige ici).
+// La page bande.html y reste publique (sans compte) : les données sont dans le # de l'adresse, jamais envoyées au serveur.
+export const PUBLIC_BASE = "https://okteo-ai.pages.dev/";
 const FN = ["terre", "neutre", "phase", "retour", "nav1", "nav2", "cmdTL", "retTL", "isole"];
 
 // feuille (boxSheets) → objet compact

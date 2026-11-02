@@ -1,12 +1,14 @@
-> **Branche entreprise v72** : [configuration Cloudflare, comptes et exports](docs/deploiement-web-v72.md) · [résultats des tests et recette Edge restante](docs/recette-web-v72.md). Utiliser `npm run build:web` et publier `dist`. D1 et secrets requis. Cette branche doit être validée en preview avant production.
+> **Version en ligne unique : https://okteo-ai.pages.dev/** (Cloudflare, accès par compte). L'ancienne adresse
+> GitHub Pages redirige vers elle. Avant toute reprise du code : lire `CLAUDE.md` (« À LIRE EN PREMIER ») et le haut de
+> `docs/journal.md`. Mise en ligne : [configuration Cloudflare](docs/deploiement-web-v72.md) · [recette](docs/recette-web-v72.md).
 
 # Oktéo AI — prototype de dessin
 
 Logiciel de dessin pour le bureau d'études de pieuvres électriques (KiTéOHM).
 Version du prototype : **v35** (26/10/2026) : boîtes à la main (supprimer, nombre imposé, gaine tirée vers une autre boîte), échelle 1/50, nouvelle bande.
 
-**Version en ligne (sans rien installer) : https://kevincruveilher-png.github.io/okteo-ai/**
-Les chantiers restent dans le navigateur de chaque ordinateur (fichier `.okteo` pour les transporter). En ligne, l'IA marche avec une clé Claude ; NVIDIA seulement en version locale.
+**Version en ligne (sans rien installer) : https://okteo-ai.pages.dev/** (compte entreprise ; clé Claude gérée par le serveur).
+Les chantiers restent sur chaque ordinateur (secours chiffré, export en dossier ou fichier `.okteo`). NVIDIA seulement en version locale.
 (v17 : pièces ; v16 : appareils attachés aux murs ; v15 : relevé des murs ; v14 : chantiers.)
 (v13 : assistant IA, liste des fonctions Ctrl+K, onglet Paramètres.) Chantier d'essai : EVRARD · 04949.
 
@@ -36,8 +38,8 @@ Le navigateur s'ouvre sur le logiciel. Chaque modification d'un fichier recharge
 Pour arrêter : Ctrl+C dans le terminal.
 (Raccourci : **Terminal → Exécuter la tâche… → Lancer Oktéo AI**.)
 
-Mettre à jour la version en ligne : `npm run deploy` (construit le logiciel et le publie sur la branche `gh-pages` ;
-GitHub Pages doit être réglé sur cette branche).
+Mettre à jour la version en ligne : pousser sur `main` après le « go » ; Cloudflare reconstruit le site tout seul
+(`npm run build:web`). `npm run deploy` ne publie plus rien.
 
 ## Vérifier que rien n'est cassé
 

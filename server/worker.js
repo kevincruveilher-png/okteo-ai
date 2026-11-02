@@ -1,4 +1,8 @@
 import {random,hash,passwordHash,verify,validPassword,json,fail,body,cookie,identity,safeUser} from './security.js';
+// Fichiers produits par Vite : nom-HASH.js / nom-HASH.css (hash de 8 caractères).
+// v72.1 : un relevé complet par Claude dure souvent 5 à 10 min (journal, essais MAILLARD) : 3 min coupait l'appel.
+export const AI_TIMEOUT=900000;
+export const PUBLIC_ASSET=/^\/assets\/[A-Za-z0-9_.-]+-[A-Za-z0-9_-]{8}\.(?:js|css)$/;
 const now=()=>new Date().toISOString();
 const month=()=>{const parts=new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit'}).formatToParts(new Date());return parts.find(p=>p.type==='year').value+'-'+parts.find(p=>p.type==='month').value;};
 const run=(db,sql,...args)=>db.prepare(sql).bind(...args).run();
@@ -12,6 +16,15 @@ export async function handle(request,env,ctx={waitUntil(){}}) {
  if(['/login.html','/login','/login.js'].includes(p)){
   const r=await env.ASSETS.fetch(new Request(new URL(p==='/login'?'/login.html':p,url),request));
   return new Response(r.body,{status:r.status,headers:{'content-type':p==='/login.js'?'text/javascript; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store','x-frame-options':'DENY','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}});
+ }
+ // v72.1 : page bande du câbleur (QR code) publique, sans compte. Les données sont dans le # de l'adresse
+ // (jamais envoyé au serveur). Seuls bande.html et les fichiers compilés à nom haché (js/css) sont servis sans session :
+ // aucun plan, fond (dossier public/assets) ni API n'est exposé par cette exception.
+ if(['GET','HEAD'].includes(request.method)&&(p==='/bande.html'||p==='/bande'||PUBLIC_ASSET.test(p))){
+  const r=await env.ASSETS.fetch(p==='/bande'?new Request(new URL('/bande.html',url),request):request),h=new Headers(r.headers);
+  h.set('x-content-type-options','nosniff');h.set('referrer-policy','no-referrer');h.set('x-frame-options','DENY');
+  if(!PUBLIC_ASSET.test(p)){h.set('cache-control','no-store');h.set('content-security-policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");}
+  return new Response(r.body,{status:r.status,headers:h});
  }
  if(!db)return json({error:{message:'Configuration Cloudflare incomplète : liaison D1 DB requise. Voir docs/deploiement-web-v72.md.'}},503);
  try {
@@ -119,7 +132,7 @@ export function validateShared(d){
 async function relay(request,env,u,ctx){
  if(!u.ai_enabled)fail(403,'Accès IA désactivé pour votre compte.');if(!env.ANTHROPIC_API_KEY)fail(503,'Clé Claude entreprise non configurée. Le dessin et les exports restent disponibles.');
  const db=env.DB;
- await run(db,"UPDATE usage SET status='uncertain' WHERE status='pending' AND created<?",Date.now()-600000);
+ await run(db,"UPDATE usage SET status='uncertain' WHERE status='pending' AND created<?",Date.now()-AI_TIMEOUT-60000);
  const c=await db.prepare('SELECT * FROM config WHERE id=1').first(),b=await body(request,16000000);
  if(!Array.isArray(b.messages)||!b.messages.length)fail(400,'Messages manquants.');
  const output=number(b.max_tokens,1,32000);
@@ -141,7 +154,7 @@ async function relay(request,env,u,ctx){
  if(!insert.meta.changes)fail(429,'Plafond mensuel ou nombre d’analyses simultanées atteint.');
  // Keep uncertain holds charged; never release them merely because a client disconnects or a timeout fires.
  const work=(async()=>{try{
-   const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify(payload),signal:AbortSignal.timeout(180000)});
+   const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify(payload),signal:AbortSignal.timeout(AI_TIMEOUT)});
    if(!r.ok){await run(db,"UPDATE usage SET status='rejected',actual=0 WHERE id=?",id);return json({error:{message:`Claude indisponible (${r.status}). Vous pouvez continuer le dessin ou coller une analyse.`}},502);}
    const result=await r.json(),a=result.usage;
    if(!a||!Number.isSafeInteger(a.input_tokens)||!Number.isSafeInteger(a.output_tokens))throw new Error('usage');
