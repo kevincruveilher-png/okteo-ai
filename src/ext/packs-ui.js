@@ -26,7 +26,7 @@ const plWord = (w, i) => (/^[A-Z0-9]+$/.test(w) || /-/.test(w) || /[sx]$/.test(w
 const plural = (n, w) => `${n} ${n > 1 ? w.split(" ").map((x, i, all) => (all[i - 1] === "de" ? x : plWord(x, i))).join(" ") : w}`;
 
 export function createPacksPane({ api, panel }) {
-  const el = panel.register({ id: "packs", label: "Packs", icon: "▦", tip: "Appareillage type de chaque pièce : compléter une pièce, tout le niveau, pieuvre type" });
+  const el = panel.register({ id: "packs", label: "Packs", icon: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>', tip: "Appareillage type de chaque pièce : compléter une pièce, tout le niveau, pieuvre type" });
   let editing = false;
   const choice = new Map();       // pièce → pack choisi à la main (sinon : reconnu d'après le nom)
 

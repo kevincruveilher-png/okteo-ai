@@ -104,7 +104,7 @@ export function createTour({ api, panel, hooks }) {
   if (!st.seen && !st.never) inv.hidden = false;
 
   // ---------- onglet « Étapes » ----------
-  const el = panel.register({ id: "steps", label: "Étapes", icon: "✓", tip: "Où en est le chantier : les étapes faites et la suivante" });
+  const el = panel.register({ id: "steps", label: "Étapes", icon: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>', tip: "Où en est le chantier : les étapes faites et la suivante" });
   const printedKey = () => api.ch.id + ":" + api.level.id;
   function items() {
     const S = api.state, ch = api.ch, f = ch.fond, pdf = !!(f && f.src === "idb" && f.page);

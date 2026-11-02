@@ -1,3 +1,26 @@
+## 02/11/2026 (nuit) — v73 : charte graphique Oktéo appliquée (planches 5, 6, 7 de l'identité de marque)
+
+Branche `feat/charte-v73` (pas encore sur `main` : attendre le « go » de Kévin). Source : artefact « Oktéo AI —
+Identité de marque », planches 5 (écran de travail), 6 (accueil animé) et 7 (page d'attente). La planche 8 n'existe pas.
+- **Écran de travail (planche 5)** : palette bleu nuit (#031E38 / #04284A / #0A3A66, actif #0B6E99, corail #E8534A,
+  vert #3DDC97) par variables CSS (`src/style.css`, section v73) ; thème sombre par défaut, ◐ passe au clair (version
+  claire de la même charte, bouton `#theme` : défaut « dark »). Polices Rubik (logo, titres), Inter, JetBrains Mono.
+  Logo (pieuvre + maison KiTéOHM + « oktéo ») dans `.brand` ; icônes SVG de la maquette pour Relevé, Annuler,
+  Rétablir, Imprimer, Fonctions, outils (`TI` en 24 × 24) et panneaux (Propriétés, Câblage, Packs, Étapes,
+  Assistant). Bandeau Actions / Vues / Panneaux avec titres au-dessus des encarts, appareils en pastilles blanches,
+  intercalaires, Ajuster et Assistant comme la maquette. Tailles de la maquette (1920 × 1080) à partir de 1800 px de
+  large, un peu réduites en dessous (variables `--hb`, `--fb`). Plan : toujours blanc ; couleurs lisibles sur blanc
+  forcées sur `#sv`/`#fx`. Aucun identifiant ni structure HTML changés (tests).
+- **Accueil animé (planche 6)** : `public/login.html` réécrit : la pieuvre se dessine et tourne (3 s, CSS seul,
+  respect de « réduire les animations »), puis le formulaire de connexion (mêmes champs, `login.js` inchangé).
+  `server/worker.js` : la page de connexion autorise Google Fonts (style-src / font-src), comme l'application.
+- **Page d'attente (planche 7)** : `src/ext/attente.js` (`createAttente({api})` → `start`, `finish(id, ok)`, `show`,
+  `hide`, `close`, `visible`), branchée sur le relevé par l'IA (`ai-releve.js`, `okteoExt.aiReleve.attente`).
+  S'ouvre seulement si l'IA met plus de 2 s ; temps écoulé, phrases, jeux « Mémoire » et « Câble » (records dans
+  localStorage `okteo.attente.v1`) ; « Revenir au plan » / Échap = l'analyse continue ; fin = « Votre plan est
+  prêt » + « Ouvrir le chantier » ; échec = fermée (message habituel). Clavier capturé tant qu'elle est visible.
+- Test smoke ajouté (page d'attente).
+
 ## 02/11/2026 (soir) — v72.1 fusionnée dans `main` et mise en production
 
 - « Go » de Kévin (20:41). `main` avancée sur `feat/web-entreprise-v72` (avance rapide, sans réécriture d'historique,

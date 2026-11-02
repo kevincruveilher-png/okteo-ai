@@ -17,7 +17,7 @@ const KIND = { eclairage: "Éclairage", prises: "Prises", cuisine: "Prises cuisi
 const LIGHT = new Set(["LUM", "SPOT", "APP"]);
 
 export function createCablagePane({ api, panel, ctl }) {
-  const el = panel.register({ id: "cablage", label: "Câblage", icon: "⚡", tip: "Circuits, boîtes et gaines : répartition, placement, réglages" });
+  const el = panel.register({ id: "cablage", label: "Câblage", icon: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#E8534A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L5 14h6l-1 8 8-12h-6z"/></svg>', tip: "Circuits, boîtes et gaines : répartition, placement, réglages" });
   let ask = null, renaming = null, askBox = false, circOpen = null;   // v64 : liste des circuits ouverte / repliée à la main
   const fr = (v) => String(v).replace(".", ",");
 

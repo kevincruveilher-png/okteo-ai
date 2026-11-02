@@ -4,18 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Oktéo AI</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
 <div class="app">
   <div class="top">
-    <div class="brand">Oktéo <b>AI</b></div>
+    <div class="brand" title="Oktéo AI"><svg class="brand-mark" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"><path d="M50 50 Q57.5 29.3 50 12"/><path d="M50 50 Q69.9 40.7 76.9 23.1"/><path d="M50 50 Q70.7 57.5 88 50"/><path d="M50 50 Q59.3 69.9 76.9 76.9"/><path d="M50 50 Q42.5 70.7 50 88"/><path d="M50 50 Q30.1 59.3 23.1 76.9"/><path d="M50 50 Q29.3 42.5 12 50"/><path d="M50 50 Q40.7 30.1 23.1 23.1"/></g><g fill="currentColor"><circle cx="50" cy="12" r="8"/><circle cx="76.9" cy="23.1" r="8"/><circle cx="88" cy="50" r="8"/><circle cx="76.9" cy="76.9" r="8"/><circle cx="50" cy="88" r="8"/><circle cx="23.1" cy="76.9" r="8"/><circle cx="12" cy="50" r="8"/><circle cx="23.1" cy="23.1" r="8"/></g><circle cx="50" cy="50" r="19" fill="#E8534A"/><path d="M50 41.3 L57.2 46.8 V57.7 H42.8 V46.8 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.6" stroke-linejoin="round"/><path d="M47.8 56.67 A4.8 4.8 0 1 1 52.2 56.67 V59 H47.8 Z" fill="#E8534A"/><path d="M50 55.4 V60" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/></svg><span class="brand-word" aria-label="Oktéo AI">okt<span class="brand-e">e</span>o</span></div>
     <div class="mode-sw" id="mode-sw" role="group" aria-label="Interface" title="Mode BE : l'interface complète, tout le détail. Mode IA : interface simplifiée pour piloter l'IA, du plan au dossier PDF (Alt+M)"><button data-m="be" aria-pressed="true">Mode BE</button><button data-m="ia" aria-pressed="false">Mode IA</button></div>
     <button class="badge" title="Chantier ouvert : cliquez pour changer de chantier">…</button>
     <div class="levels" id="levels" role="tablist" aria-label="Niveaux"></div>
     <div class="pop pop-left" id="pop-relev">
-      <button id="btn-relev" aria-haspopup="true" aria-expanded="false" title="Relever automatiquement le plan PDF : murs, pièces, appareillage, ou relevé par l'IA">⤓ Relevé ▾</button>
+      <button id="btn-relev" aria-haspopup="true" aria-expanded="false" title="Relever automatiquement le plan PDF : murs, pièces, appareillage, ou relevé par l'IA"><svg class="bi" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg>Relevé<svg class="caret" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M5 9h14l-7 8z"/></svg></button>
       <div class="pop-body relev" hidden>
         <p class="mut sm">Chaque relevé montre un aperçu en orange : vous gardez ou non le résultat. Ctrl+Z annule.</p>
         <button id="rv-walls" title="Lit les murs dessinés dans le PDF (sans IA) : épaisseurs, portes, fenêtres. L'échelle est réglée toute seule d'après les cotes si besoin."><b>1. Murs</b><small>du PDF, sans IA</small></button>
@@ -29,7 +29,7 @@
     <div class="grow"></div>
     <label class="ck" title="Force les murs et les cotes à l'horizontale ou à la verticale"><input type="checkbox" id="ortho" checked> Angles droits</label>
     <div class="pop" id="pop-view">
-      <button id="btn-view" aria-haspopup="true" aria-expanded="false" title="Cotes, repères, fond de plan, taille des symboles">Affichage ▾</button>
+      <button id="btn-view" aria-haspopup="true" aria-expanded="false" title="Cotes, repères, fond de plan, taille des symboles">Affichage<svg class="caret" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M5 9h14l-7 8z"/></svg></button>
       <div class="pop-body" hidden>
         <label class="ck"><input type="checkbox" id="dims" checked> Cotes</label>
         <label class="ck"><input type="checkbox" id="reps" checked> Repères (P1, I2…)</label>
@@ -45,13 +45,13 @@
       </div>
     </div>
     <div class="sep"></div>
-    <button id="undo" title="Annuler (Ctrl+Z)">↶</button><button id="redo" title="Rétablir (Ctrl+Y)">↷</button>
+    <button id="undo" class="ibtn" title="Annuler (Ctrl+Z)" aria-label="Annuler (Ctrl+Z)"><svg class="bi" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7L4 12l5 5M4 12h10a6 6 0 0 1 0 12"/></svg></button><button id="redo" class="ibtn" title="Rétablir (Ctrl+Y)" aria-label="Rétablir (Ctrl+Y)"><svg class="bi" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7l5 5-5 5M20 12H10a6 6 0 0 0 0 12"/></svg></button>
     <button class="ctl" id="ctl" title="Contrôle du plan">✓ Contrôle</button>
     <button class="dbt" id="dbt" hidden title="Doutes du câblage : règles manquantes ou cas non prévus (onglet Étude → Où ça coince)">✕ 0</button>
     <div class="chip"><span class="dot" id="savedot"></span><span id="savetxt">Enregistré</span></div>
-    <button id="btn-print" title="Plan imprimable en PDF, à l'échelle, avec cartouche et nomenclature (Ctrl+P)">🖨 Imprimer</button>
+    <button id="btn-print" title="Plan imprimable en PDF, à l'échelle, avec cartouche et nomenclature (Ctrl+P)"><svg class="bi" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/></svg>Imprimer</button>
     <div class="sep"></div>
-    <button id="btn-palette" title="Toutes les fonctions, avec recherche (Ctrl+K)">⌕ Fonctions</button>
+    <button id="btn-palette" title="Toutes les fonctions, avec recherche (Ctrl+K)"><svg class="bi" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="6"/><path d="M15 15l6 6"/></svg>Fonctions</button>
   </div>
   <div class="top2">
     <div class="grp grp-act" title="Actions : dessiner le bâtiment (1re barre) et poser l'appareillage (2e barre)"><span class="glab">Actions</span><div class="tool" id="tools"></div></div>

@@ -12,7 +12,7 @@ const W_DEF = 280, W_MIN = 220;
 export function createSidePanel() {
   const side = document.getElementById("side"), head = document.getElementById("side-head"), grip = document.getElementById("side-grip");
   const bar = document.getElementById("panes");
-  const panes = [{ id: "props", label: "Propriétés", icon: "☰", tip: "Réglages de l'objet sélectionné, calques et résumé du chantier", el: document.getElementById("sidebody") }];
+  const panes = [{ id: "props", label: "Propriétés", icon: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>', tip: "Réglages de l'objet sélectionné, calques et résumé du chantier", el: document.getElementById("sidebody") }];
   let st = { w: W_DEF, pane: "props", collapsed: false, dock: false, ...store(KEY, {}) };
   if (st.pane === "assistant") st.pane = "props";
   const listeners = new Set();

@@ -71,7 +71,7 @@ function start() {
   const getCatalog = () => catalog;
 
   palette = createPalette({ getCatalog, onAsk: (t) => { panel.show("assistant"); if (t.trim()) assistant.ask(t); else assistant.focus(); } });
-  const asEl = panel.register({ id: "assistant", label: "Assistant", icon: "✦", dock: true });
+  const asEl = panel.register({ id: "assistant", label: "Assistant", icon: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="#E8534A" stroke="none" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c.6 5.5 4.5 9.4 10 10-5.5.6-9.4 4.5-10 10-.6-5.5-4.5-9.4-10-10 5.5-.6 9.4-4.5 10-10z"/></svg>', dock: true });
   assistant = createAssistant(asEl, { api, getCatalog, openParams: () => api.setTab("params") });
 
   // demande de modification d'une règle : l'assistant s'ouvre avec la demande préparée (journal des règles, étude)

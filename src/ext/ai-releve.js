@@ -11,6 +11,7 @@ import { findRooms, nameRooms, labelPoint, pointInPoly } from "../walls/rooms.js
 import { autoScale } from "./pdf-page.js";
 import { esc } from "./util.js";
 import { recordReleve } from "./ai-recheck-ui.js";
+import { createAttente } from "./attente.js";
 
 const SYSTEM = AI_SYSTEM;
 
@@ -53,6 +54,7 @@ async function fondImage(api, { maxPx = 1568, maxB64 = 0 } = {}) {
 }
 
 export function createAiReleve({ api, openParams }) {
+  const attente = createAttente({ api });   // v73 : page d'attente (jeux) pendant la lecture du plan par l'IA
   const card = document.createElement("div");
   card.className = "wcard aicard"; card.hidden = true; card.setAttribute("role", "dialog"); card.setAttribute("aria-label", "Relevé par l'IA");
   document.querySelector(".stage").appendChild(card);
@@ -197,7 +199,11 @@ export function createAiReleve({ api, openParams }) {
       lastImage = img;
       const model = settings.get().models[provider] || PROVIDERS[provider].defaultModel;
       show(`<p>L'IA lit le plan (${esc(PROVIDERS[provider].name)} · ${esc(model)})… compter 30 s à 2 min.</p><p class="mut sm">Vous pouvez continuer à travailler : l'aperçu s'affichera ici.</p>`);
-      const r = await chat({ system: SYSTEM, messages: [{ role: "user", text: aiPrompt({ W: img.W, H: img.H, cmPerPx: img.map.sx * 100 }), image: { type: "image/jpeg", data: img.url.split(",")[1] } }], maxTokens: 12000, provider, think: true });
+      const job = attente.start({ title: "L'IA étudie votre plan" });
+      let r;
+      try { r = await chat({ system: SYSTEM, messages: [{ role: "user", text: aiPrompt({ W: img.W, H: img.H, cmPerPx: img.map.sx * 100 }), image: { type: "image/jpeg", data: img.url.split(",")[1] } }], maxTokens: 12000, provider, think: true }); }
+      catch (e) { attente.finish(job, false); throw e; }
+      attente.finish(job, !!r.sawImage);
       if (!r.sawImage) { busy = false; return message(`Le modèle ${esc(r.model)} ne lit pas les images : choisissez un modèle « vision » dans Paramètres.`, [{ label: "Ouvrir Paramètres", run: openParams }, { label: "Fermer", run: () => {} }]); }
       lastMode = "key"; lastUsage = r.usage || null;
       fromText(r.text, img.map, `${PROVIDERS[r.provider].name} · ${r.model} · ${(r.ms / 1000).toFixed(0)} s · image ${img.W} × ${img.H} px`);
@@ -208,5 +214,5 @@ export function createAiReleve({ api, openParams }) {
 
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !card.hidden) close(); });
   let copied = "";
-  return { open, close, fromText, fromPaste, pastePanel, pastePrompt, get copied() { return copied; }, fondImage: (o) => fondImage(api, o), get plan() { return plan; }, get lastImage() { return lastImage; } };
+  return { attente, open, close, fromText, fromPaste, pastePanel, pastePrompt, get copied() { return copied; }, fondImage: (o) => fondImage(api, o), get plan() { return plan; }, get lastImage() { return lastImage; } };
 }

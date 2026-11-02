@@ -1,4 +1,121 @@
-<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connexion · Oktéo AI</title><style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#111820;color:#eaf0f5;font:15px system-ui,sans-serif}main{width:min(440px,92vw);padding:40px;background:#1b2530;border:1px solid #354453;border-radius:18px;box-shadow:0 22px 80px #0006}small{color:#99adbb;letter-spacing:.12em}h1{font-size:34px;margin:12px 0 8px}h1 span{color:#dd9c5f}p{color:#aebfca;line-height:1.6}label{display:block;margin:20px 0 7px}input,button{width:100%;padding:13px;border-radius:7px;border:1px solid #435361;font:inherit}input{background:#111a22;color:#fff}button{margin-top:24px;background:#d69b62;color:#18212a;font-weight:700;cursor:pointer}#message{color:#ffc89b;min-height:24px}footer{margin-top:26px;font-size:12px;color:#91a3af}a{color:#dd9c5f}</style>
-<main><small>KITÉOHM · BUREAU D’ÉTUDES</small><h1>Oktéo <span>AI</span></h1><p id="intro">Votre espace de dessin électrique.<br>Connectez-vous avec votre compte entreprise.</p><form id="login"><label for="login-name">Identifiant</label><input id="login-name" name="login" autocomplete="username" required maxlength="64"><label for="password">Mot de passe</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="256"><div id="change" hidden><label for="new-password">Nouveau mot de passe · 12 caractères minimum</label><input id="new-password" type="password" autocomplete="new-password" minlength="12" maxlength="256"></div><button>Se connecter</button></form><p id="message" role="status"></p><footer>Compte ou mot de passe : contactez un administrateur.<br>Les dossiers de chantier restent sur votre poste jusqu’à l’export.</footer></main>
-<script src="/login.js" defer></script></html>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connexion · Oktéo AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;600;700&family=Inter:wght@400;500;700&display=swap">
+<style>
+/* v73 : écran d'accueil animé (planche 6 de l'identité de marque) : la pieuvre se dessine en 3 s, puis la connexion */
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{min-height:100%}
+body{margin:0;min-height:100vh;background:#04284A;color:#FFFFFF;font:16px 'Inter',system-ui,sans-serif;display:flex;flex-direction:column;overflow-x:hidden}
+main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:36px;padding:40px 24px 24px}
+.lockup{display:flex;flex-direction:column;align-items:center;gap:20px}
+.mark{display:flex;align-items:center;justify-content:center;gap:40px}
+.symbol{width:210px;height:210px;overflow:visible;flex:none}
+h1{margin:0;font:600 140px/1 'Rubik',system-ui,sans-serif;letter-spacing:-.02em;padding-bottom:12px}
+.e{position:relative;display:inline-block}
+.bar{position:absolute;left:0;right:0;margin:0 auto;top:.16em;width:.3em;height:.075em;border-radius:99px;background:#E8534A;transform-origin:center}
+.tag{margin:0;font:500 26px 'Rubik',system-ui,sans-serif;letter-spacing:-.01em;color:#D4DDE8}
+form{width:min(400px,100%);display:flex;flex-direction:column;gap:18px}
+.row{display:flex;flex-direction:column;gap:8px}
+label{font-size:14px;font-weight:500;color:#A9B8CB}
+input{font:17px 'Inter',sans-serif;color:#FFFFFF;background:#0A3A66;border:2px solid #35597F;border-radius:12px;height:52px;padding:0 16px;width:100%}
+input:focus{outline:3px solid #E8534A;outline-offset:2px;border-color:#E8534A}
+button{margin-top:6px;height:56px;border:0;border-radius:12px;background:#E8534A;color:#04284A;font:700 19px 'Rubik',system-ui,sans-serif;cursor:pointer}
+button:focus-visible{outline:3px solid #FFFFFF;outline-offset:3px}
+button:disabled{opacity:.6;cursor:progress}
+#message{margin:0;min-height:24px;color:#FFB4A6;font-size:15px;text-align:center}
+footer{padding:0 24px 28px;text-align:center;font-size:13px;line-height:1.6;color:#A9B8CB}
+/* animation */
+.arm{fill:none;stroke:#FFFFFF;stroke-width:4.5;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;opacity:0;animation:oktDraw .45s cubic-bezier(.22,.8,.3,1) forwards}
+.node{fill:#FFFFFF;opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(0);animation:oktPop .3s ease-out forwards}
+.spin{transform-origin:50px 50px;animation:oktSpin 1.2s cubic-bezier(.65,0,.35,1) 1.3s forwards}
+.disc{transform-box:fill-box;transform-origin:center;transform:scale(0);animation:oktDisc .45s cubic-bezier(.3,1.4,.5,1) .05s forwards}
+.house{opacity:0;animation:oktFade .25s ease .3s forwards}
+.ring{opacity:0;transform-box:fill-box;transform-origin:center;animation:oktRing .6s ease-out 2.4s forwards}
+.word{opacity:0;transform:translateY(18px);animation:oktRise .45s cubic-bezier(.2,.8,.2,1) 1.9s forwards}
+.bar{transform:scaleX(0);animation:oktGrow .25s ease-out 2.3s forwards}
+.tag{opacity:0;animation:oktFade .4s ease 2.45s forwards}
+.appear{opacity:0;visibility:hidden;transform:translateY(16px);animation:oktForm .5s cubic-bezier(.2,.8,.2,1) 3s forwards}
+@keyframes oktDraw{0%{opacity:0;stroke-dashoffset:1}2%{opacity:1;stroke-dashoffset:1}100%{opacity:1;stroke-dashoffset:0}}
+@keyframes oktPop{0%{opacity:0;transform:scale(0)}60%{opacity:1;transform:scale(1.35)}100%{opacity:1;transform:scale(1)}}
+@keyframes oktSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes oktDisc{0%{transform:scale(0)}70%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes oktFade{to{opacity:1}}
+@keyframes oktRise{to{opacity:1;transform:none}}
+@keyframes oktGrow{to{transform:scaleX(1)}}
+@keyframes oktRing{0%{opacity:.7;transform:scale(1)}100%{opacity:0;transform:scale(2.6)}}
+@keyframes oktForm{0%{visibility:hidden;opacity:0;transform:translateY(16px)}1%{visibility:visible}100%{visibility:visible;opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+.arm,.node,.spin,.disc,.house,.ring,.word,.bar,.tag,.appear{animation:none}
+.arm{opacity:1;stroke-dashoffset:0}.node,.disc{opacity:1;transform:none}.house,.word,.tag{opacity:1;transform:none}
+.appear{opacity:1;visibility:visible;transform:none}.bar{transform:none}
+}
+@media (max-width:760px){.symbol{width:120px;height:120px}h1{font-size:80px}.mark{gap:22px}.tag{font-size:20px}main{gap:28px}}
+</style>
+</head>
+<body>
+<main>
+  <div class="lockup">
+    <div class="mark">
+      <svg class="symbol" viewBox="0 0 100 100" role="img" aria-label="Symbole Oktéo : un disque contenant la maison KiTéOHM, relié à huit bras terminés par des nœuds">
+        <circle class="ring" cx="50" cy="50" r="18" fill="none" stroke="#E8534A" stroke-width="1.2"/>
+        <g class="spin">
+          <g>
+            <path class="arm" pathLength="1" style="animation-delay:.25s" d="M50 50 Q57.5 29.3 50 12"/>
+            <path class="arm" pathLength="1" style="animation-delay:.3s" d="M50 50 Q69.9 40.7 76.9 23.1"/>
+            <path class="arm" pathLength="1" style="animation-delay:.35s" d="M50 50 Q70.7 57.5 88 50"/>
+            <path class="arm" pathLength="1" style="animation-delay:.4s" d="M50 50 Q59.3 69.9 76.9 76.9"/>
+            <path class="arm" pathLength="1" style="animation-delay:.45s" d="M50 50 Q42.5 70.7 50 88"/>
+            <path class="arm" pathLength="1" style="animation-delay:.5s" d="M50 50 Q30.1 59.3 23.1 76.9"/>
+            <path class="arm" pathLength="1" style="animation-delay:.55s" d="M50 50 Q29.3 42.5 12 50"/>
+            <path class="arm" pathLength="1" style="animation-delay:.6s" d="M50 50 Q40.7 30.1 23.1 23.1"/>
+          </g>
+          <g>
+            <circle class="node" style="animation-delay:.65s" cx="50" cy="12" r="5.5"/>
+            <circle class="node" style="animation-delay:.7s" cx="76.9" cy="23.1" r="5.5"/>
+            <circle class="node" style="animation-delay:.75s" cx="88" cy="50" r="5.5"/>
+            <circle class="node" style="animation-delay:.8s" cx="76.9" cy="76.9" r="5.5"/>
+            <circle class="node" style="animation-delay:.85s" cx="50" cy="88" r="5.5"/>
+            <circle class="node" style="animation-delay:.9s" cx="23.1" cy="76.9" r="5.5"/>
+            <circle class="node" style="animation-delay:.95s" cx="12" cy="50" r="5.5"/>
+            <circle class="node" style="animation-delay:1s" cx="23.1" cy="23.1" r="5.5"/>
+          </g>
+        </g>
+        <circle class="disc" cx="50" cy="50" r="18" fill="#E8534A"/>
+        <g class="house">
+          <path d="M50 41.3 L57.2 46.8 V57.7 H42.8 V46.8 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M47.8 56.67 A4.8 4.8 0 1 1 52.2 56.67 V59 H47.8 Z" fill="#E8534A"/>
+          <path d="M50 55.4 V60" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+        </g>
+      </svg>
+      <h1 class="word" aria-label="Oktéo">okt<span class="e">e<span class="bar" aria-hidden="true"></span></span>o</h1>
+    </div>
+    <p class="tag">Du plan à la pieuvre.</p>
+  </div>
+
+  <form id="login" class="appear">
+    <div class="row">
+      <label for="login-name">Identifiant</label>
+      <input id="login-name" name="login" autocomplete="username" required maxlength="64">
+    </div>
+    <div class="row">
+      <label for="password">Mot de passe</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="256">
+    </div>
+    <div class="row" id="change" hidden>
+      <label for="new-password">Nouveau mot de passe · 12 caractères minimum</label>
+      <input id="new-password" type="password" autocomplete="new-password" minlength="12" maxlength="256">
+    </div>
+    <button type="submit">Se connecter</button>
+    <p id="message" role="status"></p>
+  </form>
+</main>
+<footer class="appear">Compte ou mot de passe : contactez un administrateur.<br>Les dossiers de chantier restent sur votre poste jusqu’à l’export.</footer>
+<script src="/login.js" defer></script>
+</body>
+</html>

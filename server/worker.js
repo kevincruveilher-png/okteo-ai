@@ -22,7 +22,7 @@ export async function handle(request,env,ctx={waitUntil(){}}) {
  if(!['GET','HEAD'].includes(request.method)&&request.headers.get('origin')!==url.origin)return json({error:{message:'Origine refusée.'}},403);
  if(['/login.html','/login','/login.js'].includes(p)){
   const r=p==='/login.js'?await env.ASSETS.fetch(new Request(new URL(p,url))):await assetPage(env,url,'/login.html');
-  return new Response(r.body,{status:r.status,headers:{'content-type':p==='/login.js'?'text/javascript; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store','x-frame-options':'DENY','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}});
+  return new Response(r.body,{status:r.status,headers:{'content-type':p==='/login.js'?'text/javascript; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store','x-frame-options':'DENY','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}});
  }
  // v72.1 : page bande du câbleur (QR code) publique, sans compte. Les données sont dans le # de l'adresse
  // (jamais envoyé au serveur). Seuls bande.html et les fichiers compilés à nom haché (js/css) sont servis sans session :

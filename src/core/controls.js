@@ -17,20 +17,21 @@ import { levelsNow, loadFondImage } from "./levels.js";
 // ---------- barres ----------
 // icônes des outils (traits simples, couleur du texte)
 export const TI = {
-  sel: '<path d="M4 2l10 7-5 1-2 5z"/>',
-  piece: '<rect x="3" y="4" width="12" height="10"/>',
-  mur: '<path d="M2 12h14M2 6h14" stroke-width="2.4"/>',
-  porte: '<path d="M3 15V4h2M5 4a10 10 0 0 1 10 10"/>',
-  fenetre: '<rect x="2" y="7" width="14" height="4"/><path d="M9 7v4"/>',
-  offset: '<path d="M3 4v11M8 4v11M12 7h4M14 5v4"/>',
-  cote: '<path d="M2 9h14M2 6v6M16 6v6M5 9l-2 0M13 9h2"/>',
-  pan: '<path d="M6 15c-2-2-3-5-3-7M6 15h6l2-5V5M9 9V3M12 9V4M6 9V5"/>',
-  lien: '<path d="M3 13C6 3 12 3 15 13" stroke-dasharray="2 1.6"/>',
-  calib: '<path d="M2 12l10-10 4 4-10 10z"/><path d="M5 9l1.5 1.5M7.5 6.5l1.5 1.5M10 4l1.5 1.5"/>',
-  __test: '<path d="M5 3l10 6-10 6z"/>'
+  // v73 : icônes de la charte Oktéo (planche 5 · Écran de travail), grille 24 × 24
+  sel: '<path d="M5 3l14 7-6 2-2 6z"/>',
+  piece: '<path d="M4 5h16v14H4z"/>',
+  mur: '<path d="M3 9h18M3 15h18"/>',
+  porte: '<path d="M5 20V5c8 0 14 6 14 15"/>',
+  fenetre: '<path d="M3 9h18v6H3z"/>',
+  offset: '<path d="M7 5v14M12 5v14M17 5v14"/>',
+  cote: '<path d="M3 12h18M3 8v8M21 8v8"/>',
+  pan: '<path d="M9 11V5a1.5 1.5 0 0 1 3 0v6M12 11V3.5a1.5 1.5 0 0 1 3 0V11M15 11V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7 6 6 0 0 1-5-3L4 14a1.5 1.5 0 0 1 2.5-1.5L9 15"/>',
+  lien: '<path d="M4 18C4 9 12 15 20 6"/>',
+  calib: '<path d="M4 20L20 4M7 17l2 2M11 13l2 2M15 9l2 2"/>',
+  __test: '<path d="M7 5l12 7-12 7z"/>'
 };
 
-export const icon = k => `<svg class="ti" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">${TI[k] || ""}</svg>`;
+export const icon = k => `<svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${TI[k] || ""}</svg>`;
 
 // deux barres (v37) : « Implantation bâti » (murs, pièces, ouvertures, cotes, échelle) et « Implantation appareils »
 // (symboles, liaisons, test) ; à droite, le filtre rapide de la vue
@@ -364,7 +365,7 @@ document.getElementById("export").onclick = () => {
 };
 document.getElementById("theme").onclick = () => {
   const r = document.documentElement;
-  const cur = r.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const cur = r.getAttribute("data-theme") || "dark";   // v73 : la charte Oktéo est sombre par défaut
   r.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
   draw();
 };

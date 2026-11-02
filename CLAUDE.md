@@ -450,6 +450,13 @@ Dépôt **public** `kevincruveilher-png/okteo-ai`, branche `main`. Kévin modifi
 ### VMC et comparaison v70 (MAJ 5/6)
 `src/cablage/vmc.js` : réseau aéraulique séparé (`cab.vmc`), propositions groupe/bouches/commande/rejet, parcours 3D, rejet >3 m bloquant ; altitudes absentes = minimum en plan, jamais validation. `VEX`/`VREJ` passifs exclus des circuits et orphelins, `BOUCHE` motorisée conservée distincte. `implantation.origine=vmc` clignote violet jusqu’à confirmation ; faîtage non reconnu automatiquement. Conserver positions et routes manuelles. `applyEquipmentProposal` ids suivent l’ordre d’entrée, même multi-niveaux. `src/cablage/comparaison.js` : lignes de référence avec source/preuve, appariements explicites uniques, blocs/points/repères/gaines séparés. Aucun ajout BE qualifié d’oubli automatiquement ; quantité concordante ne valide ni position ni câblage. UI Étude `vmc-comparaison.js` via API uniquement. Détails et limites : `docs/vmc-comparaison-v70.md`. Tests `scripts/vmc-comparaison.test.mjs` (+ `--browser`) et smoke. Charte et ouvrants reportés.
 
+### Charte graphique v73
+`src/style.css` section « v73 » : variables de la charte Oktéo (bleu nuit, corail, Rubik/Inter/JetBrains Mono), sombre par
+défaut (`#theme` → clair), tailles `--hb`/`--fb` (maquette à partir de 1800 px). Plan blanc : couleurs forcées sur `#sv`/`#fx`.
+Logo `.brand` (`.brand-mark`, `.brand-word`, `.brand-e`) ; icônes `TI` en 24 × 24 ; icônes des panneaux en SVG dans `register`.
+`public/login.html` = accueil animé (CSS seul). `src/ext/attente.js` = page d'attente `.aw` (jeux) du relevé IA, montrée
+après 2 s seulement (`okteoExt.aiReleve.attente`). Planches source : artefact « Oktéo AI — Identité de marque ».
+
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,
 sessions, budget Claude (D1, `migrations/0001_enterprise.sql`), relais Claude avec réservation atomique.

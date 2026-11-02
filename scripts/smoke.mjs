@@ -658,6 +658,32 @@ try {
     await page.keyboard.press("Escape");
     return vis.every(Boolean) && closed && !(await page.isVisible("#r-ok"));
   });
+  await check("v73 : page d'attente des analyses IA (charte) : cachée si la réponse est rapide, jeux, clavier isolé du plan, « Ouvrir le chantier »", async () => {
+    // une réponse rapide ne montre jamais la page
+    await ev(() => { const A = okteoExt.aiReleve.attente; window.__aw = A.start(); A.finish(window.__aw, true); });
+    await page.waitForTimeout(2300);
+    const quick = await ev(() => okteoExt.aiReleve.attente.visible);
+    // analyse longue : la page s'ouvre après 2 s
+    await ev(() => { window.__aw = okteoExt.aiReleve.attente.start({ title: "L'IA étudie votre plan" }); });
+    await page.waitForSelector(".aw:not([hidden])", { timeout: 5000 });
+    const t1 = await page.textContent("#aw-title");
+    // jeu Mémoire : la maison lance une séquence de 3
+    await page.click("#aw-start"); await page.waitForTimeout(150);
+    const mem = await page.textContent("#aw-m-msg");
+    // jeu Câble : Jouer, le câble avance ; une touche ne change pas l'outil du plan
+    await page.click('.aw-tab[data-g="cab"]'); await page.click("#aw-play");
+    const tool0 = await ev(() => okteo.tool);
+    await page.keyboard.press("b"); await page.keyboard.press("ArrowDown"); await page.waitForTimeout(450);
+    const cab = await ev(() => ({ segs: document.querySelectorAll("#aw-board .aw-seg").length, head: document.querySelector("#aw-board .aw-seg.head").style.top, tool: okteo.tool }));
+    // fin de l'analyse : « Votre plan est prêt », puis Ouvrir le chantier ferme la page
+    await ev(() => okteoExt.aiReleve.attente.finish(window.__aw, true));
+    const t2 = await page.textContent("#aw-title"), cta = await ev(() => !document.querySelector("#aw-open").hidden);
+    await page.click("#aw-open");
+    const gone = await ev(() => !okteoExt.aiReleve.attente.visible && !document.body.classList.contains("aw-on"));
+    const r = { quick, t1, mem, cab, tool0, t2, cta, gone };
+    if (quick || !/étudie/.test(t1) || !/Regardez/.test(mem) || cab.segs !== 3 || cab.tool !== tool0 || cab.head === "217px" || !/prêt/.test(t2) || !cta || !gone) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("relevé par l'IA : image envoyée, aperçu par-dessus le dessin, on coche ce qu'on garde, un seul Ctrl+Z", async () => {
     await ev(() => okteoExt.settings.set({ provider: "anthropic" }));
     const before = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.length, app: okteo.state.app.length }));
