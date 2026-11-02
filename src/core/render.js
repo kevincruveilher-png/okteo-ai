@@ -467,7 +467,7 @@ export function draw() {
       // v57 : équipement hors plan (ajouté d'après le devis) : carré pointillé violet « à vérifier avec le devis »
       if (a.hp) ap += `<rect class="hp-mark" x="-1.25" y="-1.25" width="2.5" height="2.5" rx=".3" fill="none" stroke="#8a4fd8" stroke-width=".12" stroke-dasharray=".35 .25"><title>Hors plan : à vérifier avec le devis</title></rect>`;
       const fs = FZS && ftzSymbol(FZS, a.t, a.h);
-      if (fs) ap += (col ? `<circle class="cring" r="1.35" fill="none" stroke="var(--c)" stroke-width=".16" opacity=".75"/>` : "") + `<g class="ftz" transform="scale(${(1.6 / 3.88).toFixed(4)})">${symbolSVG(fs)}</g></g>`;
+      if (fs) ap += (col ? `<circle class="cring" r="1.35" fill="none" stroke="var(--c)" stroke-width=".16" opacity=".75"/>` : "") + `<circle class="fhit" r="1" fill="#fff" fill-opacity="0.01"/><g class="ftz" transform="scale(${(1.6 / 3.88).toFixed(4)})">${symbolSVG(fs)}</g></g>`;
       else ap += glyph(a.t) + `</g>`;
       ap += `</g>`;
     });
