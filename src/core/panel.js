@@ -3,7 +3,8 @@
 import { implantationPending } from "../cablage/equipements.js";
 import { readingData } from "../walls/ai-data.js";
 import { K } from "./k.js";
-import { CH, TYPES, dist, layers, node, nodeById, segById, segDir, segLen, state, uidS } from "./model.js";
+import { BATI_STYLES, CH, MATS, TYPES, batiStyle, dist, layers, matOf, node, nodeById, segById, segDir, segLen, state, uidS } from "./model.js";
+import * as CHS from "../chantiers.js";
 import { markDirty, save, snapshot } from "./persist.js";
 import { repMap } from "./view.js";
 import { draw } from "./render.js";
@@ -334,6 +335,8 @@ export function showSide() {
     b.innerHTML = `<h3>${s.virt ? "Limite de pièce" : "Mur"}</h3><div class="prop">
       <div class="field full"><label>Longueur <span class="u">m</span></label><input id="f_L" type="number" step="0.01" value="${L.toFixed(2)}"></div>
       ${s.virt ? "" : `<div class="field full"><label>Épaisseur des murs <span class="u">m</span></label><input id="f_ep" type="number" step="0.01" value="${state.wallEp}"></div>`}</div>
+     ${s.virt ? "" : `<div class="field full" style="margin-top:8px"><label title="Dessin du mur à l'écran et sur le plan imprimé (comme les plans du BE). Automatique : 16 cm et plus, ou mur de façade de 10 cm et plus = maçonnerie ; sinon cloison.">Type de mur</label><select id="f_mat"><option value="">Automatique (${MATS[matOf({ ...s, mat: null })].split(" (")[0].toLowerCase()})</option>${Object.entries(MATS).map(([k, v]) => `<option value="${k}" ${s.mat === k ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+      <div class="field full"><label title="Pour tout le chantier : suit la convention du plan du constructeur (hachures comme VILLANOVA / MAILLARD, gris plein comme EVRARD)">Maçonnerie du chantier</label><select id="f_bati">${Object.entries(BATI_STYLES).map(([k, v]) => `<option value="${k}" ${batiStyle() === k ? "selected" : ""}>${v}</option>`).join("")}</select></div>`}
      <label class="ck" style="margin-top:10px" title="Une limite sépare deux pièces sans mur (séjour / dégagement, cuisine ouverte) : pointillés, pas imprimée comme un mur, pas d'appareil collé dessus."><input type="checkbox" id="f_virt" ${s.virt ? "checked" : ""}> Limite de pièce (pas un vrai mur)</label>
      <div style="margin-top:12px"><button id="delseg" class="danger">Supprimer ce mur</button></div>
      <p class="note">Modifier la longueur déplace l'extrémité B. Glissez un sommet pour ajuster un angle.</p>`;
@@ -354,6 +357,14 @@ export function showSide() {
       draw();
       showSide();
     };
+    if (b.querySelector("#f_mat")) b.querySelector("#f_mat").onchange = e => {
+      snapshot();
+      if (e.target.value) s.mat = e.target.value; else delete s.mat;
+      markDirty();
+      draw();
+      showSide();
+    };
+    if (b.querySelector("#f_bati")) b.querySelector("#f_bati").onchange = e => setBatiStyle(e.target.value);
     b.querySelector("#f_virt").onchange = e => {
       snapshot();
       if (e.target.checked) {
@@ -602,4 +613,14 @@ function raccHTML(a) {
 // texte court sans balise (raison donnée par l'IA)
 function esc0(v) {
   return String(v == null ? "" : v === true ? "introuvable" : v).replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[c]).slice(0, 200);
+}
+
+// v74 MAJ 2 : style du bâti du chantier (hachures | gris), enregistré dans la fiche du chantier
+export function setBatiStyle(v) {
+  if (!BATI_STYLES[v]) return false;
+  Object.assign(CH, CHS.update(CH.id, { bati: v }));
+  draw();
+  showSide();
+  document.dispatchEvent(new CustomEvent("okteo:bati", { detail: v }));
+  return true;
 }

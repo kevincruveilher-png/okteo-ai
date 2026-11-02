@@ -5,7 +5,7 @@ import {ductPath,ductReport} from '../cablage/vmc.js';
 import { K } from "./k.js";
 import * as CHS from "../chantiers.js";
 import { labelPoint } from "../walls/rooms.js";
-import { CH, LKEYS, TYPES, dist, epOf, nodeById, segById, segDir, state, symScaleOf } from "./model.js";
+import { CH, LKEYS, TYPES, batiStyle, dist, epOf, matOf, nodeById, segById, segDir, state, symScaleOf } from "./model.js";
 import { markDirty, snapshot } from "./persist.js";
 import { fit, repMap } from "./view.js";
 import { appRot, boxLayout, circuitMap, draw, wallIntervals, wallU } from "./render.js";
@@ -271,7 +271,7 @@ export function removeLevel(id) {
 // géométrie d'impression du niveau ouvert (ou d'un autre via withLevel)
 export function okteoGeo() {
   followWalls();
-  const wallThickness = [];
+  const wallThickness = [], wallMat = [], wallAxis = [];
   const walls = [],
     joints = [],
     openings = [],
@@ -303,6 +303,8 @@ export function okteoGeo() {
         bx = d.a.x + d.ux * s1,
         by = d.a.y + d.uy * s1;
       wallThickness.push(e);
+      wallMat.push(matOf(seg));
+      wallAxis.push([{ x: ax, y: ay }, { x: bx, y: by }]);
       walls.push([{
         x: ax + nx,
         y: ay + ny
@@ -325,14 +327,15 @@ export function okteoGeo() {
     });
   });
   state.nodes.forEach(n => {
-    let e = 0;
+    let e = 0, top = null;
     state.segs.forEach(s => {
-      if (s.a === n.id || s.b === n.id) e = Math.max(e, epOf(s));
+      if ((s.a === n.id || s.b === n.id) && epOf(s) > e) { e = epOf(s); top = s; }
     });
     if (e > 0) joints.push({
       x: n.x,
       y: n.y,
-      e
+      e,
+      mat: matOf(top)
     });
   });
   state.openings.forEach(o => {
@@ -476,6 +479,9 @@ export function okteoGeo() {
     joints,
     openings,
     wallThickness,
+    wallMat,
+    wallAxis,
+    batiStyle: batiStyle(),
     direct: wiring.direct.filter(g => g.lv === K.LV.cur).map(g => { const a = byId[g.appId]; const tab = tabA || [...appIndex().values()].find(v => v.a.t === "TAB")?.a; return a && {appId:g.appId,a:{x:a.x,y:a.y},b:tab ? {x:tab.x,y:tab.y}:null,label:g.etiquette || g.no,faible:g.faible}; }).filter(Boolean),
     wallDims,
     limits,

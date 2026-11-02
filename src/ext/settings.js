@@ -4,6 +4,7 @@
 // Les clés sont rangées dans le navigateur de CE PC (localStorage), jamais dans le chantier ni dans l'export.
 // Une clé placée dans le fichier .env du projet est aussi acceptée (le serveur local l'ajoute lui-même).
 
+import { ABREV_DEFAUT, abrevRoom, parseAbrev } from "../print/abrev.js";
 import { CAB_DEFAULTS, CAB_FIELDS, PROTS, SECTIONS, getCab, resetCab, setCab } from "../cablage/settings.js";
 import { esc, store, storeSet } from "./util.js";
 import { getPrefs, setPref, PREFS_DEFAULTS } from "../prefs.js";
@@ -78,7 +79,11 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
     const v = getPrefs();
     return `<h3>Affichage</h3>
       <p class="mut">Préférences de ce PC, pour tous les chantiers. Cotes, repères, fond, taille des symboles et thème : menu <b>Affichage</b> en haut de l'écran.</p>
-      <div class="pset-rows">${PREF_FIELDS.map(([k, label, help]) => `<label class="cab-row pref-row${v[k] !== PREFS_DEFAULTS[k] ? " chg" : ""}" title="${esc(help)}"><span>${esc(label)}<small class="mut">${esc(help)}</small></span><span class="cab-ctl"><input type="checkbox" data-pref="${k}" ${v[k] ? "checked" : ""}></span></label>`).join("")}</div>`;
+      <div class="pset-rows">${PREF_FIELDS.map(([k, label, help]) => `<label class="cab-row pref-row${v[k] !== PREFS_DEFAULTS[k] ? " chg" : ""}" title="${esc(help)}"><span>${esc(label)}<small class="mut">${esc(help)}</small></span><span class="cab-ctl"><input type="checkbox" data-pref="${k}" ${v[k] ? "checked" : ""}></span></label>`).join("")}</div>
+      <h4 id="ps-abrev">Noms de pièces sur le plan du BE</h4>
+      <p class="mut sm">Préparation d'impression (A3 BE) : les noms de pièces sont abrégés comme sur les plans FTZ. Une règle par ligne : <code>mot ou expression = ABRÉVIATION</code>. Le numéro suit : « Chambre 2 » → CH2. Mot entier seulement ; l'expression la plus longue gagne. Nom sans règle : en majuscules, sans accents.</p>
+      <textarea id="pref-abrev" rows="10" spellcheck="false" aria-label="Abréviations des noms de pièces">${esc(v.abrev || ABREV_DEFAUT)}</textarea>
+      <div class="trow"><button class="sm" id="pref-abrev-def" title="Remettre la table d'origine">Table d'origine</button><span class="mut sm" id="pref-abrev-ex"></span></div>`;
   }
 
   function render() {
@@ -169,6 +174,13 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
 
   function wire() {
     wireCab();
+    const abx = el.querySelector("#pref-abrev"), abEx = () => { const R = parseAbrev(abx.value); el.querySelector("#pref-abrev-ex").textContent = "Exemples : " + ["Pièce de vie", "Chambre 1", "Salle de bains", "Dégagement", "Dressing"].map((n) => `${n} → ${abrevRoom(n, R)}`).join(" · "); };
+    if (abx) {
+      abEx();
+      abx.oninput = abEx;
+      abx.onchange = () => setPref("abrev", abx.value.trim() === ABREV_DEFAUT.trim() ? "" : abx.value);
+      el.querySelector("#pref-abrev-def").onclick = () => { abx.value = ABREV_DEFAUT; setPref("abrev", ""); abEx(); };
+    }
     el.querySelectorAll("[data-cost]").forEach((c) => (c.onchange = () => { const v = Math.max(0, +String(c.value).replace(",", ".") || 0); c.value = v; setPref(c.dataset.cost, v); }));
     const rl = el.querySelector("#pref-relect"); if (rl) rl.onchange = () => { const v = Math.max(0, Math.min(3, Math.round(+rl.value || 0))); rl.value = v; setPref("relectures", v); };
     el.querySelectorAll("[data-pref]").forEach((c) => (c.onchange = () => { setPref(c.dataset.pref, c.checked); c.closest(".cab-row").classList.toggle("chg", c.checked !== PREFS_DEFAULTS[c.dataset.pref]); }));

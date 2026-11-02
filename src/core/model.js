@@ -4,6 +4,7 @@ import { K } from "./k.js";
 import { APPAREILS } from "../cablage/appareils.js";
 import * as CHS from "../chantiers.js";
 import { pxPerVB } from "./view.js";
+import { roomAt } from "./groups.js";
 
 // ---------- chantier ouvert ----------
 // Un seul chantier est chargé à la fois ; changer de chantier recharge la page (état propre, annuler/rétablir compris).
@@ -185,6 +186,25 @@ export const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
 // épaisseur d'un mur : la sienne (murs relevés du PDF) sinon l'épaisseur par défaut du chantier
 // limite de pièce (s.virt) : sépare deux pièces sans mur (séjour / dégagement), épaisseur nulle
 export const epOf = s => s && s.virt ? 0 : s && s.ep > 0 ? s.ep : state.wallEp;
+
+// v74 MAJ 2 : type de mur (dessin du bâti comme les plans du BE). s.mat posé à la main, sinon deviné :
+// épais (≥ 16 cm) = maçonnerie ; mur de façade (un côté hors de toute pièce) d'au moins 10 cm = maçonnerie ; sinon cloison.
+export const MATS = { maconnerie: "Maçonnerie (parpaing, brique, béton)", cloison: "Cloison (plâtre, carreau)", doublage: "Doublage / cloison isolée" };
+export const BATI_STYLES = { hachures: "Hachures (maçonnerie hachurée)", gris: "Gris plein" };
+export function wallFacade(s) {
+  if (!state.rooms.length) return false;
+  const d = segDir(s);
+  if (!d.a || !d.L) return false;
+  const e = epOf(s) / 2 + 0.15, mx = (d.a.x + d.b.x) / 2, my = (d.a.y + d.b.y) / 2;
+  return !roomAt(mx - d.uy * e, my + d.ux * e) !== !roomAt(mx + d.uy * e, my - d.ux * e);
+}
+export function matOf(s) {
+  if (!s || s.virt) return null;
+  if (s.mat && MATS[s.mat]) return s.mat;
+  const e = epOf(s);
+  return e >= 0.16 || (e >= 0.1 && wallFacade(s)) ? "maconnerie" : "cloison";
+}
+export const batiStyle = () => (CH && BATI_STYLES[CH.bati] ? CH.bati : "hachures");
 
 // demi-épaisseur des AUTRES murs qui arrivent à un sommet (pour mesurer depuis la face intérieure)
 export const cornerHalf = (nodeId, exceptId) => {

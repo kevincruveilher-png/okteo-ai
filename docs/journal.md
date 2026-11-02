@@ -1,3 +1,27 @@
+## 03/11/2026 — v74 MAJ 2 : bâti du plan du BE (types de murs, noms abrégés, cotes des boîtes)
+
+Branche `feat/plan-ftz-v74`.
+- **Type de mur** (`seg.mat` : `maconnerie` | `cloison` | `doublage`, absent = automatique) : `matOf(seg)` (model.js) =
+  le type posé, sinon 16 cm et plus, ou mur de façade (un côté hors de toute pièce, `wallFacade`) de 10 cm et plus =
+  maçonnerie, sinon cloison. Propriétés du mur : `#f_mat`. API `wallMats()`, `setWallMat(ids, mat)` (annulable).
+  Le relevé n'écrit rien : la règle automatique s'applique à tous les murs relevés (épaisseur + façade).
+- **Style du bâti du chantier** (`meta.bati` : `hachures` | `gris`) : `batiStyle()`, `setBatiStyle` (panel.js, événement
+  `okteo:bati`), `#f_bati` (Propriétés du mur) et `#prep-bati` (Préparation d'impression). `src/plan-style.js` `wallLook`
+  (maçonnerie hachurée ou gris #9A9A9A, cloison pleine #202020, doublage blanc + ondulation `wavePoints`) : même dessin à
+  l'écran (render.js, `polyline.wave`) et sur le papier (print.js, `geo.wallMat`, `geo.wallAxis`, `geo.batiStyle`,
+  `joints[].mat`).
+- **Noms de pièces abrégés** sur la feuille A3 du BE : `src/print/abrev.js` (`ABREV_DEFAUT`, `parseAbrev`, `abrevRoom` :
+  mot entier, expression la plus longue, numéro collé « CH2 ») ; préférence `abrev` (Paramètres → Affichage,
+  `#pref-abrev`, exemples en direct) ; print.js `o.ftzRooms` : Courier gras 6,52 mm ×0,66, bleu #0000FF. L'écran garde
+  les noms complets.
+- **Cotes de position des boîtes** : `boxCotes(boxes, walls)` (ftz-sheet.js : distance au premier mur à gauche / droite et
+  en haut / bas, en cm) + `drawBoxCotes` (violet #800080, Courier gras 2,97 mm ×0,66, hors du plan, côté le plus proche
+  de la boîte, empilées de 5 mm) ; case « Cotes des boîtes » par page (`pg.cotes`) ; `buildFtz` rend `cotes`.
+- Le fond du constructeur n'est jamais imprimé sur la feuille du BE.
+- Tests : charte.test.mjs (+3 : abréviations, cotes, dessin des murs), smoke « bâti du BE (v74 MAJ 2) ».
+- Reste pour la suite : volumes de la salle de bain (appareils sanitaires à ajouter d'abord), deviner le type de mur
+  d'après les aplats du PDF du constructeur.
+
 ## 02/11/2026 (nuit) — v74 MAJ 1 : préparation d'impression (plan A3 au format du BE)
 
 Branche `feat/plan-ftz-v74`, fusionnée dans `main` avec la v73 le 02/11/2026 sur accord de Kévin (vérification GitHub

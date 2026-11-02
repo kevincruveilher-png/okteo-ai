@@ -48,5 +48,25 @@ check("dessin SVG : chaque symbole et le cartouche se dessinent (chemins valides
   const svg = cartoucheSVG(P1.cartouche, { client: "CLIENT TEST", affaire: "AF00000000" });
   return svg.includes("CLIENT TEST") && svg.includes("AF00000000") && !svg.includes("{client}") && pathSVG({ op: "S", stroke: "#000", w: 0.1, d: "M0 0L1 1", dash: [] }).includes('stroke="#000"');
 });
+console.log("Bâti et textes du plan du BE (v74 MAJ 2)");
+const { abrevRoom, parseAbrev } = await import("../src/print/abrev.js");
+const { boxCotes } = await import("../src/print/ftz-sheet.js");
+const { wallLook, wavePoints } = await import("../src/plan-style.js");
+check("noms abrégés : Pièce de vie → SEJOUR, Chambre 2 → CH2, Salle de bains → SDB, Dégagement → DEGT, Dressing → DRESS, inconnu en majuscules", () => {
+  const got = ["Pièce de vie", "Chambre 2", "Salle de bains", "Dégagement", "Dressing", "Dgt", "Bains", "Cellier", "Local technique", "Chambre parents"].map((n) => abrevRoom(n));
+  const want = ["SEJOUR", "CH2", "SDB", "DEGT", "DRESS", "DEGT", "SDB", "CELLIER", "LOCAL TECHNIQUE", "CH PARENTS"];
+  if (got.join() !== want.join()) throw new Error(got.join(", "));
+  return abrevRoom("Chambre 1", parseAbrev("Chambre = CHB")) === "CHB1" && abrevRoom("Placard", parseAbrev("Pla = X")) === "PLACARD";
+});
+check("cotes de boîte : distance au mur le plus proche, horizontale et verticale, en cm", () => {
+  const R = (x0, y0, x1, y1) => [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }];
+  const walls = [R(0, 0, 10, 0.2), R(0, 7.8, 10, 8), R(0, 0, 0.2, 8), R(9.8, 0, 10, 8), R(4, 0, 4.07, 8)];   // pièce 10 × 8 + cloison en x = 4
+  const c = boxCotes([{ id: "b1", n: "LI01", x: 2.6, y: 1.7 }, { id: "b2", n: "LI02", x: 7, y: 6 }], walls);
+  const f = (id, ax) => c.find((k) => k.box === id && k.axis === ax);
+  if (!(f("b1", "x").cm === 140 && f("b1", "y").cm === 150 && f("b2", "x").cm === 280 && f("b2", "y").cm === 180 && Math.abs(f("b2", "x").a - 9.8) < 1e-9)) throw new Error(JSON.stringify(c));
+});
+check("dessin des murs : maçonnerie hachurée ou gris plein, cloison pleine, doublage ondulé", () => {
+  return wallLook("maconnerie").hatch && wallLook("maconnerie", "gris").fill === "#9A9A9A" && !wallLook("maconnerie", "gris").hatch && wallLook("cloison").fill === "#202020" && wallLook("doublage").wave && wavePoints({ x: 0, y: 0 }, { x: 1, y: 0 }, 0.1).length > 20;
+});
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);
 if (fails.length) process.exit(1);

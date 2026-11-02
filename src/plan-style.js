@@ -20,3 +20,24 @@ export function hatchLines(poly, step) {
   }
   return out;
 }
+
+// v74 MAJ 2 : dessin d'un mur selon son type et le style du bâti du chantier (écran et impression)
+// maçonnerie : hachures (fond blanc + traits à 45°) ou gris plein ; cloison : plein foncé ; doublage : fond blanc + ondulation
+export const WALL_GREY = "#9A9A9A", WALL_DARK = "#202020";
+export function wallLook(mat, style = "hachures") {
+  if (mat === "maconnerie") return style === "gris" ? { fill: WALL_GREY, hatch: false, wave: false } : { fill: "#FFFFFF", hatch: true, wave: false };
+  if (mat === "doublage") return { fill: "#FFFFFF", hatch: false, wave: true };
+  return { fill: WALL_DARK, hatch: false, wave: false };
+}
+// ondulation de l'isolant le long de l'axe a→b d'un mur d'épaisseur e (points en mètres)
+export function wavePoints(a, b, e) {
+  const L = Math.hypot(b.x - a.x, b.y - a.y);
+  if (L < 1e-6) return [];
+  const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L, nx = -uy, ny = ux, amp = e * 0.36;
+  const n = Math.max(2, Math.round(L / Math.max(0.04, e * 0.8))) * 2, out = [];
+  for (let i = 0; i <= n * 4; i++) {
+    const t = i / (n * 4), s = Math.sin(t * n * Math.PI) * amp;
+    out.push({ x: a.x + ux * L * t + nx * s, y: a.y + uy * L * t + ny * s });
+  }
+  return out;
+}

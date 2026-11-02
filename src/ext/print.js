@@ -1,4 +1,5 @@
-import { arrowPoints, hatchLines } from "../plan-style.js";
+import { arrowPoints, hatchLines, wallLook, wavePoints } from "../plan-style.js";
+import { ABREV_DEFAUT, abrevRoom, parseAbrev } from "../print/abrev.js";
 import { Placer, roomCandidates, spreadSymbols } from "../place.js";
 import { pref } from "../prefs.js";
 import { logoData, LOGO_RATIO } from "./logo.js";
@@ -38,6 +39,7 @@ export function rotateGeo(geo, deg) {
   g.direct = (geo.direct || []).map(l => ({...l, a:R(l.a), b:R(l.b)}));
   g.wallThickness = geo.wallThickness;
   g.walls = (geo.walls || []).map(RL);
+  g.wallAxis = (geo.wallAxis || []).map(RL);
   g.joints = RL(geo.joints);
   g.openings = (geo.openings || []).map((o) => ({ ...o, j1: R(o.j1), j2: R(o.j2), n: V(o.n), ...(o.hinge ? { hinge: R(o.hinge), leaf: R(o.leaf), arc: RL(o.arc) } : {}) }));
   g.wallDims = (geo.wallDims || []).map((w) => ({ ...R(w), ang: w.ang + t }));
@@ -206,16 +208,23 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     if (o.pieces) geo.rooms.forEach((r) => poly(r.poly, "F"));
     // murs
     doc.setFillColor(60, 60, 60); doc.setDrawColor(60, 60, 60); doc.setLineWidth(0.05);
-    if (o.murs) geo.joints.filter(j => j.e >= .16).forEach(j => {
-      const P = [{x:j.x-j.e/2,y:j.y-j.e/2},{x:j.x+j.e/2,y:j.y-j.e/2},{x:j.x+j.e/2,y:j.y+j.e/2},{x:j.x-j.e/2,y:j.y+j.e/2}];
-      doc.setFillColor(255); poly(P,"F"); doc.setLineWidth(.12); hatchLines(P,.14).forEach(([a,b]) => line(a,b));
+    // v74 MAJ 2 : chaque mur dessiné selon son type (maçonnerie / cloison / doublage) et le style du bâti du chantier
+    const ST = geo.batiStyle || "hachures";
+    const matAt = (i) => (geo.wallMat && geo.wallMat[i]) || (geo.wallThickness?.[i] >= .16 ? "maconnerie" : "cloison");
+    const fillHex = (hx) => { const v = parseInt(hx.slice(1), 16); doc.setFillColor((v >> 16) & 255, (v >> 8) & 255, v & 255); };
+    const jointMat = (j) => j.mat || (j.e >= .16 ? "maconnerie" : "cloison");
+    const jointP = (j) => [{x:j.x-j.e/2,y:j.y-j.e/2},{x:j.x+j.e/2,y:j.y-j.e/2},{x:j.x+j.e/2,y:j.y+j.e/2},{x:j.x-j.e/2,y:j.y+j.e/2}];
+    if (o.murs) geo.joints.filter((j) => wallLook(jointMat(j), ST).fill === "#FFFFFF").forEach(j => {
+      const P = jointP(j), L = wallLook(jointMat(j), ST);
+      doc.setFillColor(255); poly(P,"F"); if (L.hatch) { doc.setDrawColor(32); doc.setLineWidth(.12); hatchLines(P,.14).forEach(([a,b]) => line(a,b)); }
     });
     if (o.murs) geo.walls.forEach((P, i) => {
-      const thick = geo.wallThickness?.[i] >= .16;
-      doc.setFillColor(thick ? 255 : 32); doc.setDrawColor(32); poly(P, thick ? "FD" : "F");
-      if (thick) { doc.setLineWidth(.12); hatchLines(P,.14).forEach(([a,b]) => line(a,b)); }
+      const L = wallLook(matAt(i), ST), white = L.fill === "#FFFFFF";
+      fillHex(L.fill); doc.setDrawColor(32); doc.setLineWidth(0.05); poly(P, white || L.fill !== "#202020" ? "FD" : "F");
+      if (L.hatch) { doc.setLineWidth(.12); hatchLines(P,.14).forEach(([a,b]) => line(a,b)); }
+      if (L.wave && geo.wallAxis?.[i]) { doc.setLineWidth(.1); const W = wavePoints(geo.wallAxis[i][0], geo.wallAxis[i][1], geo.wallThickness[i]); for (let k = 1; k < W.length; k++) line(W[k - 1], W[k]); }
     });
-    if (o.murs) geo.joints.filter(j => j.e < .16).forEach((j) => { doc.setFillColor(32); doc.rect(X(j.x - j.e / 2), Y(j.y - j.e / 2), j.e * f, j.e * f, "F"); });
+    if (o.murs) geo.joints.filter((j) => wallLook(jointMat(j), ST).fill !== "#FFFFFF").forEach((j) => { fillHex(wallLook(jointMat(j), ST).fill); doc.rect(X(j.x - j.e / 2), Y(j.y - j.e / 2), j.e * f, j.e * f, "F"); });
     // limites de pièce (sans mur) : trait fin en pointillés
     if (o.pieces && geo.limits && geo.limits.length) {
       doc.setDrawColor(150, 150, 150); doc.setLineWidth(0.1); doc.setLineDashPattern([0.6, 0.6], 0);
@@ -259,15 +268,19 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const inPoly = (x, y, P) => { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) c = !c; } return c; };
     const RT = geo.roomTxt || 1;   // v58 : taille commune des noms de pièces
     const S1 = Math.max(6, Math.min(11, 0.5 * f * 2.83)) * RT, S2 = Math.max(5, Math.min(8, 0.34 * f * 2.83)) * RT;
+    // v74 MAJ 2 : plan du BE = noms abrégés (SEJOUR, CH1…), Courier gras 6,52 mm étroit (×0,66), bleu #0000FF
+    const FR = o.ftzRooms, FRK = 0.66, FRS = 6.52 * 72 / 25.4 * Math.min(1.2, RT);
+    const cw = (str) => { doc.setFont("courier", "bold"); doc.setFontSize(FRS); return doc.getTextWidth(String(str)) * FRK; };
     const roomLabels = (o.pieces ? geo.rooms : []).slice().sort((p, q) => q.area - p.area).map((r) => {
-      const surf = o.surfaces ? `${fr(r.area, 1)} m²` : "", w = Math.max(tw(r.name, S1, true), surf ? tw(surf, S2) : 0) + 1, h = (S1 + (surf ? S2 : 0)) * MM + 1.4;
+      const name = FR ? abrevRoom(r.name, FR.rules) : r.name;
+      const surf = o.surfaces && !FR ? `${fr(r.area, 1)} m²` : "", w = Math.max(FR ? cw(name) : tw(name, S1, true), surf ? tw(surf, S2) : 0) + 1, h = FR ? FRS * MM * 0.8 + 1.2 : (S1 + (surf ? S2 : 0)) * MM + 1.4;
       const P = r.poly, bb = { x0: Math.min(...P.map((p) => p.x)), y0: Math.min(...P.map((p) => p.y)), x1: Math.max(...P.map((p) => p.x)), y1: Math.max(...P.map((p) => p.y)) };
       const c = roomCandidates(r.label, bb, (x, y) => inPoly(x, y, P), Math.max(0.2, 4 / f)).slice(0, 80)
         .map((q) => ({ q, b: boxAt(X(q.x), Y(q.y), w, h) }));
       const fits = (b) => [[b.x0, b.y0], [b.x1, b.y0], [b.x0, b.y1], [b.x1, b.y1]].every(([x, y]) => inPoly(cx + (x - area.x - area.w / 2) / f, cy + (y - area.y - area.h / 2) / f, P));
       const got = r.labelFixed ? { b: boxAt(X(r.label.x), Y(r.label.y), w, h) } : c.find((k) => fits(k.b) && PL.free(k.b)) || c.find((k) => PL.free(k.b)) || c[0];
       PL.add(got.b);
-      return { r, surf, x: (got.b.x0 + got.b.x1) / 2, y: (got.b.y0 + got.b.y1) / 2, h };
+      return { r, name, surf, x: (got.b.x0 + got.b.x1) / 2, y: (got.b.y0 + got.b.y1) / 2, h, w };
     });
     // cotes libres (toujours imprimées)
     const dimLabels = (o.cotes ? geo.dims : []).map((d) => {
@@ -309,8 +322,13 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       doc.text(fr(d.L), x, y, { align: "center", baseline: "middle", angle: ang });
     });
     doc.setTextColor(30, 30, 30);
-    roomLabels.forEach(({ r, surf, x, y, h }) => {
-      doc.setFont("helvetica", "bold"); doc.setFontSize(S1); doc.text(r.name, x, y - h / 2 + S1 * MM, { align: "center", baseline: "bottom" });
+    roomLabels.forEach(({ r, name, surf, x, y, h, w }) => {
+      if (FR) {
+        doc.setFont("courier", "bold"); doc.setFontSize(FRS); doc.setTextColor(0, 0, 255);
+        doc.internal.write(`${FRK * 100} Tz`); doc.text(name, x - (w - 1) / 2, y + FRS * MM * 0.35); doc.internal.write("100 Tz");
+        doc.setTextColor(30, 30, 30); return;
+      }
+      doc.setFont("helvetica", "bold"); doc.setFontSize(S1); doc.text(name, x, y - h / 2 + S1 * MM, { align: "center", baseline: "bottom" });
       if (surf) { doc.setFont("helvetica", "normal"); doc.setFontSize(S2); doc.text(surf, x, y + h / 2, { align: "center", baseline: "bottom" }); }
     });
     // liaisons commande → lumière : droites, comme à l'écran (v35)
@@ -472,7 +490,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const inBox = new Map(); (geo.boxes || []).forEach((b) => b.deps.forEach((d) => d.ends.forEach((e) => { if (e.key !== "tab") inBox.set(e.key, b.id); })));
     const direct = new Set((geo.direct || []).map((d) => d.appId).filter(Boolean));
     const pages = F.pages && F.pages.length ? F.pages : [{ boxes: "all", direct: false, autres: true, legend: false }, { boxes: [], direct: true, autres: false, legend: true }];
-    const used = [], legends = [], fields = { echelle: `1 / ${scale}`, ...F.fields };
+    const used = [], legends = [], cotes = [], fields = { echelle: `1 / ${scale}`, ...F.fields };
     const pageApps = pages.map((pg) => {
       const ids = pg.boxes === "all" ? null : new Set(pg.boxes || []);
       return new Set(geo.apps.filter((a) => a.t === "TAB" || (inBox.has(a.id) ? !ids || ids.has(inBox.get(a.id)) : direct.has(a.id) ? pg.direct : pg.autres !== false)).map((a) => a.id));
@@ -482,7 +500,13 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       const pg = pages[i];
       if (i) doc.addPage("a3", "landscape");
       const boxIds = pg.boxes === "all" ? null : new Set(pg.boxes || []);
-      await drawPlan(geo, { ...o, bare: true, liaisons: false, appIds: pageApps[i], boxIds, directOn: !!pg.direct, boites: o.boites !== false && (pg.boxes === "all" || (pg.boxes || []).length > 0), gaines: o.gaines !== false }, Lay);
+      await drawPlan(geo, { ...o, bare: true, liaisons: false, ftzRooms: { rules: parseAbrev(pref("abrev") || ABREV_DEFAUT) }, appIds: pageApps[i], boxIds, directOn: !!pg.direct, boites: o.boites !== false && (pg.boxes === "all" || (pg.boxes || []).length > 0), gaines: o.gaines !== false }, Lay);
+      // v74 MAJ 2 : cotes de position des boîtes de la page (violet), hors du plan
+      const pgBoxes = (geo.boxes || []).filter((b) => pg.boxes === "all" || (pg.boxes || []).includes(b.id));
+      if (pg.cotes !== false && pgBoxes.length && o.boites !== false) {
+        const PX = (x) => area.x + area.w / 2 + (x - cx) * Lay.f, PY = (y) => area.y + area.h / 2 + (y - cy) * Lay.f;
+        cotes.push({ page: i + 1, list: S.drawBoxCotes(doc, S.boxCotes(pgBoxes, geo.walls), PX, PY, plan, area) });
+      }
       S.drawFrame(doc);
       S.drawCartouche(doc, cart, fields, F.logo || null);
       if (pg.legend) {
@@ -493,7 +517,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       if (!F.bg) (F.items || []).filter((it) => (it.page || 1) === i + 1).forEach((it) => S.drawItem(doc, it, F.images || {}));
     }
     doc.setProperties({ title: `Plan ${geo.chantier.nom} ${geo.chantier.numero}`.trim(), creator: "Oktéo AI — KiTéOHM" });
-    return { blob: doc.output("blob"), layout: Lay, pages: doc.getNumberOfPages(), legends, plan, area, ftz: true, rotated: F.rotated || 0 };
+    return { blob: doc.output("blob"), layout: Lay, pages: doc.getNumberOfPages(), legends, plan, area, ftz: true, rotated: F.rotated || 0, cotes };
   }
 }
 
