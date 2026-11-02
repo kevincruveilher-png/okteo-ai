@@ -9,6 +9,10 @@
   1400 px « Angles droits » n'affiche que la case (infobulle) ; sous 1000 px, Vues et Panneaux passent sous Actions.
 - Accueil (connexion) et page d'attente réduits en hauteur sur les petits écrans (vh, `zoom`).
 - Captures de vérification aussi en 1280 × 600.
+- Validation GitHub Actions run 41522818747 : smoke seul 172/172 puis `npm run check` complet vert (murs 42, câblage 87,
+  chantiers 176, MAILLARD 14, smoke 172/172), `build:web` et `test:web` réussis. Le test « une seule fenêtre de travail »
+  (lecture du PDF EVRARD) a échoué deux fois sur quatre passages, jamais seul : délai de lecture du PDF, diagnostic des
+  cartes ajouté au test pour le prochain échec.
 
 ## 02/11/2026 (nuit) — v73 : charte graphique Oktéo appliquée (planches 5, 6, 7 de l'identité de marque)
 
