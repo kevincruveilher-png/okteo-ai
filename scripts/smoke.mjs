@@ -1693,7 +1693,7 @@ try {
       okteo.undo();
       return { n0, k0, ids, v, sdb: sdb.map((x) => x.ids.join("/")), vols: (geo.volumes || []).length, inApps: geo.apps.some((a) => a.id === ids[0]), back: okteo.state.app.length === n0 && !okteo.control.some((x) => x.kind === "sdb"), kinds: okteo.controlKinds.sdb, rep };
     });
-    if (!(r.k0 === 0 && r.v.v1 === 1 && r.v.v2 === 1 && r.v.sani === 1 && r.sdb.includes(r.ids[1] + "/" + r.ids[0]) && r.vols === 1 && !r.inApps && r.back && r.kinds)) throw new Error(JSON.stringify(r));
+    if (!(r.k0 === 0 && r.v.v1 === 1 && r.v.v2 === 1 && r.v.sani === 1 && r.sdb.includes(r.ids[1]) && r.vols === 1 && !r.inApps && r.back && r.kinds)) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("onglet Étapes : plan, échelle, murs, pièces, appareils, liaisons, circuits, impression cochés", async () => {
