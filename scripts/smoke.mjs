@@ -763,10 +763,12 @@ try {
     await page.keyboard.press("Control+z"); await page.keyboard.press("Control+z");
     const back = await ev(() => ({ app: okteo.state.app.length, segs: okteo.state.segs.length }));
     const r = { list, card: card.slice(0, 300), A, et: et.slice(0, 300), back, before };
-    const ok = /pièce non fermée/.test(list) && /type à préciser/.test(list) && /ouverture loin des murs/.test(list) && !/sens de porte non lu/.test(list) && /doute signalé par l'IA/.test(list)
-      && /« Cellier essai »/.test(txt) && /"portes"/.test(txt) && /chauffe-eau/.test(txt)
-      && A.ceth && A.door.aiSens && A.nOp === 2 && A.rap === 2 && /points corrigés \(\d+ %\)/.test(card) && /sous réserve du contrôle BE/.test(card) && /introuvable/.test(card)
-      && /4\/5 points corrigés \(80 %\)/.test(card) && /Réussite des relectures : 4\/5 points corrigés/.test(et) && /Relecture 1/.test(et) && back.app === before.app && back.segs === before.segs;
+    // v72.1 : depuis v71 le sens des portes n'est plus relu par défaut (pas de point « sens de porte ») : 4 points, 3 corrigés
+    const C = { liste: /pièce non fermée/.test(list) && /type à préciser/.test(list) && /ouverture loin des murs/.test(list) && !/sens de porte non lu/.test(list) && /doute signalé par l'IA/.test(list),
+      consigne: /« Cellier essai »/.test(txt) && /chauffe-eau/.test(txt), ceth: A.ceth, ouvertures: A.nOp === 2, rapport: A.rap === 2,
+      carte: /points corrigés \(\d+ %\)/.test(card) && /sous réserve du contrôle BE/.test(card) && /introuvable/.test(card) && /3\/4 points corrigés \(75 %\)/.test(card),
+      etude: /Réussite des relectures : 3\/4 points corrigés/.test(et) && /Relecture 1/.test(et), annuler: back.app === before.app && back.segs === before.segs };
+    const ok = Object.values(C).every(Boolean); r.C = C;
     if (!ok) throw new Error(JSON.stringify(r));
     return true;
   });
@@ -859,6 +861,7 @@ try {
     return true;
   });
   await check("porte de garage (v57) : sans battant sur le plan et à l'impression, type choisi dans Propriétés", async () => {
+    await ev(async () => { (await import("/src/prefs.js")).setPref("ouvrants", true); });   // ouvrants masqués par défaut depuis v71
     const r = await ev(() => {
       const S = window.__okteo.state, o = S.openings.find((x) => x.kind === "porte");
       if (!o) return null;
@@ -873,6 +876,7 @@ try {
     await page.keyboard.press("Control+z");
     const back = await ev((id) => window.__okteo.state.openings.find((x) => x.id === id).kind, r && r.id);
     await ev(() => okteo.select([]));
+    await ev(async () => { (await import("/src/prefs.js")).setPref("ouvrants", false); });
     if (!r || r.kind !== "garage" || r.arc || r.title !== "Porte de garage" || r.dashed < 1 || back !== "porte") throw new Error(JSON.stringify({ r, back }));
     return true;
   });
@@ -1378,10 +1382,12 @@ try {
     const s1 = await size();
     await ev(({ id }) => { const b = okteo.cab.boxes.find((x) => x.id === id); okteo.zoomToBox(b.x - 3, b.y - 3, b.x + 3, b.y + 3); }, t);
     const s2 = await size();
-    const ports = await ev(({ id }) => document.querySelectorAll(`#sv g.box[data-id="${id}"] circle.port`).length, t);
+    const portsOff = await ev(({ id }) => document.querySelectorAll(`#sv g.box[data-id="${id}"] circle.port`).length, t);
     // boîte choisie : on tire le bout d'une gaine sur un point libre de la même boîte
     const p = await ev(({ id }) => { const b = okteo.cab.boxes.find((x) => x.id === id); return okteo.toClient(b.x, b.y); }, t);
     await page.mouse.click(p.x, p.y);
+    // v71 : les points d'accroche ne s'affichent que sur la boîte sélectionnée
+    const ports = portsOff === 0 ? await ev(({ id }) => document.querySelectorAll(`#sv g.box[data-id="${id}"] circle.port`).length, t) : 0;
     const m = await ev(({ id }) => {
       const e = document.querySelector("#sv circle.gend"), fr = document.querySelector(`#sv g.box[data-id="${id}"] circle.port:not(.used)`);
       return { e: okteo.toClient(+e.getAttribute("cx"), +e.getAttribute("cy")), k: e.dataset.k, f: okteo.toClient(+fr.getAttribute("cx"), +fr.getAttribute("cy")), ff: fr.dataset.f, fi: +fr.dataset.i };
@@ -1611,9 +1617,9 @@ try {
     geoW = await ev(() => { const g = okteo.exportGeometry(), xs = g.walls.flat().map((p) => p.x); return Math.max(...xs) - Math.min(...xs); });
     const doc = await pdfjsNode.getDocument({ data: pdfBytes.slice(), verbosity: 0 }).promise;
     const ex = await extractSegments(await doc.getPage(1), pdfjsNode.OPS);
-    // gris des murs (60,60,60) ; jsPDF l'écrit avec 3 décimales, d'où un arrondi possible à ±2
-    const grey60 = (h) => h && [1, 3, 5].every((i) => Math.abs(parseInt(h.slice(i, i + 2), 16) - 60) <= 2);
-    const wallSegs = ex.segs.filter((s) => grey60(s.fill));
+    // v71 : cloisons pleines (32,32,32), murs ≥ 16 cm blancs hachurés avec contour (32,32,32) ; arrondi jsPDF ±2
+    const grey32 = (h) => h && [1, 3, 5].every((i) => Math.abs(parseInt(h.slice(i, i + 2), 16) - 32) <= 2);
+    const wallSegs = ex.segs.filter((s) => grey32(s.fill) || grey32(s.stroke));
     const xs = wallSegs.flatMap((s) => [s.x1, s.x2]), wPt = Math.max(...xs) - Math.min(...xs);
     const expected = geoW * 1000 / lay.scale * 72 / 25.4;
     if (Math.abs(wPt - expected) > 0.5) throw new Error(`${wPt.toFixed(2)} pt au lieu de ${expected.toFixed(2)} pt`);
@@ -1650,8 +1656,10 @@ try {
     const near = (h, c) => h && [1, 3, 5].every((i) => Math.abs(parseInt(h.slice(i, i + 2), 16) - parseInt(c.slice(i, i + 2), 16)) <= 3);
     const colored = cols.filter((c) => ex.segs.some((s) => near(s.stroke, c) || near(s.fill, c))).length;
     const nosFound = W.nos.filter((n) => t1.includes(n)).length;
+    // v71 (rendu KiTéOHM) : boîte = nom dans le carré, plus de lettres de face ni de n° de gaine sur le plan imprimé
+    // (ils restent sur les bandes) ; l'alimentation est une flèche étiquetée « LIxx.01 »
     const ok = ck.boites && ck.gaines && ck.circuits && ck.appareils && !ck.cotes && ck.murs && W.names.length && W.names.every((n) => t1.includes(n))
-      && ["A", "B", "C", "D"].every((f) => t1.includes(f)) && nosFound === W.nos.length && t1.some((s) => /Boîte de pieuvre/.test(s)) && cols.length && colored >= Math.min(2, cols.length);
+      && t1.some((s) => /^LI\d+\.01/.test(s)) && t1.some((s) => /Boîte de pieuvre/.test(s)) && cols.length && colored >= Math.min(2, cols.length);
     if (!ok) throw new Error(JSON.stringify({ ck, names: W.names, nosFound, nos: W.nos.length, cols: cols.length, colored, missing: W.nos.filter((n) => !t1.includes(n)), near: t1.filter((x) => /^\d{3,}$/.test(x)) }));
     return true;
   });
@@ -1708,7 +1716,10 @@ try {
     await Promise.all([page.waitForNavigation(), page.setInputFiles("#ch-import", f)]);
     await reopened();
     await page.waitForFunction(() => okteo.FOND && okteo.FOND.startsWith("blob:"), null, { timeout: 30000 });
-    return okFile && (await nbCh()) === n0 + 1 && (await ev(() => okteo.state.rooms.length)) === essaiRooms && (await page.textContent(".badge")).includes("ESSAI");
+    const R = { okFile, fmt: j.format, img: String(j.fond?.image).slice(0, 15), pdf: String(j.fond?.pdf).slice(0, 22), roomsFile: JSON.parse(j.dessin.s).rooms.length, essaiRooms, name: dl.suggestedFilename(),
+      n: await nbCh(), n0, rooms: await ev(() => okteo.state.rooms.length), badge: await page.textContent(".badge") };
+    if (!(okFile && R.n === n0 + 1 && R.rooms === essaiRooms && R.badge.includes("ESSAI"))) throw new Error(JSON.stringify(R));
+    return true;
   });
   await check("dupliquer puis supprimer un chantier (avec confirmation)", async () => {
     await page.click('#tabs button[data-tab="chantiers"]');
