@@ -112,7 +112,7 @@ export function legendRows(apps, { boxes = false, arrow = false, names = {} } = 
   }
   const rows = [...seen.values()];
   if (boxes) rows.push({ key: "BOX", label: "Boîte de dérivation (pieuvre)" });
-  if (arrow) rows.push({ key: "ARROW", label: "Ligne vers le tableau (alimentation de boîte, ligne directe)" });
+  if (arrow) rows.push({ key: "ARROW", label: "Départ vers le tableau (boîte, ligne directe)" });
   return rows;
 }
 export const rowH = (r) => (["INT", "VV", "TAB", "BOX"].includes(r.key) ? 6.2 : 5);
