@@ -112,14 +112,14 @@ function cartouche(pg, fields) {
   // textes redessinés avec leur police ; on ne garde des contours de lettres que ceux du logo (bleu nuit / rouge
   // KiTéOHM, et la phrase « pour une maison branchée » qui en fait partie) : aucune lettre des valeurs du client
   const LOGO = new Set(["#00004F", "#FF3737"]);
-  const texts = pg.texts.filter((t) => zone(t.bb) && !(LOGO.has(t.color) && /maison|branch/.test(t.str)));
+  const texts = pg.texts.filter((t) => zone(t.bb));
   const paths = pg.paths.filter((p) => p.op !== "n" && zone(pathBox(p)) && (!isGlyph(p) || LOGO.has(p.fill)));
   const H = pg.box[3];
   const P = ([x, y]) => [mm(x), mm(H - y)];
   return {
     top: mm(H - top),
     paths: paths.map((p) => ({ op: p.op, stroke: p.stroke, fill: p.fill, w: +(p.w * MM).toFixed(4), dash: p.dash.map(mm), d: p.sub.map((s) => subD(s, P)).join("") })),
-    texts: texts.map((t) => ({ str: fields[t.str] ? `{${fields[t.str]}}` : t.str, font: t.font, sx: mm(t.sx), sy: mm(t.sy), angle: t.angle, at: P([t.x, t.y]), color: t.color })),
+    texts: texts.map((t) => ({ str: fields[t.str] ? `{${fields[t.str]}}` : t.str, font: t.font, sx: mm(t.sx), sy: mm(t.sy), angle: t.angle, at: P([t.x, t.y]), color: t.color, ...(LOGO.has(t.color) ? { logo: true } : {}) })),
   };
 }
 

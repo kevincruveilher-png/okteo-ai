@@ -30,5 +30,6 @@ export function symbolSVG(sym, x = 0, y = 0, k = 1) {
 }
 
 export function cartoucheSVG(c, fields = {}) {
-  return `<g>${c.paths.map(pathSVG).join("")}${c.texts.map((t) => textSVG(t, fields)).join("")}</g>`;
+  // la phrase du logo est déjà dessinée par ses contours (logo.true) : pas de second texte par-dessus
+  return `<g>${c.paths.map(pathSVG).join("")}${c.texts.filter((t) => !t.logo).map((t) => textSVG(t, fields)).join("")}</g>`;
 }

@@ -77,3 +77,21 @@ taille, position) + contours remplis (ce qu'on voit, couleur). Les plans de réf
 - Gaines : courbes de 0,12 mm à la couleur de la boîte. Symboles : 39 relevés (19 plan pieuvre, 20 plan équipements),
   avec leurs couleurs exactes (point lumineux et interrupteurs rouges, prises bleu #0080FF, RJ45/TV verts…).
 - Plomberie (page 3) : tableau des hauteurs de sorties d'eau dans le cartouche, avertissement dans un cadre à gauche.
+
+## Remarques métier retenues (Kévin, 02/11/2026)
+- **Volumes de la salle de bain** : oui (dessin automatique + contrôle des appareils dans les volumes). Méthode ci-dessous.
+- **Case « logement PMR »** sur le chantier : oui (hauteurs PMR, ex. prises 0,40 m au lieu de 0,30 m).
+- **Détecteur de fumée** : pas d'alerte automatique, il dépend du devis du client.
+- **Plaques multipostes et boîtes PROF 50** posées automatiquement d'après les appareils regroupés : oui.
+- **Cotes de position des boîtes** placées automatiquement : oui.
+- Logo KiTéOHM haute définition fourni par Kévin : `public/assets/kiteohm-logo-hd.png` (1590 × 349, fond blanc).
+
+### Volumes SDB : méthode prévue (à valider avec le référentiel du BE, NF C 15-100)
+- Il faut d'abord les **appareils sanitaires** dans le dessin : baignoire, receveur de douche, douche à l'italienne
+  (avec la position de la pomme fixe), paroi fixe éventuelle. Relevés du plan du constructeur (leur contour est dessiné
+  dans le PDF, comme les murs) ou posés à la main avec leurs dimensions.
+- Volume 0 = l'intérieur de la baignoire / du receveur. Volume 1 = la même emprise, jusqu'à 2,25 m de haut ; douche
+  sans receveur : 1,20 m autour de la pomme fixe. Volume 2 = 0,60 m autour du volume 1, jusqu'à 3 m.
+- Les volumes s'arrêtent aux murs et aux cloisons fixes (et à une paroi fixe), ce qu'on calcule avec le polygone de la
+  pièce. Dessin : zone hachurée en pointillés, comme FTZ. Contrôle : prise, interrupteur ou appareil d'un volume où il
+  est interdit = alerte dans le contrôle du plan.

@@ -41,6 +41,7 @@ export function createPrintTool({ api }) {
       </div>
       <p class="pr-info"></p>
       <button class="on pr-dl">Télécharger le PDF</button>
+      <button class="pr-prep" title="Plan A3 au format du BE : cartouche, légende, recto boîtes / verso lignes directes, textes et encarts">Préparation d'impression (A3 BE)…</button>
       <button class="pr-dossier" title="Un seul PDF : page de garde (logo), plan, tableau électrique, bandes détaillées de toutes les boîtes">📁 Dossier complet du chantier</button>
       <p class="mut sm">Pour imprimer à l'échelle exacte : dans la fenêtre d'impression, choisir « Taille réelle » (100 %), pas « Ajuster à la page ».</p>
     </div>

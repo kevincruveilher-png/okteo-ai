@@ -12,6 +12,7 @@ import { mountChantiers } from "./chantiers-page.js";
 import { createWallsTool } from "./walls-ui.js";
 import { createRoomsTool } from "./rooms-ui.js";
 import { createPrintTool } from "./print-ui.js";
+import { createPrepTool } from "./prep-ui.js";
 import { createDevicesTool } from "./devices-ui.js";
 import { initBackup } from "./backup.js";
 import { createLevelsBar } from "./levels.js";
@@ -43,12 +44,15 @@ function start() {
     detectRooms: () => rooms.open(),
     detectDevices: () => devices.open(),
     print: () => printer.open(),
+    prep: () => prep.open(),
     levels: () => levels,
   };
   const walls = createWallsTool({ api });
   const rooms = createRoomsTool({ api });
   const devices = createDevicesTool({ api });
   const printer = createPrintTool({ api });
+  const prep = createPrepTool({ api });
+  document.querySelector(".pr-prep")?.addEventListener("click", () => { printer.close?.(); document.querySelector(".pr-back")?.setAttribute("hidden", ""); prep.open(); });
   const levels = createLevelsBar({ api });
   const aiReleve = createAiReleve({ api, openParams: () => api.setTab("params") });
   // largeur de feuille des anciens fonds PDF (échelle 1/50) ; plan scanné signalé dès la mise à l'échelle
@@ -167,7 +171,7 @@ function start() {
   const oneCard = createOneCard();   // v64 : une seule fenêtre de travail à la fois
   hooks.modeIa = () => iaMode.setMode(iaMode.mode === "ia" ? "be" : "ia");
   hooks.cabler = () => { const r = cabler(api); api.setHint(r.text); if (pages.etude.ui) pages.etude.ui.render(); return r.text; };
-  window.okteoExt = { doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, levels, aiReleve, recheck, iaMode, temps, oneCard, pages, backup: null };
+  window.okteoExt = { doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, prep, levels, aiReleve, recheck, iaMode, temps, oneCard, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 

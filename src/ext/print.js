@@ -104,12 +104,14 @@ async function toDataURL(url) {
 export async function buildPlanPdf(geoIn, opts = {}) {
   const o0 = { ouvrants: !!pref("ouvrants"), parcours: !!pref("parcours"), fond: false, cotes: true, reperes: true, liaisons: true, nomenclature: true, pieces: true, murs: true, ouvertures: true, appareils: true, boites: false, gaines: false, circuits: false, gaineNos: null, surfaces: !!pref("surfaces"), date: new Date(), ...opts };
   const geos = (Array.isArray(geoIn) ? geoIn : [geoIn]).map((g) => rotateGeo(g, o0.rot || 0));
-  const logo = o0.logo === false ? null : await logoData(); // logo KiTéOHM dans le cartouche (v50)
+  const logo = o0.logo === false || o0.ftz ? null : await logoData(); // logo KiTéOHM dans le cartouche (v50)
+  let doc;
+  if (o0.ftz) return buildFtz(geos[0], o0);
   // mise en page commune : calculée sur l'emprise de tous les niveaux réunis
   const merged = { walls: geos.flatMap((g) => g.walls), apps: geos.flatMap((g) => g.apps), rooms: geos.flatMap((g) => g.rooms), fond: geos[0].fond };
   const Lay0 = layoutPlan(geos.length > 1 ? merged : geos[0], o0);
   const JsPDF = await jspdf();
-  const doc = new JsPDF({ orientation: Lay0.W > Lay0.H ? "landscape" : "portrait", unit: "mm", format: Lay0.paper.toLowerCase() });
+  doc = new JsPDF({ orientation: Lay0.W > Lay0.H ? "landscape" : "portrait", unit: "mm", format: Lay0.paper.toLowerCase() });
   const geo = geos[0], Lay = Lay0, o = o0;
   for (let gi = 0; gi < geos.length; gi++) {
     if (gi) doc.addPage(Lay0.paper.toLowerCase(), Lay0.W > Lay0.H ? "landscape" : "portrait");
@@ -244,13 +246,13 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const u = Math.max(geo.symU * f, 1.6);              // unité de symbole en mm (v58 : symbole d'au moins 2,5 mm imprimé)
     const tw = (str, size, bold) => { doc.setFont("helvetica", bold ? "bold" : "normal"); doc.setFontSize(size); return doc.getTextWidth(String(str)); };
     const boxAt = (cx, cy, w, h) => ({ x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2 });
-    const apps = o.appareils ? geo.apps : [];
+    const apps = o.appareils ? geo.apps.filter((a) => !o.appIds || o.appIds.has(a.id)) : [];   // v74 : appareils de la page
     // v58 : symboles sans chevauchement sur le papier (décalés le long de leur mur, trait de rappel vers la vraie position)
     const disp = spreadSymbols(apps.map((a) => ({ id: a.id, x: X(a.x), y: Y(a.y), ...(a.wall ? { ux: a.wall.ux, uy: a.wall.uy } : {}) })), 1.9 * u);
     const PX = (a) => (disp.get(a.id) || { x: X(a.x) }).x, PY = (a) => (disp.get(a.id) || { y: Y(a.y) }).y;
     apps.forEach((a) => PL.add(boxAt(PX(a), PY(a), 2 * u, 2 * u)));      // les symboles sont des obstacles
     // boîtes de pieuvre (v48) : carré de taille fixe sur le papier (comme à l'écran : environ 3 symboles), obstacles aussi
-    const boxes = o.boites || o.gaines ? (geo.boxes || []) : [];
+    const boxes = o.boites || o.gaines ? (geo.boxes || []).filter((b) => !o.boxIds || o.boxIds.has(b.id)) : [];
     const BS = Math.max(3.6 * u, 9), BSm = BS / f;   // v58 : boîtes plus petites
     if (o.boites) boxes.forEach((b) => PL.add(boxAt(X(b.x), Y(b.y) - BS * 0.2, BS + 5, BS * 1.4 + 5)));
     // noms et surfaces des pièces : au point d'étiquette, sinon à la place libre la plus proche dans la pièce
@@ -335,7 +337,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       line(P[0],P[1]); line(P[2],P[1]); line(P[3],P[1]);
       doc.setTextColor(25); doc.setFont("helvetica","normal"); doc.setFontSize(6); doc.text(String(label),X(P[1].x),Y(P[1].y)+(P[1].y<a.y ? -1.3 : 2.5),{align:"center"});
     };
-    if (o.gaines) (geo.direct || []).forEach(d => {
+    if (o.gaines && o.directOn !== false) (geo.direct || []).forEach(d => {
       if (o.parcours && d.b) { doc.setDrawColor(...(d.faible ? [53,103,71] : [155,36,64])); doc.setLineWidth(.18); line(d.a,d.b); }
       else arrowPdf(d.a,d.b || {x:d.a.x-.5,y:d.a.y+.5},d.label);
     });
@@ -378,9 +380,10 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     });
     geo.__hiddenReps = repLabels.filter((L) => L.hidden).length;
     doc.restoreGraphicsState();
-    doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(area.x, area.y, area.w, area.h);
+    if (!o.bare) { doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(area.x, area.y, area.w, area.h); }
   
     for(const d of geo.ventilation || []) { const pts=d.points;if(pts.length>1){doc.setDrawColor(33,155,155);doc.setLineWidth(.3);doc.setLineDashPattern([1.4,.8],0);for(let i=1;i<pts.length;i++)doc.line(X(pts[i-1].x),Y(pts[i-1].y),X(pts[i].x),Y(pts[i].y));doc.setLineDashPattern([],0);} }
+    if (o.bare) return { apps, boxes };   // v74 : feuille FTZ, le cartouche et la légende sont dessinés à part
     // ---------- bandeau : légende, échelle graphique, cartouche ----------
     const by = Lay.H - MARGIN - BAND + 4, bh = BAND - 4;
     const present = o.appareils ? COLS.filter((t) => geo.apps.some((a) => a.t === t)) : [];
@@ -445,6 +448,49 @@ export async function buildPlanPdf(geoIn, opts = {}) {
 
   const blob = doc.output("blob");
   return { blob, layout: Lay0, pages: doc.getNumberOfPages() };
+
+  // ---------- v74 : feuille au format FTZ (préparation d'impression) ----------
+  // o.ftz = { pages: [{ boxes: [ids] | "all", direct, autres, legend, legendAt }], items: [encarts], images: {ref: {data, fmt}},
+  //           fields: {client, chantier, affaire, echelle, dessinateur, date}, logo: {data, ratio}, bg: true = sans encarts }
+  async function buildFtz(geo, o) {
+    const F = o.ftz, C = F.charte || (await import("../print/ftz-charte.json")).default;
+    const S = await import("../print/ftz-sheet.js");
+    const JsPDF2 = await jspdf();
+    doc = new JsPDF2({ orientation: "landscape", unit: "mm", format: "a3" });
+    const cart = C.pages[0].cartouche;
+    const area = { x: S.OX + 2, y: S.OY + 2, w: 406, h: cart.top - 3 };
+    const ext = extentOf(geo), ew = ext.x1 - ext.x0, eh = ext.y1 - ext.y0;
+    const scale = [50, 75, 100, 150, 200].find((s) => ew * 1000 / s <= area.w && eh * 1000 / s <= area.h) || 200;
+    const Lay = { paper: "A3", orient: "paysage", W: S.A3.W, H: S.A3.H, scale, f: 1000 / scale, area, fits: ew * 1000 / scale <= area.w && eh * 1000 / scale <= area.h, ext };
+    const cx = (ext.x0 + ext.x1) / 2, cy = (ext.y0 + ext.y1) / 2;
+    const plan = { x0: area.x + area.w / 2 + (ext.x0 - cx) * Lay.f, x1: area.x + area.w / 2 + (ext.x1 - cx) * Lay.f, y0: area.y + area.h / 2 + (ext.y0 - cy) * Lay.f, y1: area.y + area.h / 2 + (ext.y1 - cy) * Lay.f };
+    // appareils de chaque boîte, des lignes directes, et ceux qui ne sont ni dans une boîte ni en ligne directe
+    const inBox = new Map(); (geo.boxes || []).forEach((b) => b.deps.forEach((d) => d.ends.forEach((e) => { if (e.key !== "tab") inBox.set(e.key, b.id); })));
+    const direct = new Set((geo.direct || []).map((d) => d.appId).filter(Boolean));
+    const pages = F.pages && F.pages.length ? F.pages : [{ boxes: "all", direct: false, autres: true, legend: false }, { boxes: [], direct: true, autres: false, legend: true }];
+    const used = [], legends = [], fields = { echelle: `1 / ${scale}`, ...F.fields };
+    const pageApps = pages.map((pg) => {
+      const ids = pg.boxes === "all" ? null : new Set(pg.boxes || []);
+      return new Set(geo.apps.filter((a) => a.t === "TAB" || (inBox.has(a.id) ? !ids || ids.has(inBox.get(a.id)) : direct.has(a.id) ? pg.direct : pg.autres !== false)).map((a) => a.id));
+    });
+    pageApps.forEach((s) => geo.apps.forEach((a) => { if (s.has(a.id) && !used.some((u) => u.id === a.id)) used.push(a); }));
+    for (let i = 0; i < pages.length; i++) {
+      const pg = pages[i];
+      if (i) doc.addPage("a3", "landscape");
+      const boxIds = pg.boxes === "all" ? null : new Set(pg.boxes || []);
+      await drawPlan(geo, { ...o, bare: true, liaisons: false, appIds: pageApps[i], boxIds, directOn: !!pg.direct, boites: o.boites !== false && (pg.boxes === "all" || (pg.boxes || []).length > 0), gaines: o.gaines !== false }, Lay);
+      S.drawFrame(doc);
+      S.drawCartouche(doc, cart, fields, F.logo || null);
+      if (pg.legend) {
+        const rows = S.legendRows(used, { boxes: (geo.boxes || []).length > 0, arrow: (geo.boxes || []).length > 0 || direct.size > 0 });
+        const size = S.legendSize(rows), at = pg.legendAt || S.freeCorner(area, plan, size);
+        legends.push({ page: i + 1, ...S.drawLegend(doc, rows, at[0], at[1], (d, t, x, y) => symbol(d, t, x, y, 1.8)) });
+      }
+      if (!F.bg) (F.items || []).filter((it) => (it.page || 1) === i + 1).forEach((it) => S.drawItem(doc, it, F.images || {}));
+    }
+    doc.setProperties({ title: `Plan ${geo.chantier.nom} ${geo.chantier.numero}`.trim(), creator: "Oktéo AI — KiTéOHM" });
+    return { blob: doc.output("blob"), layout: Lay, pages: doc.getNumberOfPages(), legends, plan, area, ftz: true };
+  }
 }
 
 // symboles normalisés simplifiés (mêmes formes qu'à l'écran, v37 : carrés sauf les lumières) ; u = unité de symbole en mm ;
