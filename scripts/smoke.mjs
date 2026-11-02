@@ -582,10 +582,12 @@ try {
   });
   await check("aucune étiquette ne se chevauche (noms, surfaces, repères, cotes) en vue d'ensemble et en zoom", async () => {
     const overlaps = () => ev(() => {
-      const R = [...document.querySelectorAll("#sv .labels text")].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0);
-      let n = 0; for (let i = 0; i < R.length; i++) for (let j = i + 1; j < R.length; j++) { const a = R[i], b = R[j];
-        if (a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1) n++; }
-      return { n, total: R.length };
+      const E = [...document.querySelectorAll("#sv .labels text")].map((e) => ({ e, r: e.getBoundingClientRect() })).filter((x) => x.r.width > 0), R = E.map((x) => x.r);
+      let n = 0; const pairs = []; for (let i = 0; i < R.length; i++) for (let j = i + 1; j < R.length; j++) { const a = R[i], b = R[j];
+        if (a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1) { n++;
+          const d = (x) => `${x.e.textContent}[${x.e.getAttribute("class") || ""}|${x.e.parentNode.getAttribute("class") || ""}](${Math.round(x.r.left)},${Math.round(x.r.top)},${Math.round(x.r.width)}x${Math.round(x.r.height)})`;
+          pairs.push(d(E[i]) + " / " + d(E[j])); } }
+      return { n, total: R.length, pairs };
     });
     await ev(() => okteo.fit()); const a = await overlaps();
     await ev(() => okteo.zoom(3)); const b = await overlaps(); await ev(() => okteo.fit());
