@@ -99,6 +99,11 @@ export function wallIntervals(seg) {
   return out;
 }
 
+// largeur approximative d'un texte en police proportionnelle, en « em » (v72.1)
+export function nameEm(str) {
+  return [...String(str)].reduce((n, c) => n + (/[MWmw]/.test(c) ? 0.9 : /[A-ZÀ-ÖØ-Þ0-9]/.test(c) ? 0.68 : /[\s.,;:'’|!ilIjtf()-]/.test(c) ? 0.32 : 0.56), 0);
+}
+
 export function draw() {
   sv.style.background = "#fff";
   sv.style.setProperty("--wall", "#202020");
@@ -480,7 +485,8 @@ export function draw() {
             y: (r.y0 + r.y1) / 2
           },
           ar = showA ? roomArea(r).toFixed(1).replace(".", ",") + " m²" : "";
-        const w = Math.max(r.name.length * 0.55 * F1, ar.length * 0.6 * F2) * pm,
+        // v72.1 : largeur estimée lettre par lettre (police proportionnelle : « WC » est plus large que « il »)
+        const w = (Math.max(nameEm(r.name) * F1, ar.length * 0.6 * F2) + 4) * pm,
           hh = (F1 + F2 + 3) * pm;
         const bb = {
           x0: Math.min(...P.map(p => p.x)),

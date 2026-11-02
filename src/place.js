@@ -21,9 +21,9 @@ export class Placer {
 
 // boîte d'un texte (approximative) : largeur ≈ nb de caractères × chasse × taille
 export function textBox(x, y, str, size, { anchor = "middle", base = "middle", wide = 0.6, pad = 0.12 } = {}) {
-  // v72.1 : hauteur réelle d'une ligne de texte ≈ 1,3 × la taille de police (ascendantes + descendantes) ; avec « size »
+  // v72.1 : hauteur réelle d'une ligne de texte ≈ 1,4 × la taille de police (ascendantes + descendantes) ; avec « size »
   // seul, deux étiquettes voisines se chevauchaient de 1 à 3 px (défaut connu depuis v66)
-  const w = String(str).length * size * wide, h = size * 1.3;
+  const w = String(str).length * size * wide, h = size * 1.4;
   const x0 = anchor === "middle" ? x - w / 2 : anchor === "end" ? x - w : x;
   const y0 = base === "middle" ? y - h / 2 : base === "bottom" ? y - h : y;
   const p = size * pad;
