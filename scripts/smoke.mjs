@@ -312,8 +312,11 @@ try {
   });
   await check("le panneau rouvre l'assistant là où on l'avait laissé", async () => page.isVisible(".as-in textarea"));
   await check("image IA : tout le fond de plan est cadré", async () => ev(async () => {
-    const m = await import("/src/ext/plan-data.js"); const e = okteo.extent();
-    return (e.x1 - e.x0) > 14 && (await m.planImage(okteo)).data.length > 50000;
+    // v72.1 : le calque Fond est masqué par défaut (v71) ; l'image envoyée à l'IA doit quand même contenir tout le fond
+    const m = await import("/src/ext/plan-data.js"), L = okteo.layers.fond, was = L.on;
+    L.on = true; const e = okteo.extent(); L.on = false;
+    const n = (await m.planImage(okteo)).data.length; L.on = was; okteo.draw && okteo.draw();
+    return (e.x1 - e.x0) > 14 && n > 50000;
   }));
 
   console.log("Nemotron (NVIDIA)");
@@ -1380,7 +1383,9 @@ try {
     const size = () => ev(() => { const r = document.querySelector("#sv g.box rect"); return +r.getAttribute("width"); });
     const t = await ev(() => { const b = okteo.cab.boxes.find((x) => x.lv === okteo.level.id && x.apps.length > 1); okteo.zoomToBox(b.x - 2, b.y - 2, b.x + 2, b.y + 2); return { id: b.id }; });
     const s1 = await size();
-    await ev(({ id }) => { const b = okteo.cab.boxes.find((x) => x.id === id); okteo.zoomToBox(b.x - 3, b.y - 3, b.x + 3, b.y + 3); }, t);
+    // v72.1 : ±2,5 m (au lieu de ±3) : depuis v71 le bandeau a une ligne de plus, le plan est plus petit et le minimum de
+    // 26 px de la boîte l'emportait à ±3 m (taille réelle inchangée tant que le symbole domine)
+    await ev(({ id }) => { const b = okteo.cab.boxes.find((x) => x.id === id); okteo.zoomToBox(b.x - 2.5, b.y - 2.5, b.x + 2.5, b.y + 2.5); }, t);
     const s2 = await size();
     const portsOff = await ev(({ id }) => document.querySelectorAll(`#sv g.box[data-id="${id}"] circle.port`).length, t);
     // boîte choisie : on tire le bout d'une gaine sur un point libre de la même boîte
@@ -1711,7 +1716,7 @@ try {
     const [dl] = await Promise.all([page.waitForEvent("download"), page.click('.ch-list tr:has-text("ESSAI") button[data-act="file"]')]);
     const f = path.join(os.tmpdir(), "okteo-test.okteo"); await dl.saveAs(f);
     const j = JSON.parse(fs.readFileSync(f, "utf8"));
-    const okFile = j.format === "okteo-chantier" && j.fond.image.startsWith("data:image") && j.fond.pdf.startsWith("data:application/pdf") && JSON.parse(j.dessin.s).rooms.length === essaiRooms && dl.suggestedFilename() === "ESSAI_99999.okteo";
+    const okFile = j.format === "okteo-chantier" && j.fond.image.startsWith("data:image") && j.fond.pdf.startsWith("data:application/pdf") && JSON.parse(j.dessin.s).rooms.length === essaiRooms && /^ESSAI_99999(_R\d{3}_[\dhm_-]+)?\.okteo$/.test(dl.suggestedFilename());   // v72 : révision dans le nom
     const n0 = await nbCh();
     await Promise.all([page.waitForNavigation(), page.setInputFiles("#ch-import", f)]);
     await reopened();

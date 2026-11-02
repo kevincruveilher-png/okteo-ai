@@ -55,10 +55,10 @@ function cssText() {
 export async function planImage(api, { width = 1600, maxB64 = 0 } = {}) {
   const sv = api.sv;
   const saved = { ...api.view };
-  const e = api.extent();                      // tout le dessin ET tout le fond de plan dans le cadre
   // v72.1 : depuis v71 le calque Fond est masqué par défaut à l'écran ; l'IA doit quand même voir le plan d'origine
   const fl = (api.layers || {}).fond, fondWas = fl ? fl.on : true;
   if (fl && api.FOND) fl.on = true;
+  const e = api.extent();                      // tout le dessin ET tout le fond de plan dans le cadre
   api.zoomToBox(e.x0, e.y0, e.x1, e.y1);
   const vb = sv.getAttribute("viewBox").split(/\s+/).map(Number);
   const clone = sv.cloneNode(true);
