@@ -20,6 +20,11 @@ Identité de marque », planches 5 (écran de travail), 6 (accueil animé) et 7 
   localStorage `okteo.attente.v1`) ; « Revenir au plan » / Échap = l'analyse continue ; fin = « Votre plan est
   prêt » + « Ouvrir le chantier » ; échec = fermée (message habituel). Clavier capturé tant qu'elle est visible.
 - Test smoke ajouté (page d'attente).
+- Validation GitHub Actions (Chromium, run 41519118481) : `npm run check` vert (murs 42, câblage 87, chantiers 176,
+  MAILLARD 14, **smoke 172/172**), `build:web` et `test:web` réussis ; captures d'écran vérifiées à 1920 et 1500 px
+  (écran de travail sombre et clair, accueil, page d'attente). Test « boîte à taille fixe » : zoom ±1,6 / ±2 m (bandeau
+  plus haut). Branches `verification-charte-v73*` supprimées après usage. Reste : recette de Kévin sur l'aperçu
+  Cloudflare de `feat/charte-v73`, puis « go » pour `main`.
 
 ## 02/11/2026 (soir) — v72.1 fusionnée dans `main` et mise en production
 
