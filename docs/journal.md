@@ -1,3 +1,15 @@
+## 02/11/2026 (nuit) — v73.1 : tailles adaptées à l'écran (retour de Kévin sur son portable)
+
+- Sur le petit PC de Kévin (affichage Windows à 150 % : environ 1280 × 600 utiles), le bandeau prenait la moitié de
+  l'écran et Panneaux passait sous Actions. Les tailles suivent maintenant la largeur ET la hauteur de la fenêtre
+  (`--fb = clamp(11px, min(0,94vw, 1,67vh), 18px)`, `--hb`, `--fs`, `--r` en découlent) : 18 px à 1920 × 1080 comme la
+  maquette, ~11 px sur le portable.
+- Bandeau des outils sur une seule ligne : Actions | Vues | Panneaux (grille `act view pan`) ; sous 1600 px les panneaux
+  s'empilent à droite des Vues ; sous 1500 px les raccourcis Alt+1/2/3 des vues ne restent que dans l'infobulle ; sous
+  1400 px « Angles droits » n'affiche que la case (infobulle) ; sous 1000 px, Vues et Panneaux passent sous Actions.
+- Accueil (connexion) et page d'attente réduits en hauteur sur les petits écrans (vh, `zoom`).
+- Captures de vérification aussi en 1280 × 600.
+
 ## 02/11/2026 (nuit) — v73 : charte graphique Oktéo appliquée (planches 5, 6, 7 de l'identité de marque)
 
 Branche `feat/charte-v73` (pas encore sur `main` : attendre le « go » de Kévin). Source : artefact « Oktéo AI —
@@ -20,6 +32,11 @@ Identité de marque », planches 5 (écran de travail), 6 (accueil animé) et 7 
   localStorage `okteo.attente.v1`) ; « Revenir au plan » / Échap = l'analyse continue ; fin = « Votre plan est
   prêt » + « Ouvrir le chantier » ; échec = fermée (message habituel). Clavier capturé tant qu'elle est visible.
 - Test smoke ajouté (page d'attente).
+- Validation GitHub Actions (Chromium, run 41519118481) : `npm run check` vert (murs 42, câblage 87, chantiers 176,
+  MAILLARD 14, **smoke 172/172**), `build:web` et `test:web` réussis ; captures d'écran vérifiées à 1920 et 1500 px
+  (écran de travail sombre et clair, accueil, page d'attente). Test « boîte à taille fixe » : zoom ±1,6 / ±2 m (bandeau
+  plus haut). Branches `verification-charte-v73` et `verification-charte-v73-captures` à supprimer (suppression refusée depuis la session de Claude). Reste : recette de Kévin sur l'aperçu
+  Cloudflare de `feat/charte-v73`, puis « go » pour `main`.
 
 ## 02/11/2026 (soir) — v72.1 fusionnée dans `main` et mise en production
 
