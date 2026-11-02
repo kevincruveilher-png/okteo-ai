@@ -60,3 +60,20 @@ constructeur). D'autres PLAN_EXPE FTZ seront fournis par Kévin.
 - Schémas unifilaires : à faire aussi.
 - **Deux dossiers séparés** : le dossier du client (ses documents : plans constructeur, cuisiniste…) et le dossier du
   bureau d'études (pieuvre, équipements / lignes directes, plomberie, tableau, unifilaire). Pas d'annexes mélangées.
+
+## Relevé de la charte (fondation v74, d'après VILLANOVA)
+Outils : `scripts/charte/ftz-pdf.mjs` (lecture d'un PDF FTZ décompressé par qpdf), `scripts/charte/ftz-charte.mjs`
+(→ `src/print/ftz-charte.json`), `src/print/ftz-draw.js` (dessin SVG), `scripts/charte/planche.mjs` (planche de contrôle),
+test `scripts/charte.test.mjs` (dans `npm run check`). FTZ écrit chaque texte deux fois : texte invisible (police,
+taille, position) + contours remplis (ce qu'on voit, couleur). Les plans de référence restent hors du dépôt.
+- Feuille : zone imprimée 410 × 289 mm (A3 paysage moins les marges de l'imprimante), cadre et cartouche en bas.
+- Repères (P1, L10, I2, PROF 50, LI04.01…) : Courier gras, hauteur 2,97 mm, largeur ×0,95, noir.
+- Noms de pièces : Courier gras 6,52 mm, étroit (×0,66), bleu #0000FF.
+- Boîtes (LI01…) : Times 3,52 mm, étroit (×0,59), vert #008000. Cotes de boîtes : Courier gras 2,97 mm ×0,66, violet #800080.
+- Légende : Helvetica 2,2 mm (×0,82), noir ; tableau 2 colonnes, rangées séparées par des traits pleine largeur.
+- Cartouche : libellés en Times (Client, Chantier, N° en noir ; Echelle, Dess., Date en bleu #0080FF), « www.kiteohm.fr »
+  en Helvetica, avertissement rouge #FF0000 en Helvetica dans un cadre arrondi rouge, logo KiTéOHM bleu nuit #00004F
+  et rouge #FF3737. Les valeurs du client sont en italique étroit (police visible à confirmer).
+- Gaines : courbes de 0,12 mm à la couleur de la boîte. Symboles : 39 relevés (19 plan pieuvre, 20 plan équipements),
+  avec leurs couleurs exactes (point lumineux et interrupteurs rouges, prises bleu #0080FF, RJ45/TV verts…).
+- Plomberie (page 3) : tableau des hauteurs de sorties d'eau dans le cartouche, avertissement dans un cadre à gauche.
