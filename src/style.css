@@ -1050,8 +1050,8 @@ body.aw-on{overflow:hidden}
 @media (max-width:1300px),(max-height:820px){.aw{padding:28px 40px 32px}.aw-body{gap:40px}.aw-games{width:560px;padding:20px 24px}.aw-octo{width:360px;height:360px}.aw-tt h1{font-size:38px}.aw-clock>span:first-child{font-size:64px}}
 @media (max-width:1050px){.aw-body{flex-direction:column;align-items:stretch;justify-content:flex-start;gap:28px;padding-top:24px}.aw-games{width:auto;align-self:center;max-width:100%}}
 
-/* v73.1 : petits écrans : panneaux empilés à droite des Vues, raccourcis des vues dans l'infobulle seulement */
-@media (max-width:1600px){.panes{grid-template-columns:minmax(0,1fr)}.panes button{min-height:calc(var(--hb) * 0.56)}}
+/* v73.1 : panneaux empilés à droite des Vues (bandeau sur une ligne) ; petits écrans : raccourcis des vues dans l'infobulle seulement */
+.panes{grid-template-columns:minmax(0,1fr)}.panes button{min-height:calc(var(--hb) * 0.56)}
 @media (max-width:1500px){.grp-view .vp kbd{display:none}}
 @media (max-height:760px){.enterprise-bar{min-height:calc(var(--hb) + 2px)}.top{padding-top:5px;padding-bottom:5px;min-height:calc(var(--hb) + 10px)}}
 @media (max-height:820px){.aw-games,.aw-wait{zoom:.82}}
