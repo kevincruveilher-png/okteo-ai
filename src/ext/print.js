@@ -562,9 +562,12 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       S.drawCartouche(doc, cart, fields, F.logo || null);
       if (pg.legend) {
         const rows = S.legendRows(used, { boxes: (geo.boxes || []).length > 0, arrow: (geo.boxes || []).length > 0 || direct.size > 0 });
+        // v74 MAJ 4 : plaques multipostes posées sur les pages déjà dessinées (et celle-ci)
+        const pn = [...new Set(plq.flatMap((x) => x.list.map((p) => p.name)))].sort();
+        if (pn.length) rows.splice(rows.length - (rows[rows.length - 1]?.key === "ARROW" ? 1 : 0) - (rows.some((r) => r.key === "BOX") ? 1 : 0), 0, ...pn.map((n) => ({ key: n, label: n })));
         const size = S.legendSize(rows), at = pg.legendAt || S.freeCorner(area, plan, size);
         legends.push({ page: i + 1, ...S.drawLegend(doc, rows, at[0], at[1], (d, t, x, y, r) => {
-          const sym = symIdx.get(S.FTZ_NAMES[r.key] || "") || null;
+          const sym = symIdx.get(S.FTZ_NAMES[r.key] || r.key) || null;
           if (!sym) return symbol(d, t, x, y, 1.8);
           const k = Math.min(1, (S.rowH(r) - 0.8) / sym.h, (S.LEG.colS - 1.6) / sym.w);
           S.drawSymbol(d, sym, x, y, k, 0);
