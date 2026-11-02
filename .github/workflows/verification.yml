@@ -18,6 +18,7 @@ jobs:
           git config user.name ci && git config user.email ci@example.invalid
           git checkout --orphan shots-tmp && git rm -rq --cached . && git add -f shots && git commit -qm "captures v73"
           git push -f origin shots-tmp:verification-charte-v73-captures
+      - run: node scripts/smoke.mjs
       - run: npm run check
       - run: npm run build:web
       - run: npm run test:web
