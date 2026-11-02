@@ -460,8 +460,11 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const cart = C.pages[0].cartouche;
     const area = { x: S.OX + 2, y: S.OY + 2, w: 406, h: cart.top - 3 };
     // cadrage sur ce qui est imprimé : murs, appareils, noms de pièces (un contour de pièce mal relevé ne décentre pas le plan)
-    const ext = extentOf({ ...geo, rooms: geo.rooms.map((r) => ({ poly: r.label ? [r.label] : [] })) }), ew = ext.x1 - ext.x0, eh = ext.y1 - ext.y0;
-    const scale = [50, 75, 100, 150, 200].find((s) => ew * 1000 / s <= area.w && eh * 1000 / s <= area.h) || 200;
+    const fit = (g) => { const e = extentOf({ ...g, rooms: g.rooms.map((r) => ({ poly: r.label ? [r.label] : [] })) }); return { e, s: [50, 75, 100, 150, 200].find((s) => (e.x1 - e.x0) * 1000 / s <= area.w && (e.y1 - e.y0) * 1000 / s <= area.h) || 200 }; };
+    let F0 = fit(geo);
+    // sens automatique (comme le BE) : plan tourné d'un quart de tour s'il tient ainsi à une plus grande échelle
+    if (F.autoRot && F0.s > 50) { const g2 = rotateGeo(geo, 90), F2 = fit(g2); if (F2.s < F0.s) { geo = g2; F0 = F2; F.rotated = 90; } }
+    const ext = F0.e, ew = ext.x1 - ext.x0, eh = ext.y1 - ext.y0, scale = F0.s;
     const Lay = { paper: "A3", orient: "paysage", W: S.A3.W, H: S.A3.H, scale, f: 1000 / scale, area, fits: ew * 1000 / scale <= area.w && eh * 1000 / scale <= area.h, ext };
     const cx = (ext.x0 + ext.x1) / 2, cy = (ext.y0 + ext.y1) / 2;
     const plan = { x0: area.x + area.w / 2 + (ext.x0 - cx) * Lay.f, x1: area.x + area.w / 2 + (ext.x1 - cx) * Lay.f, y0: area.y + area.h / 2 + (ext.y0 - cy) * Lay.f, y1: area.y + area.h / 2 + (ext.y1 - cy) * Lay.f };
@@ -490,7 +493,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       if (!F.bg) (F.items || []).filter((it) => (it.page || 1) === i + 1).forEach((it) => S.drawItem(doc, it, F.images || {}));
     }
     doc.setProperties({ title: `Plan ${geo.chantier.nom} ${geo.chantier.numero}`.trim(), creator: "Oktéo AI — KiTéOHM" });
-    return { blob: doc.output("blob"), layout: Lay, pages: doc.getNumberOfPages(), legends, plan, area, ftz: true };
+    return { blob: doc.output("blob"), layout: Lay, pages: doc.getNumberOfPages(), legends, plan, area, ftz: true, rotated: F.rotated || 0 };
   }
 }
 

@@ -49,6 +49,7 @@ export function createPrepTool({ api }) {
       <p class="mut sm">Feuille A3 au format des plans du BE. Les encarts se posent ici, jamais sur le plan de travail.</p>
       <div class="prep-pages" role="tablist"></div>
       <div class="prep-content"></div>
+      <label class="f prep-sens" title="Auto : le plan est tourné d'un quart de tour s'il tient ainsi à une plus grande échelle (1/50 de préférence)">Sens du plan<select id="prep-sens"><option value="auto">Automatique (plus grande échelle)</option><option value="vue">Comme la vue</option><option value="0">Sans rotation</option><option value="90">Quart de tour à droite</option><option value="-90">Quart de tour à gauche</option></select></label>
       <details class="prep-sec" open><summary>Cartouche</summary>
         <label class="f">Client du BE<input data-c="clientBE"></label>
         <label class="f">N° d'affaire<input data-c="affaire"></label>
@@ -95,8 +96,9 @@ export function createPrepTool({ api }) {
   }
   async function build(final) {
     const geo = api.exportGeometry(), has = (api.cab.boxes || []).length > 0;
-    return buildPlanPdf(geo, { boites: has, gaines: has, circuits: has, cotes: false, nomenclature: false, gaineNos: has ? gaineNos() : null,
-      ftz: { pages: P.pages, items: P.items, images, fields: fields(), logo: await logoHD(), bg: !final } });
+    const sens = P.sens || "auto", rot = sens === "vue" ? api.viewRot || 0 : sens === "auto" ? 0 : +sens;
+    return buildPlanPdf(geo, { rot, boites: has, gaines: has, circuits: has, cotes: false, nomenclature: false, gaineNos: has ? gaineNos() : null,
+      ftz: { pages: P.pages, items: P.items, images, fields: fields(), logo: await logoHD(), bg: !final, autoRot: sens === "auto" } });
   }
 
   // ---------- fond de la page (PDF sans les encarts, dessiné par pdf.js) ----------
@@ -112,7 +114,7 @@ export function createPrepTool({ api }) {
       c.width = Math.round(vp.width); c.height = Math.round(vp.height);
       await pg.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
       if (my !== seq) return;
-      $(".prep-info").textContent = `A3 paysage · 1/${r.layout.scale} · ${r.pages} page${r.pages > 1 ? "s" : ""}${r.layout.fits ? "" : " · le plan dépasse"}`;
+      $(".prep-info").textContent = `A3 paysage · 1/${r.layout.scale}${r.rotated ? " · plan tourné" : ""} · ${r.pages} page${r.pages > 1 ? "s" : ""}${r.layout.fits ? "" : " · le plan dépasse"}`;
       paintOv();
     } catch (e) { $(".prep-info").textContent = "Échec : " + e.message; }
     if (my === seq) $(".prep-wait").hidden = true;
@@ -319,6 +321,8 @@ export function createPrepTool({ api }) {
     cur = Math.min(cur, P.pages.length - 1); sel = null;
     back.hidden = false; document.body.classList.add("prep-on");
     await ensureScratch(); await loadImages();
+    $("#prep-sens").value = P.sens || "auto";
+    $("#prep-sens").onchange = (e) => { P.sens = e.target.value; save(); bgSoon(); };
     paintPages(); paintCart(); paintEnc(); paintOv();
     await refreshBg();
   }
