@@ -2351,9 +2351,10 @@ try {
   });
   await check("une seule fenêtre de travail : ouvrir le relevé des pièces ferme le relevé des murs ; la comparaison des modes ferme les deux", async () => {
     await ev(() => { okteoExt.panel.close("assistant"); okteoExt.walls.open(); });
-    await page.waitForFunction(() => [...document.querySelectorAll(".wcard")].some((c) => !c.hidden && /Relevé des murs/.test(c.textContent)), null, { timeout: 15000 });
+    // 30 s comme les autres lectures du PDF EVRARD (15 s échouait une fois sur deux sur GitHub Actions)
+    await page.waitForFunction(() => [...document.querySelectorAll(".wcard")].some((c) => !c.hidden && /Relevé des murs/.test(c.textContent)), null, { timeout: 30000 });
     await ev(() => okteoExt.rooms.open());
-    await page.waitForFunction(() => [...document.querySelectorAll(".wcard")].some((c) => !c.hidden && /Pièces/.test(c.querySelector(".wcard-h")?.textContent || "")), null, { timeout: 15000 });
+    await page.waitForFunction(() => [...document.querySelectorAll(".wcard")].some((c) => !c.hidden && /Pièces/.test(c.querySelector(".wcard-h")?.textContent || "")), null, { timeout: 30000 });
     const one = await ev(() => [...document.querySelectorAll(".wcard:not(.save-alert)")].filter((c) => !c.hidden && c.offsetParent).length);
     await ev(() => document.dispatchEvent(new CustomEvent("okteo:compare-modes")));
     await page.waitForSelector(".cmpcard", { timeout: 10000 });
