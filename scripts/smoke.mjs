@@ -1409,11 +1409,12 @@ try {
   });
   await check("boîte : taille fixe sur le plan au zoom ; points d'accroche = réglage par face ; gaine épinglée sur un point (sans croisement), Ctrl+Z", async () => {
     const size = () => ev(() => { const r = document.querySelector("#sv g.box rect"); return +r.getAttribute("width"); });
-    const t = await ev(() => { const b = okteo.cab.boxes.find((x) => x.lv === okteo.level.id && x.apps.length > 1); okteo.zoomToBox(b.x - 2, b.y - 2, b.x + 2, b.y + 2); return { id: b.id }; });
+    const t = await ev(() => { const b = okteo.cab.boxes.find((x) => x.lv === okteo.level.id && x.apps.length > 1); okteo.zoomToBox(b.x - 1.6, b.y - 1.6, b.x + 1.6, b.y + 1.6); return { id: b.id }; });
     const s1 = await size();
     // v72.1 : ±2,5 m (au lieu de ±3) : depuis v71 le bandeau a une ligne de plus, le plan est plus petit et le minimum de
     // 26 px de la boîte l'emportait à ±3 m (taille réelle inchangée tant que le symbole domine)
-    await ev(({ id }) => { const b = okteo.cab.boxes.find((x) => x.id === id); okteo.zoomToBox(b.x - 2.5, b.y - 2.5, b.x + 2.5, b.y + 2.5); }, t);
+    // v73 : ±1,6 / ±2 m : le bandeau de la charte est plus haut, le plan encore un peu plus petit
+    await ev(({ id }) => { const b = okteo.cab.boxes.find((x) => x.id === id); okteo.zoomToBox(b.x - 2, b.y - 2, b.x + 2, b.y + 2); }, t);
     const s2 = await size();
     const portsOff = await ev(({ id }) => document.querySelectorAll(`#sv g.box[data-id="${id}"] circle.port`).length, t);
     // boîte choisie : on tire le bout d'une gaine sur un point libre de la même boîte
