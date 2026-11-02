@@ -21,6 +21,11 @@ try {
   console.log(info);
   await page.waitForTimeout(1500);
   await page.screenshot({ path: "shots/plan.png" });
+  // v74 MAJ 3 : baignoire dans la salle de bains, contre le mur du haut (vérification visuelle des volumes)
+  console.log(await page.evaluate(() => { const r = okteo.state.rooms.find((x) => /bain/i.test(x.name)); if (!r || !r.poly) return "pas de salle de bains"; const P = r.poly, x0 = Math.min(...P.map((p) => p.x)), y0 = Math.min(...P.map((p) => p.y)); okteo.importDevices([{ t: "BAIG", x: x0 + 0.86, y: y0 + 0.39 }]); return "baignoire posée, " + okteo.control.filter((c) => c.kind === "sdb").length + " alerte(s) sdb"; }));
+  await page.evaluate(() => { const r = okteo.state.rooms.find((x) => /bain/i.test(x.name)); if (r) okteo.zoomTo([r.id]); });
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: "shots/sdb.png" });
   await page.evaluate(() => okteoExt.prep.open());
   await page.waitForFunction(() => okteoExt.prep.bg && document.querySelector(".prep-wait[hidden]"), null, { timeout: 60000 });
   await page.evaluate(() => { const P = okteoExt.prep; P.addItem("enc", { type: "text", w: 52, text: "EMPLACEMENT BOITE\nEN ATTENTE DANS COMBLES\nA DEFINIR AVANT POSE", font: "courier", size: 9, bold: true, color: "#FF0000", frame: "round", frameColor: "#FF0000", frameW: 0.3, align: "center", x: 30, y: 30 }); P.addItem("warn"); P.addItem("arrow"); P.addItem("zone"); });
