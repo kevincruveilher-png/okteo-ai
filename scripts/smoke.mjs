@@ -1693,7 +1693,7 @@ try {
       okteo.undo();
       return { n0, k0, ids, v, sdb: sdb.map((x) => x.ids.join("/")), vols: (geo.volumes || []).length, inApps: geo.apps.some((a) => a.id === ids[0]), back: okteo.state.app.length === n0 && !okteo.control.some((x) => x.kind === "sdb"), kinds: okteo.controlKinds.sdb, rep };
     });
-    if (!(r.k0 === 0 && r.v.v1 === 1 && r.v.v2 === 1 && r.v.sani === 1 && r.sdb.length === 1 && r.sdb[0] === r.ids[1] + "/" + r.ids[0] && r.vols === 1 && !r.inApps && r.back && r.kinds)) throw new Error(JSON.stringify(r));
+    if (!(r.k0 === 0 && r.v.v1 === 1 && r.v.v2 === 1 && r.v.sani === 1 && r.sdb.includes(r.ids[1] + "/" + r.ids[0]) && r.vols === 1 && !r.inApps && r.back && r.kinds)) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("onglet Étapes : plan, échelle, murs, pièces, appareils, liaisons, circuits, impression cochés", async () => {
@@ -2212,7 +2212,7 @@ try {
     await page.click('#tools .more-pop [data-tool="RAD"]');
     const r = await ev(() => ({ tool: okteo.tool, open: !!document.querySelector("#tools .more-pop"), on: document.querySelector('#tools [data-tool="__more"]').classList.contains("on"), txt: document.querySelector('#tools [data-tool="__more"] text')?.textContent }));
     await ev(() => okteo.setTool("sel"));
-    if (!(groups.length === 6 && /Volets roulants/.test(groups.join()) && r.tool === "RAD" && !r.open && r.on && r.txt === "RAD")) throw new Error(JSON.stringify({ groups, r }));
+    if (!(groups.length === 7 && /Volets roulants/.test(groups.join()) && groups.includes("Sanitaires") && r.tool === "RAD" && !r.open && r.on && r.txt === "RAD")) throw new Error(JSON.stringify({ groups, r }));
     return true;
   });
   await check("nouveaux appareils : radiateur, TV, hotte (choix du raccordement dans Propriétés), volet + CVR reliés, équipotentielle locale", async () => {
