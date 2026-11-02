@@ -505,7 +505,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       const pgBoxes = (geo.boxes || []).filter((b) => pg.boxes === "all" || (pg.boxes || []).includes(b.id));
       if (pg.cotes !== false && pgBoxes.length && o.boites !== false) {
         const PX = (x) => area.x + area.w / 2 + (x - cx) * Lay.f, PY = (y) => area.y + area.h / 2 + (y - cy) * Lay.f;
-        cotes.push({ page: i + 1, list: S.drawBoxCotes(doc, S.boxCotes(pgBoxes, geo.walls), PX, PY, plan, area) });
+        cotes.push({ page: i + 1, list: S.drawBoxCotes(doc, S.boxCotes(pgBoxes, geo.walls), PX, PY, plan, area, geo.walls) });
       }
       S.drawFrame(doc);
       S.drawCartouche(doc, cart, fields, F.logo || null);

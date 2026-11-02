@@ -244,30 +244,36 @@ export function boxCotes(boxes, walls, max = 12) {
 }
 // dessin : cotes horizontales au-dessus ou au-dessous du plan, verticales à gauche ou à droite (côté le plus proche de la
 // boîte), lignes d'attache jusqu'au bord du plan, valeur en cm (Courier gras 2,97 mm ×0,66, violet #800080)
-export const COTE_STYLE = { color: [128, 0, 128], w: 0.12, font: { font: "Courier-Bold", sy: 2.97, sx: 1.96, color: "#800080" }, gap: 6, step: 5 };
-export function drawBoxCotes(doc, cotes, X, Y, plan, area) {
-  const C = COTE_STYLE, used = { top: 0, bottom: 0, left: 0, right: 0 }, midX = (plan.x0 + plan.x1) / 2, midY = (plan.y0 + plan.y1) / 2;
-  const sorted = cotes.slice().sort((p, q) => Math.abs(p.a - p.b) - Math.abs(q.a - q.b));
+export const COTE_STYLE = { color: [128, 0, 128], w: 0.12, font: { font: "Courier-Bold", sy: 2.97, sx: 1.96, color: "#800080" }, gap: 7, step: 5, min: 20 };
+export function drawBoxCotes(doc, cotes, X, Y, plan, area, walls = []) {
+  const C = COTE_STYLE, used = { top: 0, bottom: 0, left: 0, right: 0 };
+  // enveloppe du bâti (murs) sur le papier : les cotes se rangent juste à l'extérieur
+  const pts = walls.flat(), env = pts.length ? { x0: Math.min(...pts.map((p) => X(p.x))), x1: Math.max(...pts.map((p) => X(p.x))), y0: Math.min(...pts.map((p) => Y(p.y))), y1: Math.max(...pts.map((p) => Y(p.y))) } : plan;
+  const midX = (env.x0 + env.x1) / 2, midY = (env.y0 + env.y1) / 2, FAR = 1e4;
+  // ligne d'attache : du trait de cote jusqu'au premier mur rencontré en venant de l'extérieur
+  const edgeY = (xm, top) => { const d = rayHit(walls, xm, top ? -FAR : FAR, 0, top ? 1 : -1); return d < Infinity ? Y(top ? -FAR + d : FAR - d) : top ? env.y0 : env.y1; };
+  const edgeX = (ym, left) => { const d = rayHit(walls, left ? -FAR : FAR, ym, left ? 1 : -1, 0); return d < Infinity ? X(left ? -FAR + d : FAR - d) : left ? env.x0 : env.x1; };
+  const list = cotes.filter((c) => c.cm >= C.min).sort((p, q) => Math.abs(p.a - p.b) - Math.abs(q.a - q.b));
   const drawn = [];
   doc.setDrawColor(...C.color); doc.setLineWidth(C.w); doc.setLineDashPattern([], 0);
   const tick = (x, y) => doc.line(x - 0.7, y + 0.7, x + 0.7, y - 0.7);
-  for (const c of sorted) {
+  for (const c of list) {
     if (c.axis === "x") {
-      const side = Y(c.at) < midY ? "top" : "bottom", k = used[side]++;
-      let yy = side === "top" ? plan.y0 - C.gap - k * C.step : plan.y1 + C.gap + k * C.step;
+      const top = Y(c.at) < midY, side = top ? "top" : "bottom", k = used[side]++;
+      let yy = top ? env.y0 - C.gap - k * C.step : env.y1 + C.gap + k * C.step;
       yy = Math.max(area.y + 3, Math.min(area.y + area.h - 1, yy));
-      const xa = X(c.a), xb = X(c.b), edge = side === "top" ? plan.y0 : plan.y1;
+      const xa = X(c.a), xb = X(c.b);
       doc.line(xa, yy, xb, yy); tick(xa, yy); tick(xb, yy);
-      [[xa, Y(c.at)], [xb, Y(c.at)]].forEach(([x]) => doc.line(x, yy + (side === "top" ? -1 : 1), x, edge + (side === "top" ? -0.5 : 0.5)));
+      [[xa, c.a], [xb, c.b]].forEach(([x, xm]) => { const e = edgeY(xm, top); doc.line(x, yy + (top ? -1 : 1), x, e + (top ? -0.6 : 0.6)); });
       drawText(doc, { str: String(c.cm), ...C.font, at: [(xa + xb) / 2 - String(c.cm).length * 0.9, yy - 0.8] });
       drawn.push({ ...c, line: yy, side });
     } else {
-      const side = X(c.at) < midX ? "left" : "right", k = used[side]++;
-      let xx = side === "left" ? plan.x0 - C.gap - k * C.step : plan.x1 + C.gap + k * C.step;
+      const left = X(c.at) < midX, side = left ? "left" : "right", k = used[side]++;
+      let xx = left ? env.x0 - C.gap - k * C.step : env.x1 + C.gap + k * C.step;
       xx = Math.max(area.x + 3, Math.min(area.x + area.w - 3, xx));
-      const ya = Y(c.a), yb = Y(c.b), edge = side === "left" ? plan.x0 : plan.x1;
+      const ya = Y(c.a), yb = Y(c.b);
       doc.line(xx, ya, xx, yb); tick(xx, ya); tick(xx, yb);
-      [ya, yb].forEach((y) => doc.line(xx + (side === "left" ? -1 : 1), y, edge + (side === "left" ? -0.5 : 0.5), y));
+      [[ya, c.a], [yb, c.b]].forEach(([y, ym]) => { const e = edgeX(ym, left); doc.line(xx + (left ? -1 : 1), y, e + (left ? -0.6 : 0.6), y); });
       drawText(doc, { str: String(c.cm), ...C.font, angle: 90, at: [xx - 0.8, (ya + yb) / 2 + String(c.cm).length * 0.9] });
       drawn.push({ ...c, line: xx, side });
     }

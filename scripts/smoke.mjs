@@ -1678,7 +1678,7 @@ try {
     const items = (await (await doc.getPage(1)).getTextContent()).items.map((i) => i.str.trim()).filter(Boolean);
     const t1 = items.join(" ");
     const r = { r0, w, back, gris, cotes: pdf.cotes, abrev: t1.includes("CH1"), full: t1.includes("Chambre 1"), cm: pdf.cotes.every((c) => items.includes(String(c))) };
-    if (!(r0.thick && r0.thin && w.mat === "doublage" && w.wave > 0 && back === r0.was && gris.st === "gris" && gris.grey > 0 && gris.hatch === 0 && pdf.cotes.length >= 2 && r.abrev && !r.full && r.cm)) throw new Error(JSON.stringify(r));
+    if (!(r0.thick && r0.thin && w.mat === "doublage" && w.wave > 0 && back === r0.was && gris.st === "gris" && gris.grey > 0 && gris.hatch === 0 && pdf.cotes.length >= 1 && r.abrev && !r.full && r.cm)) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("onglet Étapes : plan, échelle, murs, pièces, appareils, liaisons, circuits, impression cochés", async () => {
