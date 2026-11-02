@@ -16,7 +16,7 @@ Branche `feat/plan-ftz-v74`.
   les noms complets.
 - **Cotes de position des boîtes** : `boxCotes(boxes, walls)` (ftz-sheet.js : distance au premier mur à gauche / droite et
   en haut / bas, en cm) + `drawBoxCotes` (violet #800080, Courier gras 2,97 mm ×0,66, hors du plan, côté le plus proche
-  de la boîte, empilées de 5 mm) ; case « Cotes des boîtes » par page (`pg.cotes`) ; `buildFtz` rend `cotes`.
+  de la boîte, empilées de 5 mm, lignes d'attache jusqu'au premier mur venant de l'extérieur, rien sous 20 cm : boîte contre un mur) ; case « Cotes des boîtes » par page (`pg.cotes`) ; `buildFtz` rend `cotes`.
 - Le fond du constructeur n'est jamais imprimé sur la feuille du BE.
 - Tests : charte.test.mjs (+3 : abréviations, cotes, dessin des murs), smoke « bâti du BE (v74 MAJ 2) ».
 - Reste pour la suite : volumes de la salle de bain (appareils sanitaires à ajouter d'abord), deviner le type de mur
