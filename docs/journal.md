@@ -1,6 +1,7 @@
 ## 02/11/2026 (nuit) — v74 MAJ 1 : préparation d'impression (plan A3 au format du BE)
 
-Branche `feat/plan-ftz-v74`. Bouton « Préparation d'impression (A3 BE)… » dans la fenêtre Imprimer, commande du
+Branche `feat/plan-ftz-v74`, fusionnée dans `main` avec la v73 le 02/11/2026 sur accord de Kévin (vérification GitHub
+Actions : `npm run check` 173/173 en smoke, `test:web` vert). Bouton « Préparation d'impression (A3 BE)… » dans la fenêtre Imprimer, commande du
 catalogue `file.prep`, `okteoExt.prep` (open, close, addItem, select, bg, prep, last).
 - `src/print/ftz-sheet.js` (pur, jsPDF) : cadre, cartouche FTZ (logo KiTéOHM HD `public/assets/kiteohm-logo-hd.png`),
   textes avec compression horizontale (`Tz`), légende = seulement les symboles utilisés + boîte « LI » + flèche « ligne
