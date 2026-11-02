@@ -1,3 +1,15 @@
+## 02/11/2026 (nuit) — v74 (fondation) : relevé de la charte des plans FTZ
+
+Branche `feat/plan-ftz-v74` (partie de `feat/charte-v73`, pas encore sur `main`). Objectif de Kévin : un plan Oktéo
+impossible à distinguer d'un plan FTZ du BE. Décisions et analyse : `docs/charte-plan-ftz.md`.
+- `scripts/charte/ftz-pdf.mjs` : lecteur sans dépendance des flux de contenu PDF (tracés, couleurs, épaisseurs, textes,
+  état graphique), sur un PDF décompressé par qpdf. `scripts/charte/ftz-charte.mjs` : écrit `src/print/ftz-charte.json`
+  (palette, styles de texte, 39 symboles des légendes FTZ avec leur dessin exact, cartouche avec champs à remplir).
+  Aucune donnée du client n'est gardée (valeurs du cartouche remplacées par {client}, {chantier}, {affaire}…).
+- `src/print/ftz-draw.js` : dessin SVG des symboles et du cartouche depuis la charte. `scripts/charte/planche.mjs` :
+  planche de contrôle FTZ d'origine / Oktéo. Test `scripts/charte.test.mjs` (10) ajouté à `npm run check`.
+- Les plans de référence (EVRARD, VILLANOVA, MAILLARD) ne sont pas ajoutés au dépôt (public, vrais clients).
+
 ## 02/11/2026 (nuit) — v73.1 : tailles adaptées à l'écran (retour de Kévin sur son portable)
 
 - Sur le petit PC de Kévin (affichage Windows à 150 % : environ 1280 × 600 utiles), le bandeau prenait la moitié de
