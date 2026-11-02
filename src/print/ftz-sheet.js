@@ -264,7 +264,7 @@ export function drawBoxCotes(doc, cotes, X, Y, plan, area, walls = []) {
       yy = Math.max(area.y + 3, Math.min(area.y + area.h - 1, yy));
       const xa = X(c.a), xb = X(c.b);
       doc.line(xa, yy, xb, yy); tick(xa, yy); tick(xb, yy);
-      [[xa, c.a], [xb, c.b]].forEach(([x, xm]) => { const e = edgeY(xm, top); doc.line(x, yy + (top ? -1 : 1), x, e + (top ? -0.6 : 0.6)); });
+      [[xa, c.a], [xb, c.b]].forEach(([x, xm]) => { const p = Y(c.at), e = top ? Math.min(edgeY(xm, top), p) : Math.max(edgeY(xm, top), p); doc.line(x, yy + (top ? -1 : 1), x, e + (top ? -0.6 : 0.6)); });
       drawText(doc, { str: String(c.cm), ...C.font, at: [(xa + xb) / 2 - String(c.cm).length * 0.9, yy - 0.8] });
       drawn.push({ ...c, line: yy, side });
     } else {
@@ -273,7 +273,7 @@ export function drawBoxCotes(doc, cotes, X, Y, plan, area, walls = []) {
       xx = Math.max(area.x + 3, Math.min(area.x + area.w - 3, xx));
       const ya = Y(c.a), yb = Y(c.b);
       doc.line(xx, ya, xx, yb); tick(xx, ya); tick(xx, yb);
-      [[ya, c.a], [yb, c.b]].forEach(([y, ym]) => { const e = edgeX(ym, left); doc.line(xx + (left ? -1 : 1), y, e + (left ? -0.6 : 0.6), y); });
+      [[ya, c.a], [yb, c.b]].forEach(([y, ym]) => { const p = X(c.at), e = left ? Math.min(edgeX(ym, left), p) : Math.max(edgeX(ym, left), p); doc.line(xx + (left ? -1 : 1), y, e + (left ? -0.6 : 0.6), y); });
       drawText(doc, { str: String(c.cm), ...C.font, angle: 90, at: [xx - 0.8, (ya + yb) / 2 + String(c.cm).length * 0.9] });
       drawn.push({ ...c, line: xx, side });
     }
