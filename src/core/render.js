@@ -866,6 +866,8 @@ export function hitPort(wx, wy) {
   let best = null;
   for (const b of (K.CAB.boxes || []).filter(x => x.lv === K.LV.cur)) {
     const { S, N } = boxLayout(b, pm);
+    // v72.1 : comme à l'écran (v71), les points d'accroche ne sont actifs que sur la boîte sélectionnée
+    const on = K.boxSel === b.id;
     for (const f of (on ? ["A", "B", "C", "D"] : [])) for (let i = 0; i < N; i++) {
       const P = portXY(b, S, N, f, i), d = dist(wx, wy, P.x, P.y);
       if (d <= 6 * pm && (!best || d < best.d)) best = { box: b, f, i, x: P.x, y: P.y, d };

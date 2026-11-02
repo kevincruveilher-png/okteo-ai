@@ -12,6 +12,8 @@ export function planWiring() {
   const cv=K.CAB.choix?.commandeVolet || '';
   const data={items,links:allLinks(),circuits:K.CAB.circuits || [],boxes:K.CAB.boxes || [],levels:CH.levels.map(l=>l.id),S:{...getCab(),commandeVolet:cv,voletsConnectes:cv==='connecte'}};
   const key=JSON.stringify(data);
-  if(K.planWiringCache?.key!==key) K.planWiringCache={key,value:computeWiring(data)};
+  // v72.1 : le plan ne doit jamais planter à cause d'un calcul de câblage incomplet (appareil sans circuit pendant
+  // l'édition…) : sans résultat, pas de flèches ; les erreurs restent signalées par le contrôle et l'étude.
+  if(K.planWiringCache?.key!==key){let value;try{value=computeWiring(data);}catch(e){console.warn('Oktéo : flèches du plan non calculées',e);value={boxes:[],direct:[]};}K.planWiringCache={key,value};}
   return K.planWiringCache.value;
 }

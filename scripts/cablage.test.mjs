@@ -512,5 +512,15 @@ console.log("Types d'implantation et note « belle pieuvre » (v62)");
     && new Set(zr.boxes.map((b) => b.zone)).size === new Set(HZ.it.filter((a) => a.room).map((a) => Zm.get(a.room))).size && MODES.zone === "Par zone", JSON.stringify(zr.boxes.map((b) => [b.zone, b.x, b.y, [...zoneOfBox(b)]])));
 }
 
+// v72.1 : depuis v71 le plan calcule le câblage à chaque dessin ; un appareil retiré de son circuit pendant l'édition
+// (boîte inchangée) ne doit pas faire planter le calcul.
+{
+  let err = null, Wn = null;
+  const box2 = P.boxes.find((b) => b.apps.length > 1);
+  const ids = new Set(box2 ? box2.apps : []);
+  try { Wn = computeWiring({ items, links, circuits: C.map((c) => ({ ...c, apps: c.apps.filter((id) => !ids.has(id)) })), boxes: P.boxes, levels: ["rdc"], S }); } catch (e) { err = e.message; }
+  check("câblage calculé même si des appareils d'une boîte n'ont plus de circuit (plan v71)", !err && !!Wn, err || "");
+}
+
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);
 if (fails.length) process.exit(1);

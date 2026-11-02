@@ -305,7 +305,7 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
           issues.push(`${b.n} : aucun câble du stock ne convient pour ${G.map((m) => m.rep).join(" + ")} (${wires.length} fils)`);
         }
       }
-      if (G.length > 1 && G.some((m) => circOf.get(m.id).kind === "specialise")) doubt("R-089", `${b.n} : un circuit spécialisé est dans une gaine partagée (${G.map((m) => m.rep).join(" + ")})`, b.n, true);
+      if (G.length > 1 && G.some((m) => (circOf.get(m.id) || {}).kind === "specialise")) doubt("R-089", `${b.n} : un circuit spécialisé est dans une gaine partagée (${G.map((m) => m.rep).join(" + ")})`, b.n, true);
       const route = G.map((m) => (b.routes || {})[m.id]).find(Boolean) || null;
       const downMax = Math.max(...G.map((m) => down(m.h, S)));
       const len = gaineLength({ horiz: viaLen(b, route, a), downA: downMax, levels: Math.abs(lvIdx(a.lv) - lvB) }, S);
