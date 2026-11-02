@@ -87,7 +87,7 @@ export function controlIssues() {
     const apps = [...idx].filter(([, v]) => v.lv === lv).map(([id, v]) => ({ ...v.a, id }));
     if (!apps.some((a) => a.t === "BAIG" || a.t === "RECV" || a.t === "DITAL")) continue;
     const rooms = (lv === K.LV.cur ? state.rooms : (K.LV.data[lv] || {}).rooms || []).map(roomPoly);
-    for (const v of checkVolumes(apps, rooms)) out.push({ kind: "sdb", ids: [v.id, v.sani], lv, bloquant: v.bloquant, text: v.text });
+    for (const v of checkVolumes(apps, rooms)) out.push({ kind: "sdb", ids: [v.id], sani: v.sani, lv, bloquant: v.bloquant, text: v.text });
   }
   // allumage coupé : la commande et sa lumière dans deux boîtes différentes
   const B = K.CAB.boxes || [];
