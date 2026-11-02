@@ -1681,6 +1681,21 @@ try {
     if (!(r0.thick && r0.thin && w.mat === "doublage" && w.wave > 0 && back === r0.was && gris.st === "gris" && gris.grey > 0 && gris.hatch === 0 && pdf.cotes.length >= 1 && r.abrev && !r.full && r.cm)) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("salle de bain (v74 MAJ 3) : douche à l'italienne posée, volumes dessinés, luminaire dedans signalé, annulable", async () => {
+    const r = await ev(() => {
+      const room = okteo.state.rooms[0], P = room.poly || [{ x: room.x0, y: room.y0 }, { x: room.x1, y: room.y1 }];
+      const c = { x: P.reduce((s, p) => s + p.x, 0) / P.length, y: P.reduce((s, p) => s + p.y, 0) / P.length };
+      const n0 = okteo.state.app.length, k0 = okteo.control.filter((x) => x.kind === "sdb").length;
+      const { ids } = okteo.importDevices([{ t: "DITAL", x: c.x, y: c.y }, { t: "LUM", x: c.x + 0.4, y: c.y }]);
+      const v = { v1: document.querySelectorAll("#sv polygon.vol.v1").length, v2: document.querySelectorAll("#sv polygon.vol.v2").length, sani: document.querySelectorAll("#sv g.sani").length };
+      const sdb = okteo.control.filter((x) => x.kind === "sdb"), geo = okteo.exportGeometry();
+      const rep = !!(okteo.repMap && okteo.repMap()[ids[0]]);
+      okteo.undo();
+      return { n0, k0, ids, v, sdb: sdb.map((x) => x.ids.join("/")), vols: (geo.volumes || []).length, inApps: geo.apps.some((a) => a.id === ids[0]), back: okteo.state.app.length === n0 && !okteo.control.some((x) => x.kind === "sdb"), kinds: okteo.controlKinds.sdb, rep };
+    });
+    if (!(r.k0 === 0 && r.v.v1 === 1 && r.v.v2 === 1 && r.v.sani === 1 && r.sdb.length === 1 && r.sdb[0] === r.ids[1] + "/" + r.ids[0] && r.vols === 1 && !r.inApps && r.back && r.kinds)) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("onglet Étapes : plan, échelle, murs, pièces, appareils, liaisons, circuits, impression cochés", async () => {
     await ev(() => okteoExt.panel.show("steps")); await page.waitForTimeout(250);
     const r = await ev(() => ({ done: document.querySelectorAll(".steps li.done").length, next: document.querySelector(".steps li.next b")?.textContent || "" }));

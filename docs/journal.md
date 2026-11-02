@@ -1,6 +1,27 @@
-## 03/11/2026 — v74 MAJ 2 : bâti du plan du BE (types de murs, noms abrégés, cotes des boîtes)
+## 03/11/2026 — v74 MAJ 3 : volumes de la salle de bain
 
 Branche `feat/plan-ftz-v74`.
+- `src/cablage/volumes.js` (pur) : sanitaires `SANI` (BAIG baignoire 170 × 75, RECV receveur 90 × 90, DITAL douche à
+  l'italienne = pomme fixe), `saniRect` (dimensions `a.sw`/`a.sd` en m, rotation `a.srot`), `volumesOf(a, contour de la
+  pièce)` → {v0, v1, v2} : volume 0/1 = emprise, 2 = 0,60 m autour (coins arrondis) ; italienne : 1 = 1,20 m autour de
+  la pomme, 2 = 1,80 m ; chaque volume découpé par le contour intérieur de la pièce (`clipConvex`, Sutherland–Hodgman) ;
+  `volumeAt(x, y, h, V)` (hauteurs 0,60 / 2,25 / 3 m, 3 cm de tolérance pour les appareils muraux), `volumeRule` (volume 0 :
+  rien ; 1 : ni prise, ni commande, ni chauffage, luminaire TBTS 12 V ; 2 : ni prise ni commande, luminaire et
+  sèche-serviette classe II), `checkVolumes`. Règles simplifiées, **à valider avec le référentiel du BE**.
+- Sanitaires = appareils du groupe « Sanitaires » (bouton Autres) : `racc: "aucun"`, famille `SANI` sans repère (repMap),
+  exclus des circuits (circuits.js, `circuitMap().__need`), des symboles écartés et de la légende ; dessinés à leur vraie
+  taille avec le bâti (render `g.sdb`, `g.sani`, `polygon.vol.v1/.v2`) ; saisis dans tout leur contour (hitApp).
+  Propriétés : longueur, largeur, rotation (`#f_sw`, `#f_sd`, `#f_srot`).
+- Contrôle : sorte `sdb` « Appareil dans un volume de salle de bain » (check.js, tous niveaux ; bloquant pour prise /
+  commande / chauffage) ; étude.js la reprend.
+- Impression : `exportGeometry().volumes` (sanitaires retirés de `apps`), print.js dessine volumes (hachures pointillées)
+  et sanitaires sur le plan classique et sur la feuille A3 du BE ; `rotateGeo` les tourne.
+- Tests : charte.test.mjs (+3 : baignoire, italienne, contrôle), smoke « salle de bain (v74 MAJ 3) ».
+
+## 03/11/2026 — v74 MAJ 2 : bâti du plan du BE (types de murs, noms abrégés, cotes des boîtes)
+
+Branche `feat/plan-ftz-v74`, fusionnée dans `main` sur « go and push » de Kévin (GitHub Actions : check complet, smoke
+174/174, test:web vert).
 - **Type de mur** (`seg.mat` : `maconnerie` | `cloison` | `doublage`, absent = automatique) : `matOf(seg)` (model.js) =
   le type posé, sinon 16 cm et plus, ou mur de façade (un côté hors de toute pièce, `wallFacade`) de 10 cm et plus =
   maçonnerie, sinon cloison. Propriétés du mur : `#f_mat`. API `wallMats()`, `setWallMat(ids, mat)` (annulable).

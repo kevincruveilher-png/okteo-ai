@@ -11,10 +11,13 @@ import { permanentDetector } from "../cablage/detecteur.js";
 import { K } from "./k.js";
 import { TYPES } from "./model.js";
 import { appIndex, allLinks } from "./levels.js";
-import { linkRole } from "./attach.js";
+import { linkRole, roomPoly } from "./attach.js";
+import { checkVolumes } from "../cablage/volumes.js";
+import { state } from "./model.js";
 import { circuitMap } from "./render.js";
 
 export const CHECK_KINDS = {
+  sdb: "Appareil dans un volume de salle de bain",
   vmc: "Parcours VMC à vérifier",
   implantation: "Emplacement à préciser",
   detecteur: "Commande détecteur contradictoire",
@@ -78,6 +81,13 @@ export function controlIssues() {
   if ((K.CAB.circuits || []).length) {
     const cm = circuitMap();
     for (const [id, { lv, a }] of idx) if (cm.__need(a) && !cm.__direct(a) && !cm[id]) out.push({ kind: "circ", ids: [id], lv });
+  }
+  // v74 MAJ 3 : volumes de la salle de bain (sanitaires posés) : prise, commande, chauffage… interdits
+  for (const lv of new Set([...idx.values()].map((v) => v.lv))) {
+    const apps = [...idx].filter(([, v]) => v.lv === lv).map(([id, v]) => ({ ...v.a, id }));
+    if (!apps.some((a) => a.t === "BAIG" || a.t === "RECV" || a.t === "DITAL")) continue;
+    const rooms = (lv === K.LV.cur ? state.rooms : (K.LV.data[lv] || {}).rooms || []).map(roomPoly);
+    for (const v of checkVolumes(apps, rooms)) out.push({ kind: "sdb", ids: [v.id, v.sani], lv, bloquant: v.bloquant, text: v.text });
   }
   // allumage coupé : la commande et sa lumière dans deux boîtes différentes
   const B = K.CAB.boxes || [];
