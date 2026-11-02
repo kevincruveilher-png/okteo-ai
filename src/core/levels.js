@@ -5,6 +5,7 @@ import {ductPath,ductReport} from '../cablage/vmc.js';
 import { K } from "./k.js";
 import * as CHS from "../chantiers.js";
 import { labelPoint } from "../walls/rooms.js";
+import { isSani, roomFor, saniRect, volumesOf } from "../cablage/volumes.js";
 import { CH, LKEYS, TYPES, batiStyle, dist, epOf, matOf, nodeById, segById, segDir, state, symScaleOf } from "./model.js";
 import { markDirty, snapshot } from "./persist.js";
 import { fit, repMap } from "./view.js";
@@ -412,7 +413,10 @@ export function okteoGeo() {
   crossLinks().forEach(x => {
     xl[x.id] = (xl[x.id] ? xl[x.id] + ' · ' : '') + x.word;
   });
-  const apps = state.app.map(a => ({
+  // v74 MAJ 3 : sanitaires (contour réel) et volumes de la salle de bain, pour l'impression
+  const roomPolys = state.rooms.map(roomPoly);
+  const volumes = state.app.filter(a => isSani(a.t)).map(a => ({ id: a.id, t: a.t, x: a.x, y: a.y, rect: a.t === "DITAL" ? null : saniRect(a), ...volumesOf(a, roomFor(a, roomPolys)) }));
+  const apps = state.app.filter(a => !isSani(a.t)).map(a => ({
     id: a.id,
     t: a.t,
     x: a.x,
@@ -479,6 +483,7 @@ export function okteoGeo() {
     joints,
     openings,
     wallThickness,
+    volumes,
     wallMat,
     wallAxis,
     batiStyle: batiStyle(),

@@ -1,5 +1,6 @@
 // Oktéo AI — cœur : Hit-tests (ce qui est sous la souris) et appareils attachés à leur mur.
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
+import { isSani, pointIn, saniRect } from "../cablage/volumes.js";
 import { K } from "./k.js";
 import { muraux } from "../cablage/appareils.js";
 import { interiorPoly, polyArea } from "../walls/rooms.js";
@@ -60,7 +61,9 @@ export function hitApp(wx, wy) {
     bd = Math.max(tolM(), K.symCm / 100);
   for (const a of state.app) {
     const D = K.dispPos && K.dispPos.get(a.id);   // v58 : symbole affiché décalé
-    const d = Math.min(dist(wx, wy, a.x, a.y), D ? dist(wx, wy, D.x, D.y) : Infinity);
+    // v74 : un sanitaire se saisit partout dans son contour (la pomme d'une douche à l'italienne : à son point)
+    const inSani = isSani(a.t) && a.t !== "DITAL" && pointIn(wx, wy, saniRect(a));
+    const d = inSani ? Math.min(bd * 0.99, dist(wx, wy, a.x, a.y)) : Math.min(dist(wx, wy, a.x, a.y), D ? dist(wx, wy, D.x, D.y) : Infinity);
     if (d < bd) {
       bd = d;
       b = a;

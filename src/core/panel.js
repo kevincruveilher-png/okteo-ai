@@ -11,6 +11,7 @@ import { draw } from "./render.js";
 import { reattach, removeSeg, roomArea } from "./attach.js";
 import { pref } from "../prefs.js";
 import { APPAREILS, lignesOf, gaineLabel, raccOf } from "../cablage/appareils.js";
+import { SANI, isSani } from "../cablage/volumes.js";
 import { planTravailAuto } from "../cablage/circuits.js";
 import { getCab } from "../cablage/settings.js";
 import { currentGroup, deleteGroup, duplicateGroup, groupCount, multi, resizeRoom, roomAt, transformGroup } from "./groups.js";
@@ -439,7 +440,7 @@ export function showSide() {
       <div class="field"><label>Depuis l'angle B <span class="u">cm</span></label><input id="f_dB" type="number" step="1" value="${Math.round(m.dB * 100)}"></div>` : ""}
       <div class="field"><label>X plan <span class="u">m</span></label><input id="f_x" type="number" step="0.01" value="${a.x}"></div>
       <div class="field"><label>Y plan <span class="u">m</span></label><input id="f_y" type="number" step="0.01" value="${a.y}"></div>
-      <div class="field full"><label>Hauteur <span class="u">cm</span></label><input id="f_h" type="number" step="1" value="${a.h ?? ""}" ${a.h == null ? 'placeholder="— plafond —"' : ''}></div>${raccHTML(a)}${ptHTML(a)}</div>
+      ${isSani(a.t) ? saniHTML(a) : `<div class="field full"><label>Hauteur <span class="u">cm</span></label><input id="f_h" type="number" step="1" value="${a.h ?? ""}" ${a.h == null ? 'placeholder="— plafond —"' : ''}></div>${raccHTML(a)}${ptHTML(a)}`}</div>
      ${a.hp ? `<p class="note hp-note" id="f_hp">Équipement hors plan, posé d'après le devis : <b>à vérifier avec le devis</b> et à mettre à sa vraie place. <button id="f_hpok" title="Vérifié avec le devis : retire la marque violette">Vérifié</button></p>` : ""}
      ${a.aiNo ? `<p class="note" id="f_aino">Relecture IA : ${esc0(a.aiNo)} — ce point ne sera plus redemandé. <button id="f_ainox" title="Le redemander à la prochaine relecture">Redemander</button></p>` : ""}
      <div style="display:flex;gap:6px;margin-top:12px"><button id="dup">Dupliquer</button><button id="del" class="danger">Supprimer</button></div>
@@ -448,6 +449,7 @@ export function showSide() {
       draw();
       showSide();
     };
+    ["f_sw", "f_sd", "f_srot"].forEach(k => { const el = b.querySelector("#" + k); if (el) el.onchange = e => { snapshot(); const v = +String(e.target.value).replace(",", "."); const key = k.slice(2); if (key === "srot") a.srot = ((v % 360) + 360) % 360; else if (v > 0) a[key] = +(key === "sw" || key === "sd" ? v / 100 : v).toFixed(3); markDirty(); re(); }; });
     const confirmPlacement = b.querySelector("#f-placement-confirm"), reviewPlacement = b.querySelector("#f-placement-review");
     if (confirmPlacement) confirmPlacement.onclick = () => { snapshot(); a.implantation = { ...a.implantation, etat:"confirmee", origine:"manuel", motif:"Position confirmée par le dessinateur." }; markDirty(); re(); };
     if (reviewPlacement) reviewPlacement.onclick = () => { snapshot(); a.implantation = { ...a.implantation, etat:"a_preciser", motif:"Position remise à préciser par le dessinateur." }; markDirty(); re(); };
@@ -498,7 +500,7 @@ export function showSide() {
       markDirty();
       re();
     };
-    b.querySelector("#f_h").onchange = e => {
+    if (b.querySelector("#f_h")) b.querySelector("#f_h").onchange = e => {
       snapshot();
       a.h = e.target.value === "" ? null : +e.target.value;
       markDirty();
@@ -623,4 +625,14 @@ export function setBatiStyle(v) {
   showSide();
   document.dispatchEvent(new CustomEvent("okteo:bati", { detail: v }));
   return true;
+}
+
+// v74 MAJ 3 : dimensions d'un sanitaire (les volumes de la salle de bain en dépendent)
+function saniHTML(a) {
+  const S = SANI[a.t], w = Math.round((a.sw || S.w) * 100), d = Math.round((a.sd || S.d) * 100);
+  if (a.t === "DITAL") return `<p class="note full">Point posé = la <b>pomme de douche fixe</b>. Volume 1 : 1,20 m autour (jusqu'à 2,25 m de haut) ; volume 2 : 0,60 m de plus. Les volumes s'arrêtent aux murs de la pièce.</p>`;
+  return `<div class="field"><label title="Longueur hors tout">Longueur <span class="u">cm</span></label><input id="f_sw" type="number" step="1" min="30" value="${w}"></div>
+      <div class="field"><label>Largeur <span class="u">cm</span></label><input id="f_sd" type="number" step="1" min="30" value="${d}"></div>
+      <div class="field full"><label title="Rotation autour du centre, en degrés (90 = tournée d'un quart de tour)">Rotation <span class="u">°</span></label><input id="f_srot" type="number" step="15" value="${a.srot || 0}"></div>
+      <p class="note full">Volume 0 = l'intérieur ; volume 1 = la même emprise jusqu'à 2,25 m ; volume 2 = 0,60 m autour, jusqu'à 3 m. Le contrôle signale les prises, commandes et chauffages placés dedans.</p>`;
 }

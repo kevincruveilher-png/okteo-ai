@@ -20,6 +20,7 @@ import { portLayout, portXY } from "../cablage/boites.js";
 import { chooseBows, BOW0, curve, polyCross } from "../cablage/trace.js";
 import { implantationPending } from "../cablage/equipements.js";
 import { APPAREILS, raccOf } from "../cablage/appareils.js";
+import { isSani, roomFor, saniRect, volumesOf } from "../cablage/volumes.js";
 
 // ---------- rendu ----------
 export const sv = document.getElementById("sv");
@@ -203,6 +204,22 @@ export function draw() {
       if (e > 0) jn += `<rect x="${n.x - e / 2}" y="${n.y - e / 2}" width="${e}" height="${e}" fill="${lk.hatch ? "url(#wall-hatch)" : lk.fill}"/>`;
     });
     h += `<g>${jn}${mp}</g>`;
+  }
+  // v74 MAJ 3 : sanitaires à leur vraie taille et volumes de la salle de bain (hachures en pointillés, comme les plans du BE)
+  if (layers.appareils.on && state.app.some(a => isSani(a.t))) {
+    const polys = state.rooms.map(roomPoly), pts = P => P.map(p => p.x.toFixed(3) + "," + p.y.toFixed(3)).join(" ");
+    let sv = `<defs><pattern id="vol1" width=".1" height=".1" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2=".1" stroke="#555" stroke-width=".008" stroke-dasharray=".02 .02"/></pattern><pattern id="vol2" width=".2" height=".2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2=".2" stroke="#777" stroke-width=".008" stroke-dasharray=".02 .03"/></pattern></defs>`;
+    state.app.filter(a => isSani(a.t)).forEach(a => {
+      const V = volumesOf(a, roomFor(a, polys)), on = isSel("app", a.id) || GH && GH.apps.has(a.id);
+      if (V.v2) sv += `<polygon class="vol v2" points="${pts(V.v2)}" fill="url(#vol2)" stroke="#777" stroke-width=".01" stroke-dasharray=".04 .04"><title>Volume 2 (0,60 m autour du volume 1, jusqu'à 3 m)</title></polygon>`;
+      if (V.v1) sv += `<polygon class="vol v1" points="${pts(V.v1)}" fill="url(#vol1)" stroke="#555" stroke-width=".012" stroke-dasharray=".04 .03"><title>Volume 1 (jusqu'à 2,25 m)</title></polygon>`;
+      if (a.t === "DITAL") sv += `<g class="sani" data-id="${a.id}"><circle cx="${a.x}" cy="${a.y}" r=".09" fill="#fff" stroke="${on ? "var(--sel)" : "#222"}" stroke-width="${on ? .03 : .015}"/><circle cx="${a.x}" cy="${a.y}" r=".03" fill="#222"/></g>`;
+      else {
+        const R = saniRect(a), c = { x: a.x, y: a.y }, inner = R.map(p => ({ x: c.x + (p.x - c.x) * 0.86, y: c.y + (p.y - c.y) * 0.8 }));
+        sv += `<g class="sani" data-id="${a.id}"><polygon points="${pts(R)}" fill="#fff" stroke="${on ? "var(--sel)" : "#222"}" stroke-width="${on ? .03 : .015}"/>${a.t === "BAIG" ? `<polygon points="${pts(inner)}" fill="none" stroke="#222" stroke-width=".01" stroke-linejoin="round"/>` : `<line x1="${R[0].x}" y1="${R[0].y}" x2="${R[2].x}" y2="${R[2].y}" stroke="#222" stroke-width=".008"/><line x1="${R[1].x}" y1="${R[1].y}" x2="${R[3].x}" y2="${R[3].y}" stroke="#222" stroke-width=".008"/>`}</g>`;
+      }
+    });
+    h += `<g class="sdb">${sv}</g>`;
   }
   // ouvertures (portes/fenêtres)
   if (layers.ouvertures.on && (pref("ouvrants") || ["porte", "fenetre"].includes(K.tool))) {
@@ -418,7 +435,7 @@ export function draw() {
   }
   // v58 : symboles sans chevauchement : affichage décalé (le long du mur pour un appareil mural), position réelle gardée,
   // trait de rappel vers la position réelle ; K.dispPos sert aussi aux repères, aux halos et à la sélection
-  K.dispPos = layers.appareils.on ? spreadSymbols(state.app.map(a => ({ id: a.id, x: a.x, y: a.y, ...wallU(a) })), 1.9 * symView()) : new Map();
+  K.dispPos = layers.appareils.on ? spreadSymbols(state.app.filter(a => !isSani(a.t)).map(a => ({ id: a.id, x: a.x, y: a.y, ...wallU(a) })), 1.9 * symView()) : new Map();
   // appareils + repères
   if (layers.appareils.on) {
     // mode essai (v45) : lumières allumées (classe lit) et commandes actionnées (classe on)
@@ -429,6 +446,7 @@ export function draw() {
     const circ = K.showCirc ? circuitMap() : null;
     let ap = "";
     state.app.forEach(a => {
+      if (isSani(a.t)) return;   // v74 : dessinés à leur vraie taille avec le bâti
       const aSel = isSel("app", a.id) || GH && GH.apps.has(a.id),
         lit = onSet && onSet.has(a.id);
       // couleur du circuit (affichage des circuits) sur le symbole lui-même ; sans circuit = rouge (à vérifier),
@@ -783,7 +801,7 @@ export function circuitMap() {
   });
   // appareils qui devraient être dans un circuit (pas le tableau, pas les bouches VMC non câblées)
   // (v54 : ni l'équipotentielle locale, raccordée à la terre de sa boîte, ni une hotte dont le raccordement reste à choisir)
-  m.__need = a => !["TAB", "VMC", "VEX", "VREJ", "EQL", "INCONNU"].includes(a.t) && !(a.t === "CVR" && (K.CAB.choix || {}).commandeVolet === "connecte") && !(a.t === "HOTTE" && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "a_choisir");
+  m.__need = a => !["TAB", "VMC", "VEX", "VREJ", "EQL", "INCONNU", "BAIG", "RECV", "DITAL"].includes(a.t) && !(a.t === "CVR" && (K.CAB.choix || {}).commandeVolet === "connecte") && !(a.t === "HOTTE" && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "a_choisir");
   // partent en ligne directe du tableau (ou du coffret) : pas d'alerte rouge avant la répartition
   m.__direct = a => ["RJ45", "PC20", "SC"].includes(a.t) || (APPAREILS[a.t] && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "direct");
   return m;

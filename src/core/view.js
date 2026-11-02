@@ -272,7 +272,7 @@ export function repMap() {
       while (used.has(k)) k++;
       a.n = k;
     }
-    m[a.id] = f + a.n;
+    if (f !== "SANI") m[a.id] = f + a.n;   // v74 : les sanitaires n'ont pas de repère
   });
   return m;
 }

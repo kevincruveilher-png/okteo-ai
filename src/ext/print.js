@@ -40,6 +40,7 @@ export function rotateGeo(geo, deg) {
   g.wallThickness = geo.wallThickness;
   g.walls = (geo.walls || []).map(RL);
   g.wallAxis = (geo.wallAxis || []).map(RL);
+  g.volumes = (geo.volumes || []).map((v) => ({ ...R(v), rect: v.rect ? RL(v.rect) : null, v0: v.v0 ? RL(v.v0) : null, v1: v.v1 ? RL(v.v1) : null, v2: v.v2 ? RL(v.v2) : null }));
   g.joints = RL(geo.joints);
   g.openings = (geo.openings || []).map((o) => ({ ...o, j1: R(o.j1), j2: R(o.j2), n: V(o.n), ...(o.hinge ? { hinge: R(o.hinge), leaf: R(o.leaf), arc: RL(o.arc) } : {}) }));
   g.wallDims = (geo.wallDims || []).map((w) => ({ ...R(w), ang: w.ang + t }));
@@ -225,6 +226,17 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       if (L.wave && geo.wallAxis?.[i]) { doc.setLineWidth(.1); const W = wavePoints(geo.wallAxis[i][0], geo.wallAxis[i][1], geo.wallThickness[i]); for (let k = 1; k < W.length; k++) line(W[k - 1], W[k]); }
     });
     if (o.murs) geo.joints.filter((j) => wallLook(jointMat(j), ST).fill !== "#FFFFFF").forEach((j) => { fillHex(wallLook(jointMat(j), ST).fill); doc.rect(X(j.x - j.e / 2), Y(j.y - j.e / 2), j.e * f, j.e * f, "F"); });
+    // v74 MAJ 3 : volumes de la salle de bain (hachures en pointillés) et sanitaires à leur vraie taille
+    if (o.appareils && (geo.volumes || []).length) {
+      const dashPoly = (P) => { for (let k = 0; k < P.length; k++) line(P[k], P[(k + 1) % P.length]); };
+      geo.volumes.forEach((V) => {
+        [[V.v2, 0.2, 110], [V.v1, 0.1, 70]].forEach(([P, st, g]) => { if (!P) return; doc.setDrawColor(g); doc.setLineWidth(0.1); doc.setLineDashPattern([0.5, 0.5], 0); hatchLines(P, st).forEach(([a, b]) => line(a, b)); dashPoly(P); });
+        doc.setLineDashPattern([], 0); doc.setDrawColor(32); doc.setFillColor(255);
+        if (V.rect) { doc.setLineWidth(0.18); poly(V.rect, "FD"); if (V.t === "BAIG") { const c = { x: V.x, y: V.y }; doc.setLineWidth(0.1); dashPoly(V.rect.map((p) => ({ x: c.x + (p.x - c.x) * 0.86, y: c.y + (p.y - c.y) * 0.8 }))); } else { doc.setLineWidth(0.08); line(V.rect[0], V.rect[2]); line(V.rect[1], V.rect[3]); } }
+        else { doc.setLineWidth(0.15); doc.circle(X(V.x), Y(V.y), 0.09 * f, "FD"); doc.setFillColor(32); doc.circle(X(V.x), Y(V.y), 0.03 * f, "F"); }
+      });
+      doc.setFillColor(255);
+    }
     // limites de pièce (sans mur) : trait fin en pointillés
     if (o.pieces && geo.limits && geo.limits.length) {
       doc.setDrawColor(150, 150, 150); doc.setLineWidth(0.1); doc.setLineDashPattern([0.6, 0.6], 0);
