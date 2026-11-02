@@ -6,7 +6,7 @@ await server.listen();
 const browser = await chromium.launch();
 const errs = [];
 try {
-  for (const [w, h] of [[1920, 1080], [1500, 900]]) {
+  for (const [w, h] of [[1920, 1080], [1500, 900], [1280, 600]]) {
     const page = await browser.newPage({ viewport: { width: w, height: h } });
     page.on("pageerror", (e) => errs.push(e.message));
     await page.goto("http://localhost:5290/"); await page.waitForFunction(() => window.okteo && window.okteoExt);
