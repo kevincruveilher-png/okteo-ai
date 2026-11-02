@@ -30,3 +30,23 @@ constructeur). D'autres PLAN_EXPE FTZ seront fournis par Kévin.
   tailles des textes et encadrés) + comparateur dans les tests (planche FTZ / Oktéo côte à côte, écart mesuré).
 - Puis une mise à jour à la fois, sur « go » : 1. préparation d'impression (feuille A3, cartouche, pages, légende,
   textes) ; 2. bâti ; 3. symboles du plan pieuvre, couleurs par boîte, repères, flèche ; 4. page 2 équipements.
+
+## Analyse des plans VILLANOVA et MAILLARD (02/11/2026)
+- **VILLANOVA (AF25114192)** : export natif FTZ (« SchemBAT 15.08 », FTZ PDF Library), vectoriel avec de vraies polices
+  PDF standard : **Courier-Bold** (repères, pièces), **Helvetica** (légende, cartouche), **Times-Roman**. Ce sont les polices
+  de base de jsPDF : reproduction exacte possible. C'est la meilleure référence (préférer les exports FTZ directs aux PDF
+  « PDFCreator » ou aux scans).
+- Dossier FTZ type : 1. pieuvre (+ légende des symboles utilisés), 2. équipements / lignes directes (+ légende + matériel :
+  gaines Ø80/Ø125 renforcées, support box CAE, passerelle connectée, cornet, connecteur RJ45 en image), 3. **plomberie**
+  (sorties d'eau Ø, collecteur, eau froide bleue / chaude rouge, tableau des hauteurs de sorties d'eau dans le cartouche),
+  4. tableau (face avant), 5. schéma unifilaire. MAILLARD (scan) : même dossier + documents du constructeur / cuisiniste.
+- La légende est en haut à droite (VILLANOVA) ou en haut à gauche (MAILLARD) : coin libre. EVRARD n'en a pas.
+- Encart image produit possible (« GIGA OCTO ! » sur VILLANOVA).
+- **Couleurs des boîtes : l'ordre n'est pas le même d'un plan à l'autre** (EVRARD LI02 vert / LI03 magenta / LI04 bleu ;
+  VILLANOVA LI02 magenta / LI03 bleu / LI04 vert) → cycle par défaut + couleur modifiable par boîte.
+- **Murs** : hachurés en diagonale (VILLANOVA, MAILLARD) ou gris plein + cloisons ondulées (EVRARD) : suit le plan du
+  constructeur → style de bâti au choix par chantier.
+- **Deux types de boîte** : boîte carrée (combles) et « boîte pavillonnaire pot de centre » (cercle vert autour du point
+  lumineux, ex. LI04 sur L10).
+- Zone hachurée en pointillés autour de la douche (volumes de la SDB) = « zone interdite ».
+- Radiateurs électriques sur le plan électrique, radiateurs à eau sur le plan plomberie (décision de Kévin).
