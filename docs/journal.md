@@ -1,3 +1,14 @@
+## 02/11/2026 (soir) — v72.1 fusionnée dans `main` et mise en production
+
+- « Go » de Kévin (20:41). `main` avancée sur `feat/web-entreprise-v72` (avance rapide, sans réécriture d'historique,
+  PR #1 fermée par la fusion). Cloudflare construit la production : https://okteo-ai.pages.dev (base D1 `okteo-accounts`).
+- Recette faite sur l'aperçu : connexion, création du compte administrateur, changement de mot de passe (vérifié dans
+  D1). Restent à faire en production : import PDF, secours chiffré, QR code des bandes ; IA dès que la clé sera ajoutée.
+- `gh-pages` (ancienne adresse GitHub Pages) : remplacée par les pages de redirection de
+  `docs/redirection-github-pages/` (un commit ajouté, historique conservé ; les anciens QR gardent leur `#`).
+- Branches restantes : `main`, `feat/web-entreprise-v72` (gardée pour l'historique de la PR), `gh-pages`.
+- Prochaine mise à jour prévue : identité de marque (artefact « Oktéo AI — Identité de marque ») appliquée à l'interface.
+
 ## 02/11/2026 (après-midi) — v72.1 : mise en place Cloudflare et page blanche corrigée
 
 - Configuration faite par Kévin (avec Claude dans Chrome) : build `npm run build:web`, sortie `dist`, `NODE_VERSION=22`,
