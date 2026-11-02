@@ -1,6 +1,7 @@
 ## 02/11/2026 (nuit) — v74 MAJ 1 : préparation d'impression (plan A3 au format du BE)
 
-Branche `feat/plan-ftz-v74`. Bouton « Préparation d'impression (A3 BE)… » dans la fenêtre Imprimer, commande du
+Branche `feat/plan-ftz-v74`, fusionnée dans `main` avec la v73 le 02/11/2026 sur accord de Kévin (vérification GitHub
+Actions : `npm run check` 173/173 en smoke, `test:web` vert). Bouton « Préparation d'impression (A3 BE)… » dans la fenêtre Imprimer, commande du
 catalogue `file.prep`, `okteoExt.prep` (open, close, addItem, select, bg, prep, last).
 - `src/print/ftz-sheet.js` (pur, jsPDF) : cadre, cartouche FTZ (logo KiTéOHM HD `public/assets/kiteohm-logo-hd.png`),
   textes avec compression horizontale (`Tz`), légende = seulement les symboles utilisés + boîte « LI » + flèche « ligne
@@ -15,6 +16,9 @@ catalogue `file.prep`, `okteoExt.prep` (open, close, addItem, select, bg, prep, 
   Enregistré dans le chantier : `meta.impression` {pages, items, date} ; images dans le stockage des fichiers
   (`img:<chantier>:<id>`, JPEG ≤ 1600 px). Champs du cartouche ajoutés à la fiche chantier : `clientBE`, `affaire`,
   `dessinateur` (aussi dans `exportGeometry().chantier`).
+- Sens du plan (`meta.impression.sens`) : automatique = quart de tour si le plan tient ainsi à une plus grande échelle
+  (MAILLARD : 1/75 → 1/50), comme la vue, ou imposé. Cadrage sur murs, appareils et noms de pièces (un contour de pièce
+  mal relevé ne décentre plus le plan).
 - Le plan de travail n'est jamais touché : cartouche, légende et encarts n'existent que dans cette vue et le PDF.
 - Smoke : test « préparation d'impression (v74) » (2 pages A3, légende au verso, encart texte au recto seulement, champ
   enregistré). `scripts/shots-v74.mjs` : captures EVRARD câblé (CI).
