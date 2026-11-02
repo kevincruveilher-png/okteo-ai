@@ -1,6 +1,7 @@
 ## 03/11/2026 — v74 MAJ 4 et 5 : plan pieuvre et page 2 équipements aux couleurs du BE
 
-Branche `feat/plan-ftz-v74`.
+Branche `feat/plan-ftz-v74`, fusionnée dans `main` sur « go and push » de Kévin (GitHub Actions : check complet, smoke
+176/176, test:web vert).
 - `src/print/ftz-symbols.js` (pur) : `BOX_COLORS` / `boxColor(n)` (ordre verrouillé : LI01 rouge, LI02 vert, LI03 magenta,
   LI04 bleu, LI05 noir, LI06 orange, LI07 violet, puis le cycle recommence), `symIndex(charte)`, `ftzSymbol(idx, t, h)`
   (via `FTZ_NAMES`, prise haute si h ≥ 100), `plaques(apps)` (commandes / prises du même mur à moins de 25 cm → plaque
