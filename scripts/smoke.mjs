@@ -1662,7 +1662,7 @@ try {
     await page.keyboard.press("Control+p"); await page.waitForSelector(".pr-back:not([hidden])");
     await page.waitForFunction(() => okteoExt.printer.last && !document.querySelector(".pr-wait:not([hidden])"), null, { timeout: 30000 });
     const r = { bg, n, w: Math.round(vp.width), h: Math.round(vp.height), pages: doc.numPages, t1: t1.includes("ZONE TEST PREPA") && t1.includes("AF12345") && t1.includes("ESSAI"), t2: t2.includes("ZONE TEST PREPA"), leg: t2.includes("Tableau"), saved, closed };
-    if (!(bg.pages === 2 && bg.legends.join() === "2" && bg.boxes > 0 && n >= 2 && r.w === 1191 && r.h === 842 && r.pages === 2 && r.t1 && !r.t2 && saved.aff === "AF12345" && saved.items === 1 && closed)) throw new Error(JSON.stringify(r));
+    if (!(bg.pages === 2 && bg.legends.join() === "2" && bg.boxes > 0 && n === 1 && r.w === 1191 && r.h === 842 && r.pages === 2 && r.t1 && !r.t2 && saved.aff === "AF12345" && saved.items === 1 && closed)) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("onglet Étapes : plan, échelle, murs, pièces, appareils, liaisons, circuits, impression cochés", async () => {

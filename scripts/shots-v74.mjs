@@ -1,5 +1,5 @@
-// captures de la préparation d'impression v74 sur le chantier EVRARD (vérification visuelle sur GitHub Actions) :
-// node scripts/shots-v74.mjs → shots/prep-*.png + shots/prep-evrard.pdf
+// captures de la préparation d'impression v74 sur le chantier de référence MAILLARD (déjà dans docs/chantiers) (vérification visuelle sur GitHub Actions) :
+// node scripts/shots-v74.mjs → shots/prep-*.png + shots/prep-maillard.pdf
 import fs from "node:fs";
 import { chromium } from "playwright";
 import { createServer } from "vite";
@@ -13,7 +13,11 @@ try {
   page.on("pageerror", (e) => errs.push(e.message));
   await page.goto("http://localhost:5291/"); await page.waitForFunction(() => window.okteo && window.okteoExt);
   await page.waitForTimeout(800);
-  const info = await page.evaluate(() => { try { okteoExt.catalog.find((c) => c.id === "etude.cabler").run(); } catch (e) { return "cabler : " + e.message; } return `${okteo.state.app.length} appareils, ${okteo.cab.boxes.length} boîtes`; });
+  await page.evaluate(() => okteo.setTab("chantiers"));
+  await Promise.all([page.waitForEvent("load", { timeout: 60000 }), page.setInputFiles("#ch-import", "docs/chantiers/MAILLARD_kevin.okteo")]);
+  await page.waitForFunction(() => window.okteo && window.okteoExt, null, { timeout: 60000 }); await page.waitForTimeout(1500);
+  await page.evaluate(() => okteo.setTab("plan"));
+  const info = await page.evaluate(() => { try { if (!okteo.cab.boxes.length) okteoExt.catalog.find((c) => c.id === "etude.cabler").run(); } catch (e) { return "cabler : " + e.message; } return `${okteo.state.app.length} appareils, ${okteo.cab.boxes.length} boîtes`; });
   console.log(info);
   await page.waitForTimeout(1500);
   await page.evaluate(() => okteoExt.prep.open());
@@ -25,7 +29,7 @@ try {
   await page.waitForFunction(() => document.querySelector(".prep-wait[hidden]"), null, { timeout: 60000 }); await page.waitForTimeout(600);
   await page.screenshot({ path: "shots/prep-verso.png" });
   const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".prep-dl")]);
-  await dl.saveAs("shots/prep-evrard.pdf");
+  await dl.saveAs("shots/prep-maillard.pdf");
   await page.setViewportSize({ width: 1366, height: 768 }); await page.waitForTimeout(1500);
   await page.screenshot({ path: "shots/prep-1366.png" });
 } finally { await browser.close(); await server.close(); }
