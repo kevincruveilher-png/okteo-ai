@@ -10,6 +10,7 @@
   `api.removeApps([id])`. Les touches de la visite sont capturées avant les raccourcis du plan (Ctrl+Z passe).
   Échap : pause (reprendre / quitter) ; quitter l'onglet quitte la visite. Catalogue `vue.3d.visite`.
 - Test smoke : marcher, poser une prise (rattachée, onglet 3D conservé), Ctrl+Z, gomme, Échap.
+- Validation 3D-3 + 3D-4 : run 41721996246 vert (check complet dont smoke 188/188, v3d 30/30, build:web, test:web 15/15).
 
 ## 03/11/2026 — 3D-3 hauteurs réglables (branche `feat/3d-1-visionneuse`)
 
