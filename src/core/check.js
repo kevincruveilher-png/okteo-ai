@@ -15,9 +15,14 @@ import { linkRole, roomPoly } from "./attach.js";
 import { checkVolumes } from "../cablage/volumes.js";
 import { state } from "./model.js";
 import { circuitMap } from "./render.js";
+import { poseIssues, POSE_KINDS } from "../3d/pose.js";
+import { heightsFrom } from "../3d/plan3d.js";
+import { getPrefs } from "../prefs.js";
+import { hDefault, isPmr } from "./model.js";
 
 export const CHECK_KINDS = {
   sdb: "Appareil dans un volume de salle de bain",
+  ...POSE_KINDS,
   vmc: "Parcours VMC à vérifier",
   implantation: "Emplacement à préciser",
   detecteur: "Commande détecteur contradictoire",
@@ -89,6 +94,8 @@ export function controlIssues() {
     const rooms = (lv === K.LV.cur ? state.rooms : (K.LV.data[lv] || {}).rooms || []).map(roomPoly);
     for (const v of checkVolumes(apps, rooms)) out.push({ kind: "sdb", ids: [v.id], sani: v.sani, lv, bloquant: v.bloquant, text: v.text });
   }
+  // 3D-6 : contrôles de pose (battant de porte, tableau d'ouverture, hauteurs), niveau par niveau
+  for (const r of posesAll()) out.push(r);
   // allumage coupé : la commande et sa lumière dans deux boîtes différentes
   const B = K.CAB.boxes || [];
   if (B.length) {
@@ -103,6 +110,21 @@ export function controlIssues() {
       const bc = boxOf.get(c), bl = boxOf.get(l);
       if (bc && bl && bc !== bl && !done.has(c + "|" + l)) { done.add(c + "|" + l); out.push({ kind: "split", ids: [c, l], lv: idx.get(c).lv, boxes: [bc.n, bl.n] }); }
     }
+  }
+  return out;
+}
+
+// 3D-6 : contrôles de pose sur tous les niveaux (hauteurs de départ de Paramètres → Vue 3D, case PMR du chantier)
+export function posesAll() {
+  const H = heightsFrom(getPrefs()), pmr = isPmr(), out = [];
+  const cm = (v) => (Number.isFinite(+v) && +v > 0 ? +v / 100 : undefined);
+  const lvs = [[K.LV.cur, state], ...Object.entries(K.LV.data).filter(([id]) => id !== K.LV.cur)];
+  for (const [lv, d] of lvs) {
+    if (!d || !(d.app || []).length) continue;
+    const ep = state.wallEp > 0 ? state.wallEp : 0.2;
+    const plan = { nodes: d.nodes || [], segs: (d.segs || []).map((s) => ({ id: s.id, a: s.a, b: s.b, ep: s.ep > 0 ? s.ep : ep, virt: !!s.virt })), openings: (d.openings || []).map((o) => ({ ...o, allege: cm(o.allege), linteau: cm(o.linteau) })) };
+    const apps = d.app.map((a) => ({ id: a.id, t: a.t, x: a.x, y: a.y, seg: a.seg, pt: a.pt, h: Number.isFinite(a.h) ? a.h : hDefault(a.t) }));
+    for (const r of poseIssues(plan, apps, { pmr, H })) out.push({ kind: r.kind, ids: r.ids.filter((id) => d.app.some((a) => a.id === id)), lv, text: r.text });
   }
   return out;
 }

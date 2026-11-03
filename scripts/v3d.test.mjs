@@ -7,6 +7,7 @@ import { computeWiring } from "../src/cablage/gaines.js";
 import { computeCircuits } from "../src/cablage/circuits.js";
 import { CAB_DEFAULTS } from "../src/cablage/settings.js";
 import { parseAiJson, aiToPlan } from "../src/walls/ai-plan.js";
+import { poseIssues } from "../src/3d/pose.js";
 
 let ok = 0; const fails = [];
 const check = (name, cond, info = "") => { if (cond) { ok++; console.log("  ✓ " + name); } else { fails.push(name + (info ? " : " + info : "")); console.log("  ✗ " + name + (info ? " : " + info : "")); } };
@@ -103,6 +104,36 @@ console.log("Vue 3D : MAILLARD (dessin du BE)");
   const wall = devs.filter((a) => a.mount === "mur"), ceil = devs.filter((a) => a.mount === "plafond");
   check(`MAILLARD : ${wall.length} appareils muraux plaqués contre la face de leur mur, ${ceil.length} au plafond`, wall.length >= 60 && ceil.length >= 10 && wall.every((a) => a.n && Math.abs(Math.hypot(...a.n) - 1) < 1e-9));
   check("MAILLARD : prise à 0,30 m, interrupteur à 1,10 m, lumière au plafond (hauteur de départ signalée)", devs.find((a) => a.t === "PC16").h === 0.3 && devs.find((a) => a.t === "INT").h === 1.1 && ceil.every((a) => a.defH && a.h < H3D.plafond));
+}
+
+console.log("Vue 3D-6 : contrôles de pose");
+{
+  // mur de 4 m le long de x (y = 0, épaisseur 10 cm), porte de 80 cm centrée à 2 m, charnière à gauche (vers x = 1,6),
+  // battant du côté y < 0 (sens « int » = côté opposé à la normale (-uy, ux) = (0, 1)) ; fenêtre de 1 m centrée à 3,4 m sur un 2e mur
+  const plan = { nodes: [{ id: "a", x: 0, y: 0 }, { id: "b", x: 4, y: 0 }, { id: "c", x: 4, y: 3 }],
+    segs: [{ id: "s1", a: "a", b: "b", ep: 0.1 }, { id: "s2", a: "b", b: "c", ep: 0.2 }],
+    openings: [{ id: "o1", seg: "s1", t: 2, w: 0.8, kind: "porte", hinge: "g", swing: "int" }, { id: "o2", seg: "s2", t: 1.5, w: 1, kind: "fenetre" }] };
+  const A = [
+    { id: "behind", t: "INT", x: 1.3, y: -0.05, h: 110, seg: "s1" },    // côté charnière, face où s'ouvre la porte : caché
+    { id: "handle", t: "INT", x: 2.55, y: -0.05, h: 110, seg: "s1" },   // côté poignée : bon
+    { id: "other", t: "INT", x: 1.3, y: 0.05, h: 110, seg: "s1" },      // côté charnière mais l'autre face : bon
+    { id: "door", t: "INT", x: 2.1, y: -0.05, h: 110, seg: "s1" },      // dans le vide de la porte
+    { id: "under", t: "PC16", x: 4.1, y: 1.5, h: 30, seg: "s2" },       // prise sous l'allège : bon
+    { id: "glass", t: "CVR", x: 4.1, y: 1.6, h: 110, seg: "s2" },       // commande dans la fenêtre
+    { id: "high", t: "INT", x: 0.5, y: 0.05, h: 150, seg: "s1" },       // 1,50 m
+    { id: "low", t: "PC16", x: 0.8, y: 0.05, h: 30, seg: "s1" },        // prise à 30 cm
+  ];
+  const k = (R) => R.map((r) => r.id + ":" + r.kind).sort().join(",");
+  const R0 = poseIssues(plan, A, {}), R1 = poseIssues(plan, A, { pmr: true });
+  check("battant : commande côté charnière sur la face d'ouverture signalée ; côté poignée et autre face acceptés", R0.some((r) => r.id === "behind" && r.kind === "battant") && !R0.some((r) => ["handle", "other"].includes(r.id)), k(R0));
+  check("embrasure : commande dans le vide d'une porte et dans une fenêtre signalées ; prise sous l'allège acceptée", R0.some((r) => r.id === "door" && r.kind === "embrasure") && R0.some((r) => r.id === "glass" && r.kind === "embrasure") && !R0.some((r) => r.id === "under"), k(R0));
+  check("hauteur : 1,50 m accepté hors PMR ; en PMR, commande à 1,50 m et prise à 30 cm signalées (R-110)", !R0.some((r) => r.kind === "hauteur") && R1.some((r) => r.id === "high" && r.kind === "hauteur") && R1.some((r) => r.id === "low" && r.kind === "hauteur") && R1.some((r) => r.id === "under" && r.kind === "hauteur"), k(R1));
+  // l'allège réglée à 1,20 m dans Propriétés : la commande à 1,10 m n'est plus dans la fenêtre
+  const R2 = poseIssues({ ...plan, openings: [plan.openings[0], { ...plan.openings[1], allege: 1.2 }] }, A, {});
+  check("embrasure : l'allège de l'ouverture (Propriétés) est prise en compte", !R2.some((r) => r.id === "glass"), k(R2));
+  // charnière à droite : c'est l'autre côté qui est caché
+  const R3 = poseIssues({ ...plan, openings: [{ ...plan.openings[0], hinge: "d" }, plan.openings[1]] }, A, {});
+  check("battant : charnière à droite → la commande côté x > 2,4 m est cachée, celle de gauche ne l'est plus", R3.some((r) => r.id === "handle" && r.kind === "battant") && !R3.some((r) => r.id === "behind" && r.kind === "battant"), k(R3));
 }
 
 console.log("Vue 3D : relevés IA (MAILLARD, PASQUIER)");

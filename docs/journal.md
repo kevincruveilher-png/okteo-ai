@@ -1,3 +1,23 @@
+## 03/11/2026 — 3D-6 contrôles de pose (branche `feat/3d-1-visionneuse`)
+
+- `src/3d/pose.js` (pur) `poseIssues(plan, apps, {pmr, H})` → `battant` (commande dans la bande du battant ouvert :
+  côté charnière, face où la porte s'ouvre, longueur du battant + 10 cm, 25 cm de profondeur), `embrasure` (appareil
+  mural dans la largeur ET la hauteur du vide d'une ouverture, à plus de 5 cm du tableau ; allège / linteau de
+  Propriétés ou hauteurs de départ ; une prise sous l'allège est acceptée), `hauteur` (PMR : commande hors 90–130 cm,
+  prise d'usage sous 40 cm, R-110 ; hors PMR : commande sous 60 ou au-dessus de 160 cm seulement). Conventions des
+  portes reprises de render.js (`swing` ext = côté de la normale (-uy, ux), `hinge` d = vers le bout b).
+- `src/core/check.js` : `posesAll()` (tous les niveaux) ajoutée à `controlIssues()` ; nouvelles sortes dans
+  `CHECK_KINDS` (`POSE_KINDS`) : le compteur « à vérifier » les compte et y mène ; `controle-ui.js` : explication
+  `it.text` quand l'anomalie en porte une (aussi pour les volumes de salle de bain et la VMC).
+- 3D : `scene.js` `buildMarks` (anneau rouge clignotant face au mur, volumes 1 et 2 de la salle de bain en verre
+  teinté) ; `vue3d.js` : liste `.v3d-pose` (poses à revoir + volumes de salle de bain), clic = caméra devant l'appareil
+  + fiche avec l'explication (`.v3d-bad`), calque « Volumes de la salle de bain », mise à jour sur `okteo:control`.
+- Constat sur MAILLARD (dessin de Kévin) : 24 poses signalées (surtout des commandes de volet et interrupteurs dans la
+  largeur d'une fenêtre ou d'une porte, et 3 derrière un battant) : soit l'appareil, soit l'ouverture est mal placé ; les
+  sens d'ouverture des portes relevées par l'IA sont souvent ceux par défaut (gond gauche, intérieur) : à corriger sur le
+  plan pour que le contrôle du battant soit juste.
+- Tests : v3d (cas d'école battant / embrasure / hauteurs / allège / charnière inversée) + smoke (compteur, 3D, fiche, Ctrl+Z).
+
 ## 03/11/2026 — 3D-5 gaines en 3D et passage par le sol (branche `feat/3d-1-visionneuse`)
 
 Réponses de Kévin : la réserve en boîte est un réglage (elle existe déjà : Paramètres → Câblage → Longueurs,

@@ -1233,6 +1233,10 @@ body.am-on{overflow:hidden}
 .v3d-def ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
 .v3d-def li button{width:100%;text-align:left;border:1px solid var(--line);background:transparent;color:var(--fg);padding:6px 8px;font-size:12px;line-height:1.35}
 .v3d-def li button.warn{border-color:color-mix(in srgb,var(--warn) 60%,var(--line))}
+.v3d-pose summary{cursor:pointer;font-weight:600}.v3d-pose summary .w{color:#e8342a}
+.v3d-pose ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:220px;overflow:auto}
+.v3d-pose li button{width:100%;text-align:left;border:1px solid color-mix(in srgb,#e8342a 55%,var(--line));background:transparent;color:var(--fg);padding:6px 8px;font-size:12px;line-height:1.35}
+.v3d-card p.v3d-bad{color:var(--fg);border-left:3px solid #e8342a;padding-left:8px;font-size:12px}
 .v3d-card{position:absolute;left:14px;bottom:14px;width:270px;box-sizing:border-box;background:color-mix(in srgb,var(--panel) 94%,transparent);border:1px solid var(--accent2);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;color:var(--fg);font-size:13px}
 .v3d-card .k{font-family:var(--fd);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent2);font-weight:600}
 .v3d-card .t{font-family:var(--fd);font-size:17px}.v3d-card p{margin:0;color:var(--mut2)}

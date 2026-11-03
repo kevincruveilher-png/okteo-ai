@@ -505,7 +505,9 @@ colonnes `config.analysis_model/analysis_input_price/analysis_output_price` (cr�
   par la 3D. Feuille de route 3D (11 MAJ, toutes avant l'essai chantier) : journal du 03/11/2026.
   3D-3 : `heightsFrom(prefs h3d*)`, `o.allege`/`o.linteau`/`r.hsp` (cm, Propriétés), mur `top`, Paramètres `#ps-3d`.
   3D-4 : `src/ext/vue3d-walk.js` (`ui.walk` : enter/exit/act/update), `importDevices(..., {stay})`, touches capturées.
-  3D-5 : `gainePath`, `nearestWall`, `buildGaines`, `box.sol` (gaines.js : longueur par le sol), `setGaineSol`/`gaineKeys`. Tests :
+  3D-5 : `gainePath`, `nearestWall`, `buildGaines`, `box.sol` (gaines.js : longueur par le sol), `setGaineSol`/`gaineKeys`.
+  3D-6 : `src/3d/pose.js` `poseIssues` (battant, embrasure, hauteur) → `check.js` `posesAll` (compteur « à vérifier »),
+  `scene.js` `buildMarks` (anneaux, volumes SDB), `.v3d-pose`, `ui.focusDev`. Tests :
   `scripts/v3d.test.mjs` + smoke. Workflow TEMPORAIRE `verification-3d.yml` à retirer avant fusion.
 
 ### Entreprise Cloudflare v72 / v72.1

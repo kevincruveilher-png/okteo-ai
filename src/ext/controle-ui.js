@@ -12,6 +12,9 @@ const WHAT = {
   int2: "deux commandes dont un interrupteur simple sur la même lumière : ça ne peut pas marcher, mettez des va-et-vient",
   nobox: "appareil raccordé à rien : il n'est dans aucune boîte (panneau Câblage → placer les boîtes, ou tirer une gaine)",
   circ: "appareil sans circuit : panneau Câblage → répartir, ou l'ajouter à un circuit",
+  battant: "commande derrière le battant ouvert : la placer côté poignée (vue 3D pour voir la porte ouverte)",
+  embrasure: "appareil dans le vide d'une ouverture : le décaler à côté du tableau",
+  hauteur: "hauteur de pose à revoir (Propriétés → hauteur)",
   split: "allumage coupé : la commande et sa lumière sont dans deux boîtes (panneau Câblage → regrouper)",
 };
 
@@ -19,7 +22,7 @@ const WHAT = {
 export function describe(api, it, byId) {
   const names = it.ids.map((id) => { const a = byId.get(id); return a ? (a.rep || a.t) + (a.room ? ` (${a.room})` : "") : id; });
   const lvl = byId.get(it.ids[0])?.lvName;
-  return { title: api.controlKinds[it.kind] || it.kind, who: names.join(" → ") + (it.boxes ? ` · ${it.boxes.join(" / ")}` : ""), lvl, what: WHAT[it.kind] || "" };
+  return { title: api.controlKinds[it.kind] || it.kind, who: names.join(" → ") + (it.boxes ? ` · ${it.boxes.join(" / ")}` : ""), lvl, what: it.text ? it.text : WHAT[it.kind] || "" };
 }
 
 export function createControl({ api }) {

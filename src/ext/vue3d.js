@@ -36,7 +36,7 @@ export function planData(api) {
   // boîtes au-dessus du plus haut plafond
   H.combles = Math.max(H.plafond, ...[...top.values()]) + 0.35;
   const boxes = (geo.boxes || []).map((b) => ({ id: b.id, n: b.n, x: b.x, y: b.y, color: boxColor(b.n) }));
-  return { data, apps, rooms, boxes, level: geo.level, H };
+  return { data, apps, rooms, boxes, level: geo.level, H, volumes: geo.volumes || [] };
 }
 
 export function mountVue3d(el, { api }) {
@@ -55,10 +55,12 @@ export function mountVue3d(el, { api }) {
         <label><input type="checkbox" data-l="devices" checked> Appareils à leur hauteur</label>
         <label><input type="checkbox" data-l="boxes" checked> Boîtes de la pieuvre</label>
         <label title="Gaines de la pieuvre : tracé du plan en traits droits au-dessus du plafond (ou par le sol), descente dans le mur"><input type="checkbox" data-l="gaines" checked> Gaines</label>
+        <label title="Volumes 1 et 2 autour de la baignoire ou de la douche (sanitaires posés sur le plan) : prises, commandes et chauffage interdits dedans"><input type="checkbox" data-l="vol" checked> Volumes de la salle de bain</label>
         <label title="Un double plus clair de chaque gaine se voit à travers les murs : on suit la descente jusqu'à l'appareil"><input type="checkbox" data-l="xray" checked> Gaines visibles à travers les murs</label>
       </div>
       <p class="v3d-note"></p>
       <button type="button" class="v3d-walk" title="Marcher dans la maison comme dans un jeu (clavier et souris) et poser des appareils au viseur : ils sont ajoutés au chantier, Ctrl+Z annule">Visite à pied · ZQSD</button>
+      <details class="v3d-pose" open hidden><summary></summary><ul></ul></details>
       <details class="v3d-def" hidden><summary></summary><ul></ul></details>
     </section>
     <div class="v3d-card" hidden aria-live="polite"></div>
@@ -108,7 +110,8 @@ export function mountVue3d(el, { api }) {
     S3.sig = sig; S3.level = P.level;
     if (S3.house) { scene.remove(S3.house.group); S3.house.dispose(); S3.house = null; }
     if (S3.gaines) { scene.remove(S3.gaines.group); S3.gaines.dispose(); S3.gaines = null; }
-    const plan = cleanPlan(P.data, undefined, P.H), devs = devicesOf(P.apps, P.data, P.H), { buildHouse } = await import("../3d/scene.js");
+    const plan = cleanPlan(P.data, undefined, P.H), devs = devicesOf(P.apps, P.data, P.H), { buildHouse, buildMarks } = await import("../3d/scene.js");
+    S3.buildMarks = buildMarks;
     // 3D-2 : pièce dont le contour sort nettement du bâtiment (contour enregistré incohérent) : pas de sol, signalée
     const B0 = planBounds(plan), out = (p) => p.x < B0.x0 - 1 || p.x > B0.x1 + 1 || p.y < B0.y0 - 1 || p.y > B0.y1 + 1;
     const rooms = P.rooms.filter((r) => {
@@ -163,6 +166,7 @@ export function mountVue3d(el, { api }) {
     S3.fill.position.set(cx + R, R * 0.5, cy - R);
     if (!sameLevel) view("iso", true);
     renderDefects();
+    refreshPose();
     if (card.dataset.id && !devs.some((d) => d.id === card.dataset.id)) showCard(null);
   }
 
@@ -187,6 +191,7 @@ export function mountVue3d(el, { api }) {
     if (!S3.house) return;
     S3.house.devices.visible = $('[data-l="devices"]').checked; S3.house.boxes.visible = $('[data-l="boxes"]').checked;
     if (S3.gaines) { S3.gaines.group.visible = $('[data-l="gaines"]').checked; S3.gaines.setXray($('[data-l="xray"]').checked); }
+    if (S3.marks) S3.marks.vols.visible = $('[data-l="vol"]').checked;
     if (!S3.house.devices.visible) showCard(null);
   }));
 
@@ -233,6 +238,7 @@ export function mountVue3d(el, { api }) {
       halo.position.set(d.x, d.h, d.y); S3.scene.add(halo);
       card.innerHTML = `<span class="k">${esc(d.rep || d.t)}${d.circuit ? " · " + esc(String(d.circuit)) : ""}</span><b class="t">${esc(d.name)}</b>
         <dl><dt>Pièce</dt><dd>${esc(d.room || "—")}</dd><dt>Hauteur</dt><dd>${fr(d.h)} m${d.defH ? " (valeur de départ)" : ""}</dd><dt>Pose</dt><dd>${d.mount === "mur" ? "au mur" : d.mount === "plafond" ? "au plafond" : "posé"}</dd></dl>
+        ${(S3.pose || []).filter((p) => p.id === id).map((p) => `<p class="v3d-bad"><b>⚠ ${esc(api.controlKinds[p.kind] || p.kind)}</b> : ${esc(p.text)}</p>`).join("")}
         <div class="acts"><button type="button" class="pri" data-a="plan" title="Sélectionne l'appareil et le montre dans l'onglet Plan">Voir sur le plan</button><button type="button" data-a="close">Fermer</button></div>`;
       card.hidden = false;
     }
@@ -252,6 +258,33 @@ export function mountVue3d(el, { api }) {
   const walk = createWalk({ api, S3, el, cv });
   $(".v3d-walk").onclick = () => { showCard(null); if (!walk.enter()) { msg.hidden = false; msg.textContent = "La visite à pied demande des murs sur ce niveau."; } };
   document.addEventListener("okteo:tab", (e) => { if (e.detail !== "vue3d") walk.exit(); });
+
+  // ---------- 3D-6 : contrôles de pose (compteur « à vérifier » du cœur) : anneaux rouges, volumes, liste ----------
+  const POSE = ["battant", "embrasure", "hauteur", "sdb"];
+  function refreshPose() {
+    if (!S3.house) return;
+    const lv = api.level.id, here = new Set(S3.devs.map((d) => d.id));
+    S3.pose = api.control.filter((it) => POSE.includes(it.kind) && (!it.lv || it.lv === lv) && here.has(it.ids[0])).map((it) => ({ id: it.ids[0], kind: it.kind, text: it.text || "" }));
+    if (S3.marks) { S3.scene.remove(S3.marks.group); S3.marks.dispose(); }
+    S3.marks = S3.buildMarks(S3.T, { issues: S3.pose, devs: S3.devs, volumes: (S3.P && S3.P.volumes) || [] }, { plafond: S3.H.plafond });
+    S3.marks.vols.visible = $('[data-l="vol"]').checked;
+    S3.scene.add(S3.marks.group);
+    const box = $(".v3d-pose"), L = S3.pose;
+    box.hidden = !L.length;
+    if (!L.length) return;
+    const by = new Map(S3.devs.map((d) => [d.id, d]));
+    box.querySelector("summary").innerHTML = `<span class="w">⚠ ${L.length}</span> pose${L.length > 1 ? "s" : ""} à revoir (porte, ouverture, hauteur, salle de bain)`;
+    box.querySelector("ul").innerHTML = L.map((p, i) => { const d = by.get(p.id); return `<li><button type="button" data-p="${i}" title="${esc(p.text)}"><b>${esc((d && (d.rep || d.t)) || "")}</b> ${esc(api.controlKinds[p.kind] || p.kind)}${d && d.room ? ` · ${esc(d.room)}` : ""}</button></li>`; }).join("");
+    box.querySelectorAll("[data-p]").forEach((b) => (b.onclick = () => focusDev(L[+b.dataset.p].id)));
+  }
+  // caméra devant l'appareil (face au mur), puis sa fiche
+  function focusDev(id) {
+    const d = S3.devs.find((x) => x.id === id); if (!d || walk.on) return;
+    const n = d.n || [0.6, 0.8], dist = 2.4;
+    S3.anim = { t0: performance.now(), p0: S3.cam.position.clone(), q0: S3.ctl.target.clone(), p1: new S3.T.Vector3(d.x + n[0] * dist, d.h + 1.1, d.y + n[1] * dist), t1: new S3.T.Vector3(d.x, d.h, d.y) };
+    showCard(id);
+  }
+  document.addEventListener("okteo:control", () => { if (!el.hidden && S3.house) refreshPose(); });
 
   // ---------- 3D-2 : défauts de géométrie, cliquables vers le plan ----------
   function renderDefects() {
@@ -275,6 +308,7 @@ export function mountVue3d(el, { api }) {
     if (!walk.on) S3.ctl.update();
     if (S3.house) S3.house.boxes.children.forEach((o) => { if (o.userData.billboard) o.quaternion.copy(S3.cam.quaternion); });
     if (halo) halo.material.opacity = 0.2 + 0.1 * Math.sin(now / 260);
+    if (S3.marks) S3.marks.pulse(now);
     S3.R.render(S3.scene, S3.cam);
     requestAnimationFrame(loop);
   }
@@ -289,6 +323,7 @@ export function mountVue3d(el, { api }) {
   document.addEventListener("okteo:prefs", (e) => { if (/^h3d/.test(e.detail && e.detail.key || "")) later(); });
 
   const ui = {
+    focusDev: (id) => focusDev(id),
     render() { build(false).then(start).catch((e) => { msg.hidden = false; msg.textContent = "La vue 3D n'a pas pu s'afficher : " + (e && e.message || e); }); },
     view, state: S3, walk, showGaine: (id) => showGaine(id),
   };

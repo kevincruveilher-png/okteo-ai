@@ -195,3 +195,37 @@ export function buildGaines(T, list, { xray = true } = {}) {
     dispose() { while (group.children.length) { const o = group.children.pop(); if (o.geometry) o.geometry.dispose(); } },
   };
 }
+
+// 3D-6 : contrôles de pose : anneau rouge autour de chaque appareil signalé (face au mur pour un appareil mural) et
+// volumes de la salle de bain (volume 1 bleu, volume 2 plus pâle) en verre teinté.
+// issues [{ id }], devs (devicesOf), volumes [{ v1, v2 : [{x,y}] | null }] → { group, halos [mesh], vols Group, dispose }
+export function buildMarks(T, { issues = [], devs = [], volumes = [] }, { plafond = 2.5 } = {}) {
+  const group = new T.Group(), halos = [], vols = new T.Group();
+  const ring = new T.MeshBasicMaterial({ color: 0xe8342a, transparent: true, opacity: 0.9, depthTest: false, depthWrite: false, side: T.DoubleSide });
+  const byId = new Map(devs.map((d) => [d.id, d])), seen = new Set();
+  for (const it of issues) {
+    const d = byId.get(it.id);
+    if (!d || seen.has(d.id)) continue;
+    seen.add(d.id);
+    const m = new T.Mesh(new T.RingGeometry(0.11, 0.15, 40), ring.clone());
+    m.position.set(d.x, d.h, d.y);
+    if (d.n) m.lookAt(d.x + d.n[0], d.h, d.y + d.n[1]); else m.rotation.x = -Math.PI / 2;
+    m.renderOrder = 7; m.userData.pose = d.id; group.add(m); halos.push(m);
+  }
+  const shape = (P) => { const s = new T.Shape(); P.forEach((p, i) => (i ? s.lineTo(p.x, -p.y) : s.moveTo(p.x, -p.y))); return s; };
+  const prism = (P, h, color, op) => {
+    const g = new T.ExtrudeGeometry(shape(P), { depth: h, bevelEnabled: false });
+    const m = new T.Mesh(g, new T.MeshBasicMaterial({ color, transparent: true, opacity: op, depthWrite: false, side: T.DoubleSide }));
+    m.rotation.x = -Math.PI / 2; m.renderOrder = 4; return m;
+  };
+  for (const v of volumes) {
+    if (v.v2 && v.v2.length > 2) vols.add(prism(v.v2, Math.min(3, plafond), 0x7fb2ff, 0.1));
+    if (v.v1 && v.v1.length > 2) vols.add(prism(v.v1, Math.min(2.25, plafond), 0x2f6fe0, 0.2));
+  }
+  group.add(vols);
+  return {
+    group, halos, vols,
+    pulse(now) { const k = 0.55 + 0.45 * Math.sin(now / 240); halos.forEach((m) => { m.material.opacity = k; m.scale.setScalar(1 + 0.12 * (1 - k)); }); },
+    dispose() { group.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); },
+  };
+}
