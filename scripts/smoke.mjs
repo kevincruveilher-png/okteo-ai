@@ -615,6 +615,10 @@ try {
     return true;
   });
   await check("outil Liaison : clic sur une commande = ses lumières ressortent ; clic sur une de ses lumières = détachée (Ctrl+Z)", async () => {
+    // v76 : test rendu fiable (il échouait déjà par moments, ex. run 41547204988 du 02/11) : la vue est d'abord cadrée sur
+    // la commande et sa lumière, pour que le clic tombe sur la lumière et pas sur le trait de la liaison
+    await ev(() => { window.__v76view = { ...okteo.view }; const x = okteo.state.lia[0]; okteo.zoomTo([x.c, x.l]); });
+    await page.waitForTimeout(300);
     const t = await ev(() => { const x = okteo.state.lia[0], A = okteo.state.app, c = A.find((a) => a.id === x.c), l = A.find((a) => a.id === x.l); return { c: okteo.toClient(c.x, c.y), l: okteo.toClient(l.x, l.y), n: okteo.state.lia.length }; });
     await page.mouse.click(t.c.x, t.c.y);
     const h1 = await ev(() => document.getElementById("hint").textContent), on = await ev(() => document.querySelectorAll("#sv circle.lia-on").length);
@@ -622,6 +626,7 @@ try {
     const n2 = await ev(() => okteo.state.lia.length), h2 = await ev(() => document.getElementById("hint").textContent);
     await page.keyboard.press("Control+z");
     const n3 = await ev(() => okteo.state.lia.length);
+    await ev(() => { okteo.view = window.__v76view; window.__okteo.draw(); });   // vue d'avant remise pour les tests suivants
     if (!/lumière/.test(h1) || on < 1 || n2 !== t.n - 1 || !/retirée/.test(h2) || n3 !== t.n) throw new Error(JSON.stringify({ h1, on, n2, h2, n3, n: t.n }));
     return true;
   });
