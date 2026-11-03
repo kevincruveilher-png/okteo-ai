@@ -17,6 +17,8 @@ Réponses de Kévin : la réserve en boîte est un réglage (elle existe déjà 
   diamètre, passage) + « Voir sur le plan » ; clic sur une boîte → ses gaines ; reconstruction sur `okteo:cab`.
 - Tests : v3d (tracés plafond / sol / plafond d'un point lumineux, descente hors porte, longueur de la bande par le sol)
   + smoke (gaines dessinées, fiche, « Passage par le sol » → plus longue et dans la dalle, Ctrl+Z).
+- La case « Passage par le sol » rend la main dès qu'on la coche (Ctrl+Z est ignoré dans un champ). Test de la visite :
+  sortie par la pause (« Quitter la visite »). Validation : run 41727704875 vert (smoke 189/189, v3d, build:web, test:web).
 
 ## 03/11/2026 — 3D-4 visite à pied et pose au viseur (branche `feat/3d-1-visionneuse`)
 
