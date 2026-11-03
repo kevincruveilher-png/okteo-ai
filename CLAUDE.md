@@ -509,7 +509,8 @@ colonnes `config.analysis_model/analysis_input_price/analysis_output_price` (cr�
   3D-6 : `src/3d/pose.js` `poseIssues` (battant, embrasure, hauteur) → `check.js` `posesAll` (compteur « à vérifier »),
   `scene.js` `buildMarks` (anneaux, volumes SDB), `.v3d-pose`, `ui.focusDev`.
   3D-7 : `src/3d/elevation.js` (`wallElevation`, `roomFaces`, `elevationDraw`, `elevationSVG`), `src/ext/elevations-pdf.js`,
-  clic sur un mur en 3D → `ui.showWall(seg, side)` (`.v3d-card.wide`), `ui.lastElev`. Tests :
+  clic sur un mur en 3D → `ui.showWall(seg, side)` (`.v3d-card.wide`), `ui.lastElev`.
+  3D-10 : `okteo.inLevel(id, fn)`, `.v3d-lvs` / `ui.levels("tous"|"ouvert")`, `S3.others`, `S3.vlinks` ; `build` numéroté (`S3.gen`). Tests :
   `scripts/v3d.test.mjs` + smoke. Workflow TEMPORAIRE `verification-3d.yml` à retirer avant fusion.
 
 ### Entreprise Cloudflare v72 / v72.1

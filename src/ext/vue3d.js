@@ -52,6 +52,10 @@ export function mountVue3d(el, { api }) {
         <button type="button" data-v="iso" aria-pressed="true" title="Vue d'ensemble, de biais">Ensemble</button>
         <button type="button" data-v="top" aria-pressed="false" title="Vue de dessus, comme le plan">Dessus</button>
       </div>
+      <div class="v3d-views v3d-lvs" role="group" aria-label="Niveaux affichés" hidden>
+        <button type="button" data-lvm="ouvert" aria-pressed="true" title="Seulement le niveau ouvert (celui qu'on modifie)">Niveau ouvert</button>
+        <button type="button" data-lvm="tous" aria-pressed="false" title="Tous les niveaux empilés (hauteurs + dalle de 25 cm) ; liaisons entre niveaux en pointillés. Seul le niveau ouvert se touche et se modifie.">Tous les niveaux</button>
+      </div>
       <label class="v3d-row" title="Baisser la coupe pour voir dans les pièces (maison de poupée)">Coupe <input type="range" class="v3d-cut" min="0.9" max="${H3D.plafond}" step="0.05" value="${H3D.plafond}"><span class="v3d-cutv">${fr(H3D.plafond)} m</span></label>
       <div class="v3d-lay">
         <label title="Façades pierre, cloisons gris bleuté, plinthes : on distingue mieux les murs de l'intérieur"><input type="checkbox" data-l="contrast" checked> Murs contrastés</label>
@@ -70,7 +74,7 @@ export function mountVue3d(el, { api }) {
   </div>`;
   const $ = (s) => el.querySelector(s);
   const cv = $(".v3d-cv"), msg = $(".v3d-msg"), card = $(".v3d-card");
-  const S3 = { T: null, R: null, scene: null, cam: null, ctl: null, house: null, plan: null, devs: [], cut: H3D.plafond, contrast: true, anim: null, running: false, sig: "", ready: null, lastBuild: 0 };
+  const S3 = { T: null, R: null, scene: null, cam: null, ctl: null, house: null, plan: null, devs: [], cut: H3D.plafond, contrast: true, levels: "ouvert", others: [], anim: null, running: false, sig: "", ready: null, lastBuild: 0 };
 
   // three.js chargé à la demande (premier affichage de l'onglet)
   function load() {
@@ -91,7 +95,7 @@ export function mountVue3d(el, { api }) {
       sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02; scene.add(sun, sun.target);
       const fill = new T.DirectionalLight(0xdfe8ff, 0.25 * Math.PI); scene.add(fill);
       const ground = new T.Mesh(new T.PlaneGeometry(400, 400), new T.ShadowMaterial({ opacity: 0.22 })); ground.rotation.x = -Math.PI / 2; ground.position.y = -0.01; ground.receiveShadow = true; scene.add(ground);
-      Object.assign(S3, { R, scene, cam, ctl, sun, fill });
+      Object.assign(S3, { R, scene, cam, ctl, sun, fill, ground });
       new ResizeObserver(size).observe(cv);
     })();
     return S3.ready;
@@ -104,16 +108,23 @@ export function mountVue3d(el, { api }) {
 
   // (re)construction de la maquette depuis le dessin ; la caméra ne bouge pas si le niveau est le même
   async function build(force) {
+    // une seule reconstruction à la fois : une plus récente annule celle-ci au retour de chaque attente
+    const gen = S3.gen = (S3.gen || 0) + 1;
     await load();
+    const mod = await import("../3d/scene.js");
+    if (gen !== S3.gen) return;
     const { T, scene } = S3;
     const P = planData(api);
-    const sig = JSON.stringify([P.level, P.data, P.apps.map((a) => [a.id, a.x, a.y, a.h, a.color, a.rep, a.hsp]), P.boxes, P.rooms.map((r) => [r.name, r.poly, r.hsp]), P.H, S3.contrast, (api.cab.boxes || []).map((b) => [b.id, b.x, b.y, b.routes, b.sol, b.apps]), (api.cab.circuits || []).length]);
+    const sig = JSON.stringify([P.level, P.data, P.apps.map((a) => [a.id, a.x, a.y, a.h, a.color, a.rep, a.hsp]), P.boxes, P.rooms.map((r) => [r.name, r.poly, r.hsp]), P.H, S3.contrast, (api.cab.boxes || []).map((b) => [b.id, b.x, b.y, b.routes, b.sol, b.apps]), (api.cab.circuits || []).length, S3.levels, api.levels.map((l) => l.id)]);
     if (!force && sig === S3.sig && S3.house) return;
     const sameLevel = S3.level === P.level && S3.house;
     S3.sig = sig; S3.level = P.level;
     if (S3.house) { scene.remove(S3.house.group); S3.house.dispose(); S3.house = null; }
     if (S3.gaines) { scene.remove(S3.gaines.group); S3.gaines.dispose(); S3.gaines = null; }
-    const plan = cleanPlan(P.data, undefined, P.H), devs = devicesOf(P.apps, P.data, P.H), { buildHouse, buildMarks } = await import("../3d/scene.js");
+    for (const o of S3.others || []) { scene.remove(o.house.group); o.house.dispose(); }
+    S3.others = [];
+    if (S3.vlinks) { scene.remove(S3.vlinks); S3.vlinks.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); S3.vlinks = null; }
+    const plan = cleanPlan(P.data, undefined, P.H), devs = devicesOf(P.apps, P.data, P.H), { buildHouse, buildMarks, buildGaines } = mod;
     S3.buildMarks = buildMarks;
     // 3D-2 : pièce dont le contour sort nettement du bâtiment (contour enregistré incohérent) : pas de sol, signalée
     const B0 = planBounds(plan), out = (p) => p.x < B0.x0 - 1 || p.x > B0.x1 + 1 || p.y < B0.y0 - 1 || p.y > B0.y1 + 1;
@@ -129,6 +140,40 @@ export function mountVue3d(el, { api }) {
 
     house.devices.visible = $('[data-l="devices"]').checked; house.boxes.visible = $('[data-l="boxes"]').checked;
     scene.add(house.group);
+    // 3D-10 : autres niveaux empilés (ordre de la liste des niveaux = de bas en haut), le niveau ouvert reste à y = 0
+    const L = api.levels, curI = L.findIndex((l) => l.current);
+    $(".v3d-lvs").hidden = L.length < 2;
+    let ground = -0.01;
+    if (S3.levels === "tous" && L.length > 1 && curI >= 0) {
+      const DALLE = 0.25, built = L.map((l, i) => {
+        if (i === curI) return { id: l.id, name: l.name, P, plan, devs, top: topMax };
+        const P2 = api.inLevel(l.id, () => planData(api)), plan2 = cleanPlan(P2.data, undefined, P2.H);
+        return { id: l.id, name: l.name, P: P2, plan: plan2, devs: devicesOf(P2.apps, P2.data, P2.H), top: Math.max(P2.H.plafond, ...plan2.walls.map((w) => w.top || 0)) };
+      });
+      const off = [0]; for (let i = 1; i < built.length; i++) off[i] = off[i - 1] + built[i - 1].top + DALLE;
+      built.forEach((b, i) => {
+        b.y = off[i] - off[curI];
+        if (i === curI || !b.plan.walls.length) return;
+        const h2 = buildHouse(T, { plan: b.plan, rooms: b.P.rooms, devices: b.devs, boxes: [] }, { cut: Infinity, contrast: S3.contrast, H: b.P.H });
+        h2.group.position.y = b.y; h2.devices.visible = house.devices.visible;
+        scene.add(h2.group);
+        S3.others.push({ id: b.id, name: b.name, y: b.y, house: h2, devs: b.devs });
+      });
+      ground = Math.min(...built.map((b) => b.y)) - 0.01;
+      // liaisons commande ↔ lumière entre deux niveaux : traits pointillés verticaux
+      const at = new Map();
+      built.forEach((b) => b.devs.forEach((d) => at.set(d.id, [d.x, d.h + b.y, d.y])));
+      const lines = new T.Group(), mat = new T.LineDashedMaterial({ color: 0xe8534a, dashSize: 0.12, gapSize: 0.08, depthTest: false, transparent: true });
+      const lvOf = new Map(); built.forEach((b) => b.devs.forEach((d) => lvOf.set(d.id, b.id)));
+      for (const k of api.allLinks()) {
+        const a = at.get(k.c), b = at.get(k.l);
+        if (!a || !b || lvOf.get(k.c) === lvOf.get(k.l)) continue;
+        const g = new T.BufferGeometry().setFromPoints([new T.Vector3(...a), new T.Vector3(a[0], b[1], a[2]), new T.Vector3(...b)]);
+        const ln = new T.Line(g, mat); ln.computeLineDistances(); ln.renderOrder = 6; ln.userData.link = k.c + ">" + k.l; lines.add(ln);
+      }
+      S3.vlinks = lines; scene.add(lines);
+    }
+    S3.ground.position.y = ground;
     // 3D-5 : gaines de la pieuvre du niveau (calcul du câblage : mêmes n° et longueurs que sur les bandes)
     S3.gList = []; S3.gErr = null;
     try {
@@ -148,7 +193,6 @@ export function mountVue3d(el, { api }) {
         }
       }
     } catch (e) { S3.gErr = String(e && e.message || e); console.warn("gaines 3D :", e); }
-    const { buildGaines } = await import("../3d/scene.js");
     S3.gaines = buildGaines(T, S3.gList, { xray: $('[data-l="xray"]').checked });
     S3.gaines.group.visible = $('[data-l="gaines"]').checked;
     scene.add(S3.gaines.group);
@@ -156,6 +200,7 @@ export function mountVue3d(el, { api }) {
     Object.assign(S3, { house, plan, devs, P, H: P.H });
     if (walk) walk.rebuilt();
     noteHeights(P.H);
+    if (S3.others.length) $(".v3d-note").insertAdjacentHTML("beforeend", ` <br><b>Tous les niveaux</b> : escaliers et trémies ne sont pas dans le dessin (dalles pleines) ; seul le niveau ouvert (${esc(P.level || "")}) se touche et se modifie.`);
     S3.lastBuild = Date.now();
     $(".v3d-lv").textContent = P.level || "";
     const empty = !plan.walls.length;
@@ -188,6 +233,11 @@ export function mountVue3d(el, { api }) {
     S3.anim = { t0: performance.now(), p0: S3.cam.position.clone(), q0: S3.ctl.target.clone(), p1: new S3.T.Vector3(...p), t1: new S3.T.Vector3(...t) };
   }
   el.querySelectorAll("[data-v]").forEach((b) => (b.onclick = () => view(b.dataset.v)));
+  el.querySelectorAll("[data-lvm]").forEach((b) => (b.onclick = () => {
+    S3.levels = b.dataset.lvm;
+    el.querySelectorAll("[data-lvm]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    build(true);
+  }));
   $(".v3d-cut").oninput = (e) => { S3.cut = +e.target.value; S3.cutSet = S3.cut < +e.target.max - 1e-6; $(".v3d-cutv").textContent = fr(S3.cut) + " m"; if (S3.house) S3.house.setCut(S3.cut); };
   el.querySelectorAll("[data-l]").forEach((c) => (c.onchange = () => {
     if (c.dataset.l === "contrast") { S3.contrast = c.checked; build(true); return; }
@@ -195,6 +245,7 @@ export function mountVue3d(el, { api }) {
     S3.house.devices.visible = $('[data-l="devices"]').checked; S3.house.boxes.visible = $('[data-l="boxes"]').checked;
     if (S3.gaines) { S3.gaines.group.visible = $('[data-l="gaines"]').checked; S3.gaines.setXray($('[data-l="xray"]').checked); }
     if (S3.marks) S3.marks.vols.visible = $('[data-l="vol"]').checked;
+    S3.others.forEach((o) => { o.house.devices.visible = S3.house.devices.visible; });
     if (!S3.house.devices.visible) showCard(null);
   }));
 
@@ -221,7 +272,7 @@ export function mountVue3d(el, { api }) {
     if (halo) { S3.scene.remove(halo); halo.geometry.dispose(); halo = null; }
     const g = S3.gList.find((x) => x.id === gid); if (!g) { showCard(null); return; }
     card.classList.remove("wide"); card.dataset.wall = "";
-    S3.gaines.highlight(gid); card.dataset.id = ""; card.dataset.gaine = gid;
+    if (S3.gaines) S3.gaines.highlight(gid); card.dataset.id = ""; card.dataset.gaine = gid;
     card.innerHTML = `<span class="k">Gaine · boîte ${esc(g.box)}</span><b class="t">${esc(g.no)}</b><p>${esc(g.label)}</p>
       <dl><dt>Longueur</dt><dd>${g.length != null ? fr(g.length) + " m" : "—"} (bande, surlongueurs comprises)</dd><dt>Tracé 3D</dt><dd>${fr(g.L3)} m</dd>${g.diam ? `<dt>Diamètre</dt><dd>Ø${esc(String(g.diam))}</dd>` : ""}<dt>Passage</dt><dd>${g.sol ? "par le sol" : "par le plafond"}</dd></dl>
       ${g.keys.length ? `<label class="v3d-sol" title="Propriété de la gaine : descente de la boîte jusqu'au sol, trajet dans la dalle, remontée jusqu'à l'appareil. Longueur recalculée ; Ctrl+Z annule."><input type="checkbox" data-sol ${g.sol ? "checked" : ""}> Passage par le sol</label>` : ""}
@@ -378,6 +429,7 @@ export function mountVue3d(el, { api }) {
   const ui = {
     focusDev: (id) => focusDev(id),
     render() { build(false).then(start).catch((e) => { msg.hidden = false; msg.textContent = "La vue 3D n'a pas pu s'afficher : " + (e && e.message || e); }); },
+    levels(m) { S3.levels = m; el.querySelectorAll("[data-lvm]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.lvm === m))); return build(true); },
     view, state: S3, walk, showGaine: (id) => showGaine(id), showWall: (seg, side) => showWall(seg, side), elevPdf,
   };
   ui.render();

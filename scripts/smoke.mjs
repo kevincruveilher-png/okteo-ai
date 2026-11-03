@@ -2837,6 +2837,27 @@ try {
     if (!clicked) console.log("    (clic sur le mur non atteint dans ce cadrage : élévation ouverte par l'API)");
     return true;
   });
+  await check("3D-10 : « Tous les niveaux » : l'étage empilé au-dessus du niveau ouvert (hauteur + dalle), liaison entre niveaux en pointillés ; « Niveau ouvert » le retire", async () => {
+    await ev(() => okteo.setTab("plan"));
+    const lv0 = await ev(() => okteo.level.id);
+    const intId = await ev(() => okteo.importDevices([{ t: "INT", x: 1, y: 0.3 }], [], { stay: true }).ids[0]);
+    const lv1 = await ev(() => okteo.addLevel("Étage 3D", { withWalls: true }));
+    const lumId = await ev((c) => { const id = okteo.importDevices([{ t: "LUM", x: 2, y: 2 }], [], { stay: true }).ids[0]; okteo.state.lia.push({ c, l: id }); okteo.markDirty(); return id; }, intId);
+    await ev((l) => okteo.switchLevel(l), lv0);
+    await ev(() => okteo.setTab("vue3d"));
+    await page.waitForFunction(() => okteoExt.pages.vue3d.ui.state.house && !document.querySelector(".v3d-lvs").hidden, null, { timeout: 20000 });
+    await page.click('.v3d-lvs [data-lvm="tous"]');
+    await page.waitForFunction(() => (okteoExt.pages.vue3d.ui.state.others || []).length === 1, null, { timeout: 20000 });
+    const r = await ev((ids) => { const S3 = okteoExt.pages.vue3d.ui.state, o = S3.others[0]; return { y: o.y, walls: o.house.walls.children.filter((m) => m.isMesh && m.userData.wall).length, devs: o.devs.map((d) => d.id), links: S3.vlinks ? S3.vlinks.children.map((l) => l.userData.link) : [], ground: S3.ground.position.y, note: document.querySelector(".v3d-note").textContent }; }, [intId, lumId]);
+    await page.click('.v3d-lvs [data-lvm="ouvert"]');
+    await page.waitForFunction(() => (okteoExt.pages.vue3d.ui.state.others || []).length === 0, null, { timeout: 20000 });
+    const level = await ev(() => okteo.level.id);
+    await ev(({ l, i }) => { okteo.setTab("plan"); okteo.removeLevel(l); okteo.removeApps([i]); }, { l: lv1, i: intId });
+    const back = await ev((l) => !okteo.levels.some((x) => x.id === l), lv1);
+    const ok = r.y > 2.5 && r.y < 3.5 && r.walls > 0 && r.devs.includes(lumId) && r.links.includes(intId + ">" + lumId) && Math.abs(r.ground + 0.01) < 1e-6 && /trémies/.test(r.note) && level === lv0 && back;
+    if (!ok) throw new Error(JSON.stringify({ r, level, back }));
+    return true;
+  });
   await check("3D-2 : jonction oubliée et mur en double signalés dans la vue 3D, un clic montre l'endroit sur le plan", async () => {
     await ev(() => okteo.addWalls([{ a: { x: 20, y: 0 }, b: { x: 24, y: 0 }, ep: 0.25 }, { a: { x: 22, y: 0.35 }, b: { x: 22, y: 3 }, ep: 0.1 }]));
     await ev(() => okteo.setTab("vue3d"));

@@ -130,6 +130,10 @@ window.okteo = {
     };
   },
   switchLevel,
+  // 3D-10 : exécute fn avec un autre niveau chargé dans state (lecture seule : rien n'est enregistré ni dessiné)
+  inLevel(id, fn) {
+    return id === K.LV.cur || !CH.levels.some(l => l.id === id) ? fn() : withLevel(id, fn);
+  },
   // ---------- câblage (v28) ----------
   get cab() {
     return K.CAB;

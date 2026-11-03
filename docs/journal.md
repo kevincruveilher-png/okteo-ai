@@ -1,3 +1,18 @@
+## 03/11/2026 — 3D-10 tous les niveaux en 3D (branche `feat/3d-1-visionneuse`)
+
+- Cœur : `okteo.inLevel(id, fn)` (exécute `fn` avec un autre niveau chargé dans `state`, via `withLevel` ; lecture seule).
+- `vue3d.js` : bascule « Niveau ouvert / Tous les niveaux » (`.v3d-lvs [data-lvm]`, cachée s'il n'y a qu'un niveau,
+  `ui.levels(m)`) ; les niveaux sont empilés dans l'ordre de la liste (de bas en haut) : hauteur du niveau (plus haut
+  plafond de ses pièces) + dalle de 25 cm ; le niveau ouvert reste à la hauteur 0 (visite, clics, gaines, contrôles
+  inchangés), le sol des ombres descend sous le plus bas ; `S3.others` [{id, name, y, house, devs}] ; liaisons
+  commande ↔ lumière entre deux niveaux en pointillés rouges (`S3.vlinks`, `api.allLinks()`). Seul le niveau ouvert se
+  touche et se modifie. Escaliers et trémies ne sont pas dans le dessin : dalles pleines (dit dans la note du panneau).
+- Correctif 3D-7 (run 41732198060 rouge : « Cannot read properties of null (reading 'highlight') ») : deux
+  reconstructions de la maquette pouvaient se croiser (attente du module de scène) ; `build` porte un numéro
+  (`S3.gen`), n'attend plus qu'avant de toucher la scène, et la fiche d'une gaine vérifie que les gaines existent.
+- Tests : smoke (étage créé avec ses murs, lumière liée à un interrupteur du RDC, empilement à 2,5–3,5 m, pointillés,
+  retour au niveau ouvert, nettoyage).
+
 ## 03/11/2026 — 3D-7 élévations de murs (branche `feat/3d-1-visionneuse`)
 
 - `src/3d/elevation.js` (pur) : `wallElevation(data, apps, rooms, segId, side, H)` = face d'un mur à plat, vue depuis
