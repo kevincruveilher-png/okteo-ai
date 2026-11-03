@@ -1,3 +1,12 @@
+## 04/11/2026 — Vue 3D (3D-1 à 3D-8, 3D-10) fusionnée dans `main` (« go » de Kévin)
+
+- Branche `feat/3d-1-visionneuse` fusionnée dans `main` ; workflow temporaire `verification-3d.yml` retiré. Dernière
+  vérification complète : run 41735764026 vert (smoke 193/193, v3d 48, build:web, test:web). Déploiement Cloudflare
+  Pages automatique depuis `main` ; la page `plan3d.html` est publique comme `bande.html`.
+- Dépendance ajoutée par la 3D : three 0.169.0 (MIT). Aucune autre.
+- Reste : 3D-9 (essai chantier par Kévin, puis version client) ; questions ouvertes : repère `a.wa` (distance à l'angle
+  faussée par un mur dans le prolongement), noms dans le QR de la bande de boîte, lisibilité du QR de 48 mm.
+
 ## 03/11/2026 — 3D-8 maquette 3D d'une face du plan par QR code (branche `feat/3d-1-visionneuse`)
 
 - `src/3d/plan-code.js` (pur) : `packPlan(S)` / `unpackPlan(P)` (coque : sommets, murs avec épaisseur et hauteur,

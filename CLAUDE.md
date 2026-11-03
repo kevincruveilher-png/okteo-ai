@@ -1,4 +1,4 @@
-# À LIRE EN PREMIER — état du projet (mis à jour le 03/11/2026, v76 dans `main` ; 3D prévue, voir journal)
+# À LIRE EN PREMIER — état du projet (mis à jour le 04/11/2026, v76 + vue 3D (3D-1 à 3D-8, 3D-10) dans `main`)
 
 Ce fichier sert à TOUTES les IA qui travaillent sur le dépôt (Claude, ChatGPT/Codex…) : `AGENTS.md` y renvoie.
 Plusieurs IA se sont succédé (Claude jusqu'à v66, ChatGPT v67 à v72, Claude depuis v72.1) : garder une seule source de
@@ -497,7 +497,7 @@ colonnes `config.analysis_model/analysis_input_price/analysis_output_price` (cr�
   Les workflows temporaires `verification-v76.yml` / `raster-v76.yml` ont été retirés à la fusion ; pour revérifier, en
   recréer un sur une branche `verification-…` (voir journal v76).
 
-### Vue 3D 3D-1 à 3D-8, 3D-10 (branche `feat/3d-1-visionneuse`, pas encore dans `main`)
+### Vue 3D 3D-1 à 3D-8, 3D-10 (dans `main` depuis le 04/11/2026 ; 3D-9 = essai chantier)
 - `src/3d/plan3d.js` (pur : `H3D`, `cleanPlan` → défauts, `wallEnds`, `wallPrisms`, `openingParts`, `devicesOf`,
   `prismIssues`) ; `src/3d/scene.js` (`buildHouse(THREE, …)`, three.js passé en paramètre) ; `src/ext/vue3d.js`
   (onglet `vue3d`, Alt+4, `okteoExt.pages.vue3d.ui.state`, three.js 0.169.0 chargé à la demande, couleurs gérées par
@@ -513,7 +513,7 @@ colonnes `config.analysis_model/analysis_input_price/analysis_output_price` (cr�
   3D-10 : `okteo.inLevel(id, fn)`, `.v3d-lvs` / `ui.levels("tous"|"ouvert")`, `S3.others`, `S3.vlinks` ; `build` numéroté (`S3.gen`).
   3D-8 : `src/3d/plan-code.js` (`packPlan`/`unpackPlan`/`planUrl`, ≤ 2 900, aucun nom), `src/ext/plan3d-qr.js` (`faceUrl`),
   `buildFtz` option `ftz.qr3d` → `r.qrs`, `#prep-qr3d` ; page publique `plan3d.html` + `src/plan3d-view.js` (`window.__plan3d`), Worker. Tests :
-  `scripts/v3d.test.mjs` + smoke. Workflow TEMPORAIRE `verification-3d.yml` à retirer avant fusion.
+  `scripts/v3d.test.mjs` + smoke. Workflow temporaire `verification-3d.yml` retiré à la fusion (pour revérifier : en recréer un sur une branche `verification-…`).
 
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,
