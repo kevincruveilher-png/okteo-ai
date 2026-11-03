@@ -693,8 +693,8 @@ try {
       return { n: cards.length, titles: cards.map((c) => c.querySelector(".am-title").textContent), pressed: cards.map((c) => c.getAttribute("aria-pressed")), dots: cards.map((c) => c.querySelectorAll(".am-dot.on").length),
         h1: el.querySelector("h1").textContent, ref: el.querySelector(".am-ref").textContent, expected: [okteo.ch.nom, okteo.ch.numero].filter(Boolean).join(" · ").toUpperCase(),
         dis: go.getAttribute("aria-disabled"), foot: el.querySelector(".am-foot p").textContent, h1w: getComputedStyle(el.querySelector("h1")).width, bg: getComputedStyle(el).backgroundColor }; });
-    // un clic sur Lancer sans choix ne fait rien
-    await page.click("#am-go");
+    // un clic sur Lancer sans choix ne fait rien (aria-disabled : Playwright refuse le clic sans force)
+    await page.click("#am-go", { force: true });
     const still = await ev(() => okteoExt.aiModes.visible && okteoExt.aiModes.launched == null);
     // mode 3 choisi : coche + aria-pressed, mais pas encore lançable
     await page.click('#ai-modes .am-card[data-mode="3"]');
@@ -703,6 +703,7 @@ try {
     const c = await ev(() => { const el = document.getElementById("ai-modes"); return { dis: el.querySelector("#am-go").getAttribute("aria-disabled"), label: el.querySelector("#am-go").textContent }; });
     await page.keyboard.press("Escape");
     const closed = await ev(() => !okteoExt.aiModes.visible && !document.body.classList.contains("am-on"));
+    await ev(() => okteoExt.aiModes.close());   // jamais laissé ouvert par-dessus le plan pour les tests suivants
     const noCall = seen.length === n0;
     const r = { a, still, b, c, closed, noCall };
     if (!(a.n === 4 && a.titles.join("|") === "Analyse standard|Analyse renforcée|Plan dégradé|Analyse approfondie" && a.pressed.every((x) => x === "false") && a.dots.join("") === "1234"
