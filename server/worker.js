@@ -28,8 +28,9 @@ export async function handle(request,env,ctx={waitUntil(){}}) {
  // v72.1 : page bande du câbleur (QR code) publique, sans compte. Les données sont dans le # de l'adresse
  // (jamais envoyé au serveur). Seuls bande.html et les fichiers compilés à nom haché (js/css) sont servis sans session :
  // aucun plan, fond (dossier public/assets) ni API n'est exposé par cette exception.
- if(['GET','HEAD'].includes(request.method)&&(p==='/bande.html'||p==='/bande'||PUBLIC_ASSET.test(p))){
-  const r=PUBLIC_ASSET.test(p)?await env.ASSETS.fetch(request):await assetPage(env,url,'/bande.html'),h=new Headers(r.headers);
+ // 3D-8 : la maquette 3D d'une face du plan (plan3d.html, QR de la face) suit la même règle.
+ if(['GET','HEAD'].includes(request.method)&&(p==='/bande.html'||p==='/bande'||p==='/plan3d.html'||p==='/plan3d'||PUBLIC_ASSET.test(p))){
+  const r=PUBLIC_ASSET.test(p)?await env.ASSETS.fetch(request):await assetPage(env,url,p.startsWith('/plan3d')?'/plan3d.html':'/bande.html'),h=new Headers(r.headers);
   h.set('x-content-type-options','nosniff');h.set('referrer-policy','no-referrer');h.set('x-frame-options','DENY');
   if(!PUBLIC_ASSET.test(p)){h.set('cache-control','no-store');h.set('content-security-policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");}
   return new Response(r.body,{status:r.status,headers:h});

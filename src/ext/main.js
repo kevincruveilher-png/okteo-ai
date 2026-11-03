@@ -32,6 +32,7 @@ import { createTemps } from "./temps.js";
 import { ensurePaperW, chantierScaleCheck } from "./pdf-page.js";
 import { mountBandsPage } from "./cablage-bandes.js";
 import { mountTableauPage } from "./tableau-page.js";
+import { mountVue3d } from "./vue3d.js";
 
 function start() {
   const api = window.okteo;
@@ -98,6 +99,7 @@ function start() {
     lignes: { el: document.getElementById("lignes"), mount: (el) => mountDirectPage(el, { api }), ui: null },
     bandes: { el: document.getElementById("bandes"), mount: (el) => mountBandsPage(el, { api }), ui: null },
     tableau: { el: document.getElementById("tableau"), mount: (el) => mountTableauPage(el, { api }), ui: null },
+    vue3d: { el: document.getElementById("vue3d"), mount: (el) => mountVue3d(el, { api }), ui: null },   // 3D-1
   };
   // v64 : Boîtes, Bandes et Lignes directes réunies sous l'onglet « Pieuvre » (sous-onglets en haut)
   const pgEl = document.getElementById("pg-pieuvre"), SUB = ["boites", "bandes", "lignes"];
@@ -152,6 +154,8 @@ function start() {
     if (e.key === "F1") { e.preventDefault(); palette.open(); return; }
     // v75 : Alt+V = dicter une question à l'assistant (même pendant la saisie)
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.code === "KeyV" || e.key.toLowerCase() === "v")) { e.preventDefault(); hooks.dictate(); return; }
+    // 3D-1 : Alt+4 = onglet 3D (et retour au plan)
+    if (e.altKey && !e.ctrlKey && !e.metaKey && !typing && (e.code === "Digit4" || e.key === "4")) { e.preventDefault(); api.setTab(api.tab === "vue3d" ? "plan" : "vue3d"); return; }
     if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === "?") { e.preventDefault(); palette.open(); return; }
     if (e.key.toLowerCase() === "a" && !palette.isOpen) { e.preventDefault(); hooks.openAssistant(); }

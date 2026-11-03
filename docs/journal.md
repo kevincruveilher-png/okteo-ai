@@ -1,3 +1,184 @@
+## 04/11/2026 — Vue 3D (3D-1 à 3D-8, 3D-10) fusionnée dans `main` (« go » de Kévin)
+
+- Branche `feat/3d-1-visionneuse` fusionnée dans `main` ; workflow temporaire `verification-3d.yml` retiré. Dernière
+  vérification complète : run 41735764026 vert (smoke 193/193, v3d 48, build:web, test:web). Déploiement Cloudflare
+  Pages automatique depuis `main` ; la page `plan3d.html` est publique comme `bande.html`.
+- Dépendance ajoutée par la 3D : three 0.169.0 (MIT). Aucune autre.
+- Reste : 3D-9 (essai chantier par Kévin, puis version client) ; questions ouvertes : repère `a.wa` (distance à l'angle
+  faussée par un mur dans le prolongement), noms dans le QR de la bande de boîte, lisibilité du QR de 48 mm.
+
+## 03/11/2026 — 3D-8 maquette 3D d'une face du plan par QR code (branche `feat/3d-1-visionneuse`)
+
+- `src/3d/plan-code.js` (pur) : `packPlan(S)` / `unpackPlan(P)` (coque : sommets, murs avec épaisseur et hauteur,
+  ouvertures avec gond, sens, allège, linteau ; pièces (nom, contour, hauteur sous plafond) ; appareils (type, position,
+  hauteur, mur, repère) ; boîtes ; gaines (boîte, appareils, passage par le sol, points de passage) ; lignes directes ;
+  hauteurs de départ ; version et date), centimètres entiers en différences successives, deflate + base64url
+  (`encodeSheet` de la bande) ; `planUrl(S)` → `plan3d.html#p=…`, allégé si besoin (repères, puis sols), `tooBig` au-delà
+  de 2 900 caractères. AUCUN nom de client, de chantier ni de n° d'affaire (vérifié par test).
+  MAILLARD : recto (88 appareils, 10 boîtes, 97 gaines) = 2 493 caractères, verso (lignes directes) = 1 272.
+- `src/ext/plan3d-qr.js` : `faceData(api, {apps, boxes, direct})` / `faceUrl` (planData de la 3D + gaines de `wiringNow`
+  + lignes directes d'`exportGeometry`).
+- Impression A3 du BE (`print.js` `buildFtz`, option `ftz.qr3d(face)`) : un QR de 48 mm par face, dans le coin libre de
+  la zone de dessin (hors légende, le moins possible sur le plan), légende « Maquette 3D de cette face » ; `r.qrs`.
+  Préparation d'impression : case « QR maquette 3D sur chaque face » (`#prep-qr3d`, `meta.impression.qr3d`, cochée par
+  défaut). Taille : un QR de ~2 500 caractères est une version 37–39 (≈ 170 modules) : à 48 mm, 0,28 mm par module ;
+  à essayer au chantier avec plusieurs téléphones (si besoin : deux QR par face, ou moins de contenu).
+- Page publique `plan3d.html` + `src/plan3d-view.js` + `src/plan3d.css` (3e entrée Vite) : maquette (murs, ouvertures,
+  sols, appareils, boîtes, gaines couleur de boîte, lignes directes en bleu), calques, vues Ensemble / Dessus, toucher =
+  fiche (appareil, boîte, gaine, ligne directe), « Visite » à la manette tactile (collisions sur les murs, passages par
+  les portes) ; `window.__plan3d` (tests). Worker : `/plan3d.html` et `/plan3d` publics comme la bande ; `test:web`.
+- Remarque : le QR existant de la bande de boîte (v49) contient le pavillonneur, le nom et le n° du chantier (en-tête
+  de la page bande). Non modifié : à décider avec Kévin (la consigne « aucun nom » portait sur le QR du plan).
+- Tests : v3d (taille MAILLARD recto / verso, relecture au cm, aucun nom, allègement, version inconnue) + smoke (deux
+  faces A3 avec QR, page téléphone : murs, gaines, fiche, visite) + test:web. Une gaine dont l'appareil n'est pas sur le
+  niveau n'est pas mise dans le QR. Validation : run 41735764026 vert (smoke 193/193, v3d 48, build:web, test:web).
+- Reste de la feuille de route 3D : 3D-9 = essai chantier par Kévin (puis version client). Avant la fusion dans `main` :
+  retirer `.github/workflows/verification-3d.yml`.
+
+## 03/11/2026 — 3D-10 tous les niveaux en 3D (branche `feat/3d-1-visionneuse`)
+
+- Cœur : `okteo.inLevel(id, fn)` (exécute `fn` avec un autre niveau chargé dans `state`, via `withLevel` ; lecture seule).
+- `vue3d.js` : bascule « Niveau ouvert / Tous les niveaux » (`.v3d-lvs [data-lvm]`, cachée s'il n'y a qu'un niveau,
+  `ui.levels(m)`) ; les niveaux sont empilés dans l'ordre de la liste (de bas en haut) : hauteur du niveau (plus haut
+  plafond de ses pièces) + dalle de 25 cm ; le niveau ouvert reste à la hauteur 0 (visite, clics, gaines, contrôles
+  inchangés), le sol des ombres descend sous le plus bas ; `S3.others` [{id, name, y, house, devs}] ; liaisons
+  commande ↔ lumière entre deux niveaux en pointillés rouges (`S3.vlinks`, `api.allLinks()`). Seul le niveau ouvert se
+  touche et se modifie. Escaliers et trémies ne sont pas dans le dessin : dalles pleines (dit dans la note du panneau).
+- Correctif 3D-7 (run 41732198060 rouge : « Cannot read properties of null (reading 'highlight') ») : deux
+  reconstructions de la maquette pouvaient se croiser (attente du module de scène) ; `build` porte un numéro
+  (`S3.gen`), n'attend plus qu'avant de toucher la scène, et la fiche d'une gaine vérifie que les gaines existent.
+- Tests : smoke (étage créé avec ses murs, lumière liée à un interrupteur du RDC, empilé au-dessus des autres niveaux,
+  pointillés, retour au niveau ouvert, nettoyage). Validation 3D-7 + 3D-10 : run 41734307163 vert (smoke 192/192).
+
+## 03/11/2026 — 3D-7 élévations de murs (branche `feat/3d-1-visionneuse`)
+
+- `src/3d/elevation.js` (pur) : `wallElevation(data, apps, rooms, segId, side, H)` = face d'un mur à plat, vue depuis
+  la pièce (u = 0 au coin gauche de l'observateur) : longueur de la face (retrait de la demi-épaisseur d'un mur qui part
+  de ce côté, prolongement jusqu'au coin extérieur d'un angle sortant), pièce de ce côté, ouvertures (allège / linteau),
+  appareils de cette face avec leur distance au coin le plus proche et leur hauteur (* = hauteur de départ) ;
+  `roomFaces(data, room)` (faces du contour tournées vers l'intérieur) ; `elevationDraw(E)` (primitives en mètres,
+  partagées écran / PDF) ; `elevationSVG(E, {px})`.
+- `src/ext/elevations-pdf.js` : `buildElevationsPdf(list, {chantier, level})` (jsPDF, A4 paysage, une élévation par page,
+  1:20, 1:25, 1:50 ou 1:100 selon la place, cotes bleues, légende).
+- 3D : clic sur un mur (rien d'autre sous la souris) → carte large : élévation de la face touchée (normale de la face,
+  sinon côté de la caméra), « Autre face », « PDF de ce mur », « PDF de la pièce » (toutes ses faces intérieures),
+  « Voir sur le plan » ; `ui.showWall(seg, side)`, `ui.elevPdf`, `ui.lastElev` (tests). Catalogue : `vue.3d.elevation`.
+- Constat : le repère `a.wa` du plan (distance « depuis la face du mur d'angle ») retire la plus grosse demi-épaisseur du
+  sommet, même celle d'un mur dans le prolongement (cas fréquent sur MAILLARD : 43 appareils sur 77, écarts de 3 à
+  15 cm). Ce n'est pas corrigé dans le cœur (les appareils se replacent d'après `wa` : les corriger les déplacerait) ;
+  l'élévation donne la vraie distance au coin de la face. À décider avec Kévin.
+- Tests : v3d (face intérieure / extérieure, inversion gauche-droite, pièce, allège, cotes et hauteurs) + smoke (clic
+  sur un mur, élévation, PDF à l'échelle, autre face, Ctrl+Z).
+
+## 03/11/2026 — 3D-6 contrôles de pose (branche `feat/3d-1-visionneuse`)
+
+- `src/3d/pose.js` (pur) `poseIssues(plan, apps, {pmr, H})` → `battant` (commande dans la bande du battant ouvert :
+  côté charnière, face où la porte s'ouvre, longueur du battant + 10 cm, 25 cm de profondeur), `embrasure` (appareil
+  mural dans la largeur ET la hauteur du vide d'une ouverture, à plus de 5 cm du tableau ; allège / linteau de
+  Propriétés ou hauteurs de départ ; une prise sous l'allège est acceptée), `hauteur` (PMR : commande hors 90–130 cm,
+  prise d'usage sous 40 cm, R-110 ; hors PMR : commande sous 60 ou au-dessus de 160 cm seulement). Conventions des
+  portes reprises de render.js (`swing` ext = côté de la normale (-uy, ux), `hinge` d = vers le bout b).
+- `src/core/check.js` : `posesAll()` (tous les niveaux) ajoutée à `controlIssues()` ; nouvelles sortes dans
+  `CHECK_KINDS` (`POSE_KINDS`) : le compteur « à vérifier » les compte et y mène ; `controle-ui.js` : explication
+  `it.text` quand l'anomalie en porte une (aussi pour les volumes de salle de bain et la VMC).
+- 3D : `scene.js` `buildMarks` (anneau rouge clignotant face au mur, volumes 1 et 2 de la salle de bain en verre
+  teinté) ; `vue3d.js` : liste `.v3d-pose` (poses à revoir + volumes de salle de bain), clic = caméra devant l'appareil
+  + fiche avec l'explication (`.v3d-bad`), calque « Volumes de la salle de bain », mise à jour sur `okteo:control`.
+- Constat sur MAILLARD (dessin de Kévin) : 24 poses signalées (surtout des commandes de volet et interrupteurs dans la
+  largeur d'une fenêtre ou d'une porte, et 3 derrière un battant) : soit l'appareil, soit l'ouverture est mal placé ; les
+  sens d'ouverture des portes relevées par l'IA sont souvent ceux par défaut (gond gauche, intérieur) : à corriger sur le
+  plan pour que le contrôle du battant soit juste.
+- Tests : v3d (cas d'école battant / embrasure / hauteurs / allège / charnière inversée) + smoke (compteur, 3D, fiche, Ctrl+Z).
+  Validation : run 41731331613 vert (smoke 190/190, v3d 41, build:web, test:web).
+
+## 03/11/2026 — 3D-5 gaines en 3D et passage par le sol (branche `feat/3d-1-visionneuse`)
+
+Réponses de Kévin : la réserve en boîte est un réglage (elle existe déjà : Paramètres → Câblage → Longueurs,
+« surlongueur côté boîte » `margeBoite`, et côté appareil `margeApp`) ; le passage par le sol est une propriété de la gaine.
+- `src/cablage/gaines.js` : `box.sol = {appId | "tab": true}` → gaine `g.sol` ; longueur d'une gaine par le sol =
+  traversée + hauteur sous plafond + hauteur de l'appareil (descente au sol puis remontée) au lieu de la descente du
+  plafond ; alimentation par le sol : jusqu'au haut du tableau. La longueur de la bande suit.
+- `src/ext/cablage-data.js` : `setGaineSol(api, boxId, keys, on)` (un Ctrl+Z, `api.setBoxes`), `gaineKeys(g)`.
+- Propriété dans la fiche de la gaine sur le plan (carte « Pourquoi » d'une gaine sélectionnée, `.why-sol`) et dans la
+  fiche de la gaine en 3D (`.v3d-sol`).
+- `plan3d.js` : `gainePath({box, route, end, sol, H, wall})` (tracé du plan en traits droits, points de passage
+  `box.routes`, au-dessus du plafond, descente verticale dans le mur ; par le sol : descente dans le mur le plus proche
+  de la boîte hors passage `nearestWall`, dalle, remontée) ; `scene.js` `buildGaines` (tube couleur de la boîte
+  `boxColor`, double clair visible à travers les murs, tube invisible pour le clic, `highlight`).
+- `vue3d.js` : gaines calculées par `wiringNow(api)` (mêmes n° et longueurs que les bandes) ; calques « Gaines » et
+  « Gaines visibles à travers les murs » ; clic sur une gaine → fiche (n°, appareil, longueur de la bande, tracé 3D,
+  diamètre, passage) + « Voir sur le plan » ; clic sur une boîte → ses gaines ; reconstruction sur `okteo:cab`.
+- Tests : v3d (tracés plafond / sol / plafond d'un point lumineux, descente hors porte, longueur de la bande par le sol)
+  + smoke (gaines dessinées, fiche, « Passage par le sol » → plus longue et dans la dalle, Ctrl+Z).
+- La case « Passage par le sol » rend la main dès qu'on la coche (Ctrl+Z est ignoré dans un champ). Test de la visite :
+  sortie par la pause (« Quitter la visite »). Validation : run 41727704875 vert (smoke 189/189, v3d, build:web, test:web).
+
+## 03/11/2026 — 3D-4 visite à pied et pose au viseur (branche `feat/3d-1-visionneuse`)
+
+- `src/ext/vue3d-walk.js` (`createWalk({api, S3, el, cv})`) : bouton « Visite à pied · ZQSD » (`.v3d-walk`) du panneau 3D ;
+  ZQSD = touches physiques (WASD en QWERTY), flèches, Maj = courir, souris (verrouillage du pointeur, sinon glisser) ;
+  collisions sur les murs du plan nettoyé (passages = ouvertures dont l'allège est au sol) ; départ au nom de la plus
+  grande pièce ; plafonds affichés pendant la visite. Outils 1–6 / molette : prise PC16, interrupteur, RJ45, point
+  lumineux (au plafond), applique, gomme ; hauteur normale du type (`api.TYPES[t].h`) ou hauteur visée (H) ; aperçu vert,
+  raison affichée sinon. Pose = `api.importDevices([...], [], {stay: true})` (nouvelle option du cœur : on reste sur
+  l'onglet et l'outil) → vrai appareil, recollé à son mur (`snapToWall` + `attach`), un Ctrl+Z ; gomme =
+  `api.removeApps([id])`. Les touches de la visite sont capturées avant les raccourcis du plan (Ctrl+Z passe).
+  Échap : pause (reprendre / quitter) ; quitter l'onglet quitte la visite. Catalogue `vue.3d.visite`.
+- Test smoke : marcher, poser une prise (rattachée, onglet 3D conservé), Ctrl+Z, gomme, Échap.
+- Validation 3D-3 + 3D-4 : run 41721996246 vert (check complet dont smoke 188/188, v3d 30/30, build:web, test:web 15/15).
+
+## 03/11/2026 — 3D-3 hauteurs réglables (branche `feat/3d-1-visionneuse`)
+
+« 3 et 4 go » de Kévin. Hauteurs de la vue 3D : valeurs de départ réglables, et réglage une par une.
+- `src/prefs.js` : `h3dPlafond` 250, `h3dAllege` 90, `h3dLinteau` 215, `h3dPorte` 204, `h3dBaie` 215, `h3dGarage` 220
+  (cm, préférences de ce PC). Paramètres : section « Vue 3D » `#ps-3d` (`[data-h3d]`), dans le sommaire.
+- Propriétés : ouverture → « Allège » (fenêtre) et « Haut. linteau » (`#oal`, `#oli` → `o.allege`, `o.linteau` en cm,
+  vide = valeur de départ, un Ctrl+Z) ; pièce → « Sous plafond » (`#rhsp` → `r.hsp` en cm).
+- `plan3d.js` : `heightsFrom(prefs)` → hauteurs en m (boîtes 35 cm au-dessus du plafond), `cleanPlan(data, tol, H)`,
+  mur `top` = la plus haute pièce qu'il borde (`r.cycle`), `wallPrisms` jusqu'à `top`, lumière au plafond de sa pièce ;
+  `cut` par défaut illimité. `scene.js` : `H`, plafonds par pièce (`house.ceilings`, cachés hors visite).
+- `vue3d.js` : `planData` → `segs[].top`, `openings[].allege/linteau` (m), `apps[].hsp`, `rooms[].hsp`, `H` ; la coupe
+  va jusqu'au plus haut mur ; texte des hauteurs de départ + « Régler… » (→ Paramètres, Vue 3D) ; reconstruction sur
+  `okteo:prefs` (clés `h3d*`).
+- Tests : v3d (hauteurs de départ, fenêtre réglée, mur à 2,80 m, lumière sous son plafond) + smoke (Paramètres → 3D,
+  fenêtre réglée, champs de Propriétés).
+
+## 03/11/2026 — 3D-1 visionneuse 3D + 3D-2 géométrie propre (branche `feat/3d-1-visionneuse`, pas encore dans `main`)
+
+« GO 3d1 ET 2 » de Kévin. Les deux mises à jour sont livrées ensemble sur la même branche (la visionneuse a besoin du
+nettoyage de la géométrie pour être propre sur de vrais plans).
+- `src/3d/plan3d.js` (pur, sans DOM ni three.js) : `H3D` (valeurs de départ : sous plafond 2,50, allège 0,90, linteau
+  2,15, porte 2,04, baie 2,15, garage 2,20, boîtes à 2,85 dans les combles ; réglables en 3D-3), `cleanPlan(data)`
+  (3D-2 : sommets à moins de 2 cm fusionnés, murs nuls retirés, murs en double gardés une fois, bout libre arrêté à moins
+  de 8 cm de la face d'un mur recollé en T ou en angle, murs qui se croisent sans sommet coupés, chevauchements et bouts
+  libres à moins de 30 cm signalés, ouvertures plus larges que leur mur ou qui se chevauchent signalées ;
+  `defects [{kind, level info|warn, text, x, y, ids}]`), `wallEnds` (onglets aux angles, coupes en T), `wallPrisms`
+  (un volume par morceau plein, allèges, linteaux, coupe « maison de poupée » ; coin d'onglet borné quand une ouverture
+  touche un angle), `openingParts` (vitrages, battants à 70° côté charnière / sens du dessin), `devicesOf` (appareil mural
+  plaqué contre la face de son mur, normale, hauteur du dessin ou valeur de départ `defH`, plafond pour LUM/SPOT…),
+  `prismIssues` (contrôle des volumes), `planBounds`. Le dessin n'est JAMAIS modifié : le nettoyage ne sert qu'au rendu.
+- `src/3d/scene.js` : `buildHouse(THREE, {plan, rooms, devices, boxes}, {cut, contrast})` (three.js passé en paramètre) :
+  murs contrastés (façade pierre, cloison gris bleuté, doublage, plinthe 8 cm, faces orientées, bas assombri), dessus des
+  murs bleu nuit, arêtes, sols par pièce (pièces d'eau en gris-vert), noms de pièces, appareils à leur hauteur colorés par
+  circuit, boîtes `LIxx` dans les combles ; `setCut(h)`, `pick` (clic), `dispose`.
+- `src/ext/vue3d.js` : onglet « 3D » (`#tabs button[data-tab="vue3d"]`, page `#vue3d`, Alt+4, catalogue `vue.3d`, étape
+  de la visite : 28 étapes) ; `planData(api)` lit `api.state` + `exportGeometry()` sans rien modifier ; three.js 0.169.0
+  (MIT) chargé à la première ouverture ; vues Ensemble / Dessus, coupe 0,90–2,50 m, calques (murs contrastés, appareils,
+  boîtes) ; clic sur un appareil → fiche (repère, pièce, hauteur, « valeur de départ ») + « Voir sur le plan »
+  (`api.select` + `api.zoomTo`) ; reconstruction sur `okteo:saved` / `okteo:level` quand l'onglet est ouvert ; boucle
+  d'affichage arrêtée quand l'onglet est caché. 3D-2 : liste repliable « points de géométrie » (⚠ à vérifier / ⓘ corrigé
+  pour la 3D), un clic sélectionne les murs concernés sur le plan ; pièce au contour hors du bâtiment = pas de sol, signalée.
+- Tests : `scripts/v3d.test.mjs` (dans `npm run check`) : cas d'école (jonction à 4 cm, mur en double, 2 croisements,
+  muret à 20 cm, fenêtre trop large, porte contre l'angle) + MAILLARD (dessin du BE, 22 ouvertures, 77 appareils muraux)
+  + relevés IA MAILLARD et PASQUIER + EVRARD (murs relevés dans le PDF, si pdf.js installé) : aucun volume faux, coupe à
+  1 m. Les 4 chantiers FTZ n'ont pas de murs (positions schématiques, fonds scannés) : non testés en 3D. Smoke : 2 tests
+  (onglet 3D, fiche, « Voir sur le plan », coupe ; défaut signalé et cliquable).
+- Dépendance : `three` 0.169.0 (MIT). Workflow TEMPORAIRE `.github/workflows/verification-3d.yml` (complète le verrou
+  npm) : à retirer avant fusion.
+- Banc local (sans npm) : rendu vérifié sur MAILLARD avec three.js r169 hors dépôt (aucune erreur, fiche au clic).
+- Validation : run 41717413720 vert (licences : three 0.169.0 MIT, 84 paquets permissifs ; v3d 26/26 dont EVRARD 35 murs,
+  83 volumes, 18 ouvertures sur 18 ; check complet dont smoke 186/186 ; build:web ; test:web 15/15).
+
 ## 03/11/2026 — v76 fusionnée dans `main` ; feuille de route 3D décidée
 
 - « go v76 » de Kévin : branche `feat/analyse-ia-modes-v76` fusionnée dans `main` (avance rapide, aucun changement de

@@ -1,0 +1,28 @@
+/* 3D-8 : page téléphone « plan3d.html » (maquette 3D d'une face du plan, ouverte par son QR code) */
+:root{--fg:#e9eef5;--mut:#9fb0c2;--line:#2a3b50;--bg:#0f1b2a;--panel:#162536;--accent:#ff7a59;--blue:#4aa3df;color-scheme:dark}
+@media (prefers-color-scheme:light){:root{--fg:#14222e;--mut:#5a6b78;--line:#d4dde4;--bg:#eef2f5;--panel:#fff;--accent:#e2553a;--blue:#0e6ba8;color-scheme:light}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+#p3{position:fixed;inset:0}
+.wait,.err{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;color:var(--mut)}
+.err h1{color:var(--fg);font-size:20px;margin:0 0 8px}
+canvas.cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;background:linear-gradient(#dfe8f1,#f4f6f8)}
+.top{position:absolute;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top,0px) + 8px) max(10px,env(safe-area-inset-right,0px)) 8px max(10px,env(safe-area-inset-left,0px));display:flex;gap:8px;align-items:center;background:color-mix(in srgb,var(--bg) 88%,transparent);border-bottom:1px solid var(--line)}
+.top .ttl{flex:1;min-width:0}.top .ttl b{display:block;font-size:15px}.top .ttl small{display:block;color:var(--mut);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;font-weight:800;color:#fff;font-size:14px;flex:none}
+button{font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 11px;min-height:40px}
+button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
+.bar{position:absolute;left:0;right:0;bottom:0;padding:8px max(10px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 8px) max(10px,env(safe-area-inset-left,0px));display:flex;gap:6px;flex-wrap:wrap;justify-content:center;background:color-mix(in srgb,var(--bg) 88%,transparent);border-top:1px solid var(--line)}
+.lay{position:absolute;right:max(10px,env(safe-area-inset-right,0px));top:calc(env(safe-area-inset-top,0px) + 64px);display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;max-width:calc(100% - 20px)}
+.lay label{display:flex;gap:8px;align-items:center;min-height:32px}
+.lay input{width:20px;height:20px}
+.card{position:absolute;left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 70px);background:var(--panel);border:1px solid var(--accent);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;max-width:420px;margin:0 auto}
+.card .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.card .t{font-size:18px}.card p{margin:0;color:var(--mut);font-size:13.5px}
+.card dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:4px 0 0}.card dt{color:var(--mut)}.card dd{margin:0}
+.card .x{position:absolute;right:6px;top:6px;min-height:34px;padding:4px 10px;background:transparent;border:0;font-size:18px}
+.joy{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 78px);width:124px;height:124px;border-radius:50%;background:color-mix(in srgb,var(--panel) 70%,transparent);border:2px solid var(--line);touch-action:none}
+.joy i{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:var(--accent);opacity:.9}
+.hint{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 66px);background:color-mix(in srgb,var(--bg) 85%,transparent);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:13px;color:var(--mut);max-width:calc(100% - 20px);text-align:center}
+[hidden]{display:none!important}

@@ -9,7 +9,7 @@ import { getJournal } from "../cablage/regles.js";
 import { computeCircuits, checkCircuits, circuitsByBox } from "../cablage/circuits.js";
 import { STEPS, ETATS, precontrole, contextOf, buildTrace, whyBox, whyGaine, whyWire, statsOf, scoreOf } from "../cablage/etude.js";
 import { MODES } from "../cablage/boites.js";
-import { wiringNow, autoBoxes, compareModes, cabS } from "./cablage-data.js";
+import { wiringNow, autoBoxes, compareModes, cabS, setGaineSol, gaineKeys } from "./cablage-data.js";
 import { esc, store, storeSet } from "./util.js";
 import { downloadBlob } from "./dossier.js";
 
@@ -201,11 +201,14 @@ export function createWhy(api) {
     card.innerHTML = `<h4><span>Pourquoi ${esc(g ? g.no : b.n)} ?</span><span class="grow"></span>${g ? `<button data-k="" title="Revenir à la boîte">${esc(b.n)}</button>` : ""}<button class="mini" data-x title="Fermer">✕</button></h4>
       <div class="mut sm">${g ? esc(g.label) : `${b.gaines.length} gaines · circuits ${esc(b.circuits.join(", "))}`}</div>
       <ol>${chain.map((c) => `<li>${c.rule ? `<b>${c.rule}</b> ` : ""}${esc(c.text)}</li>`).join("")}</ol>
+      ${g && gaineKeys(g).length ? `<label class="why-sol" title="Propriété de la gaine : elle descend de la boîte jusqu'au sol, passe dans la dalle, puis remonte jusqu'à l'appareil. La longueur est recalculée ; la vue 3D la dessine par le sol. Ctrl+Z annule."><input type="checkbox" data-sol ${g.sol ? "checked" : ""}> Passage par le sol <span class="mut sm">· ${String(g.length ?? "?").replace(".", ",")} m</span></label>` : ""}
       ${g ? `<div class="mut sm">Fils : ${g.wires.map((w, i) => `<a href="#" data-w="${i}">${esc(w.color)}${w.n ? " n°" + w.n : ""}</a>`).join(" · ")}</div><div class="why-w"></div>`
         : `<div class="gl">${b.gaines.map((x) => `<button data-k="${esc(x.kind === "alim" ? (x.id === "alim:0" ? "tab" : x.id) : (x.appIds || [])[0])}" title="${esc(x.label)}">${esc(x.no.split(".")[1])}</button>`).join("")}</div>`}`;
     card.hidden = false;
     card.querySelector("[data-x]").onclick = () => { card.hidden = true; };
     card.querySelectorAll("[data-k]").forEach((x) => (x.onclick = () => show(id, x.dataset.k || null)));
+    const so = card.querySelector("[data-sol]");
+    if (so) so.onchange = () => { so.blur(); setGaineSol(api, id, gaineKeys(g), so.checked); show(id, key); };
     card.querySelectorAll("[data-w]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); const w = g.wires[+a.dataset.w]; card.querySelector(".why-w").innerHTML = `<ol>${whyWire(w).map((c) => `<li><b>${c.rule}</b> ${esc(c.text)}</li>`).join("")}</ol>`; }));
   }
   document.addEventListener("okteo:box-select", (e) => { const d = e.detail || {}; if (d.id) show(d.id, d.key || null); else card.hidden = true; });

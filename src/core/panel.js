@@ -199,6 +199,8 @@ export function showSide() {
       <div class="field"><label>Position <span class="u">m</span></label><input id="ot" type="number" step="0.01" value="${o.t.toFixed(2)}"></div>
       <div class="field"><label>Type</label><select id="ok"><option value="porte"${o.kind === "porte" ? " selected" : ""}>Porte</option><option value="fenetre"${o.kind === "fenetre" ? " selected" : ""}>Fenêtre</option><option value="garage"${o.kind === "garage" ? " selected" : ""} title="Grande ouverture sans battant (sectionnelle, basculante)">Porte de garage</option></select></div>
       <div class="field"><label>Gond</label><select id="oh"><option value="g"${o.hinge === "g" ? " selected" : ""}>Gauche</option><option value="d"${o.hinge === "d" ? " selected" : ""}>Droit</option></select></div>
+      ${o.kind === "fenetre" ? `<div class="field" title="Vue 3D : du sol au bas de la fenêtre. Vide = valeur de départ (Paramètres → Vue 3D)"><label>Allège <span class="u">cm</span></label><input id="oal" type="number" step="1" min="0" max="300" value="${o.allege ?? ""}" placeholder="${pref("h3dAllege")}"></div>` : ""}
+      <div class="field" title="Vue 3D : du sol au dessous du linteau. Vide = valeur de départ (Paramètres → Vue 3D)"><label>Haut. linteau <span class="u">cm</span></label><input id="oli" type="number" step="1" min="0" max="400" value="${o.linteau ?? ""}" placeholder="${pref(o.kind === "fenetre" ? "h3dLinteau" : o.kind === "garage" ? "h3dGarage" : o.w > 1.2 ? "h3dBaie" : "h3dPorte")}"></div>
       <div class="field full"><label>Ouverture</label><select id="os"><option value="int"${o.swing === "int" ? " selected" : ""}>Vers l'intérieur</option><option value="ext"${o.swing === "ext" ? " selected" : ""}>Vers l'extérieur</option></select></div>
      </div>
      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button id="ihg">Inverser gond</button><button id="ihs">Inverser sens</button></div>
@@ -226,6 +228,10 @@ export function showSide() {
       markDirty();
       re();
     };
+    // 3D-3 : hauteurs de l'ouverture (cm) ; vide = valeur de départ
+    const hset = (k) => e => { snapshot(); const v = Math.round(+e.target.value); if (e.target.value === "" || !(v > 0)) delete o[k]; else o[k] = v; markDirty(); re(); };
+    if (b.querySelector("#oal")) b.querySelector("#oal").onchange = hset("allege");
+    b.querySelector("#oli").onchange = hset("linteau");
     b.querySelector("#oh").onchange = e => {
       snapshot();
       o.hinge = e.target.value;
@@ -281,7 +287,8 @@ export function showSide() {
     b.innerHTML = `<h3>Pièce</h3>
      <div class="prop"><div class="field full"><label>Nom</label><input id="rn" type="text" value="${r.name.replace(/"/g, '&quot;')}"></div>
       ${r.cycle ? "" : `<div class="field"><label>Largeur <span class="u">m</span></label><input id="rw" type="number" step="0.01" value="${w.toFixed(2)}"></div>
-      <div class="field"><label>Profondeur <span class="u">m</span></label><input id="rh" type="number" step="0.01" value="${hh.toFixed(2)}"></div>`}</div>
+      <div class="field"><label>Profondeur <span class="u">m</span></label><input id="rh" type="number" step="0.01" value="${hh.toFixed(2)}"></div>`}
+      <div class="field" title="Vue 3D : hauteur des murs et du plafond de la pièce. Vide = valeur de départ (Paramètres → Vue 3D)"><label>Sous plafond <span class="u">cm</span></label><input id="rhsp" type="number" step="1" min="150" max="600" value="${r.hsp ?? ""}" placeholder="${pref("h3dPlafond")}"></div></div>
      ${pref("surfaces") ? `<div class="kv"><span>${r.cycle ? "Surface habitable" : "Surface"}</span><span class="num">${roomArea(r).toFixed(2).replace(".", ",")} m²</span></div>` : ""}
      ${r.cycle ? `<div class="kv"><span>Murs du contour</span><span class="num">${r.cycle.length}</span></div>` : ""}
      ${r.open ? `<p class="note warn">Un mur de son contour a été supprimé : la pièce n'est plus fermée (forme figée). Relancez « Détecter les pièces ».</p>` : ""}
@@ -292,6 +299,7 @@ export function showSide() {
      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">${r.lx != null ? `<button id="r_lab" title="Le nom revient à sa place automatique (au milieu de la pièce, sans gêner)">Replacer le nom</button>` : `<span class="note" style="margin:0">Glissez le nom de la pièce sur le plan pour le déplacer.</span>`}</div>
      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button id="r_dup">Dupliquer</button><button id="delr" class="danger">Supprimer</button></div>
      <p class="note">${r.cycle ? "Pièce détectée d'après ses murs : sa forme et sa surface suivent les murs quand on les déplace. Surface mesurée entre les faces intérieures des murs." : "La largeur et la profondeur déplacent réellement les murs de droite et du bas."} Glissez la pièce sélectionnée pour la déplacer avec ses murs et ses appareils. Supprimer retire la pièce, ses murs et son contenu.</p>`;
+    b.querySelector("#rhsp").onchange = e => { snapshot(); const v = Math.round(+e.target.value); if (e.target.value === "" || !(v >= 150)) delete r.hsp; else r.hsp = v; markDirty(); draw(); showSide(); };
     b.querySelector("#rn").onchange = e => {
       snapshot();
       r.name = e.target.value || r.name;

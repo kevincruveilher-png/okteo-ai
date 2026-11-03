@@ -75,7 +75,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
 
   const SECS = () => [
     ["ps-aff", "Affichage"], ["ps-ia", "Assistant et relevé IA"],
-    ["ps-regles", "Bibliothèque des règles"], ["cab-set", "Câblage"], ...CAB_FIELDS.map(([g], i) => ["ps-cab-" + i, g, true]), ["ps-packs", "Packs"],
+    ["ps-regles", "Bibliothèque des règles"], ["ps-3d", "Vue 3D"], ["cab-set", "Câblage"], ...CAB_FIELDS.map(([g], i) => ["ps-cab-" + i, g, true]), ["ps-packs", "Packs"],
   ];
   function prefHTML() {
     const v = getPrefs();
@@ -116,6 +116,11 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
         <p class="mut">Conseil : Claude pour l'analyse du plan (meilleure lecture des images). NVIDIA : Nemotron 3.5 Super VL par défaut (gratuit dans la limite des crédits, voit le plan). Si NVIDIA retire un modèle, Oktéo en choisit un autre tout seul. Un modèle sans « VL » ou « vision » ne lit que la liste des objets, pas l'image.</p>
       </section>
       <section class="pset-sec" id="ps-regles"></section>
+      <section class="pset-sec" id="ps-3d">
+        <h3>Vue 3D : hauteurs de départ</h3>
+        <p class="mut">Utilisées par l'onglet 3D quand le dessin ne donne pas la hauteur. Une pièce (hauteur sous plafond) ou une ouverture (allège, linteau) se règle aussi une par une dans Propriétés. Préférences de ce PC, pour tous les chantiers.</p>
+        ${[["h3dPlafond", "Hauteur sous plafond", "Hauteur des murs et des plafonds"], ["h3dAllege", "Allège des fenêtres", "Du sol au bas de la fenêtre"], ["h3dLinteau", "Haut des fenêtres", "Du sol au dessous du linteau"], ["h3dPorte", "Haut des portes", "Porte de 1,20 m de large au plus"], ["h3dBaie", "Haut des baies", "Porte-fenêtre ou passage de plus de 1,20 m"], ["h3dGarage", "Haut des portes de garage", ""]].map(([k, l, h]) => `<label class="cab-row" title="${esc(h)}"><span>${esc(l)}<small class="mut">${esc(h || "cm")}${h ? " · cm" : ""}</small></span><span class="cab-ctl"><input type="number" min="0" max="600" step="1" data-h3d="${k}" value="${getPrefs()[k]}"></span></label>`).join("")}
+      </section>
       <section class="pset-sec cab-set" id="cab-set">${cabHTML()}</section>
       <section class="pset-sec" id="ps-packs">
         <h3>Packs</h3>
@@ -186,6 +191,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
       abx.onchange = () => setPref("abrev", abx.value.trim() === ABREV_DEFAUT.trim() ? "" : abx.value);
       el.querySelector("#pref-abrev-def").onclick = () => { abx.value = ABREV_DEFAUT; setPref("abrev", ""); abEx(); };
     }
+    el.querySelectorAll("[data-h3d]").forEach((c) => (c.onchange = () => { const v = Math.max(0, Math.min(600, Math.round(+String(c.value).replace(",", ".") || 0))); if (!v) { c.value = getPrefs()[c.dataset.h3d]; return; } c.value = v; setPref(c.dataset.h3d, v); }));
     el.querySelectorAll("[data-cost]").forEach((c) => (c.onchange = () => { const v = Math.max(0, +String(c.value).replace(",", ".") || 0); c.value = v; setPref(c.dataset.cost, v); }));
     // v76 : réglages de la lecture en tuiles (modes 2 à 4)
     const gr = el.querySelector("#pref-grille"); if (gr) { gr.value = getPrefs().grilleIA; gr.onchange = () => setPref("grilleIA", gr.value); }

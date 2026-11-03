@@ -1,4 +1,4 @@
-# À LIRE EN PREMIER — état du projet (mis à jour le 03/11/2026, v76 dans `main` ; 3D prévue, voir journal)
+# À LIRE EN PREMIER — état du projet (mis à jour le 04/11/2026, v76 + vue 3D (3D-1 à 3D-8, 3D-10) dans `main`)
 
 Ce fichier sert à TOUTES les IA qui travaillent sur le dépôt (Claude, ChatGPT/Codex…) : `AGENTS.md` y renvoie.
 Plusieurs IA se sont succédé (Claude jusqu'à v66, ChatGPT v67 à v72, Claude depuis v72.1) : garder une seule source de
@@ -16,7 +16,7 @@ vérité, celle-ci, et tenir `docs/journal.md` à jour à CHAQUE modification (e
   `public/assets/fond-evrard-04949.jpg`). Décision de Kévin attendue (dépôt privé ou retrait des plans). N'en ajouter aucun.
 - Ne lancer une mise à jour que sur ordre de Kévin ; ne rien pousser sur `main` sans son « go ». Branches de travail :
   `feat/…`, vérification par GitHub Actions sur une branche `verification-…` supprimée après usage.
-- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082). Sans navigateur en local : faire tourner les
+- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026). Sans navigateur en local : faire tourner les
   tests sur GitHub Actions (workflow temporaire sur une branche `verification-…`, voir journal v72.1).
 
 # Oktéo AI — consignes pour Claude
@@ -257,7 +257,7 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `controlKinds`, `okteo.essai` {press, reset, lit, off, breaker, testAll}, `setEssai(on)`. Préférence `halos`.
   Ext : `controle-ui.js` (compteur `#ctl`, `go/next`, `controlSection` en tête du panneau Câblage), `essai-ui.js`
   (`.essai-card`), packs-ui `openMenu/applyPack` (événement `okteo:pack-menu` envoyé par le bouton `data-h="pack"`
-  du HUD pièce ; Maj+P ; `.pk-menu`). `exportGeometry().rooms[].id`. Visite : 27 étapes (v64).
+  du HUD pièce ; Maj+P ; `.pk-menu`). `exportGeometry().rooms[].id`. Visite : 28 étapes (3D-1).
   v45.1 : `linkTables` ne compte que les vraies commandes et suit les chaînes de lumières ; alertes `int2`, `nobox` ;
   quadrillage `layers.grille.on=false` par défaut (drapeau `g451` dans les données enregistrées).
 - v46 : `src/cablage/tableau.js` (pur : `MODELS` Resi9, `autoTableau(circuits, {model, area})`, `syncTableau`,
@@ -405,7 +405,7 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `PIEUVRE_TABS`, bouton `data-tab="boites"` libellé « Pieuvre », `K.pieuvreSub` ; index.html `#pg-pieuvre` (`.pgroup`) +
   `#subtabs [data-sub]` + sections boites/bandes/lignes ; tests : `goSub(sub)` dans smoke.mjs (jamais
   `#tabs button[data-tab="bandes"]`). Câblage : `#cb-circ` (details, `circOpen` = clic sur le titre seulement), boîtes en
-  premier quand il y en a, aides `.info[title]`. Visite : 27 étapes.
+  premier quand il y en a, aides `.info[title]`. Visite : 28 étapes (3D-1).
 - v64.1 : ai-plan.js `method(first)` (Méthode obligatoire : définition, légende, quarts, décompte) dans `promptBody(coords,
   first)`, `METHOD_PASTE(page)`, `MIN_REF_W` 3 000 (ai-releve : alerte « basse définition » au collage).
 - v66 : tableau.js `nbIdCommuns(n)` (max(2, ceil(n/8)), R-127), `idCalibre(cs)` / `idCalibreMin` (R-124, `isHeavy`),
@@ -423,7 +423,7 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (42 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (87 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (14 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (171 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (87 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (14 : chantier de référence MAILLARD comparé au BE) + `scripts/v3d.test.mjs` (vue 3D) + `scripts/smoke.mjs` (171 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)
@@ -496,6 +496,24 @@ colonnes `config.analysis_model/analysis_input_price/analysis_output_price` (cr�
 - Tests : `scripts/ai-modes.test.mjs` (pur) + smoke (écran, modes 1 à 4, scan réel OpenCV/OCR, recommandation, escalade).
   Les workflows temporaires `verification-v76.yml` / `raster-v76.yml` ont été retirés à la fusion ; pour revérifier, en
   recréer un sur une branche `verification-…` (voir journal v76).
+
+### Vue 3D 3D-1 à 3D-8, 3D-10 (dans `main` depuis le 04/11/2026 ; 3D-9 = essai chantier)
+- `src/3d/plan3d.js` (pur : `H3D`, `cleanPlan` → défauts, `wallEnds`, `wallPrisms`, `openingParts`, `devicesOf`,
+  `prismIssues`) ; `src/3d/scene.js` (`buildHouse(THREE, …)`, three.js passé en paramètre) ; `src/ext/vue3d.js`
+  (onglet `vue3d`, Alt+4, `okteoExt.pages.vue3d.ui.state`, three.js 0.169.0 chargé à la demande, couleurs gérées par
+  three ≥ r152 : `colorSpace`, intensités × π ; couleurs des sommets converties à la main). Le dessin n'est jamais modifié
+  par la 3D. Feuille de route 3D (11 MAJ, toutes avant l'essai chantier) : journal du 03/11/2026.
+  3D-3 : `heightsFrom(prefs h3d*)`, `o.allege`/`o.linteau`/`r.hsp` (cm, Propriétés), mur `top`, Paramètres `#ps-3d`.
+  3D-4 : `src/ext/vue3d-walk.js` (`ui.walk` : enter/exit/act/update), `importDevices(..., {stay})`, touches capturées.
+  3D-5 : `gainePath`, `nearestWall`, `buildGaines`, `box.sol` (gaines.js : longueur par le sol), `setGaineSol`/`gaineKeys`.
+  3D-6 : `src/3d/pose.js` `poseIssues` (battant, embrasure, hauteur) → `check.js` `posesAll` (compteur « à vérifier »),
+  `scene.js` `buildMarks` (anneaux, volumes SDB), `.v3d-pose`, `ui.focusDev`.
+  3D-7 : `src/3d/elevation.js` (`wallElevation`, `roomFaces`, `elevationDraw`, `elevationSVG`), `src/ext/elevations-pdf.js`,
+  clic sur un mur en 3D → `ui.showWall(seg, side)` (`.v3d-card.wide`), `ui.lastElev`.
+  3D-10 : `okteo.inLevel(id, fn)`, `.v3d-lvs` / `ui.levels("tous"|"ouvert")`, `S3.others`, `S3.vlinks` ; `build` numéroté (`S3.gen`).
+  3D-8 : `src/3d/plan-code.js` (`packPlan`/`unpackPlan`/`planUrl`, ≤ 2 900, aucun nom), `src/ext/plan3d-qr.js` (`faceUrl`),
+  `buildFtz` option `ftz.qr3d` → `r.qrs`, `#prep-qr3d` ; page publique `plan3d.html` + `src/plan3d-view.js` (`window.__plan3d`), Worker. Tests :
+  `scripts/v3d.test.mjs` + smoke. Workflow temporaire `verification-3d.yml` retiré à la fusion (pour revérifier : en recréer un sur une branche `verification-…`).
 
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,

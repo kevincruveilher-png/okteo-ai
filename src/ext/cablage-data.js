@@ -35,6 +35,20 @@ export function wiringNow(api) {
   return W;
 }
 
+// 3D-5 : propriété « passage par le sol » d'une gaine (clés : appareils de la gaine, ou « tab » pour l'alimentation) ;
+// rangée dans la boîte (box.sol), un seul Ctrl+Z ; la longueur de la gaine est recalculée (descente au sol + remontée)
+export function setGaineSol(api, boxId, keys, on) {
+  const boxes = (api.cab.boxes || []).map((b) => {
+    if (b.id !== boxId) return b;
+    const sol = { ...(b.sol || {}) };
+    keys.forEach((k) => { if (on) sol[k] = true; else delete sol[k]; });
+    return { ...b, sol };
+  });
+  api.setBoxes(boxes);
+}
+// clés d'une gaine calculée (appareils, ou « tab » pour l'alimentation du tableau)
+export const gaineKeys = (g) => (g.kind === "alim" ? (g.id === "alim:0" ? ["tab"] : []) : g.appIds || []);
+
 // placement automatique des boîtes (tous niveaux) ; le tableau (ou, sur un autre niveau, sa projection) attire les boîtes
 // keepIds : boîtes gardées telles quelles (verrouillées ou décochées au recalcul) ; mode : proximite | equilibre | piece
 export function roomsByLevel(api) {

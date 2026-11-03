@@ -130,6 +130,10 @@ window.okteo = {
     };
   },
   switchLevel,
+  // 3D-10 : exécute fn avec un autre niveau chargé dans state (lecture seule : rien n'est enregistré ni dessiné)
+  inLevel(id, fn) {
+    return id === K.LV.cur || !CH.levels.some(l => l.id === id) ? fn() : withLevel(id, fn);
+  },
   // ---------- câblage (v28) ----------
   get cab() {
     return K.CAB;
@@ -339,7 +343,8 @@ window.okteo = {
   // ajoute des appareils relevés ({t,x,y,h?}) et leurs liaisons ({c,l} = indices dans list) : un seul pas d'annulation.
   // Les appareils muraux se collent au mur le plus proche (≤ 60 cm) et restent attachés à leur distance de l'angle.
   importDevices(list, links = [], {
-    replace = false
+    replace = false,
+    stay = false   // 3D-4 : pose depuis la vue 3D : on reste sur l'onglet et l'outil en cours
   } = {}) {
     // Préflight avant snapshot/remplacement : aucun chantier partiellement effacé sur donnée invalide.
     if (!Array.isArray(list) || list.some((d) => !d || !TYPES[d.t] || !Number.isFinite(d.x) || !Number.isFinite(d.y))) throw new Error("Import annulé : appareil ou position invalide.");
@@ -391,12 +396,14 @@ window.okteo = {
       }
     });
     K.preview = null;
-    resetTransient();
-    clearSel();
-    K.tool = "sel";
-    K.testMode = false;
-    if (K.tab !== "plan") setTab("plan");
-    buildTools();
+    if (!stay) {
+      resetTransient();
+      clearSel();
+      K.tool = "sel";
+      K.testMode = false;
+      if (K.tab !== "plan") setTab("plan");
+      buildTools();
+    }
     markDirty();
     draw();
     showSide();
