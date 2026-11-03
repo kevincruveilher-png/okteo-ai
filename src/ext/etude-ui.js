@@ -208,7 +208,7 @@ export function createWhy(api) {
     card.querySelector("[data-x]").onclick = () => { card.hidden = true; };
     card.querySelectorAll("[data-k]").forEach((x) => (x.onclick = () => show(id, x.dataset.k || null)));
     const so = card.querySelector("[data-sol]");
-    if (so) so.onchange = () => { setGaineSol(api, id, gaineKeys(g), so.checked); show(id, key); };
+    if (so) so.onchange = () => { so.blur(); setGaineSol(api, id, gaineKeys(g), so.checked); show(id, key); };
     card.querySelectorAll("[data-w]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); const w = g.wires[+a.dataset.w]; card.querySelector(".why-w").innerHTML = `<ol>${whyWire(w).map((c) => `<li><b>${c.rule}</b> ${esc(c.text)}</li>`).join("")}</ol>`; }));
   }
   document.addEventListener("okteo:box-select", (e) => { const d = e.detail || {}; if (d.id) show(d.id, d.key || null); else card.hidden = true; });

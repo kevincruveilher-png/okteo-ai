@@ -214,7 +214,8 @@ export function mountVue3d(el, { api }) {
       <div class="acts"><button type="button" class="pri" data-a="gplan" title="Montre la boîte et la gaine sur le plan">Voir sur le plan</button><button type="button" data-a="close">Fermer</button></div>`;
     card.hidden = false;
     const so = card.querySelector("[data-sol]");
-    if (so) so.onchange = () => { S3.pendingGaine = gid; setGaineSol(api, g.boxId, g.keys, so.checked); };
+    // la case rend la main tout de suite : Ctrl+Z (ignoré dans un champ) annule ensuite le changement
+    if (so) so.onchange = () => { so.blur(); S3.pendingGaine = gid; setGaineSol(api, g.boxId, g.keys, so.checked); };
   }
   function showCard(id, boxId) {
     if (halo) { S3.scene.remove(halo); halo.geometry.dispose(); halo = null; }
