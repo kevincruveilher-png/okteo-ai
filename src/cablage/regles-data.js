@@ -1,6 +1,6 @@
 // Généré par scripts/regles-import.mjs depuis docs/journal-regles-cablage.md — ne pas modifier à la main.
 export const REGLES_BASE = {
- "version": "2026-10-28.45",
+ "version": "2026-10-28.46",
  "rules": [
   {
    "id": "R-001",
@@ -4509,6 +4509,16 @@ export const REGLES_BASE = {
    "si_doute": "",
    "statut": "ouverte",
    "statut_texte": "ouverte"
+  },
+  {
+   "id": "Q-111",
+   "section": "O. Bande FONTES D2129 MAISON 1 « plan expé pieuvre » (27/10/2026, 14:35)",
+   "question": "À trancher avec Thibaut : distance d'un appareil mural « depuis l'angle ». Quand un mur est dessiné en deux morceaux dans le prolongement l'un de l'autre, le logiciel retire aussi la demi-épaisseur du morceau voisin, comme s'il y avait un angle (MAILLARD : 43 appareils sur 77, écarts de 3 à 15 cm ; l'élévation 3D donne la vraie distance au coin de la face). Faut-il corriger la mesure (les appareils des plans existants bougeraient de quelques cm) ou la garder ?",
+   "reponse": "Règle actuelle conservée (décision de Kévin, 04/11/2026), aucun appareil déplacé",
+   "suppose": "",
+   "si_doute": "",
+   "statut": "ouverte",
+   "statut_texte": "ouverte"
   }
  ],
  "history": [
@@ -5005,6 +5015,17 @@ export const REGLES_BASE = {
    "apres": "Capacité minimale = arrondi supérieur(modules occupés / 0,8) ; modules libres ≥ arrondi supérieur(20 % de la capacité du coffret)",
    "motif": "Correction mathématique pour conserver 20 % de la capacité totale libres, autorisée par Kévin (« go pour la correction »). Statut normatif inchangé",
    "par": "ChatGPT",
+   "code_valide": null
+  },
+  {
+   "id": "H-046",
+   "date": "04/11/2026",
+   "regle": "Q-111",
+   "action": "Création",
+   "avant": "—",
+   "apres": "Q-111 ouverte : distance « depuis l'angle » d'un appareil mural quand le mur est en deux morceaux dans le prolongement ; règle actuelle conservée",
+   "motif": "Décision de Kévin le 04/11/2026 (00:19) : « Conserve cette règle et ajoute cette règle à trancher avec Thibaut »",
+   "par": "Claude",
    "code_valide": null
   }
  ]

@@ -1,3 +1,12 @@
+## 04/11/2026 — Q-111 « distance depuis l'angle » à trancher avec Thibaut ; QR de la bande sans nom dans `main`
+
+- Décision de Kévin (00:19) : la règle actuelle de distance « depuis l'angle » (`a.wa`, demi-épaisseur la plus grosse du
+  sommet retirée, même d'un mur dans le prolongement) est CONSERVÉE ; question Q-111 ouverte dans
+  `docs/journal-regles-cablage.md` (« à trancher avec Thibaut »), historique H-046, `npm run regles` relancé
+  (111 questions, 46 entrées d'historique). Aucun code du cœur modifié.
+- Branche `feat/bande-qr-sans-nom` fusionnée dans `main` (« go » de Kévin) : QR de la bande sans pavillonneur, chantier
+  ni n° d'affaire (run 41737217417 vert).
+
 ## 04/11/2026 — QR de la bande de boîte sans aucun nom (branche `feat/bande-qr-sans-nom`)
 
 - Demande de Kévin : aucun nom dans un QR code. `bande-code.js` `packSheet` : pavillonneur, nom du chantier, n° d'affaire
