@@ -1,3 +1,24 @@
+## 03/11/2026 — v76 étape 4 : mode 4 « Analyse approfondie » (seconde lecture, contrôle croisé)
+
+Branche `feat/analyse-ia-modes-v76`. Licences : `scripts/licences.mjs` lit les expressions SPDX « AND » (pako = MIT AND
+Zlib, dépendance de pdf-lib) ; Zlib signalé comme équivalent permissif. Déclarées : tesseract.js Apache-2.0,
+@techstark/opencv-js Apache-2.0, @tesseract.js-data/fra MIT (paquet ; données tessdata Apache-2.0).
+- `src/walls/ai-cross.js` (pur) : `SECOND_METHOD` (seconde lecture indépendante, pièce par pièce), `planSummary`
+  (décompte par type et par pièce la plus proche, approximatif), `summaryText`, `crossPrompt` (équipements cités dans
+  les documents absents du plan ou en quantité différente, source + extrait < 15 mots, rien d'inventé), `parseCross`
+  (quantités égales écartées, 60 écarts au plus), `CROSS_OFF`.
+- `src/ext/ai-cross.js` : `secondReading` (plan entier rendu à la meilleure définition permise), `otherPages(api)`,
+  `gatherDocs(api, fichiers)` (autres pages du PDF du chantier hors pages de plan des niveaux + PDF / images joints ;
+  texte pdf.js, page sans texte envoyée en image ; 10 sources, 6 images, 6 000 caractères par page, 30 000 au total),
+  `crossCheck` (un appel ; sans document → partie désactivée, message `CROSS_OFF`).
+- ai-modes-run.js : mode 4 = mode 3 + seconde lecture (fusionnée, écarts « 2e » : vu par elle seule / non vu par elle)
+  + contrôle croisé (`plan.docEcarts`, journal `docs`). Carte de l'aperçu : « Contrôle croisé avec les documents ».
+- Écran des modes : mode 4 choisi → bloc `.am-docs` (autres pages du PDF comptées, `#am-docs-file` pour joindre devis /
+  plan cuisine, `.am-chip` retirables) ; les documents restent sur le PC, seul leur contenu part à l'IA.
+- Tests : ai-modes.test.mjs 17 (+ contrôle croisé) ; smoke mode 4 (PDF joint, seconde lecture, écarts « 2e », écart
+  « Lave-vaisselle » du devis affiché).
+- Non mesuré : taux d'équipements oubliés retrouvés ; justesse du décompte par pièce (pièce la plus proche).
+
 ## 03/11/2026 — v76 étape 3 : mode 3 « Plan dégradé » (OpenCV.js, Tesseract.js)
 
 Branche `feat/analyse-ia-modes-v76`. Étape 2 validée : GitHub Actions run 41623306045 (smoke 180/180, test:web 15/15).

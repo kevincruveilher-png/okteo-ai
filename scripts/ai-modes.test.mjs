@@ -5,6 +5,7 @@ import { chooseGrid, tileGrid, fitSize, regionMap, toMeters, toPixels, unrotate,
 import { analysesOf, callCost, newAnalyseId, fmtUsd, fmtMs, addUsage, tinOf } from "../src/walls/ai-journal.js";
 import { ANALYSE_MODEL, ANALYSE_PRICE } from "../src/ai-config.js";
 import { mergeOcr } from "../src/ext/ai-raster.js";
+import { planSummary, summaryText, crossPrompt, parseCross, SECOND_METHOD, CROSS_OFF } from "../src/walls/ai-cross.js";
 
 let n = 0;
 const t = (name, fn) => { fn(); n++; console.log("✓ " + name); };
@@ -146,5 +147,17 @@ t("OCR (mode 3) : lectures d'origine et nettoyée comparées, confiance faible �
   const n = [{ text: "ll", x: 14, y: 12, conf: 92 }, { text: "LV", x: 300, y: 60, conf: 75 }];
   const M = mergeOcr(o, n);
   assert.deepEqual(M.map((w) => [w.text, w.src, w.conf]), [["LL", "both", 92], ["LV", "net", 75], ["Cuisine", "orig", 70]]);
+});
+t("mode 4 : décompte du plan, consigne du contrôle croisé, écarts lus (quantités égales écartées, extrait court)", () => {
+  const S = planSummary([{ t: "PC16", x: 1, y: 1 }, { t: "PC16", x: 1.2, y: 1, qty: 2 }, { t: "LUM", x: 5, y: 5 }], [{ name: "Cuisine", x: 1, y: 1 }, { name: "Séjour", x: 5, y: 5 }]);
+  assert.deepEqual(S.byType, { PC16: 3, LUM: 1 });
+  assert.deepEqual(S.byRoom, { Cuisine: { PC16: 2 }, "Séjour": { LUM: 1 } });
+  assert.match(summaryText(S), /PC16 \(prise de courant 16 A\) : 3/);
+  const P = crossPrompt(S, [{ source: "devis.pdf, page 1", text: "Four, lave-vaisselle" }, { source: "cuisine.png", image: "x" }]);
+  assert.match(P, /Document 1 — devis\.pdf, page 1\nFour, lave-vaisselle/); assert.match(P, /image jointe ci-dessus/); assert.match(P, /N'invente rien/);
+  const C = parseCross({ documents: [{ source: "devis", nature: "devis" }], ecarts: [{ equipement: "Lave-vaisselle", type: "lv", qDoc: 1, qPlan: 0, extrait: "un deux trois quatre cinq six sept huit neuf dix onze douze treize quatorze quinze seize dix-sept" }, { equipement: "Prise", type: "PC16", qDoc: 3, qPlan: 3 }, { equipement: "" }, { equipement: "Borne", type: "XYZ", qDoc: null }] });
+  assert.deepEqual(C.list.map((e) => [e.equipement, e.t, e.qDoc]), [["Lave-vaisselle", "LV", 1], ["Borne", "", null]]);
+  assert.equal(C.list[0].extrait.split(" ").length, 15);
+  assert.match(SECOND_METHOD, /PIÈCE PAR PIÈCE/); assert.match(CROSS_OFF, /désactivée/);
 });
 console.log(`${n}/${n} vérifications (modes d'analyse IA, journal)`);

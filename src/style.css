@@ -1167,3 +1167,13 @@ body.am-on{overflow:hidden}
 .ma-lock{margin:4px 0}
 .enterprise-lock{margin:6px 0}
 .ia-journal{margin:4px 0 8px;padding-left:18px}
+.am-docs{border:1px solid #1A4A78;border-radius:14px;padding:14px 18px;background:rgba(10,58,102,.55);color:#D4DDE8;font-size:14px}
+.am-docs p{margin:0 0 10px}
+.am-docrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.am-file{position:relative;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;background:#0A3A66;border:1px solid #1A4A78;color:#FFFFFF;cursor:pointer;font-weight:600}
+.am-file:hover{border-color:#A9B8CB}
+.am-file input{position:absolute;width:1px;height:1px;opacity:0}
+.am-file:focus-within{outline:3px solid #FFFFFF;outline-offset:2px}
+.am-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:99px;background:#FFFFFF;color:#04284A;font-size:13px}
+.am-chip button{border:0;background:none;color:#8E2A22;cursor:pointer;font-size:12px}
+.ai-ecarts ul,.ai-docs ul{margin:4px 0;padding-left:18px;max-height:220px;overflow:auto}

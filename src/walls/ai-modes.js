@@ -24,7 +24,7 @@ export const MODES_IA = [
     reco: "scans inclinés, peu contrastés, bruités, ou annotés à la main.",
   },
   {
-    n: 4, id: "approfondie", title: "Analyse approfondie", pts: 4, ready: false, cycles: 3,
+    n: 4, id: "approfondie", title: "Analyse approfondie", pts: 4, ready: true, cycles: 3,
     hook: "Le contrôle maximal, quand l'enjeu le justifie.",
     desc: "Combine les lectures précédentes avec une seconde lecture complète du plan. L'IA recoupe aussi ce qu'elle a trouvé avec le devis, le plan cuisine et les autres documents du PDF pour repérer les équipements oubliés. Le résultat est une liste ciblée d'écarts à vérifier.",
     reco: "dossiers sensibles, plans complexes, vérification finale avant validation.",

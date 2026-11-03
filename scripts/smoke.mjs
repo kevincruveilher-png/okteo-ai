@@ -55,6 +55,10 @@ const mock = http.createServer((req, res) => {
       text = JSON.stringify(n === "1" && !zoomed ? { appareils: [], liaisons: [], zooms: [{ x: W / 2 - 30, y: H / 2 - 30, w: 60, h: 60, pourquoi: "symbole petit" }], remarques: "zoom demandé" }
         : { appareils: n === "1" ? [{ t: "RJ45", x: Math.round(W / 2), y: Math.round(H / 2) }] : [], liaisons: [], zooms: [], remarques: "tuile " + n });
     }
+    else if (/Contrôle croisé pour le bureau d'études/.test(lastText)) {
+      // v76 (mode 4) : le devis joint cite un lave-vaisselle absent du plan
+      text = JSON.stringify({ documents: [{ source: "document 1", nature: "devis" }], ecarts: [{ equipement: "Lave-vaisselle", type: "LV", piece: "Cuisine", qDoc: 1, qPlan: 0, source: "document 1, page 1", extrait: "lave-vaisselle intégré" }, { equipement: "Prise", type: "PC16", qDoc: 3, qPlan: 3, source: "document 1" }], remarques: "test" });
+    }
     else if (/Relecture ciblée/.test(lastText)) {
       // v57 : relecture ciblée : chaque point est relié au premier repère proche
       const L = [];
@@ -701,7 +705,7 @@ try {
     if (quick || !/étudie/.test(t1) || !/Regardez/.test(mem) || cab.segs !== 3 || cab.tool !== tool0 || cab.head === "217px" || !/prêt/.test(t2) || !cta || !gone) throw new Error(JSON.stringify(r));
     return true;
   });
-  await check("v76 : « Analyse IA » ouvre l'écran des 4 modes (maquette page 8) : référence du dossier, Lancer grisé sans choix, carte choisie (aria-pressed), modes 2 à 4 en préparation, Échap ferme", async () => {
+  await check("v76 : « Analyse IA » ouvre l'écran des 4 modes (maquette page 8) : référence du dossier, Lancer grisé sans choix, carte choisie (aria-pressed), documents à recouper pour le mode 4, Échap ferme", async () => {
     await ev(() => okteoExt.settings.set({ provider: "anthropic" }));
     const n0 = seen.length;
     await page.click("#btn-relev"); await page.click("#rv-ai");
@@ -713,9 +717,9 @@ try {
     // un clic sur Lancer sans choix ne fait rien (aria-disabled : Playwright refuse le clic sans force)
     await page.click("#am-go", { force: true });
     const still = await ev(() => okteoExt.aiModes.visible && okteoExt.aiModes.launched == null);
-    // mode 4 choisi : coche + aria-pressed, mais pas encore lançable (étape 4)
+    // mode 4 choisi : coche + aria-pressed, lançable ; bloc « Documents à recouper » (étape 4)
     await page.click('#ai-modes .am-card[data-mode="4"]');
-    const b = await ev(() => { const el = document.getElementById("ai-modes"); return { p3: el.querySelector('.am-card[data-mode="4"]').getAttribute("aria-pressed"), p1: el.querySelector('.am-card[data-mode="1"]').getAttribute("aria-pressed"), sel: el.querySelector('.am-card[data-mode="4"]').classList.contains("sel"), dis: el.querySelector("#am-go").getAttribute("aria-disabled"), label: el.querySelector("#am-go").textContent }; });
+    const b = await ev(() => { const el = document.getElementById("ai-modes"); return { p3: el.querySelector('.am-card[data-mode="4"]').getAttribute("aria-pressed"), p1: el.querySelector('.am-card[data-mode="1"]').getAttribute("aria-pressed"), sel: el.querySelector('.am-card[data-mode="4"]').classList.contains("sel"), docs: !!el.querySelector(".am-docs #am-docs-file"), dis: el.querySelector("#am-go").getAttribute("aria-disabled"), label: el.querySelector("#am-go").textContent }; });
     await page.click('#ai-modes .am-card[data-mode="1"]');
     const c = await ev(() => { const el = document.getElementById("ai-modes"); return { dis: el.querySelector("#am-go").getAttribute("aria-disabled"), label: el.querySelector("#am-go").textContent }; });
     await page.keyboard.press("Escape");
@@ -725,7 +729,7 @@ try {
     const r = { a, still, b, c, closed, noCall };
     if (!(a.n === 4 && a.titles.join("|") === "Analyse standard|Analyse renforcée|Plan dégradé|Analyse approfondie" && a.pressed.every((x) => x === "false") && a.dots.join("") === "1234"
       && a.h1 === "Choisissez le mode d'analyse adapté à votre plan" && a.ref === a.expected && a.dis === "true" && /pas des corrections certaines/.test(a.foot) && a.h1w !== "1045px" && a.bg === "rgb(4, 40, 74)"
-      && still && b.p3 === "true" && b.p1 === "false" && b.sel && b.dis === "true" && /préparation/.test(b.label) && c.dis === "false" && /mode 1/.test(c.label) && closed && noCall)) throw new Error(JSON.stringify(r));
+      && still && b.p3 === "true" && b.p1 === "false" && b.sel && b.docs && b.dis === "false" && /mode 4/.test(b.label) && c.dis === "false" && /mode 1/.test(c.label) && closed && noCall)) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("relevé par l'IA (v76 : par « Analyse IA » → mode 1, flux v75 inchangé) : image envoyée, aperçu par-dessus le dessin, on coche ce qu'on garde, un seul Ctrl+Z", async () => {
@@ -798,6 +802,22 @@ try {
     await page.click("#ai-no");
     const r = { tiles: tiles.length, differ, net: /NETTOYÉE/.test(prompt), ocrSeen, K, errs: errors.slice(errs0) };
     if (!(tiles.length === 9 && differ && r.net && ocrSeen && K.cv && /nettoyée/.test(K.txt) && /textes lus \(OCR\)/.test(K.txt))) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("v76 étape 4 : mode 4 « Analyse approfondie » — devis joint, seconde lecture complète, contrôle croisé avec les documents, liste d'écarts à vérifier", async () => {
+    const n0 = seen.length;
+    await ev(() => okteoExt.aiModes.open());
+    await page.click('#ai-modes .am-card[data-mode="4"]');
+    await page.setInputFiles("#am-docs-file", "docs/plans/EVRARD_04949_plan.pdf");
+    const chip = await page.waitForSelector(".am-chip", { timeout: 5000 }).then(() => true, () => false);
+    await page.click("#am-go");
+    await page.waitForSelector("#ai-ok", { timeout: 300000 });
+    const req = seen.slice(n0).filter((r) => r.url === "/v1/messages"), txt = (r) => JSON.stringify(r.body.messages);
+    const second = req.filter((r) => /SECONDE LECTURE INDÉPENDANTE/.test(txt(r))), cross = req.filter((r) => /Contrôle croisé pour le bureau/.test(txt(r)));
+    const P = await ev(() => { const p = okteoExt.aiReleve.plan, c = document.querySelector(".aicard"); return { ec2: p.ecarts.filter((e) => e.kind === "2e").length, doc: p.docEcarts, docs: !!c.querySelector(".ai-docs"), text: c.textContent }; });
+    await page.click("#ai-no");
+    const r = { chip, second: second.length, cross: cross.length, crossSrc: cross[0] ? /EVRARD_04949_plan\.pdf, page 1/.test(txt(cross[0])) : false, P: { ...P, text: P.text.slice(0, 300) } };
+    if (!(chip && r.second === 1 && r.cross === 1 && r.crossSrc && P.ec2 >= 1 && P.doc && !P.doc.off && P.doc.list.length === 1 && P.doc.list[0].t === "LV" && P.docs && /Lave-vaisselle/.test(P.text))) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("v64.1 : consigne du relevé avec méthode imposée (200 dpi, légende, quarts, décompte) ; image de moins de 3 000 px signalée au collage", async () => {

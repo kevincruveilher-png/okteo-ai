@@ -145,6 +145,11 @@ export function createModeRunner({ api, aiReleve }) {
         if (second) lectures.push({ src: "2e lecture", devices: second.devices, links: second.links });
       }
       const M = mergeReadings(lectures, { tol: 0.3 });
+      // seconde lecture complète : ce qu'elle seule a vu, et ce qu'elle n'a pas vu, deviennent des écarts « 2e »
+      if (second) {
+        for (const e of M.ecarts) if (e.src === "2e lecture" && e.kind === "ajout") { e.kind = "2e"; e.detail = "vu par la seconde lecture seulement"; }
+        for (const d of M.devices) if (!d.aiSrc.includes("2e lecture")) M.ecarts.push({ kind: "2e", t: d.t, x: d.x, y: d.y, src: "2e lecture", detail: `non vu par la seconde lecture (vu par : ${d.aiSrc.join(", ")})` });
+      }
       if (mode >= 4) {
         st.step = "contrôle croisé avec le devis et les autres documents…"; progress(st);
         docEcarts = await ext4.crossCheck({ api, devices: M.devices, rooms: P0.pieces, docs: opts.docs || [], call: (phase, a, x) => call(log, phase, a, x) });

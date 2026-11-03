@@ -7,6 +7,7 @@
 // Échap ou ✕ ferme ; flèches gauche / droite passent d'une carte à l'autre.
 import { MODES_IA, MODES_PAGE, modeOf, dossierRef, dotsLabel, launchState } from "../walls/ai-modes.js";
 import { LOGO } from "./attente.js";
+import { otherPages } from "./ai-cross.js";
 import { esc } from "./util.js";
 
 export function createAiModes({ api, aiReleve, runner = null }) {
@@ -14,7 +15,7 @@ export function createAiModes({ api, aiReleve, runner = null }) {
   el.className = "am"; el.id = "ai-modes"; el.hidden = true;
   el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "am-title");
   document.body.appendChild(el);
-  let sel = null, launched = null, back = null, docs = [];   // v76 : documents joints pour le contrôle croisé (mode 4)
+  let sel = null, launched = null, back = null, docs = [], pages = null;   // v76 : documents joints pour le contrôle croisé (mode 4)
 
   const dots = (pts) => `<span class="am-dots" role="img" aria-label="${esc(dotsLabel(pts))}">${[1, 2, 3, 4].map((i) => `<span class="am-dot${i <= pts ? " on" : ""}"></span>`).join("")}</span>`;
   const card = (m) => `<button type="button" class="am-card${sel === m.n ? " sel" : ""}${m.ready ? "" : " soon"}" data-mode="${m.n}" aria-pressed="${sel === m.n}"
@@ -41,23 +42,37 @@ export function createAiModes({ api, aiReleve, runner = null }) {
       </div>
       <div class="am-intro"><h1 id="am-title">${esc(MODES_PAGE.title)}</h1><p>${esc(MODES_PAGE.intro)}</p></div>
       <div class="am-grid" role="group" aria-label="Modes d'analyse">${MODES_IA.map(card).join("")}</div>
+      ${sel === 4 ? docsHTML() : ""}
       <div class="am-foot"><p>${esc(MODES_PAGE.foot)}</p>
         <button type="button" class="am-cta" id="am-go" aria-disabled="${!L.ok}" title="${esc(L.why)}">${esc(L.label)}</button></div>
     </div>`;
     el.querySelectorAll(".am-card").forEach((b) => (b.onclick = () => select(+b.dataset.mode, true)));
     el.querySelector(".am-x").onclick = close;
+    const fi = el.querySelector("#am-docs-file");
+    if (fi) fi.onchange = () => { docs.push(...[...fi.files].filter((f) => !docs.some((d) => d.name === f.name && d.size === f.size))); render(); };
+    el.querySelectorAll("[data-rmdoc]").forEach((b) => (b.onclick = () => { docs.splice(+b.dataset.rmdoc, 1); render(); }));
     el.querySelector("#am-go").onclick = launch;
   }
 
+  // v76 étape 4 : mode 4 = contrôle croisé avec les documents ; autres pages du PDF du chantier + documents joints
+  function docsHTML() {
+    const n = pages == null ? "…" : pages;
+    return `<div class="am-docs" role="group" aria-label="Documents à recouper (mode 4)">
+      <p><b>Documents à recouper avec le plan</b> — ${pages === 0 && !docs.length ? "aucune autre page dans le PDF du chantier : joignez le devis ou le plan cuisine, sinon le contrôle croisé sera désactivé (la seconde lecture se fait quand même)." : `${n} autre${pages === 1 ? "" : "s"} page${pages === 1 ? "" : "s"} dans le PDF du chantier${docs.length ? ` + ${docs.length} document${docs.length > 1 ? "s" : ""} joint${docs.length > 1 ? "s" : ""}` : ""}.`}</p>
+      <div class="am-docrow"><label class="am-file" title="Devis, plan de cuisine, descriptif… (PDF ou image). Ils restent sur ce PC : seul leur contenu est envoyé à l'IA pour cette analyse.">＋ Joindre un devis / plan cuisine<input type="file" id="am-docs-file" multiple accept=".pdf,application/pdf,image/*"></label>
+        ${docs.map((d, i) => `<span class="am-chip">${esc(d.name)}<button type="button" data-rmdoc="${i}" aria-label="Retirer ${esc(d.name)}" title="Retirer">✕</button></span>`).join("")}</div>
+    </div>`;
+  }
   function select(n, focus = false) {
     if (!modeOf(n)) return;
     sel = n; render();
+    if (n === 4 && pages == null) otherPages(api).then((k) => { pages = k; if (sel === 4) render(); }).catch(() => { pages = 0; if (sel === 4) render(); });
     if (focus) el.querySelector(`.am-card[data-mode="${n}"]`)?.focus();
   }
 
   function open() {
     back = document.activeElement;
-    sel = null; launched = null;
+    sel = null; launched = null; pages = null;
     render(); el.hidden = false; document.body.classList.add("am-on");
     el.querySelector(".am-card")?.focus();
   }
