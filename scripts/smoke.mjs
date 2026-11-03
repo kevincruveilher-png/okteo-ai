@@ -2757,15 +2757,21 @@ try {
     await page.waitForTimeout(400);
     const after = await ev((id) => !okteo.state.app.some((x) => x.id === id), gone && gone.id);
     await page.keyboard.press("Control+z"); await page.waitForTimeout(300);
-    await page.keyboard.press("Escape"); await page.waitForTimeout(200);
-    await page.keyboard.press("Escape"); await page.waitForTimeout(200);
+    // Échap : pause (le navigateur rend la souris), puis « Quitter la visite »
+    await page.keyboard.press("Escape"); await page.waitForTimeout(400);
+    const paused = await ev(() => !document.querySelector(".v3w-pause").hidden);
+    if (!paused) { await page.keyboard.press("Escape"); await page.waitForTimeout(400); }
+    if (await ev(() => okteoExt.pages.vue3d.ui.walk.on && !document.querySelector(".v3w-pause").hidden)) await page.click('.v3w-pause [data-w="quit"]');
+    await page.waitForTimeout(200);
     const out = await ev(() => !okteoExt.pages.vue3d.ui.walk.on);
+    if (!out) await ev(() => okteoExt.pages.vue3d.ui.walk.exit());
     await ev(() => okteo.setTab("plan"));
     if (!(on && Math.hypot(p1.x - p0.x, p1.y - p0.y) > 0.3 && tool === tool0 && aimed && a && a.seg && a.tab === "vue3d" && a.n === n0 + 1 && n2 === n0 && gone && gone.r && gone.r.removed && after && out)) throw new Error(JSON.stringify({ on, p0, p1, tool, tool0, aimed, res, a, n0, n2, gone, after, out }));
     return true;
   });
   await check("3D-5 : gaines en 3D (tracé du plan en traits droits, descente dans le mur), fiche de la gaine (n° et longueur de la bande), propriété « passage par le sol » qui rallonge la gaine ; Ctrl+Z", async () => {
     await ev(() => okteo.setTab("plan"));
+    await ev(() => { const u = okteoExt.pages.vue3d && okteoExt.pages.vue3d.ui; if (u && u.walk.on) u.walk.exit(); });
     const prep = await ev(() => { if (!(okteo.cab.circuits || []).length) okteoExt.cablage.auto(); if (!(okteo.cab.boxes || []).some((b) => b.lv === okteo.level.id)) okteoExt.cablage.placeAuto(); return { c: (okteo.cab.circuits || []).length, b: (okteo.cab.boxes || []).filter((b) => b.lv === okteo.level.id).length }; });
     await ev(() => okteo.setTab("vue3d"));
     try { await page.waitForFunction(() => (okteoExt.pages.vue3d.ui.state.gList || []).length > 0, null, { timeout: 20000 }); }
