@@ -562,7 +562,7 @@ try {
     await page.fill(".pset-find", "");
     const back = await ev(() => !document.querySelector("#ps-ia").hidden);
     await page.click('#tabs button[data-tab="plan"]');
-    if (!(secs === "Affichage|Assistant et relevé IA|Bibliothèque des règles|Câblage|Packs" && r.rows >= 6 && r.ia && r.grp === "Couleurs des fils" && back)) throw new Error(JSON.stringify({ secs, r, back }));
+    if (!(secs === "Affichage|Assistant et relevé IA|Bibliothèque des règles|Vue 3D : hauteurs de départ|Câblage|Packs" && r.rows >= 6 && r.ia && r.grp === "Couleurs des fils" && back)) throw new Error(JSON.stringify({ secs, r, back }));
     return true;
   });
 
@@ -2721,12 +2721,47 @@ try {
     const oid = await ev(() => { const o = okteo.state.openings.find((x) => x.kind === "fenetre"); if (!o) return null; o.allege = 120; o.linteau = 230; okteo.markDirty(); okteo.draw(); return o.id; });
     await ev(() => okteo.setTab("vue3d"));
     await page.waitForFunction(() => { const S3 = okteoExt.pages.vue3d.ui.state; return S3.house && S3.H && Math.abs(S3.H.plafond - 2.7) < 1e-9; }, null, { timeout: 30000 });
+    await ev(() => { const c = document.querySelector(".v3d-cut"); c.value = c.max; c.dispatchEvent(new Event("input")); });
     const r = await ev((oid) => { const S3 = okteoExt.pages.vue3d.ui.state, T = S3.T, top = new T.Box3().setFromObject(S3.house.walls).max.y; const o = oid && [...S3.plan.openings.values()].flat().find((x) => x.id === oid); return { top, o: o && [o.y0, o.y1], note: document.querySelector(".v3d-note").textContent }; }, oid);
     // Propriétés : champs présents
     await ev((oid) => { okteo.setTab("plan"); if (oid) okteo.select([oid]); }, oid);
     const fields = await ev(() => ({ al: !!document.getElementById("oal"), li: !!document.getElementById("oli") }));
     await ev(async () => { (await import("/src/prefs.js")).setPref("h3dPlafond", 250); });
     if (!(pref === 270 && r.top >= 2.7 - 1e-6 && (!oid || (Math.abs(r.o[0] - 1.2) < 1e-9 && Math.abs(r.o[1] - 2.3) < 1e-9 && fields.al && fields.li)) && /2,70 m/.test(r.note))) throw new Error(JSON.stringify({ pref, r, fields, oid }));
+    return true;
+  });
+  await check("3D-4 : visite à pied (ZQSD) : marcher sans traverser les murs, poser une prise au viseur (vrai appareil du chantier, rattaché à son mur, on reste en 3D), Ctrl+Z l'annule, la gomme retire un appareil", async () => {
+    await ev(() => okteo.setTab("vue3d"));
+    await page.waitForFunction(() => okteoExt.pages.vue3d.ui.state.house, null, { timeout: 30000 });
+    const tool0 = await ev(() => okteo.tool);
+    await page.click(".v3d-walk");
+    await page.waitForTimeout(400);
+    const on = await ev(() => okteoExt.pages.vue3d.ui.walk.on && !document.querySelector(".v3w").hidden);
+    // marcher 2 s vers l'avant : la position change, aucune paroi traversée (distance aux murs ≥ rayon)
+    const p0 = await ev(() => ({ ...okteoExt.pages.vue3d.ui.walk.state.p }));
+    await page.keyboard.down("KeyW"); await page.waitForTimeout(2000); await page.keyboard.up("KeyW");
+    const p1 = await ev(() => ({ ...okteoExt.pages.vue3d.ui.walk.state.p }));
+    const tool = await ev(() => okteo.tool);
+    // viser un mur (on tourne jusqu'à ce que le viseur soit vert) puis poser
+    const n0 = await ev(() => okteo.state.app.length);
+    const aimed = await ev(async () => { const W = okteoExt.pages.vue3d.ui.walk.state; for (let k = 0; k < 24; k++) { W.yaw = k * Math.PI / 12; W.pitch = -0.25; await new Promise((r) => setTimeout(r, 150)); if (W.last && W.last.ok && !W.last.del) return true; } return false; });
+    const res = await ev(() => okteoExt.pages.vue3d.ui.walk.act());
+    await page.waitForTimeout(600);
+    const a = await ev((id) => { const x = okteo.state.app.find((q) => q.id === id); return x && { t: x.t, seg: !!x.seg, h: x.h, tab: okteo.tab, n: okteo.state.app.length }; }, res && res.added);
+    // Ctrl+Z : la pose est annulée
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(400);
+    const n2 = await ev(() => okteo.state.app.length);
+    // gomme : viser un appareil existant et le retirer
+    await page.keyboard.press("Digit6");
+    const gone = await ev(async () => { const S3 = okteoExt.pages.vue3d.ui.state, W = okteoExt.pages.vue3d.ui.walk.state; const d = S3.devs.find((x) => x.mount === "mur") || S3.devs[0]; if (!d) return null; W.p = { x: d.x + (d.n ? d.n[0] : 0.5) * 1.2, y: d.y + (d.n ? d.n[1] : 0.5) * 1.2 }; const dx = d.x - W.p.x, dz = d.y - W.p.y, dy = d.h - 1.62; W.yaw = Math.atan2(-dx, -dz); W.pitch = Math.atan2(dy, Math.hypot(dx, dz)); await new Promise((r) => setTimeout(r, 400)); const r = okteoExt.pages.vue3d.ui.walk.act(); return { id: d.id, r }; });
+    await page.waitForTimeout(400);
+    const after = await ev((id) => !okteo.state.app.some((x) => x.id === id), gone && gone.id);
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(300);
+    await page.keyboard.press("Escape"); await page.waitForTimeout(200);
+    await page.keyboard.press("Escape"); await page.waitForTimeout(200);
+    const out = await ev(() => !okteoExt.pages.vue3d.ui.walk.on);
+    await ev(() => okteo.setTab("plan"));
+    if (!(on && Math.hypot(p1.x - p0.x, p1.y - p0.y) > 0.3 && tool === tool0 && aimed && a && a.seg && a.tab === "vue3d" && a.n === n0 + 1 && n2 === n0 && gone && gone.r && gone.r.removed && after && out)) throw new Error(JSON.stringify({ on, p0, p1, tool, tool0, aimed, res, a, n0, n2, gone, after, out }));
     return true;
   });
   await check("3D-2 : jonction oubliée et mur en double signalés dans la vue 3D, un clic montre l'endroit sur le plan", async () => {
