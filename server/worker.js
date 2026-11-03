@@ -100,7 +100,10 @@ export async function handle(request,env,ctx={waitUntil(){}}) {
   }
   if(p==='/api/admin/config'&&request.method==='POST'){
    admin(u);const b=await body(request);if(!/^claude-[a-z0-9.-]{1,80}$/.test(b.model))fail(400,'Modèle invalide.');
-   await run(db,'UPDATE config SET monthly_limit=?,concurrent_limit=?,model=?,input_price=?,output_price=? WHERE id=1',number(b.monthly_limit,0,10000000000),number(b.concurrent_limit,1,10),b.model,price(b.input_price),price(b.output_price));await audit(db,u,'budget-modele','config');return json({ok:true});
+   await run(db,'UPDATE config SET monthly_limit=?,concurrent_limit=?,model=?,input_price=?,output_price=? WHERE id=1',number(b.monthly_limit,0,10000000000),number(b.concurrent_limit,1,10),b.model,price(b.input_price),price(b.output_price));
+   // v75 : modèle de l'analyse (plan, relevé, relectures), colonnes ajoutées à la première sauvegarde
+   if(b.analysis_model!==undefined){if(!/^claude-[a-z0-9.-]{1,80}$/.test(b.analysis_model))fail(400,'Modèle d’analyse invalide.');await analysisColumns(db);await run(db,'UPDATE config SET analysis_model=?,analysis_input_price=?,analysis_output_price=? WHERE id=1',b.analysis_model,price(b.analysis_input_price),price(b.analysis_output_price));}
+   await audit(db,u,'budget-modele','config');return json({ok:true});
   }
   if(p==='/api/shared'){
    if(request.method==='GET')return json(await db.prepare('SELECT * FROM shared_versions ORDER BY id DESC LIMIT 1').first()||{id:0,data:null});
@@ -136,6 +139,19 @@ export function validateShared(d){
  // Schema contains no plan/PDF/project attachment field. Do not accept generic uploaded documents.
  if(JSON.stringify(d).length>1500000)fail(413,'Bibliothèque trop volumineuse.');
 }
+// v75 : modèle et tarif de chaque usage. Analyse : colonnes analysis_* si l'administrateur les a réglées, sinon Opus 5.5
+// au tarif public (4 / 20 USD par million de tokens, novembre 2026).
+export const ANALYSIS_DEFAULT={model:'claude-opus-5-5',input_price:4,output_price:20};
+export function pricing(c,purpose){
+ if(purpose!=='analyse')return{purpose:'chat',model:c.model,input_price:c.input_price,output_price:c.output_price};
+ return{purpose:'analyse',model:c.analysis_model||ANALYSIS_DEFAULT.model,input_price:c.analysis_input_price??ANALYSIS_DEFAULT.input_price,output_price:c.analysis_output_price??ANALYSIS_DEFAULT.output_price};
+}
+async function analysisColumns(db){
+ const cols=(await db.prepare('PRAGMA table_info(config)').all()).results.map(r=>r.name);
+ if(!cols.includes('analysis_model'))await run(db,"ALTER TABLE config ADD COLUMN analysis_model TEXT NOT NULL DEFAULT 'claude-opus-5-5'");
+ if(!cols.includes('analysis_input_price'))await run(db,'ALTER TABLE config ADD COLUMN analysis_input_price INTEGER NOT NULL DEFAULT 4');
+ if(!cols.includes('analysis_output_price'))await run(db,'ALTER TABLE config ADD COLUMN analysis_output_price INTEGER NOT NULL DEFAULT 20');
+}
 async function relay(request,env,u,ctx){
  if(!u.ai_enabled)fail(403,'Accès IA désactivé pour votre compte.');if(!env.ANTHROPIC_API_KEY)fail(503,'Clé Claude entreprise non configurée. Le dessin et les exports restent disponibles.');
  const db=env.DB;
@@ -143,7 +159,9 @@ async function relay(request,env,u,ctx){
  const c=await db.prepare('SELECT * FROM config WHERE id=1').first(),b=await body(request,16000000);
  if(!Array.isArray(b.messages)||!b.messages.length)fail(400,'Messages manquants.');
  const output=number(b.max_tokens,1,32000);
- const payload={model:c.model,max_tokens:output,system:typeof b.system==='string'?b.system:'',messages:b.messages};
+ // v75 : conversation de l'assistant = modèle de base (Sonnet) ; analyse du plan, relevé et relectures = modèle d'analyse (Opus)
+ const P=pricing(c,b.purpose);
+ const payload={model:P.model,max_tokens:output,system:typeof b.system==='string'?b.system:'',messages:b.messages};
  // Strict content schema: no tools, remote URL sources, caching or arbitrary provider options.
  for(const m of payload.messages){if(!['user','assistant'].includes(m.role))fail(400,'Rôle de message invalide.');if(typeof m.content==='string')continue;if(!Array.isArray(m.content))fail(400,'Contenu invalide.');for(const x of m.content){if(x.type==='text'&&typeof x.text==='string'){if(Object.keys(x).some(k=>!['type','text'].includes(k)))fail(400,'Option non autorisée.');continue;}if(x.type==='image'&&x.source?.type==='base64'&&/^image\/(jpeg|png|webp|gif)$/.test(x.source.media_type)&&typeof x.source.data==='string'&&Object.keys(x).every(k=>['type','source'].includes(k)))continue;fail(400,'Contenu IA non autorisé.');}}
  // Count with provider before reserving; max output + 10% input margin, no speculative token heuristic.
@@ -151,13 +169,13 @@ async function relay(request,env,u,ctx){
  const countRes=await fetch('https://api.anthropic.com/v1/messages/count_tokens',{method:'POST',headers,body:JSON.stringify({model:payload.model,system:payload.system,messages:payload.messages}),signal:AbortSignal.timeout(30000)});
  if(!countRes.ok)fail(503,'Comptage Claude indisponible : appel annulé pour protéger le budget.');
  const counted=await countRes.json();if(!Number.isSafeInteger(counted.input_tokens)||counted.input_tokens<0||counted.input_tokens>180000)fail(413,'Analyse trop volumineuse (180 000 tokens maximum).');
- const reserved=Math.ceil(counted.input_tokens*1.1*c.input_price+output*c.output_price),id=crypto.randomUUID(),m=month();
+ const reserved=Math.ceil(counted.input_tokens*1.1*P.input_price+output*P.output_price),id=crypto.randomUUID(),m=month();
  // Single atomic SQLite statement: concurrent requests cannot both spend the same remainder.
  const insert=await db.prepare(`INSERT INTO usage(id,user_id,month,created,status,reserved,model,input_price,output_price)
  SELECT ?,?,?,?,'pending',?,?,?,? WHERE
  (SELECT COALESCE(SUM(COALESCE(actual,reserved)),0) FROM usage WHERE month=?)+? <= (SELECT monthly_limit FROM config WHERE id=1)
  AND (SELECT COALESCE(SUM(COALESCE(actual,reserved)),0) FROM usage WHERE month=? AND user_id=?)+? <= (SELECT monthly_limit FROM users WHERE id=? AND active=1 AND ai_enabled=1)
- AND (SELECT COUNT(*) FROM usage WHERE status='pending') < (SELECT concurrent_limit FROM config WHERE id=1)`).bind(id,u.id,m,Date.now(),reserved,c.model,c.input_price,c.output_price,m,reserved,m,u.id,reserved,u.id).run();
+ AND (SELECT COUNT(*) FROM usage WHERE status='pending') < (SELECT concurrent_limit FROM config WHERE id=1)`).bind(id,u.id,m,Date.now(),reserved,P.model,P.input_price,P.output_price,m,reserved,m,u.id,reserved,u.id).run();
  if(!insert.meta.changes)fail(429,'Plafond mensuel ou nombre d’analyses simultanées atteint.');
  // Keep uncertain holds charged; never release them merely because a client disconnects or a timeout fires.
  const work=(async()=>{try{
@@ -165,9 +183,9 @@ async function relay(request,env,u,ctx){
    if(!r.ok){await run(db,"UPDATE usage SET status='rejected',actual=0 WHERE id=?",id);return json({error:{message:`Claude indisponible (${r.status}). Vous pouvez continuer le dessin ou coller une analyse.`}},502);}
    const result=await r.json(),a=result.usage;
    if(!a||!Number.isSafeInteger(a.input_tokens)||!Number.isSafeInteger(a.output_tokens))throw new Error('usage');
-   const actual=Math.ceil(a.input_tokens*c.input_price+a.output_tokens*c.output_price);
+   const actual=Math.ceil(a.input_tokens*P.input_price+a.output_tokens*P.output_price);
    await run(db,"UPDATE usage SET status='known',actual=?,input_tokens=?,output_tokens=? WHERE id=?",actual,a.input_tokens,a.output_tokens,id);
-   return json({...result,okteo:{model:c.model,cost:actual/1e6,estimatedInvoice:true}});
+   return json({...result,okteo:{model:P.model,purpose:P.purpose,cost:actual/1e6,estimatedInvoice:true}});
   }catch{await run(db,"UPDATE usage SET status='uncertain' WHERE id=?",id);return json({error:{message:'Réponse IA interrompue. Réservation conservée par prudence ; dessin et export disponibles.'}},504);}})();
  ctx.waitUntil(work.then(()=>{}));return work;
 }

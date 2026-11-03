@@ -201,7 +201,7 @@ export function createAiReleve({ api, openParams }) {
       show(`<p>L'IA lit le plan (${esc(PROVIDERS[provider].name)} · ${esc(model)})… compter 30 s à 2 min.</p><p class="mut sm">Vous pouvez continuer à travailler : l'aperçu s'affichera ici.</p>`);
       const job = attente.start({ title: "L'IA étudie votre plan" });
       let r;
-      try { r = await chat({ system: SYSTEM, messages: [{ role: "user", text: aiPrompt({ W: img.W, H: img.H, cmPerPx: img.map.sx * 100 }), image: { type: "image/jpeg", data: img.url.split(",")[1] } }], maxTokens: 12000, provider, think: true }); }
+      try { r = await chat({ purpose: "analyse", system: SYSTEM, messages: [{ role: "user", text: aiPrompt({ W: img.W, H: img.H, cmPerPx: img.map.sx * 100 }), image: { type: "image/jpeg", data: img.url.split(",")[1] } }], maxTokens: 12000, provider, think: true }); }
       catch (e) { attente.finish(job, false); throw e; }
       attente.finish(job, !!r.sawImage);
       if (!r.sawImage) { busy = false; return message(`Le modèle ${esc(r.model)} ne lit pas les images : choisissez un modèle « vision » dans Paramètres.`, [{ label: "Ouvrir Paramètres", run: openParams }, { label: "Fermer", run: () => {} }]); }

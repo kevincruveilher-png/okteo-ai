@@ -1,3 +1,15 @@
+## 03/11/2026 — v75 (suite) : Sonnet pour la conversation, Opus pour l'analyse
+
+- `ai.js` : `PROVIDERS.anthropic.analyseModel` = `claude-opus-5-5`, `modelFor(provider, purpose)` ; `chat({purpose})` :
+  `"chat"` (conversation de l'assistant, Sonnet 5.5) ou `"analyse"` (« Analyser le plan », relevé IA, relectures ciblées :
+  Opus 5.5). En local : réglages `models.anthropic` (conversation) et `models.anthropicAnalyse` (champ `.ma` dans
+  Paramètres → Claude). En ligne : le client envoie seulement `purpose` ; le Worker choisit (`pricing(c, purpose)`) :
+  `config.model` pour la conversation, `config.analysis_model` (Opus par défaut) pour l'analyse, chacun à son tarif
+  (Opus 5.5 : 4 / 20 USD par million de tokens par défaut) ; colonnes `analysis_*` ajoutées à la première sauvegarde du
+  budget (`analysisColumns`, pas de migration à lancer) ; fenêtre Budget de l'administrateur : 3 champs de plus.
+  `purpose` n'est jamais transmis à Anthropic. En-tête de l'assistant : « sonnet · analyse opus ».
+- Tests : web.test.mjs (+1 : modèle et tarif par usage, réglage admin), smoke « IA (v75) ».
+
 ## 03/11/2026 — v75 : micro dans l'assistant (dictée)
 
 Branche `feat/assistant-micro-v75`.

@@ -472,6 +472,8 @@ MAJ 4-5 : `src/print/ftz-symbols.js` (`boxColor`, `ftzSymbol`, `plaques`), préf
 ### Micro de l'assistant v75
 `src/ext/micro.js` (`createMicro`, Web Speech API fr-FR) ; assistant `.as-mic` / `.as-mic-msg`, « envoie » = envoi, Alt+V
 (`hooks.dictate`), catalogue `ai.dictee`. Test `scripts/micro.test.mjs`.
+Modèles : `chat({purpose: "chat"|"analyse"})`, `modelFor` (Sonnet conversation, Opus analyse) ; Worker `pricing(c, purpose)`,
+colonnes `config.analysis_model/analysis_input_price/analysis_output_price` (créées par `analysisColumns`).
 
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,

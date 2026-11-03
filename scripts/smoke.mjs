@@ -1715,6 +1715,14 @@ try {
     if (!(r.b && /Alt\+V|indisponible/.test(r.title) && r.open && r.cat && (r.rec || r.msg || !r.sup))) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("IA (v75) : conversation de l'assistant avec Sonnet, analyse du plan / relevé / relectures avec Opus ; deux modèles dans Paramètres", async () => {
+    const r = await ev(async () => { const m = await import("/src/ext/ai.js"); return { chat: m.modelFor("anthropic", "chat"), an: m.modelFor("anthropic", "analyse"), nv: m.modelFor("nvidia", "analyse") === m.modelFor("nvidia", "chat"), forced: m.modelFor("anthropic", "analyse", { models: { anthropicAnalyse: "claude-haiku-5-5" } }) }; });
+    await page.click('#tabs button[data-tab="params"]');
+    const f = await ev(() => ({ ma: !!document.querySelector('.pcard[data-p="anthropic"] .ma'), ph: document.querySelector('.pcard[data-p="anthropic"] .ma')?.placeholder }));
+    await page.click('#tabs button[data-tab="plan"]');
+    if (!(r.chat === "claude-sonnet-5-5" && r.an === "claude-opus-5-5" && r.nv && r.forced === "claude-haiku-5-5" && f.ma && f.ph === "claude-opus-5-5")) throw new Error(JSON.stringify({ r, f }));
+    return true;
+  });
   await check("salle de bain (v74 MAJ 3) : douche à l'italienne posée, volumes dessinés, luminaire dedans signalé, annulable", async () => {
     const r = await ev(() => {
       const room = okteo.state.rooms[0], P = room.poly || [{ x: room.x0, y: room.y0 }, { x: room.x1, y: room.y1 }];

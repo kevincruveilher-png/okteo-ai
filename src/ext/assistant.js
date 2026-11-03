@@ -8,7 +8,7 @@
 // - sans clé : recherche locale dans la liste des fonctions.
 
 import { createMicro } from "./micro.js";
-import { chat, PROVIDERS } from "./ai.js";
+import { chat, modelFor, PROVIDERS } from "./ai.js";
 import { settings } from "./settings.js";
 import { planSummary, planImage } from "./plan-data.js";
 import { searchCatalog } from "./palette.js";
@@ -97,8 +97,8 @@ export function createAssistant(el, { api, getCatalog, openParams }) {
   function paintProv() {
     const p = settings.activeProvider();
     if (!p) { provEl.innerHTML = `<span class="pill off">Pas de clé IA</span>`; return; }
-    const m = settings.get().models[p] || PROVIDERS[p].defaultModel;
-    provEl.innerHTML = `<span class="pill">${PROVIDERS[p].name}</span><span class="mut mono">${esc(m)}</span>`;
+    const m = modelFor(p, "chat"), ma = modelFor(p, "analyse");
+    provEl.innerHTML = `<span class="pill">${PROVIDERS[p].name}</span><span class="mut mono" title="Conversation : ${esc(m)} · analyse du plan, relevé et relectures : ${esc(ma)}">${esc(m)}${ma !== m ? ` · analyse ${esc(ma)}` : ""}</span>`;
   }
   settings.onChange(() => { paintProv(); if (!hist.length && !busy) render(); });
 
@@ -195,7 +195,7 @@ export function createAssistant(el, { api, getCatalog, openParams }) {
   }
 
   // ---------- envoi ----------
-  async function ask(text, { image = null, show = null } = {}) {
+  async function ask(text, { image = null, show = null, purpose = null } = {}) {
     text = (text || "").trim();
     if (!text || busy) return;
     hist.push({ role: "user", text, show, image });
@@ -209,7 +209,7 @@ export function createAssistant(el, { api, getCatalog, openParams }) {
         .map((m, i, arr) => ({ role: m.role, text: m.role === "user" && m.hadImage ? m.text + "\n(image du plan envoyée précédemment)" : m.text, image: i === arr.length - 1 ? m.image : null }));
       // l'API veut une conversation qui commence par l'utilisateur
       while (convo.length && convo[0].role !== "user") convo.shift();
-      const r = await chat({ system: systemPrompt(api, getCatalog()), messages: convo, maxTokens: image ? 2500 : 1500, think: !!image });
+      const r = await chat({ system: systemPrompt(api, getCatalog()), messages: convo, maxTokens: image ? 2500 : 1500, think: !!image, purpose: purpose || (image ? "analyse" : "chat") });
       const p = parseReply(r.text);
       const sug = p.suggest.filter((a) => a.do !== "rule").slice(0, 8);
       // règles du journal : jamais appliquées directement → carte avant / après à valider
@@ -248,7 +248,7 @@ export function createAssistant(el, { api, getCatalog, openParams }) {
     const prov = settings.activeProvider(), lim = PROVIDERS[prov].maxImageB64 || 0;
     try { image = await planImage(api, lim ? { width: 1280, maxB64: lim } : {}); } catch (e) { hist.push({ role: "log", text: "Image du plan impossible (" + e.message + ") : analyse sur les données seules." }); }
     busy = false;
-    await ask(ANALYSE_PROMPT, { image, show: "📐 Analyse le plan (oublis, éclairage, prises, ce qui reste à dessiner)" });
+    await ask(ANALYSE_PROMPT, { image, purpose: "analyse", show: "📐 Analyse le plan (oublis, éclairage, prises, ce qui reste à dessiner)" });
   }
 
   // v75 : dictée au micro (Alt+V) : le texte entendu s'écrit dans la zone de saisie ; finir par « envoie » l'envoie
