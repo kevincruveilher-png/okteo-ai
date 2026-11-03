@@ -27,6 +27,10 @@ export function faceData(api, face = {}) {
   const direct = face.direct ? (geo.direct || []).map((d) => ({ app: d.appId, label: d.label || "" })) : [];
   const keep = new Set([...gaines.flatMap((g) => g.apps), ...direct.map((d) => d.app)]);
   const apps = P.apps.filter((a) => showApp(a.id) || keep.has(a.id) || a.t === "TAB").map((a) => ({ id: a.id, t: a.t, x: a.x, y: a.y, h: Number.isFinite(a.h) ? a.h : null, seg: a.seg, rep: a.rep }));
+  // une gaine dont l'appareil (ou le tableau) n'est pas sur ce niveau n'est pas dessinable : elle n'est pas mise dans le QR
+  const here = new Set(apps.map((a) => a.id)), hasTab = apps.some((a) => a.t === "TAB");
+  const drawable = gaines.filter((g) => g.apps.length && (g.apps[0] === "tab" ? hasTab : here.has(g.apps[0])));
+  gaines.length = 0; gaines.push(...drawable);
   return { data: P.data, rooms: P.rooms, apps, boxes: boxesLv.map((b) => ({ id: b.id, n: b.n, x: b.x, y: b.y })), gaines, direct, H: P.H, date: today(), level: api.level.name || "" };
 }
 

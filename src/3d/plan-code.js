@@ -33,7 +33,7 @@ export function packPlan(S) {
     // appareils : différences successives de position, hauteur (cm, -1 = hauteur de départ), mur (-1 = posé), repère
     A: (() => { const out = []; let px = 0, py = 0; for (const a of apps) { const x = X(a.x), y = Y(a.y); out.push(a.t, x - px, y - py, Number.isFinite(a.h) ? Math.round(a.h) : -1, a.seg && si.has(a.seg) ? si.get(a.seg) : -1, a.rep || ""); px = x; py = y; } return out; })(),
     B: (S.boxes || []).flatMap((b) => [b.n || "", X(b.x), Y(b.y)]),
-    G: (S.gaines || []).filter((g) => bi.has(g.box)).map((g) => [bi.get(g.box), (g.apps || []).map((id) => (id === "tab" ? -1 : ai.has(id) ? ai.get(id) : -2)).filter((k) => k !== -2), g.sol ? 1 : 0, delta(g.route || [])]),
+    G: (S.gaines || []).filter((g) => bi.has(g.box)).map((g) => [bi.get(g.box), (g.apps || []).map((id) => (id === "tab" ? -1 : ai.has(id) ? ai.get(id) : -2)).filter((k) => k !== -2), g.sol ? 1 : 0, delta(g.route || [])]).filter((g) => g[1].length),
     L: (S.direct || []).filter((d) => ai.has(d.app)).flatMap((d) => [ai.get(d.app), d.label || ""]),
   };
 }

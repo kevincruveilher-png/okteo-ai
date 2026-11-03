@@ -2868,14 +2868,15 @@ try {
       const r = await buildPlanPdf(okteo.exportGeometry(), { boites: true, gaines: true, cotes: false, nomenclature: false, ftz: { pages: [{ boxes: "all", direct: false, autres: true, legend: false }, { boxes: [], direct: true, autres: false, legend: true }], items: [], images: {}, fields: {}, qr3d: (f) => faceUrl(okteo, f) } });
       const json = JSON.stringify((await import("/src/cablage/bande-code.js")).decodeSheet ? await (await import("/src/cablage/bande-code.js")).decodeSheet(all.url.split("#p=")[1]) : null);
       const ch = okteo.ch || {};
-      return { url: all.url, size: all.size, tooBig: all.tooBig, gaines: d.gaines.length, boxes: d.boxes.length, qrs: r.qrs.map((x) => ({ page: x.page, ok: !!x.url, size: x.size, tooBig: !!x.tooBig, err: x.error || null })), names: [ch.nom, ch.client, ch.numero].filter((s) => s && s.length > 2 && json.includes(s)) };
+      const W = (await import("/src/ext/cablage-data.js")).wiringNow(okteo), miss = d.gaines.filter((g) => g.apps[0] !== "tab" && !d.apps.some((a) => a.id === g.apps[0])).length;
+      return { url: all.url, size: all.size, tooBig: all.tooBig, gaines: d.gaines.length, miss, wGaines: W.boxes.filter((b) => d.boxes.some((x) => x.id === b.id)).reduce((s, b) => s + b.gaines.length, 0), boxes: d.boxes.length, qrs: r.qrs.map((x) => ({ page: x.page, ok: !!x.url, size: x.size, tooBig: !!x.tooBig, err: x.error || null })), names: [ch.nom, ch.client, ch.numero].filter((s) => s && s.length > 2 && json.includes(s)) };
     });
     const p2 = await browser.newPage({ viewport: { width: 390, height: 844 } }), errs = [];
     p2.on("pageerror", (e) => errs.push(String(e)));
     await p2.goto(`http://localhost:${APP_PORT}/plan3d.html` + q.url.slice(q.url.indexOf("#")));
     await p2.waitForFunction(() => window.__plan3d && window.__plan3d.ready, null, { timeout: 60000 });
     await p2.waitForTimeout(600);
-    const r = await p2.evaluate(() => { const S = window.__plan3d; const d = S.devs.find((x) => x.mount === "mur") || S.devs[0]; S.show({ dev: d.id }); return { walls: S.plan.walls.length, gl: S.gl.length, devs: S.devs.length, card: !document.querySelector(".card").hidden && document.querySelector(".card .t").textContent, title: document.querySelector(".top b").textContent }; });
+    const r = await p2.evaluate(() => { const S = window.__plan3d; const d = S.devs.find((x) => x.mount === "mur") || S.devs[0]; S.show({ dev: d.id }); return { walls: S.plan.walls.length, gl: S.gl.length, devs: S.devs.length, skip: S.skip, card: !document.querySelector(".card").hidden && document.querySelector(".card .t").textContent, title: document.querySelector(".top b").textContent }; });
     await p2.click('[data-v="walk"]'); await p2.waitForTimeout(200);
     const p0 = await p2.evaluate(() => ({ ...window.__plan3d.walk.p }));
     let p1 = null;

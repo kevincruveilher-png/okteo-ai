@@ -54,10 +54,10 @@ async function main() {
   const sun = new T.DirectionalLight(0xffffff, 1.1 * Math.PI); scene.add(sun, sun.target);
   const house = buildHouse(T, { plan, rooms: D.rooms, devices: devs, boxes }, { cut: Infinity, contrast: true, H });
   scene.add(house.group);
-  const gl = [], dl = [];
+  const gl = [], dl = [], skip = [];
   for (const g of D.gaines) {
     const b = boxes.find((x) => x.id === g.box), key = g.apps[0], end = key === "tab" ? tab : byId.get(key);
-    if (!b || !end) continue;
+    if (!b || !end) { skip.push({ g: g.id, box: !!b, key }); continue; }
     const { pts, L } = gainePath({ box: b, route: g.route, end: { x: end.x, y: end.y, h: end.t === "TAB" ? Math.max(end.h, H.plafond - 0.7) : end.h, axis: end.axis, mount: end.mount }, sol: g.sol, H, wall: nearestWall(plan, b.x, b.y) });
     gl.push({ id: g.id, pts, L, color: b.color, box: b.n, apps: g.apps, sol: g.sol });
   }
@@ -72,7 +72,7 @@ async function main() {
 
   const B = planBounds(plan), cx = (B.x0 + B.x1) / 2, cy = (B.y0 + B.y1) / 2, RAD = Math.max(6, Math.hypot(B.x1 - B.x0, B.y1 - B.y0) / 2 + 2);
   sun.position.set(cx - RAD * 0.4, RAD * 1.3, cy + RAD); sun.target.position.set(cx, 0, cy);
-  const S = { mode: "iso", anim: null, walk: { p: { x: cx, y: cy }, yaw: 0, pitch: -0.05, mv: [0, 0] }, house, gl, dl, devs, plan, D };
+  const S = { skip, mode: "iso", anim: null, walk: { p: { x: cx, y: cy }, yaw: 0, pitch: -0.05, mv: [0, 0] }, house, gl, dl, devs, plan, D };
   window.__plan3d = S;
 
   function size() { const r = cv.getBoundingClientRect(); if (!r.width) return; R.setSize(r.width, r.height, false); cam.aspect = r.width / r.height; cam.updateProjectionMatrix(); }
