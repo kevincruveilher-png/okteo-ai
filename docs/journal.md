@@ -1,3 +1,23 @@
+## 03/11/2026 — 3D-5 gaines en 3D et passage par le sol (branche `feat/3d-1-visionneuse`)
+
+Réponses de Kévin : la réserve en boîte est un réglage (elle existe déjà : Paramètres → Câblage → Longueurs,
+« surlongueur côté boîte » `margeBoite`, et côté appareil `margeApp`) ; le passage par le sol est une propriété de la gaine.
+- `src/cablage/gaines.js` : `box.sol = {appId | "tab": true}` → gaine `g.sol` ; longueur d'une gaine par le sol =
+  traversée + hauteur sous plafond + hauteur de l'appareil (descente au sol puis remontée) au lieu de la descente du
+  plafond ; alimentation par le sol : jusqu'au haut du tableau. La longueur de la bande suit.
+- `src/ext/cablage-data.js` : `setGaineSol(api, boxId, keys, on)` (un Ctrl+Z, `api.setBoxes`), `gaineKeys(g)`.
+- Propriété dans la fiche de la gaine sur le plan (carte « Pourquoi » d'une gaine sélectionnée, `.why-sol`) et dans la
+  fiche de la gaine en 3D (`.v3d-sol`).
+- `plan3d.js` : `gainePath({box, route, end, sol, H, wall})` (tracé du plan en traits droits, points de passage
+  `box.routes`, au-dessus du plafond, descente verticale dans le mur ; par le sol : descente dans le mur le plus proche
+  de la boîte hors passage `nearestWall`, dalle, remontée) ; `scene.js` `buildGaines` (tube couleur de la boîte
+  `boxColor`, double clair visible à travers les murs, tube invisible pour le clic, `highlight`).
+- `vue3d.js` : gaines calculées par `wiringNow(api)` (mêmes n° et longueurs que les bandes) ; calques « Gaines » et
+  « Gaines visibles à travers les murs » ; clic sur une gaine → fiche (n°, appareil, longueur de la bande, tracé 3D,
+  diamètre, passage) + « Voir sur le plan » ; clic sur une boîte → ses gaines ; reconstruction sur `okteo:cab`.
+- Tests : v3d (tracés plafond / sol / plafond d'un point lumineux, descente hors porte, longueur de la bande par le sol)
+  + smoke (gaines dessinées, fiche, « Passage par le sol » → plus longue et dans la dalle, Ctrl+Z).
+
 ## 03/11/2026 — 3D-4 visite à pied et pose au viseur (branche `feat/3d-1-visionneuse`)
 
 - `src/ext/vue3d-walk.js` (`createWalk({api, S3, el, cv})`) : bouton « Visite à pied · ZQSD » (`.v3d-walk`) du panneau 3D ;

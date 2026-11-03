@@ -307,12 +307,15 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
       }
       if (G.length > 1 && G.some((m) => (circOf.get(m.id) || {}).kind === "specialise")) doubt("R-089", `${b.n} : un circuit spécialisé est dans une gaine partagée (${G.map((m) => m.rep).join(" + ")})`, b.n, true);
       const route = G.map((m) => (b.routes || {})[m.id]).find(Boolean) || null;
-      const downMax = Math.max(...G.map((m) => down(m.h, S)));
+      // 3D-5 : gaine passée par le sol (propriété de la gaine, box.sol[appId]) : descente de la boîte jusqu'au sol, puis
+      // remontée jusqu'à l'appareil, au lieu de la descente du plafond
+      const sol = G.some((m) => (b.sol || {})[m.id]);
+      const downMax = sol ? S.traversee + S.hsp + Math.max(...G.map((m) => (m.h == null ? S.hsp : m.h / 100))) : Math.max(...G.map((m) => down(m.h, S)));
       const len = gaineLength({ horiz: viaLen(b, route, a), downA: downMax, levels: Math.abs(lvIdx(a.lv) - lvB) }, S);
       const label = G.length === 1 ? `${NAMES[a.t] || (APPAREILS[a.t] || {}).n || a.t} ${a.rep || ""}`.trim() : G.map((m) => m.rep || NAMES[m.t] || m.t).join(" + ");
       const cn = [...new Set(G.map((m) => (circOf.get(m.id) || {}).n).filter(Boolean))];
       // la face est celle par où la gaine sort : vers son 1er point de passage s'il y en a un
-      deps.push({ id: a.id, kind: "app", p: route ? route[0] : a, pts: route ? [route[0]] : G.map((m) => ({ x: m.x, y: m.y })), app: a, appIds: G.map((m) => m.id), reps: G.map((m) => m.rep || NAMES[m.t] || m.t), routed: !!route, label, room: a.room, circuit: cn.join(", "), wires, length: len, cable, ext: !!cable, bouchon: !!cable,
+      deps.push({ sol, id: a.id, kind: "app", p: route ? route[0] : a, pts: route ? [route[0]] : G.map((m) => ({ x: m.x, y: m.y })), app: a, appIds: G.map((m) => m.id), reps: G.map((m) => m.rep || NAMES[m.t] || m.t), routed: !!route, label, room: a.room, circuit: cn.join(", "), wires, length: len, cable, ext: !!cable, bouchon: !!cable,
         rules: { length: "R-011", diam: "R-074", wires: G.length > 1 ? "R-073" : null, ronde: wires.some((w) => /^(retour|nav1|nav2|cmdTL|cmdV1|cmdV2)$/.test(w.fn)) ? "R-072" : null, volet: G.some((m) => m.t === "VR" || m.t === "VEL" || m.t === "CVR") ? "R-096" : null, eq: G.some((m) => m.t === "EQL") ? "R-080" : null, cable: cable ? "R-014" : null, bouchon: cable ? "R-095" : null } });
     }
     // alimentation depuis le tableau : une seule gaine (phase + neutre de chaque circuit, télérupteur, une terre) ;
@@ -331,9 +334,10 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
       // (v54 : 2,5 mm² si une équipotentielle locale est raccordée dans la boîte, R-075 / R-080)
       if (gi === 0) wires.push({ fn: "terre", color: S.cTerre, section: Math.max(...circs.map((c) => c.section || 1.5), ...apps.filter((a) => a.t === "EQL").map(() => APPAREILS.EQL.terre || 2.5)), net: "T" });
       const route = (b.routes || {}).tab || null;
-      const len = tab ? gaineLength({ horiz: viaLen(b, route, tab), downA: S.traversee + Math.max(0, S.hsp - hTab), levels: Math.abs(lvIdx(tab.lv) - lvB) }, S) : null;
+      const solA = !!(b.sol || {}).tab;
+      const len = tab ? gaineLength({ horiz: viaLen(b, route, tab), downA: solA ? S.traversee + S.hsp + hTab : S.traversee + Math.max(0, S.hsp - hTab), levels: Math.abs(lvIdx(tab.lv) - lvB) }, S) : null;
       const names = G.map((c) => c.n);
-      deps.push({ id: "alim:" + gi, kind: "alim", p: route ? route[0] : tab || { x: b.x, y: b.y - 1 }, routed: !!route,
+      deps.push({ sol: solA, id: "alim:" + gi, kind: "alim", p: route ? route[0] : tab || { x: b.x, y: b.y - 1 }, routed: !!route,
         label: `Alimentation ${names.join(" + ")} (tableau)${alimG.length > 1 ? ` — gaine ${gi + 1}/${alimG.length}` : ""}`, circuit: names.join(", "), circuits: names, wires, length: len,
         rules: { length: "R-011", diam: "R-074", wires: "R-075" } });
     });

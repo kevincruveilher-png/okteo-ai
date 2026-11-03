@@ -1264,3 +1264,6 @@ body.am-on{overflow:hidden}
 .v3w-pcard button{border:1px solid var(--line);background:transparent;color:var(--fg);padding:10px;font-size:14px}
 .v3w-pcard button.pri{background:var(--accent2);border-color:var(--accent2);color:#fff;font-weight:600}
 .v3w-pcard p{margin:0;font-size:12px;color:var(--mut)}
+.why-sol{display:flex;gap:6px;align-items:center;margin:6px 0;font-size:13px}
+.v3d-gl{display:flex;flex-wrap:wrap;gap:4px}.v3d-gl button{border:1px solid var(--line);background:transparent;color:var(--fg);padding:4px 8px;font-family:var(--fm);font-size:12px}
+.v3d-sol{display:flex;gap:8px;align-items:center}

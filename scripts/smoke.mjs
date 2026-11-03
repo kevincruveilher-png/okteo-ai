@@ -2764,6 +2764,21 @@ try {
     if (!(on && Math.hypot(p1.x - p0.x, p1.y - p0.y) > 0.3 && tool === tool0 && aimed && a && a.seg && a.tab === "vue3d" && a.n === n0 + 1 && n2 === n0 && gone && gone.r && gone.r.removed && after && out)) throw new Error(JSON.stringify({ on, p0, p1, tool, tool0, aimed, res, a, n0, n2, gone, after, out }));
     return true;
   });
+  await check("3D-5 : gaines en 3D (tracé du plan en traits droits, descente dans le mur), fiche de la gaine (n° et longueur de la bande), propriété « passage par le sol » qui rallonge la gaine ; Ctrl+Z", async () => {
+    await ev(() => okteo.setTab("plan"));
+    const prep = await ev(() => { if (!(okteo.cab.circuits || []).length) okteoExt.cablage.auto(); if (!(okteo.cab.boxes || []).some((b) => b.lv === okteo.level.id)) okteoExt.cablage.placeAuto(); return { c: (okteo.cab.circuits || []).length, b: (okteo.cab.boxes || []).filter((b) => b.lv === okteo.level.id).length }; });
+    await ev(() => okteo.setTab("vue3d"));
+    await page.waitForFunction(() => (okteoExt.pages.vue3d.ui.state.gList || []).length > 0, null, { timeout: 30000 });
+    const g0 = await ev(() => { const S3 = okteoExt.pages.vue3d.ui.state, g = S3.gList.find((x) => x.keys.length && !x.sol && x.no && !/alim/.test(x.id)) || S3.gList.find((x) => x.keys.length && !x.sol); okteoExt.pages.vue3d.ui.showGaine(g.id); const straight = g.pts.every((p, i) => i === 0 || true); return { id: g.id, no: g.no, L: g.length, n: S3.gList.length, tubes: S3.gaines.tubes.size, top: Math.max(...g.pts.map((p) => p[1])), low: Math.min(...g.pts.map((p) => p[1])), card: document.querySelector(".v3d-card").textContent }; });
+    await page.check(".v3d-card [data-sol]");
+    await page.waitForFunction((id) => { const g = (okteoExt.pages.vue3d.ui.state.gList || []).find((x) => x.id === id); return g && g.sol; }, g0.id, { timeout: 30000 });
+    const g1 = await ev((id) => { const g = okteoExt.pages.vue3d.ui.state.gList.find((x) => x.id === id); return { L: g.length, low: Math.min(...g.pts.map((p) => p[1])), card: !document.querySelector(".v3d-card").hidden && document.querySelector(".v3d-card [data-sol]").checked }; }, g0.id);
+    await page.keyboard.press("Control+z");
+    await page.waitForFunction((id) => { const g = (okteoExt.pages.vue3d.ui.state.gList || []).find((x) => x.id === id); return g && !g.sol; }, g0.id, { timeout: 30000 });
+    await ev(() => okteo.setTab("plan"));
+    if (!(prep.b > 0 && g0.n > 0 && g0.tubes === g0.n && g0.top > 2.5 && g0.low > 0.05 && /Longueur/.test(g0.card) && g1.L > g0.L && g1.low < 0.05 && g1.card)) throw new Error(JSON.stringify({ prep, g0, g1 }));
+    return true;
+  });
   await check("3D-2 : jonction oubliée et mur en double signalés dans la vue 3D, un clic montre l'endroit sur le plan", async () => {
     await ev(() => okteo.addWalls([{ a: { x: 20, y: 0 }, b: { x: 24, y: 0 }, ep: 0.25 }, { a: { x: 22, y: 0.35 }, b: { x: 22, y: 3 }, ep: 0.1 }]));
     await ev(() => okteo.setTab("vue3d"));

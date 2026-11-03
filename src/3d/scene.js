@@ -157,3 +157,41 @@ export function buildHouse(T, data3d, { cut = Infinity, contrast = true, H = H3D
     dispose() { [wallG, floorG, devG, boxG, ceilG].forEach(disposeGroup); Object.values(M).forEach((m) => m.dispose()); },
   };
 }
+
+// 3D-5 : gaines de la pieuvre : un tube par gaine, couleur de sa boîte, et un double plus clair dessiné par-dessus les
+// murs (on voit la descente dans le mur par transparence) ; un tube invisible plus gros sert au clic.
+// list [{ id, pts [[x,h,y]…], color }] → { group, tubes Map id → {tube, ghost, pick}, setXray(on), highlight(id|null), dispose }
+export function buildGaines(T, list, { xray = true } = {}) {
+  const group = new T.Group(), tubes = new Map();
+  const pickMat = new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+  for (const g of list) {
+    if (!g.pts || g.pts.length < 2) continue;
+    const path = new T.CurvePath();
+    for (let i = 1; i < g.pts.length; i++) path.add(new T.LineCurve3(new T.Vector3(...g.pts[i - 1]), new T.Vector3(...g.pts[i])));
+    const seg = 16 * (g.pts.length - 1);
+    const geo = new T.TubeGeometry(path, seg, 0.012, 6, false);
+    const tube = new T.Mesh(geo, new T.MeshStandardMaterial({ color: g.color, roughness: 0.55, transparent: true, opacity: 0.95 }));
+    const ghost = new T.Mesh(geo, new T.MeshBasicMaterial({ color: new T.Color(g.color).lerp(new T.Color("#ffffff"), 0.35), transparent: true, opacity: 0.38, depthTest: false, depthWrite: false }));
+    ghost.renderOrder = 5; ghost.visible = xray;
+    const pick = new T.Mesh(new T.TubeGeometry(path, seg, 0.06, 6, false), pickMat); pick.userData.gaine = g.id;
+    group.add(tube, ghost, pick);
+    tubes.set(g.id, { tube, ghost, pick, g });
+  }
+  let hl = null;
+  return {
+    group, tubes,
+    setXray(on) { tubes.forEach((t) => { t.ghost.visible = on; }); },
+    highlight(id) {
+      if (hl) { group.remove(hl); hl.geometry.dispose(); hl = null; }
+      tubes.forEach((t, k) => { const on = !id || k === id; t.tube.material.opacity = on ? 0.95 : 0.15; t.ghost.material.opacity = on ? 0.42 : 0.04; });
+      const t = id && tubes.get(id);
+      if (t) {
+        const path = new T.CurvePath(); const P = t.g.pts;
+        for (let i = 1; i < P.length; i++) path.add(new T.LineCurve3(new T.Vector3(...P[i - 1]), new T.Vector3(...P[i])));
+        hl = new T.Mesh(new T.TubeGeometry(path, 16 * (P.length - 1), 0.028, 8, false), new T.MeshBasicMaterial({ color: 0xff5a4e, depthTest: false, transparent: true, opacity: 1 }));
+        hl.renderOrder = 6; group.add(hl);
+      }
+    },
+    dispose() { while (group.children.length) { const o = group.children.pop(); if (o.geometry) o.geometry.dispose(); } },
+  };
+}

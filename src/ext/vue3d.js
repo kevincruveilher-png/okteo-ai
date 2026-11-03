@@ -2,7 +2,9 @@
 // boîtes). three.js (licence MIT) n'est chargé qu'à la première ouverture de l'onglet. Rien n'est modifié dans le
 // dessin depuis cette page : un appareil touché en 3D se montre sur le plan (« Voir sur le plan »).
 // 3D-2 : les défauts de géométrie trouvés en construisant la maquette (cleanPlan) sont listés, cliquables vers le plan.
-import { cleanPlan, devicesOf, planBounds, H3D, heightsFrom } from "../3d/plan3d.js";
+import { cleanPlan, devicesOf, planBounds, H3D, heightsFrom, gainePath, nearestWall } from "../3d/plan3d.js";
+import { wiringNow, setGaineSol, gaineKeys } from "./cablage-data.js";
+import { boxColor } from "../print/ftz-symbols.js";
 import { getPrefs } from "../prefs.js";
 import { createWalk } from "./vue3d-walk.js";
 import { esc } from "./util.js";
@@ -33,7 +35,7 @@ export function planData(api) {
   const rooms = (geo.rooms || []).map((r) => ({ id: r.id, name: r.name, poly: r.poly, area: r.area, label: r.label, hsp: hspOf.get(r.id) || null }));
   // boîtes au-dessus du plus haut plafond
   H.combles = Math.max(H.plafond, ...[...top.values()]) + 0.35;
-  const boxes = (geo.boxes || []).map((b) => ({ id: b.id, n: b.n, x: b.x, y: b.y }));
+  const boxes = (geo.boxes || []).map((b) => ({ id: b.id, n: b.n, x: b.x, y: b.y, color: boxColor(b.n) }));
   return { data, apps, rooms, boxes, level: geo.level, H };
 }
 
@@ -52,6 +54,8 @@ export function mountVue3d(el, { api }) {
         <label title="Façades pierre, cloisons gris bleuté, plinthes : on distingue mieux les murs de l'intérieur"><input type="checkbox" data-l="contrast" checked> Murs contrastés</label>
         <label><input type="checkbox" data-l="devices" checked> Appareils à leur hauteur</label>
         <label><input type="checkbox" data-l="boxes" checked> Boîtes de la pieuvre</label>
+        <label title="Gaines de la pieuvre : tracé du plan en traits droits au-dessus du plafond (ou par le sol), descente dans le mur"><input type="checkbox" data-l="gaines" checked> Gaines</label>
+        <label title="Un double plus clair de chaque gaine se voit à travers les murs : on suit la descente jusqu'à l'appareil"><input type="checkbox" data-l="xray" checked> Gaines visibles à travers les murs</label>
       </div>
       <p class="v3d-note"></p>
       <button type="button" class="v3d-walk" title="Marcher dans la maison comme dans un jeu (clavier et souris) et poser des appareils au viseur : ils sont ajoutés au chantier, Ctrl+Z annule">Visite à pied · ZQSD</button>
@@ -98,11 +102,12 @@ export function mountVue3d(el, { api }) {
     await load();
     const { T, scene } = S3;
     const P = planData(api);
-    const sig = JSON.stringify([P.level, P.data, P.apps.map((a) => [a.id, a.x, a.y, a.h, a.color, a.rep, a.hsp]), P.boxes, P.rooms.map((r) => [r.name, r.poly, r.hsp]), P.H, S3.contrast]);
+    const sig = JSON.stringify([P.level, P.data, P.apps.map((a) => [a.id, a.x, a.y, a.h, a.color, a.rep, a.hsp]), P.boxes, P.rooms.map((r) => [r.name, r.poly, r.hsp]), P.H, S3.contrast, (api.cab.boxes || []).map((b) => [b.id, b.x, b.y, b.routes, b.sol, b.apps]), (api.cab.circuits || []).length]);
     if (!force && sig === S3.sig && S3.house) return;
     const sameLevel = S3.level === P.level && S3.house;
     S3.sig = sig; S3.level = P.level;
     if (S3.house) { scene.remove(S3.house.group); S3.house.dispose(); S3.house = null; }
+    if (S3.gaines) { scene.remove(S3.gaines.group); S3.gaines.dispose(); S3.gaines = null; }
     const plan = cleanPlan(P.data, undefined, P.H), devs = devicesOf(P.apps, P.data, P.H), { buildHouse } = await import("../3d/scene.js");
     // 3D-2 : pièce dont le contour sort nettement du bâtiment (contour enregistré incohérent) : pas de sol, signalée
     const B0 = planBounds(plan), out = (p) => p.x < B0.x0 - 1 || p.x > B0.x1 + 1 || p.y < B0.y0 - 1 || p.y > B0.y1 + 1;
@@ -118,6 +123,30 @@ export function mountVue3d(el, { api }) {
 
     house.devices.visible = $('[data-l="devices"]').checked; house.boxes.visible = $('[data-l="boxes"]').checked;
     scene.add(house.group);
+    // 3D-5 : gaines de la pieuvre du niveau (calcul du câblage : mêmes n° et longueurs que sur les bandes)
+    S3.gList = [];
+    try {
+      const W = (api.cab.circuits || []).length && (api.cab.boxes || []).some((b) => b.lv === api.level.id) ? wiringNow(api) : null;
+      const byDev = new Map(devs.map((d) => [d.id, d])), tabDev = devs.find((d) => d.t === "TAB");
+      for (const b of W ? W.boxes : []) {
+        const src = (api.cab.boxes || []).find((x) => x.id === b.id);
+        if (!src || src.lv !== api.level.id) continue;
+        const wall = nearestWall(plan, src.x, src.y), col = boxColor(src.n);
+        for (const g of b.gaines) {
+          const keys = gaineKeys(g), key = keys[0];
+          const end = g.kind === "alim" ? (key === "tab" ? tabDev : null) : byDev.get(key);
+          if (!end) continue;
+          const route = (src.routes || {})[key] || [];
+          const { pts, L } = gainePath({ box: src, route, end: { x: end.x, y: end.y, h: end.t === "TAB" ? Math.max(end.h, (P.H.plafond || 2.5) - 0.7) : end.h, axis: end.axis, mount: end.mount }, sol: !!g.sol, H: P.H, wall });
+          S3.gList.push({ id: b.id + "|" + g.id, boxId: b.id, box: b.n, no: g.no, label: g.label, length: g.length, diam: g.diam, sol: !!g.sol, keys, pts, L3: L, color: col });
+        }
+      }
+    } catch (e) { console.warn("gaines 3D :", e); }
+    const { buildGaines } = await import("../3d/scene.js");
+    S3.gaines = buildGaines(T, S3.gList, { xray: $('[data-l="xray"]').checked });
+    S3.gaines.group.visible = $('[data-l="gaines"]').checked;
+    scene.add(S3.gaines.group);
+    { const keep = S3.pendingGaine || card.dataset.gaine; S3.pendingGaine = null; if (keep && !card.hidden) setTimeout(() => showGaine(keep), 0); }
     Object.assign(S3, { house, plan, devs, P, H: P.H });
     if (walk) walk.rebuilt();
     noteHeights(P.H);
@@ -157,6 +186,7 @@ export function mountVue3d(el, { api }) {
     if (c.dataset.l === "contrast") { S3.contrast = c.checked; build(true); return; }
     if (!S3.house) return;
     S3.house.devices.visible = $('[data-l="devices"]').checked; S3.house.boxes.visible = $('[data-l="boxes"]').checked;
+    if (S3.gaines) { S3.gaines.group.visible = $('[data-l="gaines"]').checked; S3.gaines.setXray($('[data-l="xray"]').checked); }
     if (!S3.house.devices.visible) showCard(null);
   }));
 
@@ -168,15 +198,31 @@ export function mountVue3d(el, { api }) {
     const r = cv.getBoundingClientRect(), T = S3.T, ray = new T.Raycaster();
     ray.setFromCamera(new T.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), S3.cam);
     const vis = S3.house.pick.filter((m) => (m.userData.dev ? S3.house.devices.visible : S3.house.boxes.visible));
+    if (S3.gaines && S3.gaines.group.visible) S3.gaines.tubes.forEach((t) => vis.push(t.pick));
     const hit = ray.intersectObjects(vis, false)[0];
+    if (hit && hit.object.userData.gaine) { showGaine(hit.object.userData.gaine); return; }
     showCard(hit ? (hit.object.userData.dev || null) : null, hit && hit.object.userData.box);
   });
+  // 3D-5 : fiche d'une gaine : n°, appareil, longueur de la bande, tracé 3D, passage par le sol (propriété de la gaine)
+  function showGaine(gid) {
+    if (halo) { S3.scene.remove(halo); halo.geometry.dispose(); halo = null; }
+    const g = S3.gList.find((x) => x.id === gid); if (!g) { showCard(null); return; }
+    S3.gaines.highlight(gid); card.dataset.id = ""; card.dataset.gaine = gid;
+    card.innerHTML = `<span class="k">Gaine · boîte ${esc(g.box)}</span><b class="t">${esc(g.no)}</b><p>${esc(g.label)}</p>
+      <dl><dt>Longueur</dt><dd>${g.length != null ? fr(g.length) + " m" : "—"} (bande, surlongueurs comprises)</dd><dt>Tracé 3D</dt><dd>${fr(g.L3)} m</dd>${g.diam ? `<dt>Diamètre</dt><dd>Ø${esc(String(g.diam))}</dd>` : ""}<dt>Passage</dt><dd>${g.sol ? "par le sol" : "par le plafond"}</dd></dl>
+      ${g.keys.length ? `<label class="v3d-sol" title="Propriété de la gaine : descente de la boîte jusqu'au sol, trajet dans la dalle, remontée jusqu'à l'appareil. Longueur recalculée ; Ctrl+Z annule."><input type="checkbox" data-sol ${g.sol ? "checked" : ""}> Passage par le sol</label>` : ""}
+      <div class="acts"><button type="button" class="pri" data-a="gplan" title="Montre la boîte et la gaine sur le plan">Voir sur le plan</button><button type="button" data-a="close">Fermer</button></div>`;
+    card.hidden = false;
+    const so = card.querySelector("[data-sol]");
+    if (so) so.onchange = () => { S3.pendingGaine = gid; setGaineSol(api, g.boxId, g.keys, so.checked); };
+  }
   function showCard(id, boxId) {
     if (halo) { S3.scene.remove(halo); halo.geometry.dispose(); halo = null; }
-    card.dataset.id = id || "";
+    card.dataset.id = id || ""; card.dataset.gaine = "";
+    if (S3.gaines) S3.gaines.highlight(null);
     if (boxId) {
-      const b = S3.P.boxes.find((x) => x.id === boxId);
-      card.innerHTML = `<span class="k">Boîte</span><b class="t">${esc(b.n || "")}</b><p>Boîte de dérivation, posée dans les combles pour la vue 3D (passage des gaines : mise à jour 3D-5).</p><div class="acts"><button type="button" data-a="close">Fermer</button></div>`;
+      const b = S3.P.boxes.find((x) => x.id === boxId), G = S3.gList.filter((x) => x.boxId === boxId);
+      card.innerHTML = `<span class="k">Boîte</span><b class="t">${esc(b.n || "")}</b><p>${G.length ? `${G.length} gaines : touchez-en une pour son tracé.` : "Pas encore de gaines calculées (circuits et boîtes : panneau Câblage)."}</p>${G.length ? `<div class="v3d-gl">${G.map((x) => `<button type="button" data-g="${esc(x.id)}" title="${esc(x.label)}">${esc(String(x.no).split(".")[1] || x.no)}</button>`).join("")}</div>` : ""}<div class="acts"><button type="button" data-a="close">Fermer</button></div>`;
       card.hidden = false;
     } else if (!id) { card.hidden = true; return; }
     else {
@@ -194,7 +240,12 @@ export function mountVue3d(el, { api }) {
     const a = e.target.closest("button")?.dataset.a; if (!a) return;
     if (a === "close") showCard(null);
     if (a === "plan" && card.dataset.id) { const id = card.dataset.id; api.select([id]); api.zoomTo([id]); }
+    if (a === "gplan" && card.dataset.gaine) {
+      const g = S3.gList.find((x) => x.id === card.dataset.gaine), B = g && (api.cab.boxes || []).find((x) => x.id === g.boxId);
+      if (B) { api.setTab("plan"); api.showCircuits = true; api.boxSel = B.id; api.zoomToBox(B.x - 3, B.y - 3, B.x + 3, B.y + 3); document.dispatchEvent(new CustomEvent("okteo:box-select", { detail: { id: B.id, key: g.keys[0] || null } })); }
+    }
   };
+  card.addEventListener("click", (e) => { const b = e.target.closest("[data-g]"); if (b) showGaine(b.dataset.g); });
 
   // ---------- 3D-4 : visite à pied et pose au viseur ----------
   const walk = createWalk({ api, S3, el, cv });
@@ -233,11 +284,12 @@ export function mountVue3d(el, { api }) {
   const later = () => { if (el.hidden) return; clearTimeout(timer); timer = setTimeout(() => build(false).then(start), 250); };
   document.addEventListener("okteo:saved", later);
   document.addEventListener("okteo:level", later);
+  document.addEventListener("okteo:cab", later);
   document.addEventListener("okteo:prefs", (e) => { if (/^h3d/.test(e.detail && e.detail.key || "")) later(); });
 
   const ui = {
     render() { build(false).then(start).catch((e) => { msg.hidden = false; msg.textContent = "La vue 3D n'a pas pu s'afficher : " + (e && e.message || e); }); },
-    view, state: S3, walk,
+    view, state: S3, walk, showGaine: (id) => showGaine(id),
   };
   ui.render();
   return ui;

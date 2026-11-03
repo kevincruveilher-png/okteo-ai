@@ -2,7 +2,10 @@
 // Vrais plans : MAILLARD (dessin du BE), relevés IA de MAILLARD et PASQUIER, EVRARD (murs relevés dans le PDF, si
 // pdf.js est installé). Cas d'école : jonctions oubliées, murs en double, croisements, ouvertures contre un angle.
 import fs from "node:fs";
-import { cleanPlan, wallPrisms, prismIssues, openingParts, devicesOf, wallEnds, H3D, heightsFrom } from "../src/3d/plan3d.js";
+import { cleanPlan, wallPrisms, prismIssues, openingParts, devicesOf, wallEnds, H3D, heightsFrom, gainePath, nearestWall } from "../src/3d/plan3d.js";
+import { computeWiring } from "../src/cablage/gaines.js";
+import { computeCircuits } from "../src/cablage/circuits.js";
+import { CAB_DEFAULTS } from "../src/cablage/settings.js";
 import { parseAiJson, aiToPlan } from "../src/walls/ai-plan.js";
 
 let ok = 0; const fails = [];
@@ -61,6 +64,32 @@ console.log("Vue 3D : hauteurs (3D-3)");
   check("mur d'une pièce à 2,80 m sous plafond : monte à 2,80 ; l'autre mur reste à la hauteur de départ (2,70)", Math.max(...ab.map((p) => p.y1)) === 2.8 && Math.max(...bc.map((p) => p.y1)) === 2.7 && bc.some((p) => Math.abs(p.y0 - 2.1) < 1e-9));
   const d = devicesOf([{ id: "l1", t: "LUM", x: 3, y: 2, h: null, hsp: 2.8 }, { id: "l2", t: "LUM", x: 3, y: 3, h: null }], data, H);
   check("lumière au plafond de sa pièce (2,80 − 8 cm), sinon au plafond de départ", Math.abs(d[0].h - 2.72) < 1e-9 && Math.abs(d[1].h - 2.62) < 1e-9);
+}
+
+console.log("Vue 3D : gaines (3D-5)");
+{
+  const H = heightsFrom({});
+  const box = { x: 2, y: 2 }, end = { x: 6.1, y: 5, h: 0.3, axis: [6, 5], mount: "mur" };
+  const p = gainePath({ box, route: [{ x: 4, y: 2 }], end, H });
+  const top = H.combles - 0.1;
+  check("par le plafond : boîte → point de passage → au-dessus de l'appareil en traits droits (diagonale), puis descente verticale dans le mur", p.pts.length === 6 && p.pts[1][1] === top && p.pts[2][0] === 4 && p.pts[3][0] === 6 && p.pts[3][1] === top && p.pts[4][0] === 6 && p.pts[4][1] === 0.3 && p.pts[5][0] === 6.1, JSON.stringify(p.pts));
+  const L = (H.combles - top) + 2 + Math.hypot(2, 3) + (top - 0.3) + 0.1;
+  check("longueur du tracé 3D = somme des traits", Math.abs(p.L - L) < 1e-9, `${p.L} / ${L}`);
+  const s = gainePath({ box, route: [{ x: 4, y: 2 }], end, H, sol: true, wall: { x: 2, y: 0 } });
+  check("par le sol : descente dans le mur près de la boîte, dans la dalle (mêmes points de passage), remontée dans le mur de l'appareil", s.pts.some((q) => q[0] === 2 && q[2] === 0 && q[1] < 0.05) && s.pts.some((q) => q[0] === 4 && q[1] < 0.05) && s.pts.some((q) => q[0] === 6 && q[1] < 0.05) && s.pts[s.pts.length - 2][1] === 0.3, JSON.stringify(s.pts));
+  const lum = gainePath({ box, end: { x: 3, y: 4, h: 2.42, mount: "plafond" }, H });
+  check("point lumineux : la gaine s'arrête au plafond", lum.pts[lum.pts.length - 1][1] > 2.42 && lum.pts[lum.pts.length - 1][1] < H.plafond + 0.01);
+  const plan = cleanPlan({ nodes: [{ id: "A", x: 0, y: 0 }, { id: "B", x: 8, y: 0 }], segs: [{ id: "AB", a: "A", b: "B", ep: 0.2 }], openings: [{ id: "p", seg: "AB", t: 2, w: 0.9, kind: "porte" }] });
+  const nw = nearestWall(plan, 2, 1);
+  check("descente par le sol : jamais dans une porte (mur le plus proche hors passage)", nw && Math.abs(nw.y) < 1e-9 && Math.abs(nw.x - 2) > 0.5, JSON.stringify(nw));
+  // longueur de la bande : propriété « par le sol » = descente au sol + remontée (au lieu de la descente du plafond)
+  const S = { ...CAB_DEFAULTS };
+  const items = [{ id: "t", t: "TAB", x: 0, y: 0, h: null, lv: "rdc" }, { id: "p1", t: "PC16", x: 6, y: 5, h: 30, lv: "rdc", rep: "P1" }, { id: "p2", t: "PC16", x: 7, y: 5, h: 30, lv: "rdc", rep: "P2" }];
+  const circuits = computeCircuits(items, [], S);
+  const boxes = (sol) => [{ id: "b1", n: "LI01", lv: "rdc", x: 4, y: 4, apps: ["p1", "p2"], ...(sol ? { sol: { p1: true } } : {}) }];
+  const g = (sol) => computeWiring({ items, links: [], circuits, boxes: boxes(sol), levels: ["rdc"], S }).boxes[0].gaines.find((x) => (x.appIds || []).includes("p1"));
+  const a = g(false), b = g(true);
+  check("bande : gaine par le sol plus longue de deux fois la hauteur de l'appareil (descente au sol + remontée), marquée « sol »", a && b && !a.sol && b.sol && Math.abs(b.length - a.length - 0.6) < 0.11, JSON.stringify([a && a.length, b && b.length]));
 }
 
 console.log("Vue 3D : MAILLARD (dessin du BE)");

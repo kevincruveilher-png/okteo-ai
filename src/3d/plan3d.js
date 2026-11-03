@@ -327,6 +327,44 @@ export function devicesOf(apps, data, H = H3D) {
   });
 }
 
+// ---------- gaines (3D-5) ----------
+// point de mur le plus proche (hors passages), pour la descente d'une gaine par le sol près de sa boîte
+export function nearestWall(plan, x, y) {
+  let best = null;
+  for (const w of plan.walls) {
+    let s = Math.max(0, Math.min(w.L, (x - w.A.x) * w.ux + (y - w.A.y) * w.uy));
+    // dans un passage (porte, baie) : on glisse jusqu'au bord le plus proche du passage
+    for (const o of plan.openings.get(w.key) || []) if (o.y0 < 0.3 && Math.abs(s - o.c) < o.w / 2 + 0.1) s = s < o.c ? o.c - o.w / 2 - 0.1 : o.c + o.w / 2 + 0.1;
+    if (s < 0 || s > w.L || (plan.openings.get(w.key) || []).some((o) => o.y0 < 0.3 && Math.abs(s - o.c) < o.w / 2 + 0.1 - 1e-9)) continue;
+    const px = w.A.x + w.ux * s, py = w.A.y + w.uy * s, d = hyp(px - x, py - y);
+    if (!best || d < best.d) best = { x: px, y: py, d };
+  }
+  return best;
+}
+// tracé 3D d'une gaine : le tracé du plan en traits droits (la courbe du plan n'est qu'un effet visuel), au-dessus du
+// plafond, en diagonale si besoin, puis descente dans le mur jusqu'à l'appareil. Par le sol : descente dans le mur le
+// plus proche de la boîte, trajet dans la dalle (mêmes points de passage), remontée dans le mur de l'appareil.
+// box {x,y} ; route [{x,y}] ; end {x, y, h, axis?:[x,y], mount} ; → { pts [[x, hauteur, y]…], L }
+export function gainePath({ box, route = [], end, sol = false, H = H3D, wall = null }) {
+  const Y = H.combles - 0.1, F = 0.015, P = [];
+  const add = (x, h, y) => { const l = P[P.length - 1]; if (!l || hyp(l[0] - x, l[1] - h, l[2] - y) > 1e-4) P.push([x, h, y]); };
+  const ax = end.axis || [end.x, end.y];
+  add(box.x, H.combles, box.y); add(box.x, Y, box.y);
+  if (sol) {
+    const q = wall || { x: box.x, y: box.y };
+    add(q.x, Y, q.y); add(q.x, F, q.y);
+    for (const p of route || []) add(p.x, F, p.y);
+    add(ax[0], F, ax[1]); add(ax[0], end.h, ax[1]);
+  } else {
+    for (const p of route || []) add(p.x, Y, p.y);
+    add(ax[0], Y, ax[1]);
+    add(ax[0], end.mount === "plafond" ? end.h + 0.07 : end.h, ax[1]);
+  }
+  if (end.mount !== "plafond") add(end.x, end.h, end.y);
+  let L = 0; for (let i = 1; i < P.length; i++) L += hyp(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1], P[i][2] - P[i - 1][2]);
+  return { pts: P, L };
+}
+
 // ---------- contrôle des volumes (tests et défauts) ----------
 // prisme valable : 4 points finis, quadrilatère non croisé d'aire > 0, hauteur > 0
 export function prismIssues(prisms) {
