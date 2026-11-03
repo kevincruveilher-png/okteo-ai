@@ -17,7 +17,7 @@ export function createAiModes({ api, aiReleve, runner = null }) {
   el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "am-title");
   document.body.appendChild(el);
   // v76 : reco = recommandation calculée sur le plan (acceptée ou non par l'opérateur) ; esc = escalade proposée
-  let sel = null, launched = null, back = null, docs = [], pages = null, reco = null, esc = null;   // v76 : documents joints pour le contrôle croisé (mode 4)
+  let sel = null, launched = null, back = null, docs = [], pages = null, reco = null, esc = null, recoTok = 0;   // v76 : documents joints pour le contrôle croisé (mode 4)
 
   const dots = (pts) => `<span class="am-dots" role="img" aria-label="${esc_(dotsLabel(pts))}">${[1, 2, 3, 4].map((i) => `<span class="am-dot${i <= pts ? " on" : ""}"></span>`).join("")}</span>`;
   const card = (m) => `<button type="button" class="am-card${sel === m.n ? " sel" : ""}${m.ready ? "" : " soon"}" data-mode="${m.n}" aria-pressed="${sel === m.n}"
@@ -85,7 +85,8 @@ export function createAiModes({ api, aiReleve, runner = null }) {
   function open({ escalade = null } = {}) {
     back = document.activeElement;
     sel = null; launched = null; pages = null; esc = escalade;
-    if (!esc) { reco = null; recommendFor(api).then((r) => { reco = r; if (!el.hidden) render(); }).catch(() => { reco = { mode: 1, why: ["mesure du plan impossible"], docs: 0 }; if (!el.hidden) render(); }); }
+    // seul le dernier calcul compte (un calcul lancé par une ouverture précédente est ignoré)
+    if (!esc) { reco = null; const tok = ++recoTok; recommendFor(api).then((r) => { if (tok !== recoTok) return; reco = r || { mode: 1, why: ["pas de plan sur ce niveau"], docs: 0 }; if (!el.hidden) render(); }).catch(() => { if (tok !== recoTok) return; reco = { mode: 1, why: ["mesure du plan impossible"], docs: 0 }; if (!el.hidden) render(); }); }
     render(); el.hidden = false; document.body.classList.add("am-on");
     el.querySelector(".am-card")?.focus();
   }

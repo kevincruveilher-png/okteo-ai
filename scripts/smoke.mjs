@@ -734,7 +734,7 @@ try {
   });
   await check("v76 : recommandation d'un mode d'après le plan (bandeau + « Recommandé » sur la carte, l'opérateur accepte ou choisit un autre mode) ; escalade proposée après une relecture", async () => {
     await ev(() => okteoExt.aiModes.open());
-    await page.waitForSelector("#ai-modes .am-reco:not(.am-reco-wait)", { timeout: 20000 });
+    await page.waitForFunction(() => okteoExt.aiModes.reco && !document.querySelector("#ai-modes .am-reco-wait"), null, { timeout: 60000 });
     const a = await ev(() => { const el = document.getElementById("ai-modes"), r = okteoExt.aiModes.reco; return { banner: el.querySelector(".am-reco").textContent, tag: [...el.querySelectorAll(".am-card")].filter((c) => c.querySelector(".am-reco-tag")).map((c) => +c.dataset.mode), mode: r && r.mode, kind: r && r.stats && r.stats.kind, sel: okteoExt.aiModes.selected }; });
     await page.click("#am-reco-ok");
     const b = await ev(() => okteoExt.aiModes.selected);
@@ -828,9 +828,12 @@ try {
       g.lineWidth = 3; for (let y = 140; y < 520; y += 60) { g.beginPath(); g.moveTo(470, y); g.lineTo(820, y); g.stroke(); }
       g.fillStyle = "#111"; g.font = "bold 46px Arial"; g.fillText("CUISINE", 120, 330); g.fillText("CHAMBRE", 520, 120);
       g.restore();
-      const m = await import("/src/ext/ai-raster.js"), R = await m.createRaster();
+      const m = await import("/src/ext/ai-raster.js");
+      // jamais bloquant : 4 min au plus pour tout le test, avec l'étape en cours si ça dépasse
+      const guard = (p) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("bloqué à l'étape : " + m.rasterState.stage)), 240000))]);
+      const R = await guard(m.createRaster());
       const t0 = performance.now();
-      const P = await R.prepare({ canvas: c, data: c.toDataURL("image/jpeg", 0.9).split(",")[1], W: 900, H: 650 });
+      const P = await guard(R.prepare({ canvas: c, data: c.toDataURL("image/jpeg", 0.9).split(",")[1], W: 900, H: 650 }));
       const out = { ok: R.ok, errors: R.errors, rot: P.rot, n: P.images.length, differ: P.images[0] !== P.images[1], cleaned: P.cleaned, words: P.ocr.map((w) => w.text + ":" + w.src), ms: Math.round(performance.now() - t0) };
       await R.close();
       return out;

@@ -12,6 +12,13 @@ const OCV = "/vendor/opencv/opencv.js";
 const OCR = { workerPath: "/vendor/ocr/worker.min.js", corePath: "/vendor/ocr/core", langPath: "/vendor/ocr/lang" };
 let cvP = null;
 const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
+// aucune étape ne doit bloquer l'analyse : chaque attente a un délai, et l'étape en cours est connue (diagnostic)
+export const rasterState = { stage: "" };
+function within(p, ms, what) {
+  rasterState.stage = what;
+  let t = 0;
+  return Promise.race([p, new Promise((_, no) => { t = setTimeout(() => no(new Error(what + " : délai dépassé (" + Math.round(ms / 1000) + " s)")), ms); })]).finally(() => clearTimeout(t));
+}
 
 // OpenCV.js : script chargé une fois ; on attend que `cv.Mat` existe (ne jamais faire `await cv` : l'objet du module
 // est « thenable » et se résout sur lui-même)
@@ -94,17 +101,17 @@ export function mergeOcr(orig, net, { minConf = 30, tol = 15 } = {}) {
 export async function createRaster({ ocr = true } = {}) {
   const errors = [];
   let cv = null, worker = null, rot = null;
-  try { cv = await loadCv(); } catch (e) { errors.push(e.message); }
+  try { cv = await within(loadCv(), 120000, "chargement d'OpenCV.js"); } catch (e) { errors.push(e.message); }
   if (ocr) {
     try {
-      const T = await import("tesseract.js");
-      worker = await T.createWorker("fra", 1, { ...OCR, workerBlobURL: false, gzip: true });
-      await worker.setParameters({ tessedit_pageseg_mode: "11", preserve_interword_spaces: "1" });   // texte épars
+      const T = await within(import("tesseract.js"), 30000, "chargement de Tesseract.js");
+      worker = await within(T.createWorker("fra", 1, { ...OCR, workerBlobURL: false, gzip: true, errorHandler: (e) => errors.push("OCR : " + (e && e.message || e)) }), 90000, "démarrage de l'OCR (moteur et langue fra)");
+      await within(worker.setParameters({ tessedit_pageseg_mode: "11", preserve_interword_spaces: "1" }), 15000, "réglage de l'OCR");   // texte épars
     } catch (e) { errors.push("OCR indisponible : " + (e.message || e)); worker = null; }
   }
   const read = async (canvas, toNet) => {
     if (!worker) return [];
-    const { data } = await worker.recognize(canvas);
+    const { data } = await within(worker.recognize(canvas), 60000, "lecture OCR d'une tuile");
     return wordsOf(data).map((w) => { const b = w.bbox || {}, c = toNet((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2); return { text: String(w.text || "").trim(), x: c.x, y: c.y, w: (b.x1 - b.x0) || 0, h: (b.y1 - b.y0) || 0, conf: +w.confidence || 0 }; }).filter((w) => w.text);
   };
   // R = rendu d'une tuile (ai-render.js) → { images (JPEG base64, origine puis nettoyée), rot, ocr, cleaned }
@@ -114,9 +121,10 @@ export async function createRaster({ ocr = true } = {}) {
     // angle mesuré une fois sur la première tuile qui a assez de traits, puis réutilisé (même angle pour tout le plan)
     if (rot == null) { const a = skewAngle(cv, R.canvas); if (a) rot = Math.abs(a) >= 0.3 ? a : 0; }
     const deg = rot || 0, C = cleanTile(cv, R.canvas, deg);
-    const o = await read(R.canvas, (x, y) => rotate(x, y, deg, W, H)).catch(() => []), n = await read(C, (x, y) => ({ x, y })).catch(() => []);
+    rasterState.stage = "nettoyage d'une tuile";
+    const o = await read(R.canvas, (x, y) => rotate(x, y, deg, W, H)).catch((e) => { errors.push(e.message); return []; }), n = await read(C, (x, y) => ({ x, y })).catch((e) => { errors.push(e.message); return []; });
     return { images: [R.data, C.toDataURL("image/jpeg", 0.9).split(",")[1]], rot: deg, ocr: mergeOcr(o, n), cleaned: true };
   }
-  async function close() { try { if (worker) await worker.terminate(); } catch { /* déjà arrêté */ } }
+  async function close() { try { if (worker) await within(worker.terminate(), 10000, "arrêt de l'OCR"); } catch { /* déjà arrêté */ } rasterState.stage = ""; }
   return { prepare, close, errors, get angle() { return rot || 0; }, get ok() { return !!cv; } };
 }
