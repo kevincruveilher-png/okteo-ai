@@ -1,5 +1,8 @@
 ## 03/11/2026 — v75 (suite) : Sonnet pour la conversation, Opus pour l'analyse
 
+v75 (micro + modèles) fusionnée dans `main` sur « go and push » de Kévin (GitHub Actions : check complet, smoke 178/178,
+test:web 13/13).
+
 - `ai.js` : `PROVIDERS.anthropic.analyseModel` = `claude-opus-5-5`, `modelFor(provider, purpose)` ; `chat({purpose})` :
   `"chat"` (conversation de l'assistant, Sonnet 5.5) ou `"analyse"` (« Analyser le plan », relevé IA, relectures ciblées :
   Opus 5.5). En local : réglages `models.anthropic` (conversation) et `models.anthropicAnalyse` (champ `.ma` dans
