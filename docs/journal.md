@@ -1,3 +1,20 @@
+## 03/11/2026 — v76 mode 3 : OpenCV.js dans un Web Worker (gel de la page corrigé), vérifications bornées
+
+Branche `feat/analyse-ia-modes-v76`.
+- Cause du gel (vérifications 41625086289 et 41633481383 arrêtées à 60 min) : le module d'OpenCV.js est « thenable » ;
+  `loadCv` résolvait une promesse AVEC lui, ce qui le fait relire sans fin (boucle de micro-tâches : page figée, aucun
+  délai ne pouvait se déclencher). Correction : `src/ext/ai-cv-worker.js` (OpenCV.js dans un Web Worker : `ping`,
+  `skew`, `clean` ; module rendu emballé `{ cv }` ; Promise ou `onRuntimeInitialized` comme dans la doc de
+  @techstark/opencv-js) ; ai-raster.js parle au worker (`cvWorker`), délai par appel (chargement 150 s, mesure et
+  nettoyage 60 s), worker arrêté s'il ne répond pas → l'analyse continue avec l'image d'origine (signalé). Étapes
+  écrites dans la console (`[okteo mode 3] …`, `rasterState`).
+- Vérification courte `scripts/raster.browser.mjs` (workflow temporaire `raster-v76.yml`, quelques minutes) : run
+  41646903138 vert — OpenCV.js prêt en 1 s, inclinaison mesurée 1,93° pour 2° appliqués, copie nettoyée, OCR
+  « CUISINE » / « CHAMBRE » lus sur l'origine ET la copie (96 %), 3 s en tout.
+- Smoke : limite de 6 min par vérification imposée depuis Node (rechargement de la page après un dépassement) ; la page
+  d'attente (« Votre plan est prêt ») est fermée comme par l'opérateur après une analyse longue (elle recouvrait l'écran
+  et faisait échouer la suite). Run 41644689440 : smoke 183/183, build:web, test:web 15/15.
+
 ## 03/11/2026 — v76 fonctions complémentaires : recommandation de mode, escalade, banc d'essai
 
 Branche `feat/analyse-ia-modes-v76`.
