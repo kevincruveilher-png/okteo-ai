@@ -11,6 +11,8 @@ export const PROVIDERS = {
     name: "Claude",
     models: ["claude-sonnet-5-5", "claude-haiku-5-5", "claude-opus-5-5"],
     defaultModel: "claude-sonnet-5-5",
+    // v75 : la conversation de l'assistant utilise Sonnet (rapide) ; l'analyse du plan, le relevé et les relectures, Opus
+    analyseModel: "claude-opus-5-5",
     vision: () => true,
   },
   nvidia: {
@@ -124,11 +126,17 @@ async function anthropicCall(key, payload) {
 export const relayOnline = () => !!(settings.env && settings.env.online);
 
 // Envoie une conversation ; renvoie { text, provider, model, ms, sawImage, switched? }.
-export async function chat({ system, messages, maxTokens = 1800, provider, model, think = false }) {
+// purpose : "chat" (conversation de l'assistant) ou "analyse" (analyse du plan, relevé IA, relecture) → modèle de chaque usage
+export const modelFor = (provider, purpose = "chat", s = settings.get()) => {
+  const P = PROVIDERS[provider];
+  if (purpose === "analyse" && P.analyseModel) return s.models[provider + "Analyse"] || P.analyseModel;
+  return s.models[provider] || P.defaultModel;
+};
+export async function chat({ system, messages, maxTokens = 1800, provider, model, think = false, purpose = "chat" }) {
   const s = settings.get();
   provider = window.okteoSession ? "anthropic" : provider || settings.activeProvider();
   if (!provider) throw new AIError("Aucune clé IA : ajoutez une clé Claude ou NVIDIA dans l'onglet Paramètres.", 0);
-  model = model || s.models[provider] || PROVIDERS[provider].defaultModel;
+  model = model || modelFor(provider, purpose, s);
   const key = s.keys[provider] || "";
   const t0 = performance.now();
   let text, switched = "", usage = null;
@@ -143,7 +151,8 @@ export async function chat({ system, messages, maxTokens = 1800, provider, model
           { type: "text", text: m.text }]
         : m.text,
     }));
-    const body = await anthropicCall(key, { model, max_tokens: maxTokens, system, messages: msgs });
+    // en ligne, le serveur choisit le modèle de chaque usage (réglé par l'administrateur) : on lui dit seulement l'usage
+    const body = await anthropicCall(key, { model, max_tokens: maxTokens, system, messages: msgs, ...(window.okteoSession ? { purpose } : {}) });
     if(window.okteoSession){ model=body.okteo?.model||body.model||model;document.dispatchEvent(new CustomEvent("okteo:ai-cost")); }
     text = (body.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
     if (body.usage) usage = { in: body.usage.input_tokens || 0, out: body.usage.output_tokens || 0 };

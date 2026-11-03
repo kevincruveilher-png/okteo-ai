@@ -45,3 +45,13 @@ test('v72.1 : pages servies malgré les redirections .html de Cloudflare (page b
   const r=await handle(new Request('https://okteo.test'+path),env,{waitUntil(){}});assert.equal(r.status,200,path);assert.match(await r.text(),new RegExp(txt),path);}
  const js=await handle(new Request('https://okteo.test/login.js'),env,{waitUntil(){}});assert.equal(js.status,200);
 });
+test('v75 : conversation = modèle de base (Sonnet), analyse = Opus au tarif d’analyse ; réglage admin des deux',async()=>{const f=fixture(),c=await f.admin();const original=globalThis.fetch,seen=[];
+ globalThis.fetch=async(url,opts)=>{const b=JSON.parse(opts.body);if(url.endsWith('/count_tokens'))return Response.json({input_tokens:100});seen.push(b);assert(!('purpose' in b));return Response.json({content:[{type:'text',text:'OK'}],usage:{input_tokens:1000,output_tokens:100}});};
+ try{const msg={messages:[{role:'user',content:'Bonjour'}],max_tokens:200};
+  const a=await (await f.call('/ai/anthropic',msg,c)).json(),z=await (await f.call('/ai/anthropic',{...msg,purpose:'analyse'},c)).json();
+  assert.equal(seen[0].model,'claude-sonnet-5-5');assert.equal(seen[1].model,'claude-opus-5-5');assert.equal(a.okteo.purpose,'chat');assert.equal(z.okteo.purpose,'analyse');
+  assert(Math.abs(a.okteo.cost-(1000*2+100*10)/1e6)<1e-9);assert(Math.abs(z.okteo.cost-(1000*4+100*20)/1e6)<1e-9);
+  const r=await f.call('/api/admin/config',{monthly_limit:50000000,concurrent_limit:2,model:'claude-sonnet-5-5',input_price:2,output_price:10,analysis_model:'claude-opus-5-5',analysis_input_price:5,analysis_output_price:25},c);assert.equal(r.status,200);
+  const z2=await (await f.call('/ai/anthropic',{...msg,purpose:'analyse'},c)).json();assert(Math.abs(z2.okteo.cost-(1000*5+100*25)/1e6)<1e-9);
+  assert.equal((await f.call('/api/admin/config',{monthly_limit:1,concurrent_limit:1,model:'claude-sonnet-5-5',input_price:2,output_price:10,analysis_model:'gpt-4',analysis_input_price:5,analysis_output_price:25},c)).status,400);
+ }finally{globalThis.fetch=original;}});

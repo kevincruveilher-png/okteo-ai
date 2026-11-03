@@ -54,9 +54,11 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
       <label class="f">Clé API
         <span class="keyrow"><input type="password" class="k" autocomplete="off" spellcheck="false" placeholder="${p === "anthropic" ? "sk-ant-…" : "nvapi-…"}" value="${esc(s.keys[p])}">
         <button class="eye" title="Afficher / masquer">👁</button><button class="clr" title="Effacer la clé de ce PC">Effacer</button></span></label>
-      <label class="f">Modèle
+      <label class="f" title="Conversation de l'assistant (questions, commandes) : modèle rapide">Modèle de la conversation
         <input class="m" list="dl-${p}" placeholder="${P.defaultModel}" value="${esc(s.models[p])}">
         <datalist id="dl-${p}">${P.models.map((m) => `<option value="${m}">`).join("")}</datalist></label>
+      ${P.analyseModel ? `<label class="f" title="Analyse du plan, relevé IA et relectures : le modèle le plus fort (plus cher, plus lent). La conversation de l'assistant garde le modèle ci-dessus.">Modèle de l'analyse (plan, relevé, relectures)
+        <input class="ma" list="dl-${p}" placeholder="${P.analyseModel}" value="${esc(s.models[p + "Analyse"] || "")}"></label>` : ""}
       <div class="trow"><button class="tst">Tester la connexion</button>${p === "nvidia" ? `<button class="lst" title="Lire chez NVIDIA la liste des modèles disponibles sur ce compte">Charger les modèles</button>` : ""}<span class="tres"></span></div>
     </div>`;
   };
@@ -193,6 +195,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
       const p = c.dataset.p, k = c.querySelector(".k"), m = c.querySelector(".m"), res = c.querySelector(".tres");
       k.onchange = () => { const s = settings.get(); settings.set({ keys: { ...s.keys, [p]: k.value.trim() }, provider: s.provider || p }); refreshProv(); };
       m.onchange = () => { const s = settings.get(); settings.set({ models: { ...s.models, [p]: m.value.trim() } }); };
+      const ma = c.querySelector(".ma"); if (ma) ma.onchange = () => { const s = settings.get(); settings.set({ models: { ...s.models, [p + "Analyse"]: ma.value.trim() } }); };
       c.querySelector(".eye").onclick = () => { k.type = k.type === "password" ? "text" : "password"; };
       c.querySelector(".clr").onclick = () => { const s = settings.get(); settings.set({ keys: { ...s.keys, [p]: "" } }); render(); };
       c.querySelector(".tst").onclick = async () => {

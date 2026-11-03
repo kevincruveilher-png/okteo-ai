@@ -229,7 +229,7 @@ export function createRecheck({ api, aiReleve }) {
         let res, t1 = 0, t2 = 0;
         try {
           res = await Promise.race([
-            chat({ system: SYSTEM, messages: [{ role: "user", text: recheckPrompt(points, { mode: "image", pass, zoom: Z.map }), image: { type: "image/jpeg", data: img.url.split(",")[1] }, images: Z.images }], maxTokens: 4000, provider }),
+            chat({ purpose: "analyse", system: SYSTEM, messages: [{ role: "user", text: recheckPrompt(points, { mode: "image", pass, zoom: Z.map }), image: { type: "image/jpeg", data: img.url.split(",")[1] }, images: Z.images }], maxTokens: 4000, provider }),
             new Promise((_, no) => { t1 = setTimeout(() => no(new Error("sans réponse en 3 min")), TIMEOUT); }),
             new Promise((_, no) => { t2 = setInterval(() => { if (stopped) no(new Error("arrêtée")); }, 200); }),
           ]);
