@@ -8,9 +8,18 @@ function load() {
   if (ready) return ready;
   ready = new Promise((ok, no) => {
     try { self.importScripts("/vendor/opencv/opencv.js"); } catch (e) { no(new Error("OpenCV.js introuvable : " + e.message)); return; }
-    // ne jamais « await » l'objet du module : il est « thenable » et se résout sur lui-même (boucle sans fin)
-    const t0 = Date.now(), tick = () => { if (self.cv && self.cv.Mat) ok(self.cv); else if (Date.now() - t0 > 120000) no(new Error("OpenCV.js ne démarre pas")); else setTimeout(tick, 50); };
-    tick();
+    // @techstark/opencv-js 4.10 : `cv` est soit une vraie Promise (à attendre), soit l'objet du module, prêt quand
+    // `cv.Mat` existe ou quand il appelle `onRuntimeInitialized` (méthode de la documentation du paquet). Le module
+    // prêt est « thenable » : résoudre une promesse AVEC lui la fait le relire sans fin (c'est ce qui figeait la page en
+    // v76 étape 3) ; on le rend donc emballé dans un objet simple, { cv }.
+    const t0 = Date.now(), fin = (m) => { self.cv = m; ok({ cv: m }); };
+    const c = self.cv;
+    if (!c) { no(new Error("OpenCV.js chargé sans objet cv")); return; }
+    if (c instanceof Promise) { c.then((m) => { fin(m); return null; }, (e) => no(e)); return; }
+    if (c.Mat) { fin(c); return; }
+    c.onRuntimeInitialized = () => fin(c);
+    const tick = () => { if (self.cv && self.cv.Mat) fin(self.cv); else if (Date.now() - t0 > 120000) no(new Error("OpenCV.js ne démarre pas")); else setTimeout(tick, 100); };
+    setTimeout(tick, 100);
   });
   return ready;
 }
@@ -45,7 +54,7 @@ function clean(cv, img, rot) {
 self.onmessage = async (ev) => {
   const { id, op, img, rot } = ev.data || {};
   try {
-    const cv = await load();
+    const { cv } = await load();
     if (op === "ping") return self.postMessage({ id, ok: true });
     if (op === "skew") return self.postMessage({ id, deg: skew(cv, img) });
     if (op === "clean") { const out = clean(cv, img, rot || 0); return self.postMessage({ id, img: out }, [out.data.buffer]); }
