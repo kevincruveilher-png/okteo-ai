@@ -9,17 +9,17 @@ import { MODES_IA, MODES_PAGE, modeOf, dossierRef, dotsLabel, launchState } from
 import { LOGO } from "./attente.js";
 import { esc } from "./util.js";
 
-export function createAiModes({ api, aiReleve }) {
+export function createAiModes({ api, aiReleve, runner = null }) {
   const el = document.createElement("div");
   el.className = "am"; el.id = "ai-modes"; el.hidden = true;
   el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "am-title");
   document.body.appendChild(el);
-  let sel = null, launched = null, back = null;
+  let sel = null, launched = null, back = null, docs = [];   // v76 : documents joints pour le contrôle croisé (mode 4)
 
   const dots = (pts) => `<span class="am-dots" role="img" aria-label="${esc(dotsLabel(pts))}">${[1, 2, 3, 4].map((i) => `<span class="am-dot${i <= pts ? " on" : ""}"></span>`).join("")}</span>`;
   const card = (m) => `<button type="button" class="am-card${sel === m.n ? " sel" : ""}${m.ready ? "" : " soon"}" data-mode="${m.n}" aria-pressed="${sel === m.n}"
       title="${esc(m.ready ? `Mode ${m.n} : ${m.title}. Cliquez pour le choisir, puis « Lancer l'analyse ».` : `Mode ${m.n} : ${m.title} — en préparation, arrive dans une prochaine version.`)}">
-      <span class="am-top"><span class="am-lab">Mode ${m.n}</span><span class="am-ring" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#04284A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span></span>
+      <span class="am-top"><span class="am-lab">Mode ${m.n}</span><span class="am-ring" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span></span>
       <span class="am-title">${esc(m.title)}</span>
       <span class="am-hook">${esc(m.hook)}</span>
       <span class="am-div"></span>
@@ -74,6 +74,8 @@ export function createAiModes({ api, aiReleve }) {
     close();
     // mode 1 : flux v75 inchangé (consigne, image, relecture automatique selon le réglage « Relectures automatiques »)
     if (m.n === 1) aiReleve.open({ mode: 1 });
+    // modes 2 à 4 : lecture globale + tuiles (+ nettoyage / OCR, + seconde lecture et contrôle croisé) : ai-modes-run.js
+    else if (runner) runner.run(m.n, { docs: docs.slice() });
     return true;
   }
 
