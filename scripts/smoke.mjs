@@ -116,6 +116,9 @@ async function check(name, fn) {
   finally { clearTimeout(t); }
 }
 const ev = (f, a) => page.evaluate(f, a);
+// v76 : une analyse de plus de 2 s ouvre la page d'attente (v73), qui reste sur « Votre plan est prêt » jusqu'au clic
+// « Ouvrir le chantier » : on la ferme comme l'opérateur avant de toucher à l'aperçu
+const closeWait = async () => { if (await page.isVisible("#aw-open").catch(() => false)) await page.click("#aw-open"); await page.waitForFunction(() => !document.body.classList.contains("aw-on"), null, { timeout: 10000 }).catch(() => {}); };
 // v64 : Boîtes, Bandes et Lignes directes sont des sous-onglets de l'onglet « Pieuvre »
 const goSub = async (sub) => { await page.click('#tabs button[data-tab="boites"]'); await page.click(`#subtabs [data-sub="${sub}"]`); };
 
@@ -791,7 +794,7 @@ try {
     const n0 = seen.length;
     await ev(() => okteoExt.aiModes.open());
     await page.click('#ai-modes .am-card[data-mode="2"]'); await page.click("#am-go");
-    await page.waitForSelector("#ai-ok", { timeout: 90000 });
+    await page.waitForSelector("#ai-ok", { timeout: 90000 }); await closeWait();
     const req = seen.slice(n0).filter((r) => r.url === "/v1/messages");
     const glob = req.filter((r) => /Relève ce plan/.test(JSON.stringify(r.body.messages)));
     const tiles = req.filter((r) => Array.isArray(r.body.system) && r.body.messages.length === 1);
@@ -817,7 +820,7 @@ try {
     const n0 = seen.length;
     await ev(() => okteoExt.aiModes.open());
     await page.click('#ai-modes .am-card[data-mode="3"]'); await page.click("#am-go");
-    await page.waitForSelector("#ai-ok", { timeout: 300000 });
+    await page.waitForSelector("#ai-ok", { timeout: 300000 }); await closeWait();
     const req = seen.slice(n0).filter((r) => r.url === "/v1/messages");
     const tiles = req.filter((r) => Array.isArray(r.body.system) && r.body.messages.length === 1);
     const one = tiles.every((r) => r.body.messages[0].content.filter((c) => c.type === "image").length === 1);
@@ -836,7 +839,7 @@ try {
     await page.setInputFiles("#am-docs-file", "docs/plans/EVRARD_04949_plan.pdf");
     const chip = await page.waitForSelector(".am-chip", { timeout: 5000 }).then(() => true, () => false);
     await page.click("#am-go");
-    await page.waitForSelector("#ai-ok", { timeout: 300000 });
+    await page.waitForSelector("#ai-ok", { timeout: 300000 }); await closeWait();
     const req = seen.slice(n0).filter((r) => r.url === "/v1/messages"), txt = (r) => JSON.stringify(r.body.messages);
     const second = req.filter((r) => /SECONDE LECTURE INDÉPENDANTE/.test(txt(r))), cross = req.filter((r) => /Contrôle croisé pour le bureau/.test(txt(r)));
     const P = await ev(() => { const p = okteoExt.aiReleve.plan, c = document.querySelector(".aicard"); return { ec2: p.ecarts.filter((e) => e.kind === "2e").length, doc: p.docEcarts, docs: !!c.querySelector(".ai-docs"), text: c.textContent }; });

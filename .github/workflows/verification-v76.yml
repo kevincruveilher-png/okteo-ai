@@ -28,10 +28,13 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: captures-v76, path: shots, retention-days: 7 }
+      # chemin des scans du mode 3 (vrais OpenCV.js / Tesseract.js) : d'abord, à part et borné (résultat en quelques minutes)
+      - run: node scripts/vendor-ia.mjs && node scripts/raster.browser.mjs
+        timeout-minutes: 8
+        continue-on-error: true
       - run: npm run check
         timeout-minutes: 40
       - run: npm run build:web
+        if: always()
       - run: npm run test:web
-      # chemin des scans du mode 3 (vrais OpenCV.js / Tesseract.js), à part et borné : ne peut plus bloquer la suite
-      - run: node scripts/raster.browser.mjs
-        timeout-minutes: 8
+        if: always()
