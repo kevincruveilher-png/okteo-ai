@@ -21,7 +21,10 @@
 - Remarque : le QR existant de la bande de boîte (v49) contient le pavillonneur, le nom et le n° du chantier (en-tête
   de la page bande). Non modifié : à décider avec Kévin (la consigne « aucun nom » portait sur le QR du plan).
 - Tests : v3d (taille MAILLARD recto / verso, relecture au cm, aucun nom, allègement, version inconnue) + smoke (deux
-  faces A3 avec QR, page téléphone : murs, gaines, fiche, visite) + test:web.
+  faces A3 avec QR, page téléphone : murs, gaines, fiche, visite) + test:web. Une gaine dont l'appareil n'est pas sur le
+  niveau n'est pas mise dans le QR. Validation : run 41735764026 vert (smoke 193/193, v3d 48, build:web, test:web).
+- Reste de la feuille de route 3D : 3D-9 = essai chantier par Kévin (puis version client). Avant la fusion dans `main` :
+  retirer `.github/workflows/verification-3d.yml`.
 
 ## 03/11/2026 — 3D-10 tous les niveaux en 3D (branche `feat/3d-1-visionneuse`)
 
