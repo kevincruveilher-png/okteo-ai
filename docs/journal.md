@@ -1,6 +1,20 @@
+## 03/11/2026 — v75 : micro dans l'assistant (dictée)
+
+Branche `feat/assistant-micro-v75`.
+- `src/ext/micro.js` (`createMicro({onText, onState, lang, win})`, `speechCtor`, `MIC_ERRORS`) : reconnaissance de la
+  parole du navigateur (Web Speech API, `fr-FR`, continue, phrases provisoires) ; Chrome / Edge / Safari récent, pas Firefox
+  (bouton grisé avec explication). Aucune clé ni serveur Oktéo : le navigateur envoie le son à son propre service.
+- Assistant : bouton `.as-mic` (🎤, rouge et pulsé pendant l'écoute, `aria-pressed`), message `.as-mic-msg` (micro
+  refusé, rien entendu…), le texte dicté s'ajoute à ce qui est déjà écrit ; recliquer ou Échap arrête ; finir la phrase
+  par « envoie » envoie la question. Raccourci **Alt+V** (main.js `hooks.dictate`, ouvre l'assistant) ; Alt+D n'est pas
+  pris car le navigateur l'utilise (barre d'adresse). Catalogue `ai.dictee`. API : `okteoExt.assistant.micro`, `dictate()`.
+- Pas de `Permissions-Policy` dans le Worker : le micro reste autorisé sur okteo-ai.pages.dev (HTTPS).
+- Tests : `scripts/micro.test.mjs` (3, fausse reconnaissance, ajouté à `npm run check`), smoke « assistant (v75) ».
+
 ## 03/11/2026 — v74 MAJ 4 et 5 : plan pieuvre et page 2 équipements aux couleurs du BE
 
-Branche `feat/plan-ftz-v74`.
+Branche `feat/plan-ftz-v74`, fusionnée dans `main` sur « go and push » de Kévin (GitHub Actions : check complet, smoke
+176/176, test:web vert).
 - `src/print/ftz-symbols.js` (pur) : `BOX_COLORS` / `boxColor(n)` (ordre verrouillé : LI01 rouge, LI02 vert, LI03 magenta,
   LI04 bleu, LI05 noir, LI06 orange, LI07 violet, puis le cycle recommence), `symIndex(charte)`, `ftzSymbol(idx, t, h)`
   (via `FTZ_NAMES`, prise haute si h ≥ 100), `plaques(apps)` (commandes / prises du même mur à moins de 25 cm → plaque

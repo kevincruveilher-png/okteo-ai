@@ -1708,6 +1708,13 @@ try {
     if (!(scr.ftz > 5 && scr.ftz <= scr.dev && scr.col === colors[(parseInt(scr.n.replace(/\D/g, ""), 10) - 1) % 7] && off.ftz === 0 && off.col !== scr.col && pmr.n >= 1 && pmr.h === 40 && pmr.ch && pmr.back === 30 && !pmr.after && r.courier && r.prof === r.plq)) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("assistant (v75) : bouton micro 🎤 avec son aide, Alt+V ouvre l'assistant et lance la dictée (ou explique pourquoi elle est impossible)", async () => {
+    await page.keyboard.press("Alt+v"); await page.waitForTimeout(600);
+    const r = await ev(() => { const b = document.querySelector(".as-mic"), m = document.querySelector(".as-mic-msg"); return { b: !!b, title: b && b.title, open: okteoExt.panel.isOpen("assistant"), rec: b && b.classList.contains("rec"), msg: m && !m.hidden ? m.textContent : "", sup: okteoExt.assistant.micro.supported, cat: okteoExt.catalog.some((c) => c.id === "ai.dictee") }; });
+    await ev(() => { okteoExt.assistant.micro.stop(); okteoExt.panel.close("assistant"); });
+    if (!(r.b && /Alt\+V|indisponible/.test(r.title) && r.open && r.cat && (r.rec || r.msg || !r.sup))) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("salle de bain (v74 MAJ 3) : douche à l'italienne posée, volumes dessinés, luminaire dedans signalé, annulable", async () => {
     const r = await ev(() => {
       const room = okteo.state.rooms[0], P = room.poly || [{ x: room.x0, y: room.y0 }, { x: room.x1, y: room.y1 }];

@@ -1093,3 +1093,11 @@ body.aw-on{overflow:hidden}
 .prep-wait[hidden]{display:none}
 @media (max-width:760px){.prep{flex-direction:column}.prep-side{width:auto;max-height:45%;border-right:0;border-bottom:1px solid var(--line)}}
 #sv g.ftz path[fill="none"]{stroke-width:.26}
+
+/* v75 : dictée au micro dans l'assistant */
+.as-in .as-mic{min-width:38px;padding:6px 8px;font-size:16px;line-height:1}
+.as-in .as-mic.rec{background:var(--accent2);border-color:var(--accent2);color:#fff;animation:as-mic-p 1.2s ease-in-out infinite}
+.as-in .as-mic:disabled{opacity:.45;cursor:not-allowed}
+@keyframes as-mic-p{0%,100%{box-shadow:0 0 0 0 rgba(232,83,74,.55)}50%{box-shadow:0 0 0 6px rgba(232,83,74,0)}}
+.as-mic-msg{margin:0;padding:4px 10px;border-top:1px solid var(--line)}
+@media (prefers-reduced-motion:reduce){.as-in .as-mic.rec{animation:none}}
