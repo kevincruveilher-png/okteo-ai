@@ -1207,6 +1207,10 @@ body.am-on{overflow:hidden}
 .am-foot{flex:none}
 .am-foot p{font-size:clamp(12px,min(1vw,1.6vh),14px)}
 .am-cta{height:clamp(44px,6vh,56px)}
-@media (max-width:1180px){.am-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* 4 colonnes jusqu'à 900 px de large (2 rangées de cartes seraient trop basses pour leur ligne « Durée / coût ») ; en
+   dessous (tablette en hauteur), 2 colonnes : la hauteur de l'écran le permet */
+@media (max-width:1180px){.am-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.am-card{padding-left:12px;padding-right:12px}}
+@media (max-width:900px){.am-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.am-card>:not(.am-scroll){flex-shrink:0}
 /* téléphone, ou fenêtre très basse : 4 cartes ne tiennent pas sur un écran → la page défile, les cartes reprennent leur hauteur */
 @media (max-width:640px),(max-height:520px){.am{overflow:auto}.am-in{height:auto;min-height:100%}.am-grid{flex:none;grid-auto-rows:auto}.am-card{overflow:visible}.am-scroll{overflow:visible}.am-scroll.more{-webkit-mask-image:none;mask-image:none}}

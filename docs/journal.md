@@ -11,6 +11,8 @@ la page) ; un texte trop long défile DANS sa carte.
 - Corrigé au passage : `.am-reco` servait au bandeau de recommandation ET au texte « Recommandé pour » des cartes (qui
   prenait le fond du bandeau) → texte des cartes en `.am-recotxt`.
 - Téléphone (< 640 px) ou fenêtre très basse (< 520 px) : 4 cartes ne tiennent pas sur un écran, la page défile.
+- 4 colonnes jusqu'à 900 px de large (en 1100 × 800, 2 rangées de cartes cachaient la ligne « Durée / coût » :
+  1er essai, run 41669226007) ; 2 colonnes en dessous (tablette en hauteur) ; en-têtes et pied des cartes jamais écrasés.
 - Tests : smoke « l'écran des modes tient sur une page » (1500 × 900, 1366 × 768, 1280 × 720, 1100 × 800, mode 4 et
   ses documents compris ; « Durée / coût » visible dans chaque carte ; Entrée choisit) ; captures 1366 × 768 et 1280 × 720.
 

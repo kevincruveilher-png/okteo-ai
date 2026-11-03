@@ -746,8 +746,8 @@ try {
       && still && b.p3 === "true" && b.p1 === "false" && b.sel && b.docs && b.dis === "false" && /mode 4/.test(b.label) && c.dis === "false" && /mode 1/.test(c.label) && closed && noCall)) throw new Error(JSON.stringify(r));
     return true;
   });
-  await check("v76 : l'écran des modes tient sur une page (1500 × 900, 1366 × 768, 1280 × 720, 1100 × 800, mode 4 et ses documents compris) ; le texte trop long défile dans la carte ; Entrée choisit une carte", async () => {
-    const sizes = [[1500, 900], [1366, 768], [1280, 720], [1100, 800]], out = [];
+  await check("v76 : l'écran des modes tient sur une page (1500 × 900, 1366 × 768, 1280 × 720, 1100 × 800, tablette 820 × 1180, mode 4 et ses documents compris) ; le texte trop long défile dans la carte ; Entrée choisit une carte", async () => {
+    const sizes = [[1500, 900], [1366, 768], [1280, 720], [1100, 800], [820, 1180]], out = [];
     for (const [w, h] of sizes) {
       await page.setViewportSize({ width: w, height: h });
       await ev(() => okteoExt.aiModes.open());
