@@ -20,6 +20,8 @@ try {
   await page.screenshot({ path: "shots/modes-1440-mode2.png" });
   await page.click('#ai-modes .am-card[data-mode="1"]'); await page.waitForTimeout(200);
   await page.screenshot({ path: "shots/modes-1440-mode1.png" });
+  await page.click('#ai-modes .am-card[data-mode="4"]'); await page.waitForTimeout(300);
+  for (const [w, h] of [[1366, 768], [1280, 720]]) { await page.setViewportSize({ width: w, height: h }); await page.waitForTimeout(300); await page.screenshot({ path: `shots/modes-${w}x${h}-mode4.png` }); }
   for (const [w, h] of [[1920, 1080], [1100, 900], [390, 844]]) {
     await page.setViewportSize({ width: w, height: h }); await page.waitForTimeout(300);
     await page.screenshot({ path: `shots/modes-${w}.png`, fullPage: true });

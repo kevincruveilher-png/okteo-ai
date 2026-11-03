@@ -1,3 +1,19 @@
+## 03/11/2026 — v76 : écran « Analyse IA » sur une seule page
+
+Branche `feat/analyse-ia-modes-v76`, demande de Kévin : tout l'écran des modes tient sur une page (plus de défilement de
+la page) ; un texte trop long défile DANS sa carte.
+- `.am-in` = hauteur de la fenêtre ; tailles du titre, des textes, des marges et du bouton en `clamp(…vh…)` ; la grille
+  prend la place restante (`grid-auto-rows: minmax(0, 1fr)`) ; carte = en-tête, titre, accroche, puis zone `.am-scroll`
+  (description, « Recommandé pour », mention « En préparation ») qui défile, et ligne « Durée / coût » toujours visible ;
+  dégradé en bas de la zone + infobulle « Faites défiler… » quand il reste du texte (`.am-scroll.more`).
+- Carte = `div role="button" tabindex="0"` (aria-pressed, Entrée / Espace) au lieu de `<button>` : le contenu d'un
+  bouton ne défile pas dans tous les navigateurs.
+- Corrigé au passage : `.am-reco` servait au bandeau de recommandation ET au texte « Recommandé pour » des cartes (qui
+  prenait le fond du bandeau) → texte des cartes en `.am-recotxt`.
+- Téléphone (< 640 px) ou fenêtre très basse (< 520 px) : 4 cartes ne tiennent pas sur un écran, la page défile.
+- Tests : smoke « l'écran des modes tient sur une page » (1500 × 900, 1366 × 768, 1280 × 720, 1100 × 800, mode 4 et
+  ses documents compris ; « Durée / coût » visible dans chaque carte ; Entrée choisit) ; captures 1366 × 768 et 1280 × 720.
+
 ## 03/11/2026 — v76 mode 3 : OpenCV.js dans un Web Worker (gel de la page corrigé), vérifications bornées
 
 Branche `feat/analyse-ia-modes-v76`.

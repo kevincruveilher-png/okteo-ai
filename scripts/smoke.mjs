@@ -746,6 +746,29 @@ try {
       && still && b.p3 === "true" && b.p1 === "false" && b.sel && b.docs && b.dis === "false" && /mode 4/.test(b.label) && c.dis === "false" && /mode 1/.test(c.label) && closed && noCall)) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("v76 : l'écran des modes tient sur une page (1500 × 900, 1366 × 768, 1280 × 720, 1100 × 800, mode 4 et ses documents compris) ; le texte trop long défile dans la carte ; Entrée choisit une carte", async () => {
+    const sizes = [[1500, 900], [1366, 768], [1280, 720], [1100, 800]], out = [];
+    for (const [w, h] of sizes) {
+      await page.setViewportSize({ width: w, height: h });
+      await ev(() => okteoExt.aiModes.open());
+      await page.click('#ai-modes .am-card[data-mode="4"]');
+      await page.waitForTimeout(250);
+      out.push(await ev(() => {
+        const el = document.getElementById("ai-modes"), go = el.querySelector("#am-go").getBoundingClientRect(), grid = el.querySelector(".am-grid").getBoundingClientRect();
+        const cards = [...el.querySelectorAll(".am-card")].map((c) => { const r = c.getBoundingClientRect(), k = c.querySelector(".am-cost").getBoundingClientRect(), z = c.querySelector(".am-scroll"); return { inGrid: r.bottom <= grid.bottom + 1, cost: k.bottom <= r.bottom + 1 && k.height > 0, scroll: z.scrollHeight > z.clientHeight + 2, ovf: getComputedStyle(z).overflowY }; });
+        return { w: innerWidth, page: el.scrollHeight <= el.clientHeight + 1, cta: go.bottom <= innerHeight && go.top >= 0, docs: !!el.querySelector(".am-docs"), cards };
+      }));
+      await ev(() => okteoExt.aiModes.close());
+    }
+    await page.setViewportSize({ width: 1500, height: 900 });
+    await ev(() => okteoExt.aiModes.open());
+    await page.focus('#ai-modes .am-card[data-mode="2"]'); await page.keyboard.press("Enter");
+    const key = await ev(() => okteoExt.aiModes.selected);
+    await ev(() => okteoExt.aiModes.close());
+    const r = { out, key };
+    if (!(out.every((o) => o.page && o.cta && o.docs && o.cards.every((c) => c.inGrid && c.cost && c.ovf === "auto")) && key === 2)) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("v76 : recommandation d'un mode d'après le plan (bandeau + « Recommandé » sur la carte, l'opérateur accepte ou choisit un autre mode) ; escalade proposée après une relecture", async () => {
     await ev(() => okteoExt.aiModes.open());
     await page.waitForFunction(() => okteoExt.aiModes.reco && !document.querySelector("#ai-modes .am-reco-wait"), null, { timeout: 60000 });

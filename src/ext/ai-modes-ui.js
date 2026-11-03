@@ -20,19 +20,21 @@ export function createAiModes({ api, aiReleve, runner = null }) {
   let sel = null, launched = null, back = null, docs = [], pages = null, reco = null, esc = null, recoTok = 0;   // v76 : documents joints pour le contrôle croisé (mode 4)
 
   const dots = (pts) => `<span class="am-dots" role="img" aria-label="${esc_(dotsLabel(pts))}">${[1, 2, 3, 4].map((i) => `<span class="am-dot${i <= pts ? " on" : ""}"></span>`).join("")}</span>`;
-  const card = (m) => `<button type="button" class="am-card${sel === m.n ? " sel" : ""}${m.ready ? "" : " soon"}" data-mode="${m.n}" aria-pressed="${sel === m.n}"
+  // v76 : carte = élément « bouton » (role, aria-pressed, Entrée / Espace) et non <button> : le texte doit pouvoir défiler
+  // DANS la carte (zone .am-scroll) pour que tout l'écran tienne sur une page — un <button> ne défile pas partout
+  const card = (m) => `<div role="button" tabindex="0" class="am-card${sel === m.n ? " sel" : ""}${m.ready ? "" : " soon"}" data-mode="${m.n}" aria-pressed="${sel === m.n}"
       title="${esc_(m.ready ? `Mode ${m.n} : ${m.title}. Cliquez pour le choisir, puis « Lancer l'analyse ».` : `Mode ${m.n} : ${m.title} — en préparation, arrive dans une prochaine version.`)}">
       <span class="am-top"><span class="am-lab">Mode ${m.n}${(esc ? esc.to : reco && reco.mode) === m.n ? `<span class="am-reco-tag">${esc ? "Proposé" : "Recommandé"}</span>` : ""}</span><span class="am-ring" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span></span>
       <span class="am-title">${esc_(m.title)}</span>
       <span class="am-hook">${esc_(m.hook)}</span>
       <span class="am-div"></span>
-      <span class="am-desc">${esc_(m.desc)}</span>
-      <span class="am-bottom">
-        <span><span class="am-lab am-small">Recommandé pour</span><span class="am-reco">${esc_(m.reco)}</span></span>
+      <span class="am-scroll" title="">
+        <span class="am-desc">${esc_(m.desc)}</span>
+        <span class="am-recobox"><span class="am-lab am-small">Recommandé pour</span><span class="am-recotxt">${esc_(m.reco)}</span></span>
         ${m.ready ? "" : `<span class="am-soon">En préparation : prochaine version</span>`}
-        <span class="am-cost"><span class="am-costlab">Durée / coût</span>${dots(m.pts)}</span>
       </span>
-    </button>`;
+      <span class="am-cost"><span class="am-costlab">Durée / coût</span>${dots(m.pts)}</span>
+    </div>`;
 
   function render() {
     const L = launchState(sel);
@@ -49,7 +51,15 @@ export function createAiModes({ api, aiReleve, runner = null }) {
       <div class="am-foot"><p>${esc_(MODES_PAGE.foot)}</p>
         <button type="button" class="am-cta" id="am-go" aria-disabled="${!L.ok}" title="${esc_(L.why)}">${esc_(L.label)}</button></div>
     </div>`;
-    el.querySelectorAll(".am-card").forEach((b) => (b.onclick = () => select(+b.dataset.mode, true)));
+    el.querySelectorAll(".am-card").forEach((b) => {
+      b.onclick = () => select(+b.dataset.mode, true);
+      b.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(+b.dataset.mode, true); } };
+    });
+    // texte plus long que la carte : dégradé en bas de la zone et « faites défiler » dans l'infobulle
+    el.querySelectorAll(".am-scroll").forEach((z) => {
+      const mark = () => { const more = z.scrollHeight > z.clientHeight + 2; z.classList.toggle("more", more && z.scrollTop + z.clientHeight < z.scrollHeight - 2); z.title = more ? "Faites défiler pour lire la suite" : ""; };
+      z.onscroll = mark; requestAnimationFrame(mark);
+    });
     el.querySelector(".am-x").onclick = close;
     const rb = el.querySelector("#am-reco-ok"); if (rb) rb.onclick = () => select(esc ? esc.to : reco.mode, true);
     const fi = el.querySelector("#am-docs-file");

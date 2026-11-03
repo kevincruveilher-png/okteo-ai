@@ -1144,8 +1144,8 @@ body.am-on{overflow:hidden}
 .am-desc{font-size:15px;line-height:1.5;color:var(--cs)}
 .am-bottom{margin-top:auto;width:100%;display:flex;flex-direction:column;gap:14px}
 .am-bottom .am-small{display:block;font-family:"Inter",sans-serif;font-size:12px;font-weight:700;margin-bottom:4px}
-.am-reco{display:block;font-size:15px;line-height:1.4;color:var(--cs)}
-.am-card[data-mode="1"] .am-reco,.am-card[data-mode="2"] .am-reco{color:var(--cf)}
+.am-recotxt{display:block;font-size:15px;line-height:1.4;color:var(--cs)}
+.am-card[data-mode="1"] .am-recotxt,.am-card[data-mode="2"] .am-recotxt{color:var(--cf)}
 .am-soon{font-size:13px;font-weight:600;color:var(--cl)}
 .am-cost{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--cd);padding-top:12px}
 .am-costlab{font-size:13px;font-weight:500;color:var(--cl)}
@@ -1182,3 +1182,31 @@ body.am-on{overflow:hidden}
 .am-why{color:#D4DDE8}
 .am-reco-ok{flex:none;height:40px;padding:0 18px;border:0;border-radius:10px;background:#FFFFFF;color:#04284A;font-family:"Rubik",sans-serif;font-weight:700;cursor:pointer}
 .am-reco-ok:focus-visible{outline:3px solid #E8534A;outline-offset:2px}
+
+/* v76 : l'écran des modes tient sur UNE page (PC, tablette) : hauteur de la fenêtre, tailles qui suivent la hauteur, la
+   grille prend la place restante et le texte de chaque carte défile DANS la carte (.am-scroll) */
+.am{overflow:hidden}
+.am-in{height:100%;min-height:0;padding:clamp(14px,3.2vh,44px) clamp(16px,5.5vw,80px) clamp(12px,2.6vh,40px);gap:clamp(10px,2.2vh,28px)}
+.am-intro{gap:clamp(6px,1.2vh,12px)}
+.am-intro h1{font-size:clamp(22px,min(3.1vw,4.4vh),44px)}
+.am-intro p{font-size:clamp(13px,min(1.25vw,1.9vh),18px)}
+.am-grid{flex:1 1 auto;min-height:0;grid-auto-rows:minmax(0,1fr)}
+.am-card{min-height:0;overflow:hidden;padding:clamp(12px,2.2vh,24px) clamp(14px,1.6vw,22px) clamp(12px,2vh,22px);gap:clamp(6px,1.3vh,14px)}
+.am-title{font-size:clamp(19px,min(2vw,2.9vh),27px)}
+.am-hook{font-size:clamp(14px,min(1.25vw,1.9vh),17px)}
+.am-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:clamp(8px,1.4vh,14px);padding-right:4px;scrollbar-width:thin;scrollbar-color:var(--cd) transparent;overscroll-behavior:contain}
+.am-scroll.more{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 26px),transparent)}
+.am-desc{font-size:clamp(13px,min(1.1vw,1.75vh),15px)}
+.am-recotxt{font-size:clamp(13px,min(1.1vw,1.75vh),15px)}
+.am-recobox{display:block}
+.am-recobox .am-small{display:block;font-family:"Inter",sans-serif;font-size:12px;font-weight:700;margin-bottom:4px}
+.am-cost{flex:none}
+.am-reco,.am-docs{flex:none}
+.am-docs{padding:clamp(8px,1.4vh,14px) 18px}
+.am-docs p{margin:0 0 8px}
+.am-foot{flex:none}
+.am-foot p{font-size:clamp(12px,min(1vw,1.6vh),14px)}
+.am-cta{height:clamp(44px,6vh,56px)}
+@media (max-width:1180px){.am-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* téléphone, ou fenêtre très basse : 4 cartes ne tiennent pas sur un écran → la page défile, les cartes reprennent leur hauteur */
+@media (max-width:640px),(max-height:520px){.am{overflow:auto}.am-in{height:auto;min-height:100%}.am-grid{flex:none;grid-auto-rows:auto}.am-card{overflow:visible}.am-scroll{overflow:visible}.am-scroll.more{-webkit-mask-image:none;mask-image:none}}
