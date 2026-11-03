@@ -1,3 +1,16 @@
+## 03/11/2026 — 3D-4 visite à pied et pose au viseur (branche `feat/3d-1-visionneuse`)
+
+- `src/ext/vue3d-walk.js` (`createWalk({api, S3, el, cv})`) : bouton « Visite à pied · ZQSD » (`.v3d-walk`) du panneau 3D ;
+  ZQSD = touches physiques (WASD en QWERTY), flèches, Maj = courir, souris (verrouillage du pointeur, sinon glisser) ;
+  collisions sur les murs du plan nettoyé (passages = ouvertures dont l'allège est au sol) ; départ au nom de la plus
+  grande pièce ; plafonds affichés pendant la visite. Outils 1–6 / molette : prise PC16, interrupteur, RJ45, point
+  lumineux (au plafond), applique, gomme ; hauteur normale du type (`api.TYPES[t].h`) ou hauteur visée (H) ; aperçu vert,
+  raison affichée sinon. Pose = `api.importDevices([...], [], {stay: true})` (nouvelle option du cœur : on reste sur
+  l'onglet et l'outil) → vrai appareil, recollé à son mur (`snapToWall` + `attach`), un Ctrl+Z ; gomme =
+  `api.removeApps([id])`. Les touches de la visite sont capturées avant les raccourcis du plan (Ctrl+Z passe).
+  Échap : pause (reprendre / quitter) ; quitter l'onglet quitte la visite. Catalogue `vue.3d.visite`.
+- Test smoke : marcher, poser une prise (rattachée, onglet 3D conservé), Ctrl+Z, gomme, Échap.
+
 ## 03/11/2026 — 3D-3 hauteurs réglables (branche `feat/3d-1-visionneuse`)
 
 « 3 et 4 go » de Kévin. Hauteurs de la vue 3D : valeurs de départ réglables, et réglage une par une.

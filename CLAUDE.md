@@ -503,7 +503,8 @@ colonnes `config.analysis_model/analysis_input_price/analysis_output_price` (cr�
   (onglet `vue3d`, Alt+4, `okteoExt.pages.vue3d.ui.state`, three.js 0.169.0 chargé à la demande, couleurs gérées par
   three ≥ r152 : `colorSpace`, intensités × π ; couleurs des sommets converties à la main). Le dessin n'est jamais modifié
   par la 3D. Feuille de route 3D (11 MAJ, toutes avant l'essai chantier) : journal du 03/11/2026.
-  3D-3 : `heightsFrom(prefs h3d*)`, `o.allege`/`o.linteau`/`r.hsp` (cm, Propriétés), mur `top`, Paramètres `#ps-3d`. Tests :
+  3D-3 : `heightsFrom(prefs h3d*)`, `o.allege`/`o.linteau`/`r.hsp` (cm, Propriétés), mur `top`, Paramètres `#ps-3d`.
+  3D-4 : `src/ext/vue3d-walk.js` (`ui.walk` : enter/exit/act/update), `importDevices(..., {stay})`, touches capturées. Tests :
   `scripts/v3d.test.mjs` + smoke. Workflow TEMPORAIRE `verification-3d.yml` à retirer avant fusion.
 
 ### Entreprise Cloudflare v72 / v72.1

@@ -4,6 +4,7 @@
 // 3D-2 : les défauts de géométrie trouvés en construisant la maquette (cleanPlan) sont listés, cliquables vers le plan.
 import { cleanPlan, devicesOf, planBounds, H3D, heightsFrom } from "../3d/plan3d.js";
 import { getPrefs } from "../prefs.js";
+import { createWalk } from "./vue3d-walk.js";
 import { esc } from "./util.js";
 
 const fr = (v, d = 2) => Number(v).toFixed(d).replace(".", ",");
@@ -53,6 +54,7 @@ export function mountVue3d(el, { api }) {
         <label><input type="checkbox" data-l="boxes" checked> Boîtes de la pieuvre</label>
       </div>
       <p class="v3d-note"></p>
+      <button type="button" class="v3d-walk" title="Marcher dans la maison comme dans un jeu (clavier et souris) et poser des appareils au viseur : ils sont ajoutés au chantier, Ctrl+Z annule">Visite à pied · ZQSD</button>
       <details class="v3d-def" hidden><summary></summary><ul></ul></details>
     </section>
     <div class="v3d-card" hidden aria-live="polite"></div>
@@ -117,6 +119,7 @@ export function mountVue3d(el, { api }) {
     house.devices.visible = $('[data-l="devices"]').checked; house.boxes.visible = $('[data-l="boxes"]').checked;
     scene.add(house.group);
     Object.assign(S3, { house, plan, devs, P, H: P.H });
+    if (walk) walk.rebuilt();
     noteHeights(P.H);
     S3.lastBuild = Date.now();
     $(".v3d-lv").textContent = P.level || "";
@@ -161,7 +164,7 @@ export function mountVue3d(el, { api }) {
   let down = null, halo = null;
   cv.addEventListener("pointerdown", (e) => { down = [e.clientX, e.clientY]; });
   cv.addEventListener("pointerup", (e) => {
-    if (!S3.house || !down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+    if (walk.on || !S3.house || !down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
     const r = cv.getBoundingClientRect(), T = S3.T, ray = new T.Raycaster();
     ray.setFromCamera(new T.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), S3.cam);
     const vis = S3.house.pick.filter((m) => (m.userData.dev ? S3.house.devices.visible : S3.house.boxes.visible));
@@ -193,6 +196,11 @@ export function mountVue3d(el, { api }) {
     if (a === "plan" && card.dataset.id) { const id = card.dataset.id; api.select([id]); api.zoomTo([id]); }
   };
 
+  // ---------- 3D-4 : visite à pied et pose au viseur ----------
+  const walk = createWalk({ api, S3, el, cv });
+  $(".v3d-walk").onclick = () => { showCard(null); if (!walk.enter()) { msg.hidden = false; msg.textContent = "La visite à pied demande des murs sur ce niveau."; } };
+  document.addEventListener("okteo:tab", (e) => { if (e.detail !== "vue3d") walk.exit(); });
+
   // ---------- 3D-2 : défauts de géométrie, cliquables vers le plan ----------
   function renderDefects() {
     const box = $(".v3d-def"), D = (S3.plan && S3.plan.defects) || [];
@@ -206,10 +214,13 @@ export function mountVue3d(el, { api }) {
 
   // ---------- boucle d'affichage : seulement quand l'onglet est visible ----------
   const ease = (t) => 1 - Math.pow(1 - t, 3);
+  let prev = performance.now();
   function loop(now) {
     if (el.hidden || !S3.R) { S3.running = false; return; }
-    if (S3.anim) { const k = Math.min(1, (now - S3.anim.t0) / 800), e = ease(k); S3.cam.position.lerpVectors(S3.anim.p0, S3.anim.p1, e); S3.ctl.target.lerpVectors(S3.anim.q0, S3.anim.t1, e); if (k >= 1) S3.anim = null; }
-    S3.ctl.update();
+    const dt = Math.min(0.1, (now - prev) / 1000); prev = now;
+    if (walk.on) walk.update(dt, now);
+    else if (S3.anim) { const k = Math.min(1, (now - S3.anim.t0) / 800), e = ease(k); S3.cam.position.lerpVectors(S3.anim.p0, S3.anim.p1, e); S3.ctl.target.lerpVectors(S3.anim.q0, S3.anim.t1, e); if (k >= 1) S3.anim = null; }
+    if (!walk.on) S3.ctl.update();
     if (S3.house) S3.house.boxes.children.forEach((o) => { if (o.userData.billboard) o.quaternion.copy(S3.cam.quaternion); });
     if (halo) halo.material.opacity = 0.2 + 0.1 * Math.sin(now / 260);
     S3.R.render(S3.scene, S3.cam);
@@ -226,7 +237,7 @@ export function mountVue3d(el, { api }) {
 
   const ui = {
     render() { build(false).then(start).catch((e) => { msg.hidden = false; msg.textContent = "La vue 3D n'a pas pu s'afficher : " + (e && e.message || e); }); },
-    view, state: S3,
+    view, state: S3, walk,
   };
   ui.render();
   return ui;
