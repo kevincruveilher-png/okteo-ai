@@ -1,6 +1,8 @@
 // v76 : modes d'« Analyse IA » et journal des analyses (pur, sans navigateur) : node scripts/ai-modes.test.mjs
 import assert from "node:assert/strict";
-import { MODES_IA, MODES_PAGE, modeOf, dossierRef, dotsLabel, launchState, cyclesFor } from "../src/walls/ai-modes.js";
+import { MODES_IA, MODES_PAGE, modeOf, dossierRef, dotsLabel, launchState, cyclesFor, recommend, escalade } from "../src/walls/ai-modes.js";
+import { imageStats } from "../src/walls/ai-stats.js";
+import { score, devicesOf } from "../src/walls/ai-bench.js";
 import { chooseGrid, tileGrid, fitSize, regionMap, toMeters, toPixels, unrotate, parseZooms, tileToDevices, mergeReadings, ecartsCount, tilePrompt, tileRules } from "../src/walls/ai-tiles.js";
 import { analysesOf, callCost, newAnalyseId, fmtUsd, fmtMs, addUsage, tinOf } from "../src/walls/ai-journal.js";
 import { ANALYSE_MODEL, ANALYSE_PRICE } from "../src/ai-config.js";
@@ -159,5 +161,33 @@ t("mode 4 : décompte du plan, consigne du contrôle croisé, écarts lus (quant
   assert.deepEqual(C.list.map((e) => [e.equipement, e.t, e.qDoc]), [["Lave-vaisselle", "LV", 1], ["Borne", "", null]]);
   assert.equal(C.list[0].extrait.split(" ").length, 15);
   assert.match(SECOND_METHOD, /PIÈCE PAR PIÈCE/); assert.match(CROSS_OFF, /désactivée/);
+});
+t("recommandation à l'import : scan incliné / peu contrasté → mode 3 ; dense ou faible définition → mode 2 ; sinon mode 1", () => {
+  assert.equal(recommend({ kind: "raster", skew: 1.2, contrast: 200 }).mode, 3);
+  assert.equal(recommend({ kind: "raster", skew: 0, contrast: 80 }).mode, 3);
+  assert.equal(recommend({ kind: "vector", shapes: 3000 }).mode, 2);
+  assert.equal(recommend({ kind: "raster", skew: 0, contrast: 200, noise: 0.02, pxPerM: 90 }).mode, 2);
+  const r = recommend({ kind: "vector", shapes: 400, docs: 2 });
+  assert.equal(r.mode, 1); assert.match(r.why[0], /vectoriel lisible/); assert.equal(r.docs, 2);
+});
+t("mesures d'image : inclinaison d'un trait à 2°, contraste, encre", () => {
+  const w = 400, h = 300, g = new Uint8Array(w * h).fill(250);
+  for (let x = 20; x < 380; x++) for (const y0 of [60, 150, 240]) { const y = Math.round(y0 + (x - 200) * Math.tan(2 * Math.PI / 180)); for (let k = -1; k <= 1; k++) g[(y + k) * w + x] = 20; }
+  const S = imageStats(g, w, h);
+  assert.ok(Math.abs(S.skew - 2) <= 0.25, String(S.skew)); assert.ok(S.contrast > 200); assert.ok(S.ink > 0.02 && S.ink < 0.05);
+});
+t("escalade : alertes encore ouvertes après les cycles → mode supérieur proposé (jamais au-delà de 4)", () => {
+  assert.deepEqual(escalade({ mode: 1, rest: 4, initial: 6 }).to, 2);
+  assert.equal(escalade({ mode: 2, rest: 1, initial: 2 }).to, 3);     // la moitié reste
+  assert.equal(escalade({ mode: 1, rest: 1, initial: 10 }).propose, false);
+  assert.equal(escalade({ mode: 4, rest: 9, initial: 9 }).propose, false);
+  assert.equal(escalade({ mode: 1, rest: 0, initial: 9 }).propose, false);
+});
+t("banc d'essai : rappel, omissions, faux positifs, types justes (même famille à 30 cm, même niveau)", () => {
+  const T = devicesOf({ appareils: [{ t: "PC16", x: 0, y: 0 }, { t: "INT", x: 2, y: 0 }, { t: "LUM", x: 4, y: 0 }, { t: "LUM", x: 4, y: 0, lv: "r1" }] });
+  const R = devicesOf({ appareils: [{ t: "PC20", x: 0.1, y: 0 }, { t: "INT", x: 2.5, y: 0 }, { t: "SPOT", x: 4, y: 0.2 }, { t: "RJ45", x: 6, y: 0 }] });
+  const S = score(T, R);
+  assert.equal(S.trouves, 2); assert.equal(S.omissions, 2); assert.equal(S.fauxPositifs, 2); assert.equal(S.typesJustes, 0);
+  assert.equal(S.rappel, 0.5); assert.deepEqual(S.omis.map((d) => d.t + "@" + d.lv), ["INT@rdc", "LUM@r1"]);
 });
 console.log(`${n}/${n} vérifications (modes d'analyse IA, journal)`);

@@ -1,3 +1,29 @@
+## 03/11/2026 — v76 fonctions complémentaires : recommandation de mode, escalade, banc d'essai
+
+Branche `feat/analyse-ia-modes-v76`.
+- Mode 3, vérification de l'étape 3 : le plan EVRARD des tests est un PDF VECTORIEL ; le mode 3 y a bien fait ce que
+  la règle demande (aucun nettoyage, textes du PDF) — c'est le test qui supposait un scan. Deux tests à la place :
+  mode 3 sur PDF vectoriel (une image par tuile, textes « (texte du PDF) », pas d'OpenCV), et chemin des scans avec le
+  vrai OpenCV.js + Tesseract.js sur une image de test inclinée de 2° (angle mesuré, copie nettoyée, « CUISINE » lu).
+  Licences : 83 paquets livrés, tous permissifs (ISC / 0BSD / Zlib listés comme équivalents) ; /vendor : OpenCV
+  10,4 Mo, OCR 31,3 Mo (moteurs SIMD / non SIMD + fra), chargés seulement en mode 3.
+- Recommandation : `src/walls/ai-stats.js` (pur, `imageStats` : contraste 95e − 2e centile, encre, bruit, inclinaison
+  par profil de projection ±4°) ; `ai-modes.js` `RECO_SEUILS` (premiers seuils, à régler au banc d'essai),
+  `recommend(stats)` (scan incliné / pâle / bruité → 3 ; faible définition / dense → 2 ; sinon 1 ; autres pages du PDF
+  signalées pour le mode 4) ; `src/ext/ai-reco.js` (`planStats`, `recommendFor`). Écran : bandeau `.am-reco` + étiquette
+  « Recommandé » ; « Choisir ce mode » (`#am-reco-ok`) ne choisit qu'au clic : rien n'est sélectionné d'office. À l'import
+  d'un plan (`okteo:fond`) : recommandation dans la barre d'aide.
+- Escalade : `escalade({mode, rest, initial})` (≥ 3 alertes restantes, ou ≥ 30 % de celles du départ ; jamais au-delà
+  du mode 4) ; fin de la boucle de relecture : message + `#rk-up` « Relancer en mode N… » → `okteo:ai-escalade` →
+  écran des modes avec « Relance proposée » (étiquette « Proposé »). `recheck.last.escalade`.
+- Banc d'essai : `src/walls/ai-bench.js` (pur : `devicesOf` (.okteo tous niveaux ou JSON), `score` (même niveau, même
+  famille, 30 cm : rappel, omissions, faux positifs, précision, types justes, omis / en trop, par type), `journalOf`,
+  `benchLine`) ; `scripts/modes-bench.mjs` (`--verite`, `--tol`, `--csv`, `--categorie`, `--detail`) ; protocole
+  `docs/banc-essai-v76.md` (9 plans pour commencer : vectoriel, scan net, scan dégradé ; vérité validée par le BE).
+  Essai à blanc : MAILLARD comparé à lui-même = 102/102.
+- Tests : ai-modes.test.mjs 21 ; smoke : recommandation + escalade.
+- Non mesuré : les seuils de recommandation et d'escalade sont des valeurs de départ, à régler avec le banc d'essai.
+
 ## 03/11/2026 — v76 étape 4 : mode 4 « Analyse approfondie » (seconde lecture, contrôle croisé)
 
 Branche `feat/analyse-ia-modes-v76`. Licences : `scripts/licences.mjs` lit les expressions SPDX « AND » (pako = MIT AND

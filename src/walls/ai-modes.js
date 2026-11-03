@@ -61,3 +61,37 @@ export function launchState(sel) {
   if (!m.ready) return { ok: false, label: "Mode en préparation", why: `Le mode ${m.n} (${m.title.toLowerCase()}) arrive dans une prochaine version.` };
   return { ok: true, label: `Lancer l'analyse · mode ${m.n}`, why: `Lance l'${m.title.toLowerCase()} sur le plan de ce niveau.` };
 }
+
+// ---------- v76 : recommandation d'un mode à l'import (l'opérateur accepte ou choisit un autre mode) ----------
+// stats = { kind "vector"|"raster", pxPerM (pixels du fond par mètre réel), contrast (écart entre papier et encre :
+// luminosité 95e − 2e centile, 0–255), skew (degrés), noise (part de points d'encre isolés), ink (part d'encre), shapes (formes vectorielles),
+// docs (autres pages / documents) } — seuils de départ à ajuster avec le banc d'essai (rien n'est encore mesuré)
+export const RECO_SEUILS = { skew: 0.5, contrast: 110, noise: 0.18, pxPerM: 150, ink: 0.12, shapes: 2500 };
+export function recommend(st = {}, S = RECO_SEUILS) {
+  const why = [];
+  let mode = 1;
+  if (st.kind === "raster") {
+    if (Math.abs(st.skew || 0) >= S.skew) why.push(`scan incliné d'environ ${Math.abs(st.skew).toFixed(1).replace(".", ",")}°`);
+    if (st.contrast != null && st.contrast < S.contrast) why.push("scan peu contrasté");
+    if (st.noise != null && st.noise > S.noise) why.push("scan bruité");
+    if (why.length) mode = 3;
+  }
+  if (mode < 2) {
+    if (st.pxPerM != null && st.pxPerM < S.pxPerM) why.push("image de faible définition : petits symboles");
+    if (st.ink != null && st.ink > S.ink) why.push("plan dense");
+    if (st.shapes != null && st.shapes > S.shapes) why.push("plan vectoriel dense");
+    if (why.length) mode = 2;
+  }
+  if (mode === 1) why.push(st.kind === "vector" ? "plan vectoriel lisible, densité normale" : "scan net, densité normale");
+  return { mode, why, docs: st.docs || 0 };
+}
+
+// ---------- v76 : escalade après une analyse (surtout le mode 1) ----------
+// propose de relancer en mode supérieur si beaucoup d'alertes restent, ou si les cycles n'ont pas résolu une bonne
+// part des alertes du départ ; jamais au-delà du mode 4
+export function escalade({ mode = 1, rest = 0, initial = 0 } = {}) {
+  if (mode >= 4 || rest <= 0) return { propose: false };
+  const part = initial > 0 ? rest / initial : 1;
+  if (rest >= 3 || part >= 0.3) return { propose: true, to: mode + 1, why: `${rest} alerte${rest > 1 ? "s" : ""} encore ouverte${rest > 1 ? "s" : ""} après les relectures${initial ? ` (sur ${initial} au départ)` : ""}` };
+  return { propose: false };
+}

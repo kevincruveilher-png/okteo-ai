@@ -1177,3 +1177,8 @@ body.am-on{overflow:hidden}
 .am-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:99px;background:#FFFFFF;color:#04284A;font-size:13px}
 .am-chip button{border:0;background:none;color:#8E2A22;cursor:pointer;font-size:12px}
 .ai-ecarts ul,.ai-docs ul{margin:4px 0;padding-left:18px;max-height:220px;overflow:auto}
+.am-reco{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:12px 16px;border-radius:14px;background:#0A3A66;border:1px solid #1A4A78;color:#FFFFFF;font-size:15px}
+.am-reco-wait{color:#A9B8CB;background:none;border-style:dashed}
+.am-why{color:#D4DDE8}
+.am-reco-ok{flex:none;height:40px;padding:0 18px;border:0;border-radius:10px;background:#FFFFFF;color:#04284A;font-family:"Rubik",sans-serif;font-weight:700;cursor:pointer}
+.am-reco-ok:focus-visible{outline:3px solid #E8534A;outline-offset:2px}

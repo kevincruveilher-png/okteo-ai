@@ -14,7 +14,7 @@ import { settings } from "./settings.js";
 import { recheckPoints, recheckPrompt, parseCorrections, recheckReport, shouldContinue, RECHECK_KINDS } from "../walls/ai-recheck.js";
 import { findRooms, nameRooms, pointInPoly, labelPoint } from "../walls/rooms.js";
 import { pref } from "../prefs.js";
-import { cyclesFor } from "../walls/ai-modes.js";
+import { cyclesFor, escalade, modeOf } from "../walls/ai-modes.js";
 import { esc } from "./util.js";
 import { callCost, analysesOf, fmtUsd, fmtMs, tinOf } from "../walls/ai-journal.js";
 
@@ -265,9 +265,15 @@ export function createRecheck({ api, aiReleve }) {
     } finally { running = false; only = null; }
     last = log;
     const tot = log.reports.reduce((s, r) => s + r.total, 0), ok = log.reports.reduce((s, r) => s + r.ok, 0);
+    // v76 : escalade — trop d'alertes encore ouvertes après les cycles : relance proposée dans un mode supérieur
+    const rel = releveOf(api) || {}, first = (rel.rapport || []).find((x) => x.type === "releve") || {}, curMode = (first.analyse && first.analyse.mode) || 1;
+    const E = escalade({ mode: curMode, rest: stillKeys().size, initial: log.reports.length ? log.reports[0].total : 0 });
+    last.escalade = E;
     show(`<p><b>Relecture terminée</b> (${esc(log.why)}) : ${log.passes} relecture${log.passes > 1 ? "s" : ""}, ${ok}/${tot} points corrigés${tot ? ` (${Math.round(ok / tot * 100)} %)` : ""}${log.tokens ? ` · ${log.tokens.toLocaleString("fr-FR")} jetons` : ""}.</p>
       <p class="mut sm">Sous réserve du contrôle BE. Chaque relecture s'annule avec Ctrl+Z.</p>
-      <div class="wrow"><button class="on" id="rk-close">OK</button><button id="rk-rep">Rapport complet</button></div>`);
+      ${E.propose ? `<p class="warn sm">${esc(E.why)} : une analyse en mode ${E.to} (${esc(modeOf(E.to).title.toLowerCase())}) lirait le plan plus finement.</p>` : ""}
+      <div class="wrow"><button class="on" id="rk-close">OK</button><button id="rk-rep">Rapport complet</button>${E.propose ? `<button id="rk-up" title="Ouvre « Analyse IA » avec le mode ${E.to} proposé ; le relevé actuel reste tant que vous n'ajoutez pas le nouveau">Relancer en mode ${E.to}…</button>` : ""}</div>`);
+    const up = card.querySelector("#rk-up"); if (up) up.onclick = () => { close(); document.dispatchEvent(new CustomEvent("okteo:ai-escalade", { detail: { from: curMode, to: E.to, why: E.why } })); };
     card.querySelector("#rk-close").onclick = close;
     card.querySelector("#rk-rep").onclick = () => { close(); api.setTab("etude"); setTimeout(() => document.getElementById("et-ia")?.scrollIntoView({ block: "start" }), 150); };
     return log;

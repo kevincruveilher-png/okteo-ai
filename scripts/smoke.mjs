@@ -732,6 +732,21 @@ try {
       && still && b.p3 === "true" && b.p1 === "false" && b.sel && b.docs && b.dis === "false" && /mode 4/.test(b.label) && c.dis === "false" && /mode 1/.test(c.label) && closed && noCall)) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("v76 : recommandation d'un mode d'après le plan (bandeau + « Recommandé » sur la carte, l'opérateur accepte ou choisit un autre mode) ; escalade proposée après une relecture", async () => {
+    await ev(() => okteoExt.aiModes.open());
+    await page.waitForSelector("#ai-modes .am-reco:not(.am-reco-wait)", { timeout: 20000 });
+    const a = await ev(() => { const el = document.getElementById("ai-modes"), r = okteoExt.aiModes.reco; return { banner: el.querySelector(".am-reco").textContent, tag: [...el.querySelectorAll(".am-card")].filter((c) => c.querySelector(".am-reco-tag")).map((c) => +c.dataset.mode), mode: r && r.mode, kind: r && r.stats && r.stats.kind, sel: okteoExt.aiModes.selected }; });
+    await page.click("#am-reco-ok");
+    const b = await ev(() => okteoExt.aiModes.selected);
+    await ev(() => okteoExt.aiModes.close());
+    await ev(() => document.dispatchEvent(new CustomEvent("okteo:ai-escalade", { detail: { from: 1, to: 2, why: "4 alertes encore ouvertes" } })));
+    const c = await ev(() => { const el = document.getElementById("ai-modes"); return { open: okteoExt.aiModes.visible, banner: el.querySelector(".am-reco").textContent, tag: [...el.querySelectorAll(".am-card")].filter((x) => x.querySelector(".am-reco-tag")).map((x) => +x.dataset.mode), sel: okteoExt.aiModes.selected }; });
+    await ev(() => okteoExt.aiModes.close());
+    const r = { a, b, c };
+    if (!(/Recommandé pour ce plan/.test(a.banner) && a.mode >= 1 && a.tag.length === 1 && a.tag[0] === a.mode && a.sel === null && b === a.mode
+      && c.open && /Relance proposée/.test(c.banner) && /4 alertes/.test(c.banner) && c.tag[0] === 2 && c.sel === null)) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("relevé par l'IA (v76 : par « Analyse IA » → mode 1, flux v75 inchangé) : image envoyée, aperçu par-dessus le dessin, on coche ce qu'on garde, un seul Ctrl+Z", async () => {
     await ev(() => okteoExt.settings.set({ provider: "anthropic" }));
     const before = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.length, app: okteo.state.app.length }));
@@ -787,21 +802,40 @@ try {
       && undone.segs === before.segs && undone.rooms === before.rooms && undone.app === before.app)) throw new Error(JSON.stringify(r));
     return true;
   });
-  await check("v76 étape 3 : mode 3 « Plan dégradé » sur un plan raster — OpenCV.js et Tesseract.js servis par /vendor, image d'origine + copie nettoyée par tuile, textes lus (OCR) donnés à l'IA, journal", async () => {
-    const n0 = seen.length, errs0 = errors.length;
+  await check("v76 étape 3 : mode 3 sur un PDF vectoriel (EVRARD) — aucun nettoyage d'image (règle : pas de prétraitement raster d'un PDF lisible), textes de chaque tuile pris dans le PDF et donnés à l'IA", async () => {
+    const n0 = seen.length;
     await ev(() => okteoExt.aiModes.open());
     await page.click('#ai-modes .am-card[data-mode="3"]'); await page.click("#am-go");
     await page.waitForSelector("#ai-ok", { timeout: 300000 });
     const req = seen.slice(n0).filter((r) => r.url === "/v1/messages");
     const tiles = req.filter((r) => Array.isArray(r.body.system) && r.body.messages.length === 1);
-    const two = tiles.map((r) => r.body.messages[0].content.filter((c) => c.type === "image"));
-    const differ = two.every((im) => im.length === 2 && im[0].source.data !== im[1].source.data);
-    const prompt = tiles.length ? tiles[0].body.messages[0].content.map((c) => c.text || "").join(" ") : "";
-    const ocrSeen = tiles.some((r) => /Textes lus dans la tuile/.test(r.body.messages[0].content.map((c) => c.text || "").join(" ")));
+    const one = tiles.every((r) => r.body.messages[0].content.filter((c) => c.type === "image").length === 1);
+    const prompts = tiles.map((r) => r.body.messages[0].content.map((c) => c.text || "").join(" "));
     const K = await ev(() => ({ cv: !!(window.cv && window.cv.Mat), txt: document.querySelector(".aicard").textContent }));
     await page.click("#ai-no");
-    const r = { tiles: tiles.length, differ, net: /NETTOYÉE/.test(prompt), ocrSeen, K, errs: errors.slice(errs0) };
-    if (!(tiles.length === 9 && differ && r.net && ocrSeen && K.cv && /nettoyée/.test(K.txt) && /textes lus \(OCR\)/.test(K.txt))) throw new Error(JSON.stringify(r));
+    const r = { tiles: tiles.length, one, pdfTxt: prompts.some((p) => /\(texte du PDF\)/.test(p)), net: prompts.some((p) => /NETTOYÉE/.test(p)), K: { cv: K.cv, txt: K.txt.slice(0, 260) } };
+    if (!(tiles.length === 9 && one && r.pdfTxt && !r.net && !K.cv && /PDF vectoriel/.test(K.txt) && /textes lus \(texte du PDF\)/.test(K.txt))) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("v76 étape 3 : chemin des scans (mode 3) — vrais OpenCV.js et Tesseract.js servis par /vendor : angle d'un plan incliné de 2° mesuré, copie nettoyée distincte de l'origine, texte lu par OCR", async () => {
+    const r = await ev(async () => {
+      const c = document.createElement("canvas"); c.width = 900; c.height = 650;
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, 900, 650);
+      g.save(); g.translate(450, 325); g.rotate(2 * Math.PI / 180); g.translate(-450, -325);
+      g.strokeStyle = "#222"; g.lineWidth = 6;
+      for (const y of [80, 560]) { g.beginPath(); g.moveTo(60, y); g.lineTo(840, y); g.stroke(); }
+      for (const x of [60, 450, 840]) { g.beginPath(); g.moveTo(x, 80); g.lineTo(x, 560); g.stroke(); }
+      g.lineWidth = 3; for (let y = 140; y < 520; y += 60) { g.beginPath(); g.moveTo(470, y); g.lineTo(820, y); g.stroke(); }
+      g.fillStyle = "#111"; g.font = "bold 46px Arial"; g.fillText("CUISINE", 120, 330); g.fillText("CHAMBRE", 520, 120);
+      g.restore();
+      const m = await import("/src/ext/ai-raster.js"), R = await m.createRaster();
+      const t0 = performance.now();
+      const P = await R.prepare({ canvas: c, data: c.toDataURL("image/jpeg", 0.9).split(",")[1], W: 900, H: 650 });
+      const out = { ok: R.ok, errors: R.errors, rot: P.rot, n: P.images.length, differ: P.images[0] !== P.images[1], cleaned: P.cleaned, words: P.ocr.map((w) => w.text + ":" + w.src), ms: Math.round(performance.now() - t0) };
+      await R.close();
+      return out;
+    });
+    if (!(r.ok && !r.errors.length && Math.abs(r.rot - 2) < 0.6 && r.n === 2 && r.differ && r.cleaned && r.words.some((w) => /CUISINE/i.test(w)))) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("v76 étape 4 : mode 4 « Analyse approfondie » — devis joint, seconde lecture complète, contrôle croisé avec les documents, liste d'écarts à vérifier", async () => {
