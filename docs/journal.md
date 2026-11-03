@@ -5,7 +5,8 @@
   restent lisibles). Le code-barre et l'en-tête imprimés sur la feuille ne changent pas.
 - `bande.html` : en-tête = boîte, niveau, sens du couvercle, modèle ; titre de l'onglet « Boîte LI01 — bande de câblage ».
 - Test smoke : le QR de la bande relu ne contient ni le nom, ni le client, ni le n° du chantier. Validation : run
-  41737217417 vert (smoke 193/193), branche `verification-bande` supprimée.
+  41737217417 vert (smoke 193/193). La branche `verification-bande` n'a pas pu être supprimée depuis la session
+  (refusé par le relais GitHub) : à supprimer à la main sur GitHub, comme `verification-charte-v73(-captures)`.
 
 ## 04/11/2026 — Vue 3D (3D-1 à 3D-8, 3D-10) fusionnée dans `main` (« go » de Kévin)
 
