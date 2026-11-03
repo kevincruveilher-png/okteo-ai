@@ -35,6 +35,10 @@ automatiques = réglage 0–3, 2 par défaut.
   (refus 403 du proxy) : vérification par le workflow TEMPORAIRE `.github/workflows/verification-v76.yml` sur la
   branche elle-même (à retirer avant fusion).
 - Non mesuré : rien de nouveau à mesurer à ce stade (le mode 1 est le flux v75) ; points durée / coût = niveaux relatifs.
+- Validation GitHub Actions run 41619410480 : `npm run check` vert (modes 6, murs 42, câblage 87, chantiers 176, MAILLARD 14,
+  smoke 179/179), `build:web` et `test:web` 14/14. Le test smoke « outil Liaison : clic sur une commande… » échouait par
+  moments (déjà avant v76, run 41547204988) : le clic visant la lumière tombait sur le trait de la liaison et faussait toute
+  la suite ; il cadre maintenant la vue sur la commande et sa lumière, puis remet la vue.
 
 ## 03/11/2026 — v75 (suite) : Sonnet pour la conversation, Opus pour l'analyse
 
