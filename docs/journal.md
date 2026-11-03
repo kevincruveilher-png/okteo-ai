@@ -31,6 +31,8 @@ nettoyage de la géométrie pour être propre sur de vrais plans).
 - Dépendance : `three` 0.169.0 (MIT). Workflow TEMPORAIRE `.github/workflows/verification-3d.yml` (complète le verrou
   npm) : à retirer avant fusion.
 - Banc local (sans npm) : rendu vérifié sur MAILLARD avec three.js r169 hors dépôt (aucune erreur, fiche au clic).
+- Validation : run 41717413720 vert (licences : three 0.169.0 MIT, 84 paquets permissifs ; v3d 26/26 dont EVRARD 35 murs,
+  83 volumes, 18 ouvertures sur 18 ; check complet dont smoke 186/186 ; build:web ; test:web 15/15).
 
 ## 03/11/2026 — v76 fusionnée dans `main` ; feuille de route 3D décidée
 
