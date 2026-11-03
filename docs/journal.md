@@ -1,3 +1,37 @@
+## 03/11/2026 — 3D-1 visionneuse 3D + 3D-2 géométrie propre (branche `feat/3d-1-visionneuse`, pas encore dans `main`)
+
+« GO 3d1 ET 2 » de Kévin. Les deux mises à jour sont livrées ensemble sur la même branche (la visionneuse a besoin du
+nettoyage de la géométrie pour être propre sur de vrais plans).
+- `src/3d/plan3d.js` (pur, sans DOM ni three.js) : `H3D` (valeurs de départ : sous plafond 2,50, allège 0,90, linteau
+  2,15, porte 2,04, baie 2,15, garage 2,20, boîtes à 2,85 dans les combles ; réglables en 3D-3), `cleanPlan(data)`
+  (3D-2 : sommets à moins de 2 cm fusionnés, murs nuls retirés, murs en double gardés une fois, bout libre arrêté à moins
+  de 8 cm de la face d'un mur recollé en T ou en angle, murs qui se croisent sans sommet coupés, chevauchements et bouts
+  libres à moins de 30 cm signalés, ouvertures plus larges que leur mur ou qui se chevauchent signalées ;
+  `defects [{kind, level info|warn, text, x, y, ids}]`), `wallEnds` (onglets aux angles, coupes en T), `wallPrisms`
+  (un volume par morceau plein, allèges, linteaux, coupe « maison de poupée » ; coin d'onglet borné quand une ouverture
+  touche un angle), `openingParts` (vitrages, battants à 70° côté charnière / sens du dessin), `devicesOf` (appareil mural
+  plaqué contre la face de son mur, normale, hauteur du dessin ou valeur de départ `defH`, plafond pour LUM/SPOT…),
+  `prismIssues` (contrôle des volumes), `planBounds`. Le dessin n'est JAMAIS modifié : le nettoyage ne sert qu'au rendu.
+- `src/3d/scene.js` : `buildHouse(THREE, {plan, rooms, devices, boxes}, {cut, contrast})` (three.js passé en paramètre) :
+  murs contrastés (façade pierre, cloison gris bleuté, doublage, plinthe 8 cm, faces orientées, bas assombri), dessus des
+  murs bleu nuit, arêtes, sols par pièce (pièces d'eau en gris-vert), noms de pièces, appareils à leur hauteur colorés par
+  circuit, boîtes `LIxx` dans les combles ; `setCut(h)`, `pick` (clic), `dispose`.
+- `src/ext/vue3d.js` : onglet « 3D » (`#tabs button[data-tab="vue3d"]`, page `#vue3d`, Alt+4, catalogue `vue.3d`, étape
+  de la visite : 28 étapes) ; `planData(api)` lit `api.state` + `exportGeometry()` sans rien modifier ; three.js 0.169.0
+  (MIT) chargé à la première ouverture ; vues Ensemble / Dessus, coupe 0,90–2,50 m, calques (murs contrastés, appareils,
+  boîtes) ; clic sur un appareil → fiche (repère, pièce, hauteur, « valeur de départ ») + « Voir sur le plan »
+  (`api.select` + `api.zoomTo`) ; reconstruction sur `okteo:saved` / `okteo:level` quand l'onglet est ouvert ; boucle
+  d'affichage arrêtée quand l'onglet est caché. 3D-2 : liste repliable « points de géométrie » (⚠ à vérifier / ⓘ corrigé
+  pour la 3D), un clic sélectionne les murs concernés sur le plan ; pièce au contour hors du bâtiment = pas de sol, signalée.
+- Tests : `scripts/v3d.test.mjs` (dans `npm run check`) : cas d'école (jonction à 4 cm, mur en double, 2 croisements,
+  muret à 20 cm, fenêtre trop large, porte contre l'angle) + MAILLARD (dessin du BE, 22 ouvertures, 77 appareils muraux)
+  + relevés IA MAILLARD et PASQUIER + EVRARD (murs relevés dans le PDF, si pdf.js installé) : aucun volume faux, coupe à
+  1 m. Les 4 chantiers FTZ n'ont pas de murs (positions schématiques, fonds scannés) : non testés en 3D. Smoke : 2 tests
+  (onglet 3D, fiche, « Voir sur le plan », coupe ; défaut signalé et cliquable).
+- Dépendance : `three` 0.169.0 (MIT). Workflow TEMPORAIRE `.github/workflows/verification-3d.yml` (complète le verrou
+  npm) : à retirer avant fusion.
+- Banc local (sans npm) : rendu vérifié sur MAILLARD avec three.js r169 hors dépôt (aucune erreur, fiche au clic).
+
 ## 03/11/2026 — v76 fusionnée dans `main` ; feuille de route 3D décidée
 
 - « go v76 » de Kévin : branche `feat/analyse-ia-modes-v76` fusionnée dans `main` (avance rapide, aucun changement de

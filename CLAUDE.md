@@ -257,7 +257,7 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `controlKinds`, `okteo.essai` {press, reset, lit, off, breaker, testAll}, `setEssai(on)`. Préférence `halos`.
   Ext : `controle-ui.js` (compteur `#ctl`, `go/next`, `controlSection` en tête du panneau Câblage), `essai-ui.js`
   (`.essai-card`), packs-ui `openMenu/applyPack` (événement `okteo:pack-menu` envoyé par le bouton `data-h="pack"`
-  du HUD pièce ; Maj+P ; `.pk-menu`). `exportGeometry().rooms[].id`. Visite : 27 étapes (v64).
+  du HUD pièce ; Maj+P ; `.pk-menu`). `exportGeometry().rooms[].id`. Visite : 28 étapes (3D-1).
   v45.1 : `linkTables` ne compte que les vraies commandes et suit les chaînes de lumières ; alertes `int2`, `nobox` ;
   quadrillage `layers.grille.on=false` par défaut (drapeau `g451` dans les données enregistrées).
 - v46 : `src/cablage/tableau.js` (pur : `MODELS` Resi9, `autoTableau(circuits, {model, area})`, `syncTableau`,
@@ -405,7 +405,7 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `PIEUVRE_TABS`, bouton `data-tab="boites"` libellé « Pieuvre », `K.pieuvreSub` ; index.html `#pg-pieuvre` (`.pgroup`) +
   `#subtabs [data-sub]` + sections boites/bandes/lignes ; tests : `goSub(sub)` dans smoke.mjs (jamais
   `#tabs button[data-tab="bandes"]`). Câblage : `#cb-circ` (details, `circOpen` = clic sur le titre seulement), boîtes en
-  premier quand il y en a, aides `.info[title]`. Visite : 27 étapes.
+  premier quand il y en a, aides `.info[title]`. Visite : 28 étapes (3D-1).
 - v64.1 : ai-plan.js `method(first)` (Méthode obligatoire : définition, légende, quarts, décompte) dans `promptBody(coords,
   first)`, `METHOD_PASTE(page)`, `MIN_REF_W` 3 000 (ai-releve : alerte « basse définition » au collage).
 - v66 : tableau.js `nbIdCommuns(n)` (max(2, ceil(n/8)), R-127), `idCalibre(cs)` / `idCalibreMin` (R-124, `isHeavy`),
@@ -423,7 +423,7 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (42 vérifications : relevé des murs, des pièces et des
-appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (87 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (14 : chantier de référence MAILLARD comparé au BE) + `scripts/smoke.mjs` (171 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
+appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (87 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (14 : chantier de référence MAILLARD comparé au BE) + `scripts/v3d.test.mjs` (vue 3D) + `scripts/smoke.mjs` (171 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
 pour chaque nouvelle fonction importante. Ne pas annoncer une fonction comme faite sans l'avoir vue marcher.
 
 ## Travail à deux (GitHub)
@@ -496,6 +496,14 @@ colonnes `config.analysis_model/analysis_input_price/analysis_output_price` (cr�
 - Tests : `scripts/ai-modes.test.mjs` (pur) + smoke (écran, modes 1 à 4, scan réel OpenCV/OCR, recommandation, escalade).
   Les workflows temporaires `verification-v76.yml` / `raster-v76.yml` ont été retirés à la fusion ; pour revérifier, en
   recréer un sur une branche `verification-…` (voir journal v76).
+
+### Vue 3D 3D-1 / 3D-2 (branche `feat/3d-1-visionneuse`, pas encore dans `main`)
+- `src/3d/plan3d.js` (pur : `H3D`, `cleanPlan` → défauts, `wallEnds`, `wallPrisms`, `openingParts`, `devicesOf`,
+  `prismIssues`) ; `src/3d/scene.js` (`buildHouse(THREE, …)`, three.js passé en paramètre) ; `src/ext/vue3d.js`
+  (onglet `vue3d`, Alt+4, `okteoExt.pages.vue3d.ui.state`, three.js 0.169.0 chargé à la demande, couleurs gérées par
+  three ≥ r152 : `colorSpace`, intensités × π ; couleurs des sommets converties à la main). Le dessin n'est jamais modifié
+  par la 3D. Feuille de route 3D (11 MAJ, toutes avant l'essai chantier) : journal du 03/11/2026. Tests :
+  `scripts/v3d.test.mjs` + smoke. Workflow TEMPORAIRE `verification-3d.yml` à retirer avant fusion.
 
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,
