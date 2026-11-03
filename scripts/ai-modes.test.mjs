@@ -4,6 +4,7 @@ import { MODES_IA, MODES_PAGE, modeOf, dossierRef, dotsLabel, launchState, cycle
 import { chooseGrid, tileGrid, fitSize, regionMap, toMeters, toPixels, unrotate, parseZooms, tileToDevices, mergeReadings, ecartsCount, tilePrompt, tileRules } from "../src/walls/ai-tiles.js";
 import { analysesOf, callCost, newAnalyseId, fmtUsd, fmtMs, addUsage, tinOf } from "../src/walls/ai-journal.js";
 import { ANALYSE_MODEL, ANALYSE_PRICE } from "../src/ai-config.js";
+import { mergeOcr } from "../src/ext/ai-raster.js";
 
 let n = 0;
 const t = (name, fn) => { fn(); n++; console.log("✓ " + name); };
@@ -100,6 +101,10 @@ t("repères conservés : pixel de tuile → mètres = pixel de source → mètre
   const r = unrotate(300, 200, 2.5, 1000, 700), rr = unrotate(r.u, r.v, -2.5, 1000, 700);
   assert.ok(Math.abs(rr.u - 300) < 1e-9 && Math.abs(rr.v - 200) < 1e-9);
   assert.deepEqual(unrotate(10, 20, 0, 100, 100), { u: 10, v: 20 });
+  // convention OpenCV : +90° = un quart de tour dans le sens inverse des aiguilles ; le point à droite du centre passe en
+  // haut ; ramené, il revient à droite
+  const back90 = unrotate(500, 250, 90, 1000, 700);
+  assert.ok(Math.abs(back90.u - 600) < 1e-9 && Math.abs(back90.v - 350) < 1e-9);
 });
 t("zooms demandés : bornés à la tuile, taille minimale, plafond", () => {
   const z = parseZooms({ zooms: [{ x: -20, y: 5, w: 10, h: 10, pourquoi: "petit" }, { x: 900, y: 600, w: 400, h: 400 }, { x: 1, y: 1, w: 50, h: 50 }, { x: "a" }] }, 1000, 700, { max: 2 });
@@ -135,5 +140,11 @@ t("consignes des tuiles : pixels de la tuile, zooms bornés, OCR et image nettoy
   assert.match(R, /PIXELS de l'image de la tuile/); assert.match(R, /3 au plus/); assert.match(R, /N'invente rien/);
   const P = tilePrompt({ r: 0, c: 1 }, { n: 2, total: 12, W: 1500, H: 1000, cmPerPx: 0.4, ocr: [{ text: "LL", x: 10, y: 20, conf: 91, src: "orig" }], cleaned: true });
   assert.match(P, /Tuile 2\/12 \(ligne 1, colonne 2\)/); assert.match(P, /image de 1500 × 1000 pixels/); assert.match(P, /NETTOYÉE/); assert.match(P, /"LL" en \(10, 20\) · 91 %/);
+});
+t("OCR (mode 3) : lectures d'origine et nettoyée comparées, confiance faible écartée", () => {
+  const o = [{ text: "LL", x: 10, y: 10, conf: 80 }, { text: "Cuisine", x: 200, y: 50, conf: 70 }, { text: "~", x: 1, y: 1, conf: 90 }, { text: "32A", x: 400, y: 80, conf: 20 }];
+  const n = [{ text: "ll", x: 14, y: 12, conf: 92 }, { text: "LV", x: 300, y: 60, conf: 75 }];
+  const M = mergeOcr(o, n);
+  assert.deepEqual(M.map((w) => [w.text, w.src, w.conf]), [["LL", "both", 92], ["LV", "net", 75], ["Cuisine", "orig", 70]]);
 });
 console.log(`${n}/${n} vérifications (modes d'analyse IA, journal)`);

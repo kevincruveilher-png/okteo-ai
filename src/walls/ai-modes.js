@@ -18,7 +18,7 @@ export const MODES_IA = [
     reco: "plans denses, A3 chargés, petits symboles, plans où un oubli serait difficile à repérer à la main.",
   },
   {
-    n: 3, id: "degrade", title: "Plan dégradé", pts: 3, ready: false, cycles: 3,
+    n: 3, id: "degrade", title: "Plan dégradé", pts: 3, ready: true, cycles: 3,
     hook: "Pour les scans difficiles.",
     desc: "Reprend l'analyse renforcée et ajoute un nettoyage de l'image (redressement, contraste, réduction du bruit) ainsi qu'une lecture dédiée des textes : noms de pièces, repères, annotations. L'image d'origine est toujours conservée pour comparaison.",
     reco: "scans inclinés, peu contrastés, bruités, ou annotés à la main.",

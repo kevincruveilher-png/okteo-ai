@@ -9,3 +9,4 @@ scripts/derniere-capture.png
 .dev.vars.*
 .wrangler/
 wrangler.local.jsonc
+public/vendor/

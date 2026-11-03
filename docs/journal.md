@@ -1,3 +1,28 @@
+## 03/11/2026 — v76 étape 3 : mode 3 « Plan dégradé » (OpenCV.js, Tesseract.js)
+
+Branche `feat/analyse-ia-modes-v76`. Étape 2 validée : GitHub Actions run 41623306045 (smoke 180/180, test:web 15/15).
+- Dépendances (licences vérifiées automatiquement à chaque vérification par `scripts/licences.mjs`, ajouté à `npm run
+  check` : toute dépendance livrée doit être MIT, Apache-2.0 ou BSD ; ISC / 0BSD signalés comme équivalents ; AGPL / GPL /
+  licence commerciale et Scribe.js refusés) : `tesseract.js` 5.1.1 (Apache-2.0, avec `tesseract.js-core`),
+  `@tesseract.js-data/fra` 1.0.0 (données tessdata, Apache-2.0), `@techstark/opencv-js` 4.10.0-release.1 (OpenCV, Apache-2.0).
+  Le verrou npm est complété par la vérification GitHub (npm refusé dans la session de développement).
+- `scripts/vendor-ia.mjs` (`npm run vendor`, lancé par dev / build / build:web / check) : copie OpenCV.js, le worker et
+  le moteur Tesseract, `fra.traineddata.gz` et leurs licences dans `public/vendor/` (non versionné) : servis par
+  okteo-ai.pages.dev, jamais par un CDN. Worker : CSP `'wasm-unsafe-eval'`, `/vendor/*` gardé un jour.
+- `src/ext/ai-raster.js` : `loadCv` (attend `cv.Mat`, jamais `await cv`), `skewAngle` (médiane des longs traits ±5°),
+  `cleanTile` (redressement si ≥ 0,3°, CLAHE 2,0, médian 3 × 3 ; aucun seuillage ni érosion), `mergeOcr` (pur : même
+  texte à 15 px = « both », confiance < 30 % écartée), `createRaster()` → `prepare(R)` → {images : ORIGINE puis
+  NETTOYÉE, rot, ocr (positions dans l'image nettoyée), cleaned}. OCR (PSM 11, texte épars) sur l'origine ET la copie.
+  OpenCV absent → image d'origine seule + OCR, signalé dans le journal.
+- ai-modes-run.js : mode 3 raster = OpenCV + OCR par tuile ; mode 3 sur PDF vectoriel = pas de nettoyage, textes de la
+  tuile pris dans le PDF (`chantierTexts`, unités de page × s0). Points de Claude sur l'image redressée ramenés dans
+  l'image d'origine (`unrotate`, convention OpenCV vérifiée par un test) avant la conversion en mètres. Journal :
+  `nettoyees`, `ocrMots`, angle ; « Refaire » relance le même mode (`aiReleve.setAgain`).
+- Tests : ai-modes.test.mjs 16 (+ OCR comparé, convention de rotation) ; smoke mode 3 sur le plan EVRARD (raster) avec
+  le vrai OpenCV.js et le vrai Tesseract.js.
+- Non mesuré : gain sur de vrais scans dégradés (inclinés, bruités) et temps de l'OCR selon le PC ; CSP avec OpenCV.js
+  à vérifier sur la version de test Cloudflare (les tests tournent sous Vite, sans la CSP du Worker).
+
 ## 03/11/2026 — v76 étape 2 : mode 2 « Analyse renforcée » (tuiles, zoom à la demande, cache de prompt)
 
 Branche `feat/analyse-ia-modes-v76` (« go » de Kévin pour les étapes 2, 3, 4 à la suite). Écran des modes : cartes du

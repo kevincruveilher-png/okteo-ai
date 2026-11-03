@@ -19,6 +19,7 @@ import { chooseGrid, tileGrid, tileRules, tilePrompt, zoomPrompt, parseZooms, ti
 import { addUsage, tinOf, fmtMs } from "../walls/ai-journal.js";
 import { planSource } from "./ai-render.js";
 import { pref } from "../prefs.js";
+import { chantierTexts } from "./pdf-page.js";
 import { esc } from "./util.js";
 
 const ZOOM_PER_TILE = 3;
@@ -66,6 +67,13 @@ export function createModeRunner({ api, aiReleve }) {
     const map = R.map, cmPerPx = map.sx * 100;
     let images = [img(R.data)], rot = 0, ocr = null, cleaned = false;
     if (ctx.raster) { const P = await ctx.raster.prepare(R, { tile }); images = P.images.map(img); rot = P.rot || 0; ocr = P.ocr; cleaned = P.cleaned; if (P.cleaned) log.nettoyees++; log.ocrMots += (ocr || []).length; }
+    // mode 3 sur un PDF vectoriel : pas de nettoyage (inutile et nuisible) ; textes de la tuile lus dans le PDF lui-même
+    else if (ctx.pdfTexts) {
+      const kx = R.W / R.region.w, ky = R.H / R.region.h;
+      ocr = ctx.pdfTexts.map((t) => ({ text: t.str, u: t.x * S.s0, v: t.y * S.s0 })).filter((t) => t.u >= R.region.x && t.u <= R.region.x + R.region.w && t.v >= R.region.y && t.v <= R.region.y + R.region.h)
+        .map((t) => ({ text: String(t.text).trim(), x: (t.u - R.region.x) * kx, y: (t.v - R.region.y) * ky, conf: 100, src: "pdf" })).filter((t) => t.text);
+      log.ocrMots += ocr.length;
+    }
     const system = [cache(txt(AI_SYSTEM + "\n\n" + tileRules({ zoomMax: ZOOM_PER_TILE })))];
     const first = [...images, cache(txt(tilePrompt(tile, { n, total, W: R.W, H: R.H, cmPerPx, ocr, cleaned })))];
     const r1 = await call(log, "tuile", { system, messages: [{ role: "user", blocks: first }], maxTokens: 6000 }, { tuile: n });
@@ -87,21 +95,28 @@ export function createModeRunner({ api, aiReleve }) {
     return { ...D, src: `tuile ${n}`, core: { x0: Math.min(a.x, b.x), y0: Math.min(a.y, b.y), x1: Math.max(a.x, b.x), y1: Math.max(a.y, b.y) }, text, ocr };
   }
 
+  let lastOpts = {};
   async function run(mode, opts = {}) {
     if (running) return null;
+    lastOpts = opts;
     const ok = await aiReleve.prepare({ needClaude: true });
     if (!ok) return null;
     running = true; stopped = false; aiReleve.setBusy(true);
     const t0 = performance.now(), log = { usages: [], appels: [], zooms: 0, zoomList: [], retries: 0, nettoyees: 0, ocrMots: 0 };
     const st = { mode, step: "préparation du plan…", done: 0, total: 0, zooms: 0, ko: 0 };
     const job = aiReleve.attente.start({ title: `L'IA étudie votre plan (mode ${mode})` });
-    let okEnd = false;
+    let okEnd = false, ctxRef = null;
     try {
       progress(st);
       const S = await planSource(api);
       const raster = S.kind === "raster";
-      const ctx = { zoomsLeft: Math.max(0, +pref("zoomsIA") || 0), raster: null };
-      if (mode >= 3 && raster) { ext3 = ext3 || await import("./ai-raster.js"); ctx.raster = await ext3.createRaster(); }
+      const ctx = { zoomsLeft: Math.max(0, +pref("zoomsIA") || 0), raster: null, pdfTexts: null };
+      ctxRef = ctx;
+      if (mode >= 3 && raster) {
+        st.step = "chargement du nettoyage d'image et de l'OCR…"; progress(st);
+        ext3 = ext3 || await import("./ai-raster.js"); ctx.raster = await ext3.createRaster();
+        log.rasterErr = ctx.raster.errors.slice();
+      } else if (mode >= 3 && S.page) ctx.pdfTexts = await chantierTexts(api).catch(() => null);
       // 1. lecture globale (celle du mode 1)
       st.step = "lecture globale du plan…"; progress(st);
       const G = await aiReleve.fondImage({});
@@ -137,7 +152,7 @@ export function createModeRunner({ api, aiReleve }) {
       const usage = addUsage(log.usages), ms = Math.round(performance.now() - t0), n = ecartsCount(M.ecarts);
       const info = `Claude · Opus 5.5 · mode ${mode} · ${fmtMs(ms)} · ${log.appels.length} appels · ${S.kind === "vector" ? "PDF vectoriel rendu en haute définition" : "pixels du plan (scan ou image)"} · ${grid.cols} × ${grid.rows} tuiles${st.ko ? ` (${st.ko} en échec)` : ""} · ${log.zooms} zooms`;
       const plan = { ...P0, devices: M.devices, links: M.links, ecarts: M.ecarts, docEcarts,
-        journal: { info: `${tiles.length - st.ko} tuiles lues sur ${tiles.length}${st.ko ? ` — ${st.ko} tuile(s) non lue(s) : ces zones n'ont eu que la lecture globale` : ""}${log.nettoyees ? ` · ${log.nettoyees} tuile(s) nettoyée(s), ${log.ocrMots} mots lus par OCR` : ""}${second ? " · seconde lecture complète faite" : ""}.`,
+        journal: { info: `${tiles.length - st.ko} tuiles lues sur ${tiles.length}${st.ko ? ` — ${st.ko} tuile(s) non lue(s) : ces zones n'ont eu que la lecture globale` : ""}${log.nettoyees ? ` · ${log.nettoyees} tuile(s) nettoyée(s) (image d'origine gardée)${ctxRef && ctxRef.raster && ctxRef.raster.angle ? `, plan redressé de ${ctxRef.raster.angle.toFixed(1).replace(".", ",")}°` : ""}` : ""}${log.ocrMots ? ` · ${log.ocrMots} textes lus (${ctxRef && ctxRef.pdfTexts ? "texte du PDF" : "OCR"})` : ""}${log.rasterErr && log.rasterErr.length ? ` · ⚠ ${log.rasterErr.join(" ; ")}` : ""}${second ? " · seconde lecture complète faite" : ""}.`,
           zones: tiles.length - st.ko, zooms: log.zooms, tuilesKo: st.ko, grille: `${grid.cols}x${grid.rows}`, source: S.kind, ocrMots: log.ocrMots, nettoyees: log.nettoyees, ecartsN: M.ecarts.length, secondeLecture: !!second,
           docs: docEcarts ? (docEcarts.off ? "désactivé" : docEcarts.sources) : null, appels: log.appels } };
       last = { mode, ms, usage, ecarts: n, tiles: tiles.length, ko: st.ko, zooms: log.zooms, zoomList: log.zoomList, appels: log.appels.length };
@@ -147,7 +162,8 @@ export function createModeRunner({ api, aiReleve }) {
     } catch (e) {
       aiReleve.message(e.message === "arrêtée" ? "Analyse arrêtée : rien n'a été ajouté au plan." : "L'analyse IA a échoué : " + esc(e.message || String(e)), [{ label: "Fermer", run: () => {} }]);
       return null;
-    } finally { aiReleve.attente.finish(job, okEnd); running = false; aiReleve.setBusy(false); }
+    } finally { aiReleve.attente.finish(job, okEnd); running = false; aiReleve.setBusy(false); if (ctxRef && ctxRef.raster) ctxRef.raster.close(); }
   }
+  aiReleve.setAgain((m) => run(m, lastOpts));
   return { run, stop: () => { stopped = true; }, get running() { return running; }, get last() { return last; } };
 }

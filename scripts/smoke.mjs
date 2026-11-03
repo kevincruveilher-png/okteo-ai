@@ -713,9 +713,9 @@ try {
     // un clic sur Lancer sans choix ne fait rien (aria-disabled : Playwright refuse le clic sans force)
     await page.click("#am-go", { force: true });
     const still = await ev(() => okteoExt.aiModes.visible && okteoExt.aiModes.launched == null);
-    // mode 3 choisi : coche + aria-pressed, mais pas encore lançable
-    await page.click('#ai-modes .am-card[data-mode="3"]');
-    const b = await ev(() => { const el = document.getElementById("ai-modes"); return { p3: el.querySelector('.am-card[data-mode="3"]').getAttribute("aria-pressed"), p1: el.querySelector('.am-card[data-mode="1"]').getAttribute("aria-pressed"), sel: el.querySelector('.am-card[data-mode="3"]').classList.contains("sel"), dis: el.querySelector("#am-go").getAttribute("aria-disabled"), label: el.querySelector("#am-go").textContent }; });
+    // mode 4 choisi : coche + aria-pressed, mais pas encore lançable (étape 4)
+    await page.click('#ai-modes .am-card[data-mode="4"]');
+    const b = await ev(() => { const el = document.getElementById("ai-modes"); return { p3: el.querySelector('.am-card[data-mode="4"]').getAttribute("aria-pressed"), p1: el.querySelector('.am-card[data-mode="1"]').getAttribute("aria-pressed"), sel: el.querySelector('.am-card[data-mode="4"]').classList.contains("sel"), dis: el.querySelector("#am-go").getAttribute("aria-disabled"), label: el.querySelector("#am-go").textContent }; });
     await page.click('#ai-modes .am-card[data-mode="1"]');
     const c = await ev(() => { const el = document.getElementById("ai-modes"); return { dis: el.querySelector("#am-go").getAttribute("aria-disabled"), label: el.querySelector("#am-go").textContent }; });
     await page.keyboard.press("Escape");
@@ -781,6 +781,23 @@ try {
     if (!(r.glob === 1 && r.tiles === 9 && r.zooms === 1 && sysCached && imgs && r.model && P.dev === 5 && inTopLeft && P.rj.src.includes("tuile 1") && P.ec.includes("ajout") && P.card && /écart/.test(P.info)
       && J.mode === 2 && J.zones === 9 && J.zooms === 1 && J.cw > 0 && J.cr > 0 && J.appels === 11 && J.grille === "3x3" && J.ecarts >= 1 && J.usd > 0
       && undone.segs === before.segs && undone.rooms === before.rooms && undone.app === before.app)) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("v76 étape 3 : mode 3 « Plan dégradé » sur un plan raster — OpenCV.js et Tesseract.js servis par /vendor, image d'origine + copie nettoyée par tuile, textes lus (OCR) donnés à l'IA, journal", async () => {
+    const n0 = seen.length, errs0 = errors.length;
+    await ev(() => okteoExt.aiModes.open());
+    await page.click('#ai-modes .am-card[data-mode="3"]'); await page.click("#am-go");
+    await page.waitForSelector("#ai-ok", { timeout: 300000 });
+    const req = seen.slice(n0).filter((r) => r.url === "/v1/messages");
+    const tiles = req.filter((r) => Array.isArray(r.body.system) && r.body.messages.length === 1);
+    const two = tiles.map((r) => r.body.messages[0].content.filter((c) => c.type === "image"));
+    const differ = two.every((im) => im.length === 2 && im[0].source.data !== im[1].source.data);
+    const prompt = tiles.length ? tiles[0].body.messages[0].content.map((c) => c.text || "").join(" ") : "";
+    const ocrSeen = tiles.some((r) => /Textes lus dans la tuile/.test(r.body.messages[0].content.map((c) => c.text || "").join(" ")));
+    const K = await ev(() => ({ cv: !!(window.cv && window.cv.Mat), txt: document.querySelector(".aicard").textContent }));
+    await page.click("#ai-no");
+    const r = { tiles: tiles.length, differ, net: /NETTOYÉE/.test(prompt), ocrSeen, K, errs: errors.slice(errs0) };
+    if (!(tiles.length === 9 && differ && r.net && ocrSeen && K.cv && /nettoyée/.test(K.txt) && /textes lus \(OCR\)/.test(K.txt))) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("v64.1 : consigne du relevé avec méthode imposée (200 dpi, légende, quarts, décompte) ; image de moins de 3 000 px signalée au collage", async () => {

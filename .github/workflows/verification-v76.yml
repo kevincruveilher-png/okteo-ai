@@ -2,7 +2,7 @@
 # À retirer avant toute fusion dans main.
 name: verification-analyse-ia-modes-v76
 on: { push: { branches: ["feat/analyse-ia-modes-v76"] } }
-permissions: { contents: read }
+permissions: { contents: write }
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -11,7 +11,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - run: npm ci
+      # v76 étape 3 : nouvelles dépendances (OpenCV.js, Tesseract.js) : le verrou npm est complété ici puis enregistré
+      # sur la branche (pas de npm dans la session de développement). Un push fait par le jeton du workflow ne relance pas
+      # de vérification.
+      - run: npm install --no-audit --no-fund
+      - name: verrou npm enregistré s'il a changé
+        run: |
+          if ! git diff --quiet package-lock.json; then
+            git config user.name ci && git config user.email ci@example.invalid
+            git add package-lock.json && git commit -qm "v76 : verrou npm (OpenCV.js, Tesseract.js) complété par la vérification"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
+      - run: npm run licences
       - run: npx playwright install --with-deps chromium
       - run: mkdir -p shots && node scripts/shots-v76.mjs
       - uses: actions/upload-artifact@v4

@@ -60,7 +60,7 @@ export function createAiReleve({ api, openParams }) {
   card.className = "wcard aicard"; card.hidden = true; card.setAttribute("role", "dialog"); card.setAttribute("aria-label", "Relevé par l'IA");
   document.querySelector(".stage").appendChild(card);
   // v76 : run = analyse en cours { id, mode } (journal)
-  let lastMode = "", lastUsage = null, lastMs = 0, run = null;   // v57 : "key" (relevé envoyé à l'IA) ou "paste" (réponse collée) : décide de la relecture automatique
+  let lastMode = "", lastUsage = null, lastMs = 0, run = null, again = null;   // v57 : "key" (relevé envoyé à l'IA) ou "paste" (réponse collée) : décide de la relecture automatique
   let busy = false, plan = null, rooms = [], meta = "", keep = { walls: true, rooms: true, devices: true }, lastImage = null, lastText = "";
 
   const close = () => { card.hidden = true; api.setPreview(null); plan = null; };
@@ -105,7 +105,8 @@ export function createAiReleve({ api, openParams }) {
       <details class="sm"><summary>Réponse brute de l'IA</summary><pre class="ai-raw">${esc(lastText.slice(0, 4000))}</pre></details>`);
     card.querySelectorAll("[data-k]").forEach((el) => (el.onchange = () => { keep[el.dataset.k] = el.checked; preview(); render(); }));
     card.querySelector("#ai-no").onclick = close;
-    card.querySelector("#ai-again").onclick = () => { close(); open(); };
+    // v76 : « Refaire » relance le même mode (modes 2 à 4 par ai-modes-run.js)
+    card.querySelector("#ai-again").onclick = () => { close(); if (run && run.mode > 1 && again) again(run.mode); else open(); };
     card.querySelector("#ai-ok").onclick = add;
     // v76 : « Voir » un écart = zoom sur sa position (l'aperçu orange reste affiché)
     card.querySelectorAll("[data-ex]").forEach((b) => (b.onclick = () => { const x = +b.dataset.ex, y = +b.dataset.ey; api.zoomToBox(x - 1.5, y - 1.5, x + 1.5, y + 1.5); }));
@@ -257,5 +258,5 @@ export function createAiReleve({ api, openParams }) {
 
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !card.hidden) close(); });
   let copied = "";
-  return { attente, open, close, fromText, fromPaste, pastePanel, pastePrompt, get copied() { return copied; }, fondImage: (o) => fondImage(api, o), get plan() { return plan; }, get lastImage() { return lastImage; }, get run() { return run; }, fromPlan, prepare, show, message, setBusy: (v) => { busy = !!v; }, get busy() { return busy; } };
+  return { attente, open, close, fromText, fromPaste, pastePanel, pastePrompt, get copied() { return copied; }, fondImage: (o) => fondImage(api, o), get plan() { return plan; }, get lastImage() { return lastImage; }, get run() { return run; }, fromPlan, prepare, show, message, setAgain: (f) => { again = f; }, setBusy: (v) => { busy = !!v; }, get busy() { return busy; } };
 }

@@ -4,11 +4,11 @@
   "private": true,
   "description": "OktÃ©o AI â€” logiciel de dessin pour bureau d'Ã©tudes de pieuvres Ã©lectriques (prototype navigateur)",
   "scripts": {
-    "dev": "vite --open",
-    "build": "vite build && node scripts/build-web.mjs",
+    "dev": "node scripts/vendor-ia.mjs && vite --open",
+    "build": "node scripts/vendor-ia.mjs && vite build && node scripts/build-web.mjs",
     "preview": "vite preview",
     "deploy": "node scripts/deploy.mjs",
-    "check": "node scripts/syntax.mjs && node scripts/ai-modes.test.mjs && node scripts/charte.test.mjs && node scripts/micro.test.mjs && node scripts/vmc-comparaison.test.mjs && node scripts/equipements.test.mjs && node scripts/ai-reading.test.mjs && node scripts/symbols.test.mjs && node scripts/regles-library.test.mjs && node scripts/walls.test.mjs && node scripts/cablage.test.mjs && node scripts/chantiers.test.mjs && node scripts/maillard.test.mjs && node scripts/smoke.mjs",
+    "check": "node scripts/syntax.mjs && node scripts/licences.mjs && node scripts/vendor-ia.mjs && node scripts/ai-modes.test.mjs && node scripts/charte.test.mjs && node scripts/micro.test.mjs && node scripts/vmc-comparaison.test.mjs && node scripts/equipements.test.mjs && node scripts/ai-reading.test.mjs && node scripts/symbols.test.mjs && node scripts/regles-library.test.mjs && node scripts/walls.test.mjs && node scripts/cablage.test.mjs && node scripts/chantiers.test.mjs && node scripts/maillard.test.mjs && node scripts/smoke.mjs",
     "test:murs": "node scripts/walls.test.mjs",
     "regles": "node scripts/regles-import.mjs",
     "test:symboles": "node scripts/symbols.test.mjs",
@@ -20,9 +20,11 @@
     "test:vmc": "node scripts/vmc-comparaison.test.mjs",
     "test:vmc:navigateur": "node scripts/vmc-comparaison.test.mjs --browser",
     "test:plan:navigateur": "node scripts/plan-style.browser.mjs",
-    "build:web": "vite build --mode enterprise && node scripts/build-web.mjs",
+    "build:web": "node scripts/vendor-ia.mjs && vite build --mode enterprise && node scripts/build-web.mjs",
     "test:web": "node --test scripts/web.test.mjs",
-    "test:charte": "node scripts/charte.test.mjs"
+    "test:charte": "node scripts/charte.test.mjs",
+    "vendor": "node scripts/vendor-ia.mjs",
+    "licences": "node scripts/licences.mjs"
   },
   "devDependencies": {
     "fake-indexeddb": "^6.2.7",
@@ -31,10 +33,13 @@
   },
   "type": "module",
   "dependencies": {
+    "@techstark/opencv-js": "4.10.0-release.1",
+    "@tesseract.js-data/fra": "1.0.0",
     "jsbarcode": "3.11.6",
     "jspdf": "2.5.2",
     "pdf-lib": "1.17.1",
     "pdfjs-dist": "4.10.38",
-    "qrcode": "1.5.4"
+    "qrcode": "1.5.4",
+    "tesseract.js": "5.1.1"
   }
 }

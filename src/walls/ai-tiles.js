@@ -43,11 +43,12 @@ export function regionMap(srcMap, region, W, H) {
 export const toMeters = (map, u, v) => ({ x: map.x0 + u * map.sx, y: map.y0 + v * map.sy });
 export const toPixels = (map, x, y) => ({ u: (x - map.x0) / map.sx, v: (y - map.y0) / map.sy });
 
-// v76 étape 3 : image redressée de `deg` degrés autour de son centre (OpenCV) : un point lu sur l'image redressée est
-// ramené dans l'image d'origine avant toute conversion, pour ne jamais déplacer les repères ni les liaisons
+// v76 étape 3 : image redressée de `deg` degrés autour de son centre (OpenCV getRotationMatrix2D : angle positif = sens
+// inverse des aiguilles à l'écran, y vers le bas) : un point lu sur l'image redressée est ramené dans l'image d'origine
+// (rotation inverse) avant toute conversion, pour ne jamais déplacer les repères ni les liaisons
 export function unrotate(u, v, deg, W, H) {
   if (!deg) return { u, v };
-  const a = -deg * Math.PI / 180, cx = W / 2, cy = H / 2, dx = u - cx, dy = v - cy;
+  const a = deg * Math.PI / 180, cx = W / 2, cy = H / 2, dx = u - cx, dy = v - cy;
   return { u: cx + dx * Math.cos(a) - dy * Math.sin(a), v: cy + dx * Math.sin(a) + dy * Math.cos(a) };
 }
 
@@ -78,8 +79,8 @@ Réponds UNIQUEMENT avec ce JSON (sans texte autour) :
 export function tilePrompt(tile, { n, total, W, H, cmPerPx, ocr = null, cleaned = false }) {
   return `Tuile ${n}/${total} (ligne ${tile.r + 1}, colonne ${tile.c + 1}) : image de ${W} × ${H} pixels ; 1 pixel ≈ ${cmPerPx.toFixed(2)} cm.${cleaned ? `
 Deux images : d'abord l'image D'ORIGINE, puis une copie NETTOYÉE (contraste, bruit, redressement) pour t'aider à lire. Les coordonnées se donnent sur l'image NETTOYÉE ; en cas de doute, l'image d'origine fait foi (un nettoyage peut abîmer un petit symbole).` : ""}${ocr && ocr.length ? `
-Textes lus par OCR dans la tuile (aide seulement, l'OCR peut se tromper ; positions en pixels de l'image ${cleaned ? "nettoyée" : ""}, confiance en %) :
-${ocr.slice(0, 120).map((w) => `- "${w.text}" en (${Math.round(w.x)}, ${Math.round(w.y)}) · ${Math.round(w.conf)} %${w.src === "orig" ? " (image d'origine)" : w.src === "net" ? " (image nettoyée)" : ""}`).join("\n")}` : ""}`;
+Textes lus dans la tuile (OCR de l'image, ou texte du PDF ; aide seulement, l'OCR peut se tromper ; positions en pixels de l'image${cleaned ? " nettoyée" : ""}, confiance en %) :
+${ocr.slice(0, 120).map((w) => `- "${w.text}" en (${Math.round(w.x)}, ${Math.round(w.y)}) · ${Math.round(w.conf)} %${w.src === "orig" ? " (image d'origine)" : w.src === "net" ? " (image nettoyée)" : w.src === "pdf" ? " (texte du PDF)" : ""}`).join("\n")}` : ""}`;
 }
 // réponse à des zooms : les images suivent, dans l'ordre des demandes
 export function zoomPrompt(zs) {
