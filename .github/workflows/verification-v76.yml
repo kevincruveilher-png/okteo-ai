@@ -29,5 +29,9 @@ jobs:
         if: always()
         with: { name: captures-v76, path: shots, retention-days: 7 }
       - run: npm run check
+        timeout-minutes: 40
       - run: npm run build:web
       - run: npm run test:web
+      # chemin des scans du mode 3 (vrais OpenCV.js / Tesseract.js), à part et borné : ne peut plus bloquer la suite
+      - run: node scripts/raster.browser.mjs
+        timeout-minutes: 8

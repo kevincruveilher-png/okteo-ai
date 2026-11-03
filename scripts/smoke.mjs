@@ -100,9 +100,20 @@ page.on("pageerror", (e) => errors.push(e.message));
 
 let ok = 0;
 const fails = [];
+// v76 : chaque vérification a une limite de temps imposée depuis Node (une page figée ne peut plus bloquer toute la
+// suite) ; après un dépassement, la page est rechargée pour que les vérifications suivantes puissent tourner
+const CHECK_MS = 6 * 60000;
 async function check(name, fn) {
-  try { const r = await fn(); if (r === false) throw new Error("condition fausse"); ok++; console.log("  ✓ " + name); }
-  catch (e) { fails.push(name + " : " + e.message); console.log("  ✗ " + name + " : " + e.message); }
+  let t = 0;
+  try {
+    const r = await Promise.race([fn(), new Promise((_, no) => { t = setTimeout(() => no(new Error(`délai de ${CHECK_MS / 60000} min dépassé`)), CHECK_MS); })]);
+    if (r === false) throw new Error("condition fausse"); ok++; console.log("  ✓ " + name);
+  }
+  catch (e) {
+    fails.push(name + " : " + e.message); console.log("  ✗ " + name + " : " + e.message);
+    if (/délai de .* dépassé/.test(e.message)) await page.reload({ timeout: 60000 }).then(() => page.waitForFunction(() => window.okteo && window.okteoExt, null, { timeout: 60000 })).catch(() => {});
+  }
+  finally { clearTimeout(t); }
 }
 const ev = (f, a) => page.evaluate(f, a);
 // v64 : Boîtes, Bandes et Lignes directes sont des sous-onglets de l'onglet « Pieuvre »
@@ -817,30 +828,7 @@ try {
     if (!(tiles.length === 9 && one && r.pdfTxt && !r.net && !K.cv && /PDF vectoriel/.test(K.txt) && /textes lus \(texte du PDF\)/.test(K.txt))) throw new Error(JSON.stringify(r));
     return true;
   });
-  await check("v76 étape 3 : chemin des scans (mode 3) — vrais OpenCV.js et Tesseract.js servis par /vendor : angle d'un plan incliné de 2° mesuré, copie nettoyée distincte de l'origine, texte lu par OCR", async () => {
-    const r = await ev(async () => {
-      const c = document.createElement("canvas"); c.width = 900; c.height = 650;
-      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, 900, 650);
-      g.save(); g.translate(450, 325); g.rotate(2 * Math.PI / 180); g.translate(-450, -325);
-      g.strokeStyle = "#222"; g.lineWidth = 6;
-      for (const y of [80, 560]) { g.beginPath(); g.moveTo(60, y); g.lineTo(840, y); g.stroke(); }
-      for (const x of [60, 450, 840]) { g.beginPath(); g.moveTo(x, 80); g.lineTo(x, 560); g.stroke(); }
-      g.lineWidth = 3; for (let y = 140; y < 520; y += 60) { g.beginPath(); g.moveTo(470, y); g.lineTo(820, y); g.stroke(); }
-      g.fillStyle = "#111"; g.font = "bold 46px Arial"; g.fillText("CUISINE", 120, 330); g.fillText("CHAMBRE", 520, 120);
-      g.restore();
-      const m = await import("/src/ext/ai-raster.js");
-      // jamais bloquant : 4 min au plus pour tout le test, avec l'étape en cours si ça dépasse
-      const guard = (p) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("bloqué à l'étape : " + m.rasterState.stage)), 240000))]);
-      const R = await guard(m.createRaster());
-      const t0 = performance.now();
-      const P = await guard(R.prepare({ canvas: c, data: c.toDataURL("image/jpeg", 0.9).split(",")[1], W: 900, H: 650 }));
-      const out = { ok: R.ok, errors: R.errors, rot: P.rot, n: P.images.length, differ: P.images[0] !== P.images[1], cleaned: P.cleaned, words: P.ocr.map((w) => w.text + ":" + w.src), ms: Math.round(performance.now() - t0) };
-      await R.close();
-      return out;
-    });
-    if (!(r.ok && !r.errors.length && Math.abs(r.rot - 2) < 0.6 && r.n === 2 && r.differ && r.cleaned && r.words.some((w) => /CUISINE/i.test(w)))) throw new Error(JSON.stringify(r));
-    return true;
-  });
+  // v76 : le chemin des scans (vrais OpenCV.js et Tesseract.js) est vérifié à part : scripts/raster.browser.mjs
   await check("v76 étape 4 : mode 4 « Analyse approfondie » — devis joint, seconde lecture complète, contrôle croisé avec les documents, liste d'écarts à vérifier", async () => {
     const n0 = seen.length;
     await ev(() => okteoExt.aiModes.open());

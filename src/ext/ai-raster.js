@@ -16,6 +16,7 @@ const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
 export const rasterState = { stage: "" };
 function within(p, ms, what) {
   rasterState.stage = what;
+  console.info("[okteo mode 3] " + what);   // visible dans la console (et dans les vérifications automatiques)
   let t = 0;
   return Promise.race([p, new Promise((_, no) => { t = setTimeout(() => no(new Error(what + " : délai dépassé (" + Math.round(ms / 1000) + " s)")), ms); })]).finally(() => clearTimeout(t));
 }
