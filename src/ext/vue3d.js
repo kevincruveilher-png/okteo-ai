@@ -147,8 +147,10 @@ export function mountVue3d(el, { api }) {
     if (S3.levels === "tous" && L.length > 1 && curI >= 0) {
       const DALLE = 0.25, built = L.map((l, i) => {
         if (i === curI) return { id: l.id, name: l.name, P, plan, devs, top: topMax };
-        const P2 = api.inLevel(l.id, () => planData(api)), plan2 = cleanPlan(P2.data, undefined, P2.H);
-        return { id: l.id, name: l.name, P: P2, plan: plan2, devs: devicesOf(P2.apps, P2.data, P2.H), top: Math.max(P2.H.plafond, ...plan2.walls.map((w) => w.top || 0)) };
+        try {
+          const P2 = api.inLevel(l.id, () => planData(api)), plan2 = cleanPlan(P2.data, undefined, P2.H);
+          return { id: l.id, name: l.name, P: P2, plan: plan2, devs: devicesOf(P2.apps, P2.data, P2.H), top: Math.max(P2.H.plafond, ...plan2.walls.map((w) => w.top || 0)) };
+        } catch (e) { S3.lvErr = l.name + " : " + (e && e.message || e); console.warn("niveau en 3D :", e); return { id: l.id, name: l.name, P: null, plan: { walls: [] }, devs: [], top: P.H.plafond }; }
       });
       const off = [0]; for (let i = 1; i < built.length; i++) off[i] = off[i - 1] + built[i - 1].top + DALLE;
       built.forEach((b, i) => {
@@ -236,7 +238,7 @@ export function mountVue3d(el, { api }) {
   el.querySelectorAll("[data-lvm]").forEach((b) => (b.onclick = () => {
     S3.levels = b.dataset.lvm;
     el.querySelectorAll("[data-lvm]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-    build(true);
+    build(true).catch((e) => { S3.lvErr = String(e && e.stack || e); msg.hidden = false; msg.textContent = "Niveaux en 3D : " + (e && e.message || e); });
   }));
   $(".v3d-cut").oninput = (e) => { S3.cut = +e.target.value; S3.cutSet = S3.cut < +e.target.max - 1e-6; $(".v3d-cutv").textContent = fr(S3.cut) + " m"; if (S3.house) S3.house.setCut(S3.cut); };
   el.querySelectorAll("[data-l]").forEach((c) => (c.onchange = () => {

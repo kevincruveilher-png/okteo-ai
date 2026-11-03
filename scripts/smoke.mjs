@@ -2845,9 +2845,10 @@ try {
     const lumId = await ev((c) => { const id = okteo.importDevices([{ t: "LUM", x: 2, y: 2 }], [], { stay: true }).ids[0]; okteo.state.lia.push({ c, l: id }); okteo.markDirty(); return id; }, intId);
     await ev((l) => okteo.switchLevel(l), lv0);
     await ev(() => okteo.setTab("vue3d"));
-    await page.waitForFunction(() => okteoExt.pages.vue3d.ui.state.house && !document.querySelector(".v3d-lvs").hidden, null, { timeout: 20000 });
+    const diag = async (what) => what + " : " + JSON.stringify(await ev(() => { const S3 = okteoExt.pages.vue3d.ui.state; return { house: !!S3.house, lvs: document.querySelector(".v3d-lvs").hidden, levels: okteo.levels, mode: S3.levels, others: (S3.others || []).length, err: S3.lvErr || null, msg: document.querySelector(".v3d-msg").textContent, gen: S3.gen }; }));
+    try { await page.waitForFunction(() => okteoExt.pages.vue3d.ui.state.house && !document.querySelector(".v3d-lvs").hidden, null, { timeout: 20000 }); } catch { throw new Error(await diag("bascule absente")); }
     await page.click('.v3d-lvs [data-lvm="tous"]');
-    await page.waitForFunction(() => (okteoExt.pages.vue3d.ui.state.others || []).length === 1, null, { timeout: 20000 });
+    try { await page.waitForFunction(() => (okteoExt.pages.vue3d.ui.state.others || []).length === 1, null, { timeout: 20000 }); } catch { throw new Error(await diag("étage non empilé")); }
     const r = await ev((ids) => { const S3 = okteoExt.pages.vue3d.ui.state, o = S3.others[0]; return { y: o.y, walls: o.house.walls.children.filter((m) => m.isMesh && m.userData.wall).length, devs: o.devs.map((d) => d.id), links: S3.vlinks ? S3.vlinks.children.map((l) => l.userData.link) : [], ground: S3.ground.position.y, note: document.querySelector(".v3d-note").textContent }; }, [intId, lumId]);
     await page.click('.v3d-lvs [data-lvm="ouvert"]');
     await page.waitForFunction(() => (okteoExt.pages.vue3d.ui.state.others || []).length === 0, null, { timeout: 20000 });
