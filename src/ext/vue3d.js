@@ -124,7 +124,7 @@ export function mountVue3d(el, { api }) {
     house.devices.visible = $('[data-l="devices"]').checked; house.boxes.visible = $('[data-l="boxes"]').checked;
     scene.add(house.group);
     // 3D-5 : gaines de la pieuvre du niveau (calcul du câblage : mêmes n° et longueurs que sur les bandes)
-    S3.gList = [];
+    S3.gList = []; S3.gErr = null;
     try {
       const W = (api.cab.circuits || []).length && (api.cab.boxes || []).some((b) => b.lv === api.level.id) ? wiringNow(api) : null;
       const byDev = new Map(devs.map((d) => [d.id, d])), tabDev = devs.find((d) => d.t === "TAB");
@@ -141,7 +141,7 @@ export function mountVue3d(el, { api }) {
           S3.gList.push({ id: b.id + "|" + g.id, boxId: b.id, box: b.n, no: g.no, label: g.label, length: g.length, diam: g.diam, sol: !!g.sol, keys, pts, L3: L, color: col });
         }
       }
-    } catch (e) { console.warn("gaines 3D :", e); }
+    } catch (e) { S3.gErr = String(e && e.message || e); console.warn("gaines 3D :", e); }
     const { buildGaines } = await import("../3d/scene.js");
     S3.gaines = buildGaines(T, S3.gList, { xray: $('[data-l="xray"]').checked });
     S3.gaines.group.visible = $('[data-l="gaines"]').checked;
