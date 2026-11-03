@@ -7,6 +7,7 @@
 //   Une suppression demande TOUJOURS une confirmation, quoi que dise l'IA.
 // - sans clé : recherche locale dans la liste des fonctions.
 
+import { createMicro } from "./micro.js";
 import { chat, PROVIDERS } from "./ai.js";
 import { settings } from "./settings.js";
 import { planSummary, planImage } from "./plan-data.js";
@@ -87,7 +88,8 @@ export function createAssistant(el, { api, getCatalog, openParams }) {
       <button class="as-an" title="Envoyer l'image du plan et ses données à l'IA">📐 Analyser le plan</button>
       <button class="as-clear" title="Effacer la conversation">🗑</button></div>
     <div class="as-msgs" aria-live="polite"></div>
-    <form class="as-in"><textarea rows="2" placeholder="Votre question… (Entrée pour envoyer, Maj+Entrée pour aller à la ligne)"></textarea><button class="on" type="submit">Envoyer</button></form>`;
+    <p class="as-mic-msg mut sm" hidden></p>
+    <form class="as-in"><textarea rows="2" placeholder="Votre question… (Entrée pour envoyer, Maj+Entrée pour aller à la ligne)"></textarea><button type="button" class="as-mic" aria-pressed="false">🎤</button><button class="on" type="submit">Envoyer</button></form>`;
   const msgsEl = el.querySelector(".as-msgs"), ta = el.querySelector("textarea"), form = el.querySelector("form"), provEl = el.querySelector(".as-prov");
 
   const save = () => { hist = hist.slice(-MAX_KEEP); storeSet(KEY, hist.map(({ image, ...m }) => (image ? { ...m, hadImage: true } : m))); };
@@ -249,7 +251,37 @@ export function createAssistant(el, { api, getCatalog, openParams }) {
     await ask(ANALYSE_PROMPT, { image, show: "📐 Analyse le plan (oublis, éclairage, prises, ce qui reste à dessiner)" });
   }
 
-  form.onsubmit = (e) => { e.preventDefault(); const t = ta.value; ta.value = ""; ask(t); };
+  // v75 : dictée au micro (Alt+V) : le texte entendu s'écrit dans la zone de saisie ; finir par « envoie » l'envoie
+  const micBtn = el.querySelector(".as-mic"), micMsg = el.querySelector(".as-mic-msg"), PH = ta.placeholder;
+  let micBase = "";
+  const micSay = (m) => { micMsg.textContent = m; micMsg.hidden = !m; };
+  const micro = createMicro({
+    onText: (t, fin) => {
+      const send = fin && /(?:^|\s)(envoie|envoyer|envoyez)[.!]?$/i.test(t);
+      const txt = send ? t.replace(/[\s,]*(envoie|envoyer|envoyez)[.!]?$/i, "") : t;
+      ta.value = (micBase + (micBase && txt ? " " : "") + txt).trimStart();
+      if (send) { micro.stop(); if (ta.value.trim()) form.requestSubmit(); }
+    },
+    onState: (st, m) => {
+      const on = st === "ecoute";
+      micBtn.classList.toggle("rec", on); micBtn.setAttribute("aria-pressed", on ? "true" : "false");
+      ta.placeholder = on ? "Je vous écoute… (parlez, puis recliquez sur 🎤 ou dites « envoie »)" : PH;
+      if (on) micSay(""); else if (m) micSay(m);
+    },
+  });
+  micBtn.title = micro.supported
+    ? "Dicter la question au micro (Alt+V). Recliquez pour arrêter ; terminez par « envoie » pour l'envoyer directement. La parole est reconnue par le navigateur."
+    : "Dictée indisponible dans ce navigateur : utilisez Chrome ou Edge.";
+  if (!micro.supported) micBtn.disabled = true;
+  const micToggle = () => {
+    if (!micro.supported) { micSay(micBtn.title); return false; }
+    if (!micro.active) { micBase = ta.value.trim(); ta.focus(); }
+    return micro.toggle();
+  };
+  micBtn.onclick = micToggle;
+  ta.addEventListener("keydown", (e) => { if (e.key === "Escape" && micro.active) { e.preventDefault(); e.stopPropagation(); micro.stop(); } });
+
+  form.onsubmit = (e) => { e.preventDefault(); if (micro.active) micro.stop(); const t = ta.value; ta.value = ""; micSay(""); ask(t); };
   ta.onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } };
   el.querySelector(".as-an").onclick = analyse;
   el.querySelector(".as-clear").onclick = () => { hist = []; save(); render(); };
@@ -257,5 +289,5 @@ export function createAssistant(el, { api, getCatalog, openParams }) {
   paintProv(); render();
   // texte préparé dans la zone de saisie (ex. « Règle R-001 : … » depuis le journal des règles)
   const prefill = (t) => { ta.value = t; ta.focus(); ta.setSelectionRange(t.length, t.length); };
-  return { ask, analyse, prefill, focus: () => ta.focus(), get history() { return hist; } };
+  return { ask, analyse, prefill, focus: () => ta.focus(), get history() { return hist; }, micro, dictate: micToggle };
 }

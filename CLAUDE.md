@@ -469,6 +469,10 @@ MAJ 3 : `src/cablage/volumes.js` (sanitaires BAIG / RECV / DITAL = appareils san
 MAJ 4-5 : `src/print/ftz-symbols.js` (`boxColor`, `ftzSymbol`, `plaques`), préférence `charteBE` (symboles FTZ à l'écran
 `g.ftz`, gaines couleur de boîte), `drawPlan(..., {ftzSyms})`, PMR (`meta.pmr`, `hDefault`, `api.setPmr`).
 
+### Micro de l'assistant v75
+`src/ext/micro.js` (`createMicro`, Web Speech API fr-FR) ; assistant `.as-mic` / `.as-mic-msg`, « envoie » = envoi, Alt+V
+(`hooks.dictate`), catalogue `ai.dictee`. Test `scripts/micro.test.mjs`.
+
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,
 sessions, budget Claude (D1, `migrations/0001_enterprise.sql`), relais Claude avec réservation atomique.

@@ -38,6 +38,7 @@ function start() {
 
   const hooks = {
     openAssistant: () => { panel.show("assistant"); assistant?.focus(); },
+    dictate: () => { panel.show("assistant"); assistant?.dictate(); },
     analyse: () => { panel.show("assistant"); assistant?.analyse(); },
     openPalette: () => palette?.open(),
     detectWalls: () => walls.open(),
@@ -144,6 +145,8 @@ function start() {
     const typing = /input|select|textarea/i.test(e.target.tagName);
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); palette.isOpen ? palette.close() : palette.open(); return; }
     if (e.key === "F1") { e.preventDefault(); palette.open(); return; }
+    // v75 : Alt+V = dicter une question à l'assistant (même pendant la saisie)
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.code === "KeyV" || e.key.toLowerCase() === "v")) { e.preventDefault(); hooks.dictate(); return; }
     if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === "?") { e.preventDefault(); palette.open(); return; }
     if (e.key.toLowerCase() === "a" && !palette.isOpen) { e.preventDefault(); hooks.openAssistant(); }
