@@ -1,3 +1,22 @@
+## 04/11/2026 — Q-111 « distance depuis l'angle » à trancher avec Thibaut ; QR de la bande sans nom dans `main`
+
+- Décision de Kévin (00:19) : la règle actuelle de distance « depuis l'angle » (`a.wa`, demi-épaisseur la plus grosse du
+  sommet retirée, même d'un mur dans le prolongement) est CONSERVÉE ; question Q-111 ouverte dans
+  `docs/journal-regles-cablage.md` (« à trancher avec Thibaut »), historique H-046, `npm run regles` relancé
+  (111 questions, 46 entrées d'historique). Aucun code du cœur modifié.
+- Branche `feat/bande-qr-sans-nom` fusionnée dans `main` (« go » de Kévin) : QR de la bande sans pavillonneur, chantier
+  ni n° d'affaire (run 41737217417 vert).
+
+## 04/11/2026 — QR de la bande de boîte sans aucun nom (branche `feat/bande-qr-sans-nom`)
+
+- Demande de Kévin : aucun nom dans un QR code. `bande-code.js` `packSheet` : pavillonneur, nom du chantier, n° d'affaire
+  et code de la boîte (qui contient le n° d'affaire) ne sont plus mis dans le QR (places gardées vides : les anciens QR
+  restent lisibles). Le code-barre et l'en-tête imprimés sur la feuille ne changent pas.
+- `bande.html` : en-tête = boîte, niveau, sens du couvercle, modèle ; titre de l'onglet « Boîte LI01 — bande de câblage ».
+- Test smoke : le QR de la bande relu ne contient ni le nom, ni le client, ni le n° du chantier. Validation : run
+  41737217417 vert (smoke 193/193). La branche `verification-bande` n'a pas pu être supprimée depuis la session
+  (refusé par le relais GitHub) : à supprimer à la main sur GitHub, comme `verification-charte-v73(-captures)`.
+
 ## 04/11/2026 — Vue 3D (3D-1 à 3D-8, 3D-10) fusionnée dans `main` (« go » de Kévin)
 
 - Branche `feat/3d-1-visionneuse` fusionnée dans `main` ; workflow temporaire `verification-3d.yml` retiré. Dernière

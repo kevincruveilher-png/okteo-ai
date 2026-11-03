@@ -1722,8 +1722,10 @@ try {
     await p2.click(".steps > li:first-child input"); await p2.reload(); await p2.waitForSelector(".steps > li");
     const kept = await p2.evaluate(() => document.querySelector(".steps > li:first-child input").checked && /1 \/ /.test(document.querySelector(".prog").textContent));
     await p2.close();
-    const ok = url.startsWith("https://okteo-ai.pages.dev/bande.html#b=") && r.h1.includes(bn) && r.steps === steps && r.ord === steps && r.svg && r.tr === 4 && r.wide && kept;
-    if (!ok) throw new Error(JSON.stringify({ len: url.length, steps, bn, r, kept }));
+    // 04/11/2026 : aucun nom dans le QR (pavillonneur, chantier, n° d'affaire)
+    const noName = await ev(async (u) => { const j = JSON.stringify(await (await import("/src/cablage/bande-code.js")).decodeSheet(u.split("#b=")[1])), c = okteo.ch || {}; return ![c.nom, c.client, c.numero].some((x) => x && x.length > 2 && j.includes(x)); }, url);
+    const ok = noName && url.startsWith("https://okteo-ai.pages.dev/bande.html#b=") && r.h1.includes(bn) && r.steps === steps && r.ord === steps && r.svg && r.tr === 4 && r.wide && kept;
+    if (!ok) throw new Error(JSON.stringify({ noName, len: url.length, steps, bn, r, kept }));
     return true;
   });
   await check("impression des schémas : une feuille par boîte + raccordements à cocher, texte lisible (PDF relu)", async () => {

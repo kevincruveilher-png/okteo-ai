@@ -20,12 +20,12 @@ async function main() {
   const KEY = "okteo.bande." + (H.code || H.box) + "." + m[1].length + m[1].slice(-12);
   let done = new Set(); try { done = new Set(JSON.parse(localStorage.getItem(KEY) || "[]")); } catch { /* */ }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify([...done])); } catch { /* */ } };
-  document.title = `${H.box} — ${H.nom}`;
+  document.title = `Boîte ${H.box} — bande de câblage`;
   el.innerHTML = `
     <header class="hd">
-      <div><small>Pavillonneur</small><b>${esc(H.client || "—")}</b><small>Chantier</small><b>${esc(H.nom)}</b></div>
+      <div><small>Boîte</small><b>${esc(H.box)}</b><small>Niveau</small><b>${esc(H.level || "—")}</b></div>
       <div class="tab">${arrow(D.tabAng)}<span>TABLEAU</span></div>
-      <div class="r"><small>N° d'affaire</small><b>${esc(H.numero || "—")}</b><small>${esc(H.level)}</small></div>
+      <div class="r"><small>Couvercle</small><b>${esc(H.cover || "—")}</b><small>${esc(H.model || "")}</small></div>
     </header>
     <h1>Boîte ${esc(H.box)} <span>${esc(H.model)} · couvercle vers le ${esc(H.cover)}</span></h1>
     <div class="faces">${["A", "B", "C", "D"].map((f) => `<span><b>${f}</b> ${esc(D.sides[f] || "—")}</span>`).join("")}</div>

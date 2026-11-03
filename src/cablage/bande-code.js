@@ -17,7 +17,9 @@ export function packSheet(S, { labels = true } = {}) {
     x.slot ?? -1]);   // v60 : point d'accroche (ordre réel sur la face, tranches pour le perceur)
   return {
     v: 1,
-    h: [S.ch.client || "", S.ch.nom || "", S.ch.numero || "", S.box.n, S.level || "", S.cover || "haut", S.model || "", S.code || ""],
+    // 04/11/2026 (Kévin) : aucun nom dans un QR code : ni pavillonneur, ni chantier, ni n° d'affaire (le code-barre de la
+    // boîte contient le n° d'affaire : il reste imprimé sur la feuille, pas dans le QR). Places gardées vides (format v1).
+    h: ["", "", "", S.box.n, S.level || "", S.cover || "haut", S.model || "", ""],
     a: S.tabAng == null ? null : Math.round(S.tabAng * 100) / 100,
     s: ["A", "B", "C", "D"].map((f) => S.sides[f] || ""),
     c: colors,

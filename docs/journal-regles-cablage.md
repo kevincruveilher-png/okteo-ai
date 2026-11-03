@@ -1145,6 +1145,7 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | Q-108 | Disjoncteur de branchement fourni par Enedis en 30/60 A, et quelle puissance souscrite visée (9 ou 12 kVA) ? | 9 kVA, 45 A ; liaison 10 mm² au plus sur 22 m | ouverte |
 | Q-109 | Les télérupteurs ou minuteries sont-ils montés au tableau ou remplacés par de la domotique (Wiser, Netatmo) ? | Aucun par défaut, ajout manuel | ouverte |
 | Q-110 | Le volume box (240 × 300 × 200 mm) est-il intégré au coffret de communication ou fait-il l'objet d'un compartiment séparé dans la GTL ? | Intégré au coffret de communication | ouverte |
+| Q-111 | À trancher avec Thibaut : distance d'un appareil mural « depuis l'angle ». Quand un mur est dessiné en deux morceaux dans le prolongement l'un de l'autre, le logiciel retire aussi la demi-épaisseur du morceau voisin, comme s'il y avait un angle (MAILLARD : 43 appareils sur 77, écarts de 3 à 15 cm ; l'élévation 3D donne la vraie distance au coin de la face). Faut-il corriger la mesure (les appareils des plans existants bougeraient de quelques cm) ou la garder ? | Règle actuelle conservée (décision de Kévin, 04/11/2026), aucun appareil déplacé | ouverte |
 
 ## 6. Prochaine étape
 
@@ -1211,3 +1212,4 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 | H-044 | 29/10/2026 | R-050, R-101 à R-161, Q-89 à Q-110 | Création | Q-89 à Q-110 ouvertes | Règles d'implantation et de composition du tableau (NF C 15-100:2024) : référentiel, GTL, différentiels, protections, réserve, parafoudre, gestion d'énergie, étage et annexes ; toutes `a_valider` (`supposee` ou `inconnue`) | Recherche documentaire transmise par Kévin le 29/10/2026 (00:08) | IA (à valider par Kévin) | — |
 
 | H-045 | 29/10/2026 | R-144 | Correction du calcul | Capacité = modules occupés × 1,2 | Capacité minimale = arrondi supérieur(modules occupés / 0,8) ; modules libres ≥ arrondi supérieur(20 % de la capacité du coffret) | Correction mathématique pour conserver 20 % de la capacité totale libres, autorisée par Kévin (« go pour la correction »). Statut normatif inchangé | ChatGPT | — |
+| H-046 | 04/11/2026 | Q-111 | Création | — | Q-111 ouverte : distance « depuis l'angle » d'un appareil mural quand le mur est en deux morceaux dans le prolongement ; règle actuelle conservée | Décision de Kévin le 04/11/2026 (00:19) : « Conserve cette règle et ajoute cette règle à trancher avec Thibaut » | Claude | — |
