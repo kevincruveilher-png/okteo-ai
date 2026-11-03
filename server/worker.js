@@ -1,4 +1,5 @@
 import {random,hash,passwordHash,verify,validPassword,json,fail,body,cookie,identity,safeUser} from './security.js';
+import {ANALYSE_MODEL,ANALYSE_PRICE} from '../src/ai-config.js';
 // Fichiers produits par Vite : nom-HASH.js / nom-HASH.css (hash de 8 caractères).
 // v72.1 : un relevé complet par Claude dure souvent 5 à 10 min (journal, essais MAILLARD) : 3 min coupait l'appel.
 export const AI_TIMEOUT=900000;
@@ -101,8 +102,9 @@ export async function handle(request,env,ctx={waitUntil(){}}) {
   if(p==='/api/admin/config'&&request.method==='POST'){
    admin(u);const b=await body(request);if(!/^claude-[a-z0-9.-]{1,80}$/.test(b.model))fail(400,'Modèle invalide.');
    await run(db,'UPDATE config SET monthly_limit=?,concurrent_limit=?,model=?,input_price=?,output_price=? WHERE id=1',number(b.monthly_limit,0,10000000000),number(b.concurrent_limit,1,10),b.model,price(b.input_price),price(b.output_price));
-   // v75 : modèle de l'analyse (plan, relevé, relectures), colonnes ajoutées à la première sauvegarde
-   if(b.analysis_model!==undefined){if(!/^claude-[a-z0-9.-]{1,80}$/.test(b.analysis_model))fail(400,'Modèle d’analyse invalide.');await analysisColumns(db);await run(db,'UPDATE config SET analysis_model=?,analysis_input_price=?,analysis_output_price=? WHERE id=1',b.analysis_model,price(b.analysis_input_price),price(b.analysis_output_price));}
+   // v76 : modèle de l'analyse verrouillé (ANALYSE_MODEL) ; on n'enregistre que ses prix
+   if(b.analysis_model!==undefined&&b.analysis_model!==ANALYSE_MODEL)fail(400,'Modèle d’analyse verrouillé sur '+ANALYSE_MODEL+'.');
+   if(b.analysis_input_price!==undefined||b.analysis_output_price!==undefined){await analysisColumns(db);await run(db,'UPDATE config SET analysis_model=?,analysis_input_price=?,analysis_output_price=? WHERE id=1',ANALYSE_MODEL,price(b.analysis_input_price),price(b.analysis_output_price));}
    await audit(db,u,'budget-modele','config');return json({ok:true});
   }
   if(p==='/api/shared'){
@@ -139,16 +141,16 @@ export function validateShared(d){
  // Schema contains no plan/PDF/project attachment field. Do not accept generic uploaded documents.
  if(JSON.stringify(d).length>1500000)fail(413,'Bibliothèque trop volumineuse.');
 }
-// v75 : modèle et tarif de chaque usage. Analyse : colonnes analysis_* si l'administrateur les a réglées, sinon Opus 5.5
-// au tarif public (4 / 20 USD par million de tokens, novembre 2026).
-export const ANALYSIS_DEFAULT={model:'claude-opus-5-5',input_price:4,output_price:20};
+// v75 : modèle et tarif de chaque usage. v76 : l'analyse utilise toujours ANALYSE_MODEL (Opus 5.5, src/ai-config.js),
+// quelle que soit la colonne analysis_model ; seuls les prix de l'analyse restent réglables par l'administrateur.
+export const ANALYSIS_DEFAULT={model:ANALYSE_MODEL,input_price:ANALYSE_PRICE.input,output_price:ANALYSE_PRICE.output};
 export function pricing(c,purpose){
  if(purpose!=='analyse')return{purpose:'chat',model:c.model,input_price:c.input_price,output_price:c.output_price};
- return{purpose:'analyse',model:c.analysis_model||ANALYSIS_DEFAULT.model,input_price:c.analysis_input_price??ANALYSIS_DEFAULT.input_price,output_price:c.analysis_output_price??ANALYSIS_DEFAULT.output_price};
+ return{purpose:'analyse',model:ANALYSE_MODEL,input_price:c.analysis_input_price??ANALYSIS_DEFAULT.input_price,output_price:c.analysis_output_price??ANALYSIS_DEFAULT.output_price};
 }
 async function analysisColumns(db){
  const cols=(await db.prepare('PRAGMA table_info(config)').all()).results.map(r=>r.name);
- if(!cols.includes('analysis_model'))await run(db,"ALTER TABLE config ADD COLUMN analysis_model TEXT NOT NULL DEFAULT 'claude-opus-5-5'");
+ if(!cols.includes('analysis_model'))await run(db,"ALTER TABLE config ADD COLUMN analysis_model TEXT NOT NULL DEFAULT '"+ANALYSE_MODEL+"'");
  if(!cols.includes('analysis_input_price'))await run(db,'ALTER TABLE config ADD COLUMN analysis_input_price INTEGER NOT NULL DEFAULT 4');
  if(!cols.includes('analysis_output_price'))await run(db,'ALTER TABLE config ADD COLUMN analysis_output_price INTEGER NOT NULL DEFAULT 20');
 }

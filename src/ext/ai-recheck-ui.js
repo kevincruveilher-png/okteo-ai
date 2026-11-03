@@ -15,6 +15,7 @@ import { recheckPoints, recheckPrompt, parseCorrections, recheckReport, shouldCo
 import { findRooms, nameRooms, pointInPoly, labelPoint } from "../walls/rooms.js";
 import { pref } from "../prefs.js";
 import { esc } from "./util.js";
+import { callCost, analysesOf, fmtUsd, fmtMs } from "../walls/ai-journal.js";
 
 const SYSTEM = "Tu es dessinateur au bureau d'études électricité d'un fabricant de pieuvres électriques. Tu relis un plan déjà relevé, seulement aux points demandés, et tu réponds uniquement en JSON.";
 const TIMEOUT = 180000, MAX_ZOOM = 8, ZOOM_M = 4;
@@ -29,14 +30,14 @@ function saveReleve(api, lv, patch) {
   return all[lv];
 }
 // à l'ajout d'un relevé IA (ai-releve.js) : pièces nommées, ouvertures perdues, remarques, premier rapport
-export function recordReleve(api, plan, { mode = "", info = "", counts = {}, usage = null } = {}) {
+export function recordReleve(api, plan, { mode = "", info = "", counts = {}, usage = null, ms = 0, analyse = null } = {}) {
   return saveReleve(api, api.level.id, {
     date: new Date().toISOString(), mode, info, nope: [],
     pieces: (plan.pieces || []).map((p) => ({ name: p.name, x: +p.x.toFixed(3), y: +p.y.toFixed(3) })),
     lost: (plan.lost || []).map((o) => ({ x: +o.x.toFixed(3), y: +o.y.toFixed(3), w: o.w, kind: o.kind })),
     remarques: String(plan.remarques || ""),
     ...(plan.evidence ? { evidence: plan.evidence } : {}),
-    rapport: [{ type: "releve", date: new Date().toISOString(), info, counts, ...(usage ? { tin: usage.in, tout: usage.out, tokens: usage.in + usage.out } : {}) }],
+    rapport: [{ type: "releve", date: new Date().toISOString(), info, counts, ...(usage ? { tin: usage.in, tout: usage.out, tokens: usage.in + usage.out, usd: callCost(usage) } : {}), ...(ms ? { ms } : {}), ...(analyse ? { analyse: { id: analyse.id, mode: analyse.mode } } : {}) }],
   });
 }
 
@@ -50,6 +51,8 @@ export function createRecheck({ api, aiReleve }) {
   const close = () => { card.hidden = true; api.setPreview(null); corr = null; };
   const show = (html) => { card.innerHTML = `<div class="wcard-h"><b>✦ Relecture ciblée par l'IA</b><button class="wx" title="Fermer">✕</button></div>${html}`; card.hidden = false; card.querySelector(".wx").onclick = () => { if (running) stopped = true; close(); }; };
   const lv = () => api.level.id;
+  // v76 : analyse à laquelle rattacher les relectures (celle du relevé de ce niveau) pour le journal
+  const analyseId = () => { const R = (releveOf(api) || {}).rapport || [], r = R.find((x) => x.type === "releve"); return r && r.analyse ? r.analyse.id : null; };
   const page = () => (api.ch.fond && api.ch.fond.page) || 1;
 
   // contexte : appareils du niveau (hors pièce ?), contrôle, ouvertures, pièces non fermées, ouvertures perdues, remarques
@@ -169,7 +172,7 @@ export function createRecheck({ api, aiReleve }) {
       report = recheckReport(points, c, still);
       // jamais redemandés : introuvables, remarques reprises, ouvertures perdues posées
       const closed = [...c.nopeKeys.map((k) => k.key), ...report.rows.filter((r) => r.state === "corrigé" && /^(rem|perdue:)/.test(r.key)).map((r) => r.key)];
-      saveReleve(api, lv(), { nope: [...new Set([...(rel0.nope || []), ...closed])], rapport: [...(rel0.rapport || []), { type: "relecture", date: new Date().toISOString(), ...meta, total: report.total, ok: report.ok, pct: report.pct, rows: report.rows, evidence: c.evidence, errors: c.errors.slice(0, 10) }] });
+      saveReleve(api, lv(), { nope: [...new Set([...(rel0.nope || []), ...closed])], rapport: [...(rel0.rapport || []), { type: "relecture", date: new Date().toISOString(), ...meta, total: report.total, ok: report.ok, pct: report.pct, rows: report.rows, reste: still.size, ...(analyseId() ? { analyse: analyseId() } : {}), evidence: c.evidence, errors: c.errors.slice(0, 10) }] });
     });
     api.setPreview(null);
     lastReport = report;
@@ -242,7 +245,7 @@ export function createRecheck({ api, aiReleve }) {
         try { c = parse(res.text); } catch { log.why = "réponse de l'IA illisible"; break; }
         points.forEach((P) => done.add(P.key));
         const changed = c.count + c.nope.length + c.nopeKeys.length;
-        const { report } = apply(c, { via: "clé", model: res.model, ms: res.ms, tokens, tin: res.usage ? res.usage.in : 0, tout: res.usage ? res.usage.out : 0, zooms: Z.images.length });
+        const { report } = apply(c, { via: "clé", model: res.model, ms: res.ms, tokens, tin: res.usage ? res.usage.in : 0, tout: res.usage ? res.usage.out : 0, usd: callCost(res.usage), zooms: Z.images.length });
         log.fixed += report.ok; log.reports.push(report);
         // on continue s'il reste des points jamais demandés et que la relecture a corrigé quelque chose
         const rest = pointsNow().length;
@@ -291,11 +294,19 @@ export function reportHTML(api) {
     const cnt = first.counts || {};
     return `<div class="ia-rep">${api.levels.length > 1 ? `<h4>${esc(l.name)}</h4>` : ""}
       <p class="sm">Relevé du ${new Date(R.date).toLocaleString("fr-FR")}${first.info ? ` · ${esc(first.info)}` : ""}${cnt.appareils != null ? ` · ${cnt.murs || 0} murs, ${cnt.pieces || 0} pièces, ${cnt.appareils} appareils, ${cnt.liaisons || 0} liaisons` : ""}</p>
+      ${journalHTML(R)}
       ${rel.length ? `<p><b>Réussite des relectures : ${ok}/${tot} points corrigés (${tot ? Math.round(ok / tot * 100) : 0} %)</b> <span class="mut sm">sous réserve du contrôle BE</span></p>` : `<p class="mut sm">Aucune relecture pour l'instant.</p>`}
       ${rel.map((x, i) => `<details class="ia-pass"${i === rel.length - 1 ? " open" : ""}><summary>Relecture ${i + 1} · ${new Date(x.date).toLocaleString("fr-FR")} · ${x.via === "clé" ? `automatique${x.model ? " (" + esc(x.model) + ")" : ""}${x.tokens ? ` · ${x.tokens.toLocaleString("fr-FR")} jetons` : ""}${x.zooms ? ` · ${x.zooms} zooms` : ""}` : "copier / coller"} · <b>${x.ok}/${x.total} (${x.pct} %)</b></summary>
         <table class="gt ia-rows"><tbody>${(x.rows || []).map((r) => `<tr class="rk-${r.state === "corrigé" ? "ok" : r.state === "introuvable" ? "no" : "wait"}"><td><b>${esc(r.state)}</b></td><td>${esc(r.label)}</td><td class="mut">${esc(r.detail || "")}</td></tr>`).join("")}</tbody></table>
         ${(x.errors || []).length ? `<p class="warn sm">Réponse partiellement ignorée : ${esc(x.errors.join(" ; "))}</p>` : ""}</details>`).join("")}</div>`;
   }).join("");
+}
+// v76 : journal des analyses du niveau (mode, durée, tokens, coût estimé, alertes, écarts proposés)
+const MODE_NOM = { 1: "standard", 2: "renforcée", 3: "plan dégradé", 4: "approfondie" };
+function journalHTML(R) {
+  const A = analysesOf(R);
+  if (!A.length) return "";
+  return `<ul class="ia-journal sm">${A.map((a) => `<li><b>Mode ${a.mode ?? "?"}${MODE_NOM[a.mode] ? " · " + MODE_NOM[a.mode] : ""}</b> · ${a.appels} appel${a.appels > 1 ? "s" : ""} · ${fmtMs(a.ms)} · ${(a.tin + a.tout).toLocaleString("fr-FR")} tokens · ${a.usdConnu ? "≈ " + fmtUsd(a.usd) : "coût partiel"}${a.zones ? ` · ${a.zones} zones` : ""}${a.zooms ? ` · ${a.zooms} zooms` : ""}${a.alertes != null ? ` · alertes ${a.alertes} → ${a.reste ?? "?"}` : ""}${a.ecarts ? ` · ${a.ecarts} écart${a.ecarts > 1 ? "s" : ""} proposé${a.ecarts > 1 ? "s" : ""} (à valider)` : ""}</li>`).join("")}</ul>`;
 }
 // le même rapport en texte (copie, assistant)
 export function reportText(api) {

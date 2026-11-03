@@ -55,3 +55,13 @@ test('v75 : conversation = modèle de base (Sonnet), analyse = Opus au tarif d�
   const z2=await (await f.call('/ai/anthropic',{...msg,purpose:'analyse'},c)).json();assert(Math.abs(z2.okteo.cost-(1000*5+100*25)/1e6)<1e-9);
   assert.equal((await f.call('/api/admin/config',{monthly_limit:1,concurrent_limit:1,model:'claude-sonnet-5-5',input_price:2,output_price:10,analysis_model:'gpt-4',analysis_input_price:5,analysis_output_price:25},c)).status,400);
  }finally{globalThis.fetch=original;}});
+test('v76 : modèle de l’analyse verrouillé sur Opus 5.5 (src/ai-config.js) : refusé s’il diffère, ignoré même écrit en base ; prix de l’analyse toujours réglables',async()=>{const f=fixture(),c=await f.admin();const original=globalThis.fetch,seen=[];
+ globalThis.fetch=async(url,opts)=>{const b=JSON.parse(opts.body);if(url.endsWith('/count_tokens'))return Response.json({input_tokens:100});seen.push(b);return Response.json({content:[{type:'text',text:'OK'}],usage:{input_tokens:1000,output_tokens:100}});};
+ try{const {ANALYSE_MODEL}=await import('../src/ai-config.js');assert.equal(ANALYSE_MODEL,'claude-opus-5-5');
+  const base={monthly_limit:50000000,concurrent_limit:2,model:'claude-sonnet-5-5',input_price:2,output_price:10};
+  assert.equal((await f.call('/api/admin/config',{...base,analysis_model:'claude-haiku-5-5',analysis_input_price:5,analysis_output_price:25},c)).status,400);
+  assert.equal((await f.call('/api/admin/config',{...base,analysis_input_price:6,analysis_output_price:30},c)).status,200);
+  await f.env.DB.prepare("UPDATE config SET analysis_model='claude-haiku-5-5' WHERE id=1").run();
+  const z=await (await f.call('/ai/anthropic',{messages:[{role:'user',content:'Plan'}],max_tokens:200,purpose:'analyse'},c)).json();
+  assert.equal(seen.at(-1).model,'claude-opus-5-5');assert.equal(z.okteo.model,'claude-opus-5-5');assert(Math.abs(z.okteo.cost-(1000*6+100*30)/1e6)<1e-9);
+ }finally{globalThis.fetch=original;}});

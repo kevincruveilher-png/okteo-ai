@@ -4,7 +4,8 @@ import {recordInitial,readHistory,saveHistory} from "../web/history.js";
 // remis au propre (src/walls/ai-plan.js) et montrés en aperçu orange PAR-DESSUS le dessin actuel, pour comparer
 // avec le relevé sans IA. On coche ce qu'on garde (murs / pièces / appareils) : un seul Ctrl+Z annule l'ajout.
 import { AI_SYSTEM } from "../walls/ai-data.js";
-import { chat, PROVIDERS } from "./ai.js";
+import { chat, PROVIDERS, modelFor } from "./ai.js";
+import { newAnalyseId } from "../walls/ai-journal.js";
 import { settings } from "./settings.js";
 import { aiPrompt, pastePrompt, parseAiJson, aiToPlan, MIN_REF_W } from "../walls/ai-plan.js";
 import { findRooms, nameRooms, labelPoint, pointInPoly } from "../walls/rooms.js";
@@ -58,7 +59,8 @@ export function createAiReleve({ api, openParams }) {
   const card = document.createElement("div");
   card.className = "wcard aicard"; card.hidden = true; card.setAttribute("role", "dialog"); card.setAttribute("aria-label", "Relevé par l'IA");
   document.querySelector(".stage").appendChild(card);
-  let lastMode = "", lastUsage = null;   // v57 : "key" (relevé envoyé à l'IA) ou "paste" (réponse collée) : décide de la relecture automatique
+  // v76 : run = analyse en cours { id, mode } (journal)
+  let lastMode = "", lastUsage = null, lastMs = 0, run = null;   // v57 : "key" (relevé envoyé à l'IA) ou "paste" (réponse collée) : décide de la relecture automatique
   let busy = false, plan = null, rooms = [], meta = "", keep = { walls: true, rooms: true, devices: true }, lastImage = null, lastText = "";
 
   const close = () => { card.hidden = true; api.setPreview(null); plan = null; };
@@ -118,12 +120,12 @@ export function createAiReleve({ api, openParams }) {
       }
       if (keep.devices && plan.devices.length) { const r = api.importDevices(plan.devices, plan.links, { replace: true }); devAdded = true; done.push(`${r.appareils} appareils, ${r.liaisons} liaisons`); }
       // v61 : ce que la relecture ciblée et son rapport doivent savoir (pièces nommées, ouvertures perdues, remarques)
-      recordReleve(api, keep.walls ? plan : { ...plan, lost: [] }, { mode: lastMode, info: meta, usage: lastUsage, counts: { murs: keep.walls ? plan.walls.length : 0, ouvertures: keep.walls ? plan.openings.length : 0, pieces: plan.pieces.length, appareils: keep.devices ? plan.devices.length : 0, liaisons: keep.devices ? plan.links.length : 0 } });
+      recordReleve(api, keep.walls ? plan : { ...plan, lost: [] }, { mode: lastMode, info: meta, usage: lastUsage, ms: lastMs, analyse: run, counts: { murs: keep.walls ? plan.walls.length : 0, ouvertures: keep.walls ? plan.openings.length : 0, pieces: plan.pieces.length, appareils: keep.devices ? plan.devices.length : 0, liaisons: keep.devices ? plan.links.length : 0 } });
     });
     const h=readHistory(api.ch.id); if(!h.initialDrawing) {h.initialAI={raw:lastText,context:meta,mode:lastMode,at:new Date().toISOString()};h.initialDrawing=JSON.parse(api.packData().s);saveHistory(api.ch.id,h);}
     card.hidden = true; plan = null;
     api.setHint(`Relevé IA ajouté : ${done.join(", ") || "rien"}. Ctrl+Z annule tout l'ajout.`);
-    document.dispatchEvent(new CustomEvent("okteo:ai-releve", { detail: { done, devices: !!devAdded, mode: lastMode } }));
+    document.dispatchEvent(new CustomEvent("okteo:ai-releve", { detail: { done, devices: !!devAdded, mode: lastMode, analyse: run } }));
   }
 
   // réponse de l'IA (texte) → aperçu ; sert aussi aux tests (réponse préparée à l'avance)
@@ -154,7 +156,7 @@ export function createAiReleve({ api, openParams }) {
     const f2 = await api.levelFond(api.level.id), ref = raw.ref && raw.ref.W > 0 && raw.ref.H > 0 ? raw.ref : null;
     if (!ref) return message("Cette réponse n'indique pas la taille de l'image de référence (champ « ref »). Elle ne peut pas être placée sur le plan.", [{ label: "Fermer", run: () => {} }]);
     const map = { x0: f2.x, y0: f2.y, sx: f2.w / ref.W, sy: f2.h / ref.H };
-    lastMode = "paste"; lastUsage = null;
+    lastMode = "paste"; lastUsage = null; lastMs = 0; run = { id: newAnalyseId(), mode: 1 };
     // v64.1 : image trop petite = symboles de quelques pixels, appareils oubliés (essai MAILLARD : 1 654 px, 63 appareils sur 102)
     const low = Math.max(ref.W, ref.H) < MIN_REF_W ? ` · ⚠ image de ${ref.W} px seulement : relevé fait en basse définition, des appareils sont probablement oubliés (la consigne demande ${MIN_REF_W} px au moins : redemandez-le)` : "";
     return fromText(text, map, `Réponse donnée à la main · image de référence ${ref.W} × ${ref.H} px${low}`);
@@ -181,7 +183,8 @@ export function createAiReleve({ api, openParams }) {
     };
   }
 
-  async function open() {
+  // v76 : `mode` = mode choisi dans l'écran « Analyse IA » (1 = relevé standard, flux inchangé depuis v75)
+  async function open({ mode = 1 } = {}) {
     if (busy) return;
     if (api.tab !== "plan") api.setTab("plan");
     if (!api.ch.fond) return message("Ce chantier n'a pas encore de plan. Ajoutez le PDF ou l'image du plan dans l'onglet Chantiers.", [{ label: "Ouvrir Chantiers", run: () => api.setTab("chantiers") }, { label: "Fermer", run: () => {} }]);
@@ -197,7 +200,7 @@ export function createAiReleve({ api, openParams }) {
       show(`<p>Préparation de l'image du plan…</p>`);
       const img = await fondImage(api, provider === "nvidia" ? { maxPx: 1280, maxB64: PROVIDERS.nvidia.maxImageB64 } : {});
       lastImage = img;
-      const model = settings.get().models[provider] || PROVIDERS[provider].defaultModel;
+      const model = modelFor(provider, "analyse");
       show(`<p>L'IA lit le plan (${esc(PROVIDERS[provider].name)} · ${esc(model)})… compter 30 s à 2 min.</p><p class="mut sm">Vous pouvez continuer à travailler : l'aperçu s'affichera ici.</p>`);
       const job = attente.start({ title: "L'IA étudie votre plan" });
       let r;
@@ -205,7 +208,7 @@ export function createAiReleve({ api, openParams }) {
       catch (e) { attente.finish(job, false); throw e; }
       attente.finish(job, !!r.sawImage);
       if (!r.sawImage) { busy = false; return message(`Le modèle ${esc(r.model)} ne lit pas les images : choisissez un modèle « vision » dans Paramètres.`, [{ label: "Ouvrir Paramètres", run: openParams }, { label: "Fermer", run: () => {} }]); }
-      lastMode = "key"; lastUsage = r.usage || null;
+      lastMode = "key"; lastUsage = r.usage || null; lastMs = r.ms || 0; run = { id: newAnalyseId(), mode };
       fromText(r.text, img.map, `${PROVIDERS[r.provider].name} · ${r.model} · ${(r.ms / 1000).toFixed(0)} s · image ${img.W} × ${img.H} px`);
     } catch (e) {
       message("Le relevé par l'IA a échoué : " + esc(e.message), [{ label: "Fermer", run: () => {} }, { label: "Ouvrir Paramètres", run: openParams }]);
@@ -214,5 +217,5 @@ export function createAiReleve({ api, openParams }) {
 
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !card.hidden) close(); });
   let copied = "";
-  return { attente, open, close, fromText, fromPaste, pastePanel, pastePrompt, get copied() { return copied; }, fondImage: (o) => fondImage(api, o), get plan() { return plan; }, get lastImage() { return lastImage; } };
+  return { attente, open, close, fromText, fromPaste, pastePanel, pastePrompt, get copied() { return copied; }, fondImage: (o) => fondImage(api, o), get plan() { return plan; }, get lastImage() { return lastImage; }, get run() { return run; } };
 }

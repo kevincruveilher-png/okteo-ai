@@ -57,8 +57,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
       <label class="f" title="Conversation de l'assistant (questions, commandes) : modèle rapide">Modèle de la conversation
         <input class="m" list="dl-${p}" placeholder="${P.defaultModel}" value="${esc(s.models[p])}">
         <datalist id="dl-${p}">${P.models.map((m) => `<option value="${m}">`).join("")}</datalist></label>
-      ${P.analyseModel ? `<label class="f" title="Analyse du plan, relevé IA et relectures : le modèle le plus fort (plus cher, plus lent). La conversation de l'assistant garde le modèle ci-dessus.">Modèle de l'analyse (plan, relevé, relectures)
-        <input class="ma" list="dl-${p}" placeholder="${P.analyseModel}" value="${esc(s.models[p + "Analyse"] || "")}"></label>` : ""}
+      ${P.analyseModel ? `<p class="f ma-lock sm" title="Décision du 03/11/2026 : « Analyse IA » (4 modes), relevé et relectures utilisent uniquement ce modèle ; il ne se règle pas.">Modèle de l'analyse (plan, relevé, relectures) : <b>${esc(P.analyseModel)}</b> <span class="mut">(verrouillé)</span></p>` : ""}
       <div class="trow"><button class="tst">Tester la connexion</button>${p === "nvidia" ? `<button class="lst" title="Lire chez NVIDIA la liste des modèles disponibles sur ce compte">Charger les modèles</button>` : ""}<span class="tres"></span></div>
     </div>`;
   };
@@ -195,7 +194,6 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
       const p = c.dataset.p, k = c.querySelector(".k"), m = c.querySelector(".m"), res = c.querySelector(".tres");
       k.onchange = () => { const s = settings.get(); settings.set({ keys: { ...s.keys, [p]: k.value.trim() }, provider: s.provider || p }); refreshProv(); };
       m.onchange = () => { const s = settings.get(); settings.set({ models: { ...s.models, [p]: m.value.trim() } }); };
-      const ma = c.querySelector(".ma"); if (ma) ma.onchange = () => { const s = settings.get(); settings.set({ models: { ...s.models, [p + "Analyse"]: ma.value.trim() } }); };
       c.querySelector(".eye").onclick = () => { k.type = k.type === "password" ? "text" : "password"; };
       c.querySelector(".clr").onclick = () => { const s = settings.get(); settings.set({ keys: { ...s.keys, [p]: "" } }); render(); };
       c.querySelector(".tst").onclick = async () => {

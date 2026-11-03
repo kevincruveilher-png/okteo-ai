@@ -5,6 +5,7 @@
 // Format interne des messages : { role: "user" | "assistant", text, image?: { data, type } }.
 
 import { settings } from "./settings.js";
+import { ANALYSE_MODEL } from "../ai-config.js";
 
 export const PROVIDERS = {
   anthropic: {
@@ -12,7 +13,9 @@ export const PROVIDERS = {
     models: ["claude-sonnet-5-5", "claude-haiku-5-5", "claude-opus-5-5"],
     defaultModel: "claude-sonnet-5-5",
     // v75 : la conversation de l'assistant utilise Sonnet (rapide) ; l'analyse du plan, le relevé et les relectures, Opus
-    analyseModel: "claude-opus-5-5",
+    // v76 : modèle de l'analyse verrouillé (src/ai-config.js), aucun réglage ne peut le remplacer
+    analyseModel: ANALYSE_MODEL,
+    analyseLocked: true,
     vision: () => true,
   },
   nvidia: {
@@ -129,7 +132,7 @@ export const relayOnline = () => !!(settings.env && settings.env.online);
 // purpose : "chat" (conversation de l'assistant) ou "analyse" (analyse du plan, relevé IA, relecture) → modèle de chaque usage
 export const modelFor = (provider, purpose = "chat", s = settings.get()) => {
   const P = PROVIDERS[provider];
-  if (purpose === "analyse" && P.analyseModel) return s.models[provider + "Analyse"] || P.analyseModel;
+  if (purpose === "analyse" && P.analyseModel) return P.analyseLocked ? P.analyseModel : s.models[provider + "Analyse"] || P.analyseModel;
   return s.models[provider] || P.defaultModel;
 };
 export async function chat({ system, messages, maxTokens = 1800, provider, model, think = false, purpose = "chat" }) {
@@ -155,7 +158,8 @@ export async function chat({ system, messages, maxTokens = 1800, provider, model
     const body = await anthropicCall(key, { model, max_tokens: maxTokens, system, messages: msgs, ...(window.okteoSession ? { purpose } : {}) });
     if(window.okteoSession){ model=body.okteo?.model||body.model||model;document.dispatchEvent(new CustomEvent("okteo:ai-cost")); }
     text = (body.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
-    if (body.usage) usage = { in: body.usage.input_tokens || 0, out: body.usage.output_tokens || 0 };
+    // v76 : en ligne, le Worker renvoie le coût calculé au tarif configuré (USD) ; gardé pour le journal d'analyse
+    if (body.usage) usage = { in: body.usage.input_tokens || 0, out: body.usage.output_tokens || 0, ...(body.okteo && Number.isFinite(body.okteo.cost) ? { usd: body.okteo.cost } : {}) };
   } else {
     const env = settings.env || {};
     if (env.checked && !env.online) throw new AIError("NVIDIA ne marche que dans la version locale du logiciel (NVIDIA bloque les appels depuis un site en ligne). En ligne, utilisez une clé Claude (Paramètres).", 0);
