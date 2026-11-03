@@ -4,7 +4,8 @@
   et code de la boîte (qui contient le n° d'affaire) ne sont plus mis dans le QR (places gardées vides : les anciens QR
   restent lisibles). Le code-barre et l'en-tête imprimés sur la feuille ne changent pas.
 - `bande.html` : en-tête = boîte, niveau, sens du couvercle, modèle ; titre de l'onglet « Boîte LI01 — bande de câblage ».
-- Test smoke : le QR de la bande relu ne contient ni le nom, ni le client, ni le n° du chantier.
+- Test smoke : le QR de la bande relu ne contient ni le nom, ni le client, ni le n° du chantier. Validation : run
+  41737217417 vert (smoke 193/193), branche `verification-bande` supprimée.
 
 ## 04/11/2026 — Vue 3D (3D-1 à 3D-8, 3D-10) fusionnée dans `main` (« go » de Kévin)
 
