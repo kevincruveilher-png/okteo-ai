@@ -1,4 +1,4 @@
-# À LIRE EN PREMIER — état du projet (mis à jour le 03/11/2026, v75 ; v76 en cours sur sa branche)
+# À LIRE EN PREMIER — état du projet (mis à jour le 03/11/2026, v76 dans `main` ; 3D prévue, voir journal)
 
 Ce fichier sert à TOUTES les IA qui travaillent sur le dépôt (Claude, ChatGPT/Codex…) : `AGENTS.md` y renvoie.
 Plusieurs IA se sont succédé (Claude jusqu'à v66, ChatGPT v67 à v72, Claude depuis v72.1) : garder une seule source de
@@ -16,7 +16,7 @@ vérité, celle-ci, et tenir `docs/journal.md` à jour à CHAQUE modification (e
   `public/assets/fond-evrard-04949.jpg`). Décision de Kévin attendue (dépôt privé ou retrait des plans). N'en ajouter aucun.
 - Ne lancer une mise à jour que sur ordre de Kévin ; ne rien pousser sur `main` sans son « go ». Branches de travail :
   `feat/…`, vérification par GitHub Actions sur une branche `verification-…` supprimée après usage.
-- `npm run check` entièrement vert (03/11/2026, v75 : smoke 178/178 ; branche v76 : smoke 184/184, run 41669930082). Sans navigateur en local : faire tourner les
+- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082). Sans navigateur en local : faire tourner les
   tests sur GitHub Actions (workflow temporaire sur une branche `verification-…`, voir journal v72.1).
 
 # Oktéo AI — consignes pour Claude
@@ -475,7 +475,7 @@ MAJ 4-5 : `src/print/ftz-symbols.js` (`boxColor`, `ftzSymbol`, `plaques`), préf
 Modèles : `chat({purpose: "chat"|"analyse"})`, `modelFor` (Sonnet conversation, Opus analyse) ; Worker `pricing(c, purpose)`,
 colonnes `config.analysis_model/analysis_input_price/analysis_output_price` (créées par `analysisColumns`).
 
-### Analyse IA en 4 modes v76 (branche `feat/analyse-ia-modes-v76`, pas encore dans `main`)
+### Analyse IA en 4 modes v76 (dans `main` depuis le 03/11/2026)
 - `src/ai-config.js` : `ANALYSE_MODEL` (Opus 5.5, verrouillé : client, Worker, fenêtre Budget), `ANALYSE_PRICE` (avec
   cache), `CACHE_RATIO`, `IMAGE_LIMITS` (1 568 px / 1,15 Mpx, doc vérifiée le 03/11/2026). Ne jamais réécrire l'identifiant ailleurs.
 - Écran `#ai-modes` (`src/ext/ai-modes-ui.js`, `okteoExt.aiModes`, textes `src/walls/ai-modes.js`) ouvert par `#rv-ai`,
@@ -494,7 +494,8 @@ colonnes `config.analysis_model/analysis_input_price/analysis_output_price` (cr�
   `scripts/vendor-ia.mjs` copie OpenCV / Tesseract / fra dans `public/vendor` (non versionné). Worker : CSP `'wasm-unsafe-eval'`.
 - Banc d'essai : `src/walls/ai-bench.js`, `scripts/modes-bench.mjs`, protocole `docs/banc-essai-v76.md`.
 - Tests : `scripts/ai-modes.test.mjs` (pur) + smoke (écran, modes 1 à 4, scan réel OpenCV/OCR, recommandation, escalade).
-  Workflow TEMPORAIRE `.github/workflows/verification-v76.yml` (complète aussi le verrou npm) : à retirer avant fusion.
+  Les workflows temporaires `verification-v76.yml` / `raster-v76.yml` ont été retirés à la fusion ; pour revérifier, en
+  recréer un sur une branche `verification-…` (voir journal v76).
 
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,

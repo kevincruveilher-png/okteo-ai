@@ -1,3 +1,21 @@
+## 03/11/2026 — v76 fusionnée dans `main` ; feuille de route 3D décidée
+
+- « go v76 » de Kévin : branche `feat/analyse-ia-modes-v76` fusionnée dans `main` (avance rapide, aucun changement de
+  `main` entre-temps). Workflows temporaires `verification-v76.yml` et `raster-v76.yml` retirés. Code validé par le run
+  41669930082 (check complet dont smoke 184/184, build:web, test:web 15/15).
+- 3D (discussion du 03/11, maquette de démonstration en artefact, maison fictive, aucune donnée client) : décidé de faire
+  une vue 3D construite depuis le dessin, en 11 mises à jour, TOUTES avant l'essai sur chantier, dans l'ordre
+  3D-0 (maquette téléphone, artefact seul) → 3D-1 visionneuse dans Oktéo (`src/3d/`, three.js MIT chargé à la demande)
+  → 3D-2 géométrie propre sur plans réels → 3D-3 hauteurs (valeurs de départ 2,50 / 0,90 / 2,15 / 2,04 m, réglables dans
+  Paramètres, section 3D, et par pièce / ouverture) → 3D-4 visite à pied + pose au viseur → 3D-5 gaines en 3D et longueurs
+  → 3D-6 contrôles en 3D → 3D-7 élévation de mur → 3D-10 étages → 3D-8 page téléphone par QR de feuille → 3D-9 essai.
+- Règles données par Kévin : une gaine suit le tracé du plan en traits droits (la courbe du 2D est esthétique), au-dessus
+  du plafond, en diagonale si besoin, puis descend dans le mur jusqu'à l'appareil ; passage par le sol à prévoir (pas
+  encore dans le plan) ; gaines visibles en transparence dans les murs (option). QR code : un par face imprimée du plan,
+  contenant exactement ce qui y est imprimé (pas sur le QR de la boîte), données dans le `#` (rien sur le serveur), aucun
+  nom ni adresse ; capacité d'un QR mesurée pendant 3D-8, décision ensuite.
+- Encore attendu de Kévin avant 3D-5 : réserve en boîte, façon de désigner une gaine par le sol (gaine, type, pièce).
+
 ## 03/11/2026 — v76 : écran « Analyse IA » sur une seule page
 
 Branche `feat/analyse-ia-modes-v76`, demande de Kévin : tout l'écran des modes tient sur une page (plus de défilement de
