@@ -3,6 +3,7 @@
 // choisit (boîte par boîte) ; encarts posés par-dessus la feuille (jamais sur le plan de travail) : zones de texte (cadre,
 // couleur, gras, italique, taille, alignement), flèches, panneaux ⚠, zones interdites hachurées, images (documentation
 // fournisseur), encarts types. Tout est enregistré dans le chantier (meta.impression ; images dans le stockage des fichiers).
+import { faceUrl } from "./plan3d-qr.js";
 import * as CHS from "../chantiers.js";
 import { buildPlanPdf } from "./print.js";
 import { pdfjs } from "./fond-import.js";
@@ -51,6 +52,7 @@ export function createPrepTool({ api }) {
       <div class="prep-content"></div>
       <label class="f prep-bati" title="Dessin de la maçonnerie pour tout le chantier, comme le plan du constructeur. Le type de chaque mur se règle dans ses Propriétés.">Maçonnerie<select id="prep-bati"><option value="hachures">Hachures (comme VILLANOVA, MAILLARD)</option><option value="gris">Gris plein (comme EVRARD)</option></select></label>
       <label class="f prep-sens" title="Auto : le plan est tourné d'un quart de tour s'il tient ainsi à une plus grande échelle (1/50 de préférence)">Sens du plan<select id="prep-sens"><option value="auto">Automatique (plus grande échelle)</option><option value="vue">Comme la vue</option><option value="0">Sans rotation</option><option value="90">Quart de tour à droite</option><option value="-90">Quart de tour à gauche</option></select></label>
+      <label class="f prep-qr3d" title="Sur chaque face, un QR code ouvre sur le téléphone la maquette 3D de ce qui est imprimé sur cette face (boîtes et gaines, ou lignes directes). Aucun nom de client ni de chantier dans le QR."><input type="checkbox" id="prep-qr3d"> QR « maquette 3D » sur chaque face</label>
       <details class="prep-sec" open><summary>Cartouche</summary>
         <label class="f">Client du BE<input data-c="clientBE"></label>
         <label class="f">N° d'affaire<input data-c="affaire"></label>
@@ -99,7 +101,7 @@ export function createPrepTool({ api }) {
     const geo = api.exportGeometry(), has = (api.cab.boxes || []).length > 0;
     const sens = P.sens || "auto", rot = sens === "vue" ? api.viewRot || 0 : sens === "auto" ? 0 : +sens;
     return buildPlanPdf(geo, { rot, boites: has, gaines: has, circuits: has, cotes: false, nomenclature: false, gaineNos: has ? gaineNos() : null,
-      ftz: { pages: P.pages, items: P.items, images, fields: fields(), logo: await logoHD(), bg: !final, autoRot: sens === "auto" } });
+      ftz: { pages: P.pages, items: P.items, images, fields: fields(), logo: await logoHD(), bg: !final, autoRot: sens === "auto", qr3d: P.qr3d === false ? null : (face) => faceUrl(api, face) } });
   }
 
   // ---------- fond de la page (PDF sans les encarts, dessiné par pdf.js) ----------
@@ -327,6 +329,8 @@ export function createPrepTool({ api }) {
     $("#prep-bati").onchange = (e) => { api.setBatiStyle(e.target.value); bgSoon(); };
     $("#prep-sens").value = P.sens || "auto";
     $("#prep-sens").onchange = (e) => { P.sens = e.target.value; save(); bgSoon(); };
+    $("#prep-qr3d").checked = P.qr3d !== false;
+    $("#prep-qr3d").onchange = (e) => { P.qr3d = e.target.checked; save(); bgSoon(); };
     paintPages(); paintCart(); paintEnc(); paintOv();
     await refreshBg();
   }

@@ -15,6 +15,7 @@ const MARGIN = 10, BAND = 44;                       // marge, bandeau bas (lége
 import { APPAREILS } from "../cablage/appareils.js";
 import { portXY } from "../cablage/boites.js";
 import { chooseBows } from "../cablage/trace.js";
+import { qrMatrix } from "./barcode.js";
 const SHORT = { PC16: "16", PC20: "20", RJ45: "RJ", VMC: "V", TAB: "TD" };
 const COLS = ["PC16", "PC20", "RJ45", "LUM", "APP", "SPOT", "INT", "VV", "BP", "VMC", "SC", "TAB"];
 const COLNAME = { PC16: "16 A", PC20: "20 A", RJ45: "RJ45", LUM: "Point", APP: "Appl.", SPOT: "Spot", INT: "Int.", VV: "VV", BP: "BP", VMC: "VMC", SC: "SC", TAB: "TD" };
@@ -540,7 +541,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const inBox = new Map(); (geo.boxes || []).forEach((b) => b.deps.forEach((d) => d.ends.forEach((e) => { if (e.key !== "tab") inBox.set(e.key, b.id); })));
     const direct = new Set((geo.direct || []).map((d) => d.appId).filter(Boolean));
     const pages = F.pages && F.pages.length ? F.pages : [{ boxes: "all", direct: false, autres: true, legend: false }, { boxes: [], direct: true, autres: false, legend: true }];
-    const used = [], legends = [], cotes = [], plq = [], fields = { echelle: `1 / ${scale}`, ...F.fields };
+    const used = [], legends = [], cotes = [], plq = [], qrs = [], fields = { echelle: `1 / ${scale}`, ...F.fields };
     const pageApps = pages.map((pg) => {
       const ids = pg.boxes === "all" ? null : new Set(pg.boxes || []);
       return new Set(geo.apps.filter((a) => a.t === "TAB" || (inBox.has(a.id) ? !ids || ids.has(inBox.get(a.id)) : direct.has(a.id) ? pg.direct : pg.autres !== false)).map((a) => a.id));
@@ -573,10 +574,28 @@ export async function buildPlanPdf(geoIn, opts = {}) {
           S.drawSymbol(d, sym, x, y, k, 0);
         }) });
       }
+      // 3D-8 : QR « maquette 3D » de ce qui est imprimé sur cette face (coin libre, hors légende)
+      if (F.qr3d) {
+        try {
+          const q = await F.qr3d({ apps: pageApps[i], boxes: boxIds || null, direct: !!pg.direct, page: i + 1 });
+          if (q && !q.tooBig) {
+            const Q = await qrMatrix(q.url), size = 48, cap = 4, ms = size / Q.n, leg = legends.find((l) => l.page === i + 1);
+            const corners = [[area.x + area.w - size - 2, area.y + area.h - size - cap - 2], [area.x + 2, area.y + area.h - size - cap - 2], [area.x + area.w - size - 2, area.y + 2], [area.x + 2, area.y + 2]];
+            const over = ([x, y], r) => r ? Math.max(0, Math.min(x + size, r.x + r.w) - Math.max(x, r.x)) * Math.max(0, Math.min(y + size + cap, r.y + r.h) - Math.max(y, r.y)) : 0;
+            const R0 = leg ? { x: leg.x, y: leg.y, w: leg.w, h: leg.h } : null, PL = { x: plan.x0, y: plan.y0, w: plan.x1 - plan.x0, h: plan.y1 - plan.y0 };
+            const [qx, qy] = corners.map((c) => ({ c, o: over(c, R0) * 100 + over(c, PL) })).sort((a, b) => a.o - b.o)[0].c;
+            doc.setFillColor(255, 255, 255); doc.rect(qx - 1.5, qy - 1.5, size + 3, size + cap + 3, "F");
+            doc.setFillColor(0);
+            Q.rows.forEach((row, r) => { let c = 0; while (c < Q.n) { if (!row[c]) { c++; continue; } let e = c; while (e < Q.n && row[e]) e++; doc.rect(qx + c * ms, qy + r * ms, (e - c) * ms + 0.01, ms + 0.01, "F"); c = e; } });
+            doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(60); doc.text("Maquette 3D de cette face (telephone)", qx + size / 2, qy + size + 3, { align: "center" }); doc.setTextColor(0);
+            qrs.push({ page: i + 1, url: q.url, size: q.size, light: q.light, x: qx, y: qy, mm: size, version: Q.version });
+          } else if (q) qrs.push({ page: i + 1, tooBig: true, size: q.size });
+        } catch (e) { qrs.push({ page: i + 1, error: String(e && e.message || e) }); }
+      }
       if (!F.bg) (F.items || []).filter((it) => (it.page || 1) === i + 1).forEach((it) => S.drawItem(doc, it, F.images || {}));
     }
     doc.setProperties({ title: `Plan ${geo.chantier.nom} ${geo.chantier.numero}`.trim(), creator: "Oktéo AI — KiTéOHM" });
-    return { blob: doc.output("blob"), layout: Lay, pages: doc.getNumberOfPages(), legends, plan, area, ftz: true, rotated: F.rotated || 0, cotes, plaques: plq };
+    return { blob: doc.output("blob"), layout: Lay, pages: doc.getNumberOfPages(), legends, plan, area, ftz: true, rotated: F.rotated || 0, cotes, plaques: plq, qrs };
   }
 }
 

@@ -1,3 +1,28 @@
+## 03/11/2026 — 3D-8 maquette 3D d'une face du plan par QR code (branche `feat/3d-1-visionneuse`)
+
+- `src/3d/plan-code.js` (pur) : `packPlan(S)` / `unpackPlan(P)` (coque : sommets, murs avec épaisseur et hauteur,
+  ouvertures avec gond, sens, allège, linteau ; pièces (nom, contour, hauteur sous plafond) ; appareils (type, position,
+  hauteur, mur, repère) ; boîtes ; gaines (boîte, appareils, passage par le sol, points de passage) ; lignes directes ;
+  hauteurs de départ ; version et date), centimètres entiers en différences successives, deflate + base64url
+  (`encodeSheet` de la bande) ; `planUrl(S)` → `plan3d.html#p=…`, allégé si besoin (repères, puis sols), `tooBig` au-delà
+  de 2 900 caractères. AUCUN nom de client, de chantier ni de n° d'affaire (vérifié par test).
+  MAILLARD : recto (88 appareils, 10 boîtes, 97 gaines) = 2 493 caractères, verso (lignes directes) = 1 272.
+- `src/ext/plan3d-qr.js` : `faceData(api, {apps, boxes, direct})` / `faceUrl` (planData de la 3D + gaines de `wiringNow`
+  + lignes directes d'`exportGeometry`).
+- Impression A3 du BE (`print.js` `buildFtz`, option `ftz.qr3d(face)`) : un QR de 48 mm par face, dans le coin libre de
+  la zone de dessin (hors légende, le moins possible sur le plan), légende « Maquette 3D de cette face » ; `r.qrs`.
+  Préparation d'impression : case « QR maquette 3D sur chaque face » (`#prep-qr3d`, `meta.impression.qr3d`, cochée par
+  défaut). Taille : un QR de ~2 500 caractères est une version 37–39 (≈ 170 modules) : à 48 mm, 0,28 mm par module ;
+  à essayer au chantier avec plusieurs téléphones (si besoin : deux QR par face, ou moins de contenu).
+- Page publique `plan3d.html` + `src/plan3d-view.js` + `src/plan3d.css` (3e entrée Vite) : maquette (murs, ouvertures,
+  sols, appareils, boîtes, gaines couleur de boîte, lignes directes en bleu), calques, vues Ensemble / Dessus, toucher =
+  fiche (appareil, boîte, gaine, ligne directe), « Visite » à la manette tactile (collisions sur les murs, passages par
+  les portes) ; `window.__plan3d` (tests). Worker : `/plan3d.html` et `/plan3d` publics comme la bande ; `test:web`.
+- Remarque : le QR existant de la bande de boîte (v49) contient le pavillonneur, le nom et le n° du chantier (en-tête
+  de la page bande). Non modifié : à décider avec Kévin (la consigne « aucun nom » portait sur le QR du plan).
+- Tests : v3d (taille MAILLARD recto / verso, relecture au cm, aucun nom, allègement, version inconnue) + smoke (deux
+  faces A3 avec QR, page téléphone : murs, gaines, fiche, visite) + test:web.
+
 ## 03/11/2026 — 3D-10 tous les niveaux en 3D (branche `feat/3d-1-visionneuse`)
 
 - Cœur : `okteo.inLevel(id, fn)` (exécute `fn` avec un autre niveau chargé dans `state`, via `withLevel` ; lecture seule).
@@ -10,8 +35,8 @@
 - Correctif 3D-7 (run 41732198060 rouge : « Cannot read properties of null (reading 'highlight') ») : deux
   reconstructions de la maquette pouvaient se croiser (attente du module de scène) ; `build` porte un numéro
   (`S3.gen`), n'attend plus qu'avant de toucher la scène, et la fiche d'une gaine vérifie que les gaines existent.
-- Tests : smoke (étage créé avec ses murs, lumière liée à un interrupteur du RDC, empilement à 2,5–3,5 m, pointillés,
-  retour au niveau ouvert, nettoyage).
+- Tests : smoke (étage créé avec ses murs, lumière liée à un interrupteur du RDC, empilé au-dessus des autres niveaux,
+  pointillés, retour au niveau ouvert, nettoyage). Validation 3D-7 + 3D-10 : run 41734307163 vert (smoke 192/192).
 
 ## 03/11/2026 — 3D-7 élévations de murs (branche `feat/3d-1-visionneuse`)
 

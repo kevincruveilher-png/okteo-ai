@@ -2860,6 +2860,36 @@ try {
     if (!ok) throw new Error(JSON.stringify({ r, level, back }));
     return true;
   });
+  await check("3D-8 : QR « maquette 3D » sur chaque face du plan A3 (recto boîtes, verso lignes directes), sans nom de client ni de chantier ; la page téléphone l'ouvre (murs, gaines, fiche au toucher, visite à la manette)", async () => {
+    await ev(() => okteo.setTab("plan"));
+    const q = await ev(async () => {
+      const { faceUrl, faceData } = await import("/src/ext/plan3d-qr.js"), { buildPlanPdf } = await import("/src/ext/print.js");
+      const all = await faceUrl(okteo, { apps: null, boxes: null, direct: false }), d = faceData(okteo, { apps: null, boxes: null, direct: false });
+      const r = await buildPlanPdf(okteo.exportGeometry(), { boites: true, gaines: true, cotes: false, nomenclature: false, ftz: { pages: [{ boxes: "all", direct: false, autres: true, legend: false }, { boxes: [], direct: true, autres: false, legend: true }], items: [], images: {}, fields: {}, qr3d: (f) => faceUrl(okteo, f) } });
+      const json = JSON.stringify((await import("/src/cablage/bande-code.js")).decodeSheet ? await (await import("/src/cablage/bande-code.js")).decodeSheet(all.url.split("#p=")[1]) : null);
+      const ch = okteo.ch || {};
+      return { url: all.url, size: all.size, tooBig: all.tooBig, gaines: d.gaines.length, boxes: d.boxes.length, qrs: r.qrs.map((x) => ({ page: x.page, ok: !!x.url, size: x.size, tooBig: !!x.tooBig, err: x.error || null })), names: [ch.nom, ch.client, ch.numero].filter((s) => s && s.length > 2 && json.includes(s)) };
+    });
+    const p2 = await browser.newPage({ viewport: { width: 390, height: 844 } }), errs = [];
+    p2.on("pageerror", (e) => errs.push(String(e)));
+    await p2.goto(`http://localhost:${APP_PORT}/plan3d.html` + q.url.slice(q.url.indexOf("#")));
+    await p2.waitForFunction(() => window.__plan3d && window.__plan3d.ready, null, { timeout: 60000 });
+    await p2.waitForTimeout(600);
+    const r = await p2.evaluate(() => { const S = window.__plan3d; const d = S.devs.find((x) => x.mount === "mur") || S.devs[0]; S.show({ dev: d.id }); return { walls: S.plan.walls.length, gl: S.gl.length, devs: S.devs.length, card: !document.querySelector(".card").hidden && document.querySelector(".card .t").textContent, title: document.querySelector(".top b").textContent }; });
+    await p2.click('[data-v="walk"]'); await p2.waitForTimeout(200);
+    const p0 = await p2.evaluate(() => ({ ...window.__plan3d.walk.p }));
+    let p1 = null;
+    for (const yaw of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+      await p2.evaluate((y) => { const W = window.__plan3d.walk; W.yaw = y; W.mv = [0, -1]; }, yaw); await p2.waitForTimeout(900); await p2.evaluate(() => { window.__plan3d.walk.mv = [0, 0]; });
+      p1 = await p2.evaluate(() => ({ ...window.__plan3d.walk.p, joy: !document.querySelector(".joy").hidden }));
+      if (Math.hypot(p1.x - p0.x, p1.y - p0.y) > 0.2) break;
+    }
+    if (process.env.SHOT) await p2.screenshot({ path: process.env.SHOT + "/plan3d-telephone.png" });
+    await p2.close();
+    const ok = q.url.startsWith("https://okteo-ai.pages.dev/plan3d.html#p=") && !q.tooBig && q.size <= 2900 && q.names.length === 0 && q.qrs.length === 2 && q.qrs.every((x) => x.ok) && r.walls > 0 && r.gl === q.gaines && r.devs > 0 && r.card && p1.joy && Math.hypot(p1.x - p0.x, p1.y - p0.y) > 0.2 && !errs.length;
+    if (!ok) throw new Error(JSON.stringify({ q: { ...q, url: q.url.slice(0, 60) }, r, p0, p1, errs }));
+    return true;
+  });
   await check("3D-2 : jonction oubliée et mur en double signalés dans la vue 3D, un clic montre l'endroit sur le plan", async () => {
     await ev(() => okteo.addWalls([{ a: { x: 20, y: 0 }, b: { x: 24, y: 0 }, ep: 0.25 }, { a: { x: 22, y: 0.35 }, b: { x: 22, y: 3 }, ep: 0.1 }]));
     await ev(() => okteo.setTab("vue3d"));

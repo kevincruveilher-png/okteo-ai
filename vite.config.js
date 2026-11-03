@@ -59,7 +59,8 @@ function aiRelay(env) {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  // deux pages : le logiciel (index.html) et la bande de câblage pour téléphone (bande.html, ouverte par le QR code)
+  // trois pages : le logiciel (index.html), la bande de câblage pour téléphone (bande.html, QR de la boîte) et la
+  // maquette 3D d'une face du plan (plan3d.html, QR de la face, 3D-8)
   return { base: "./", define: mode === "enterprise" ? { "import.meta.env.VITE_OKTEO_ENTERPRISE": JSON.stringify("true") } : {}, plugins: [aiRelay(env)], server: { open: false },
-    build: { rollupOptions: { input: { main: "index.html", bande: "bande.html" } } } };
+    build: { rollupOptions: { input: { main: "index.html", bande: "bande.html", plan3d: "plan3d.html" } } } };
 });

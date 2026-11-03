@@ -8,6 +8,7 @@ import { computeCircuits } from "../src/cablage/circuits.js";
 import { CAB_DEFAULTS } from "../src/cablage/settings.js";
 import { parseAiJson, aiToPlan } from "../src/walls/ai-plan.js";
 import { poseIssues } from "../src/3d/pose.js";
+import { packPlan, unpackPlan, planUrl, decodePlan, QR_MAX } from "../src/3d/plan-code.js";
 import { wallElevation, roomFaces, elevationDraw, elevationSVG } from "../src/3d/elevation.js";
 
 let ok = 0; const fails = [];
@@ -155,6 +156,35 @@ console.log("Vue 3D-7 : élévations de murs");
   check("faces de la pièce : 4 murs tournés vers l'intérieur ; fenêtre avec son allège de 1 m", F.length === 4 && F.every((f) => wallElevation(data, apps, [room], f.seg, f.side).room === "Chambre") && Math.abs(w2.openings[0].v0 - 1) < 1e-9, JSON.stringify(F));
   const D = elevationDraw(E), svg = elevationSVG(E);
   check("dessin : cotes 40 (deux fois) et H 110, H 30* (valeur de départ) ; SVG produit", D.items.filter((t) => t.k === "text" && t.s === "40").length === 2 && D.items.some((t) => t.s === "H 110") && D.items.some((t) => t.s === "H 30*") && /<svg/.test(svg) && /Chambre/.test(svg));
+}
+
+console.log("Vue 3D-8 : maquette d'une face du plan dans un QR code");
+{
+  const d = JSON.parse(fs.readFileSync(new URL("../docs/chantiers/MAILLARD_kevin.okteo", import.meta.url), "utf8")), st = JSON.parse(d.dessin.s);
+  const B = st.cab.boxes, inB = new Set(B.flatMap((b) => b.apps)), rep = (a) => (a.rf || "") + (a.n || "");
+  const base = { data: { nodes: st.nodes, segs: st.segs, openings: st.openings }, rooms: st.rooms.map((r) => ({ name: r.name, poly: r.poly })), H: H3D, date: "2026-11-03", level: "RDC" };
+  const A1 = st.app.filter((a) => inB.has(a.id) || a.t === "TAB").map((a) => ({ ...a, rep: rep(a) }));
+  const G = B.flatMap((b) => [...b.apps.map((id) => ({ box: b.id, apps: [id], route: (b.routes || {})[id] || [], sol: id === b.apps[0] })), { box: b.id, apps: ["tab"], route: [] }]);
+  const recto = { ...base, apps: A1, boxes: B, gaines: G, direct: [] };
+  const A2 = st.app.filter((a) => !inB.has(a.id)).map((a) => ({ ...a, rep: rep(a) }));
+  const verso = { ...base, apps: A2, boxes: [], gaines: [], direct: A2.filter((a) => a.t !== "TAB").map((a) => ({ app: a.id, label: rep(a) })) };
+  const r1 = await planUrl(recto), r2 = await planUrl(verso);
+  check(`MAILLARD recto (${A1.length} appareils, ${B.length} boîtes, ${G.length} gaines) : ${r1.size} caractères, tient dans un QR (≤ ${QR_MAX}) sans rien retirer`, !r1.tooBig && r1.light === 0, String(r1.size));
+  check(`MAILLARD verso (${A2.length} appareils, lignes directes) : ${r2.size} caractères`, !r2.tooBig && r2.light === 0, String(r2.size));
+  const D = await decodePlan(r1.url.split("#p=")[1]);
+  const near = (p, q) => Math.abs(p - q) <= 0.006;
+  const nOk = D.data.nodes.length === st.nodes.length && D.data.nodes.every((n, i) => near(n.x, st.nodes[i].x) && near(n.y, st.nodes[i].y));
+  const oOk = D.data.openings.length === st.openings.length && D.data.openings.every((o, i) => near(o.t, st.openings[i].t) && near(o.w, st.openings[i].w) && o.kind === st.openings[i].kind);
+  const aOk = D.apps.length === A1.length && D.apps.every((a, i) => a.t === A1[i].t && near(a.x, A1[i].x) && near(a.y, A1[i].y) && (a.seg != null) === !!A1[i].seg && a.rep === A1[i].rep);
+  check("relecture : sommets, ouvertures et appareils retrouvés au centimètre (type, mur, repère), gaines et passage par le sol", nOk && oOk && aOk && D.gaines.length === G.length && D.gaines.filter((g) => g.sol).length === B.length && D.boxes.length === B.length && D.gaines.every((g) => g.box.startsWith("b")));
+  const txt = JSON.stringify(packPlan(recto));
+  check("aucun nom de client, de chantier ni de n° d'affaire dans le QR", !/MAILLARD|Maisons CPR|AF544567/i.test(txt) && !/maillard/i.test(r1.url));
+  // un très gros plan : on retire d'abord les repères, puis les sols
+  const big = { ...recto, apps: Array.from({ length: 600 }, (_, i) => ({ id: "x" + i, t: "PC16", x: (i * 7.31) % 30, y: (i * 3.17) % 20, h: 30, rep: "P" + i })) };
+  const r3 = await planUrl(big);
+  check("plan trop gros : allégé (repères puis sols) ou signalé trop gros, jamais une adresse tronquée", r3.light > 0 && (r3.tooBig || r3.size <= QR_MAX));
+  let bad = false; try { unpackPlan({ v: 99 }); } catch { bad = true; }
+  check("version inconnue refusée avec un message", bad);
 }
 
 console.log("Vue 3D : relevés IA (MAILLARD, PASQUIER)");
