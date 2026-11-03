@@ -1,3 +1,11 @@
+## 04/11/2026 — QR de la bande de boîte sans aucun nom (branche `feat/bande-qr-sans-nom`)
+
+- Demande de Kévin : aucun nom dans un QR code. `bande-code.js` `packSheet` : pavillonneur, nom du chantier, n° d'affaire
+  et code de la boîte (qui contient le n° d'affaire) ne sont plus mis dans le QR (places gardées vides : les anciens QR
+  restent lisibles). Le code-barre et l'en-tête imprimés sur la feuille ne changent pas.
+- `bande.html` : en-tête = boîte, niveau, sens du couvercle, modèle ; titre de l'onglet « Boîte LI01 — bande de câblage ».
+- Test smoke : le QR de la bande relu ne contient ni le nom, ni le client, ni le n° du chantier.
+
 ## 04/11/2026 — Vue 3D (3D-1 à 3D-8, 3D-10) fusionnée dans `main` (« go » de Kévin)
 
 - Branche `feat/3d-1-visionneuse` fusionnée dans `main` ; workflow temporaire `verification-3d.yml` retiré. Dernière
