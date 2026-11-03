@@ -1,0 +1,22 @@
+# TEMPORAIRE (v76) : vérification de la branche feat/analyse-ia-modes-v76 (pas de npm dans la session de développement).
+# À retirer avant toute fusion dans main.
+name: verification-analyse-ia-modes-v76
+on: { push: { branches: ["feat/analyse-ia-modes-v76"] } }
+permissions: { contents: read }
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: mkdir -p shots && node scripts/shots-v76.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: captures-v76, path: shots, retention-days: 7 }
+      - run: npm run check
+      - run: npm run build:web
+      - run: npm run test:web

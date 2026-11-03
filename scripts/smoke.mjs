@@ -684,11 +684,38 @@ try {
     if (quick || !/étudie/.test(t1) || !/Regardez/.test(mem) || cab.segs !== 3 || cab.tool !== tool0 || cab.head === "217px" || !/prêt/.test(t2) || !cta || !gone) throw new Error(JSON.stringify(r));
     return true;
   });
-  await check("relevé par l'IA : image envoyée, aperçu par-dessus le dessin, on coche ce qu'on garde, un seul Ctrl+Z", async () => {
+  await check("v76 : « Analyse IA » ouvre l'écran des 4 modes (maquette page 8) : référence du dossier, Lancer grisé sans choix, carte choisie (aria-pressed), modes 2 à 4 en préparation, Échap ferme", async () => {
+    await ev(() => okteoExt.settings.set({ provider: "anthropic" }));
+    const n0 = seen.length;
+    await page.click("#btn-relev"); await page.click("#rv-ai");
+    await page.waitForSelector("#ai-modes:not([hidden]) .am-card", { timeout: 5000 });
+    const a = await ev(() => { const el = document.getElementById("ai-modes"), cards = [...el.querySelectorAll(".am-card")], go = el.querySelector("#am-go");
+      return { n: cards.length, titles: cards.map((c) => c.querySelector(".am-title").textContent), pressed: cards.map((c) => c.getAttribute("aria-pressed")), dots: cards.map((c) => c.querySelectorAll(".am-dot.on").length),
+        h1: el.querySelector("h1").textContent, ref: el.querySelector(".am-ref").textContent, expected: [okteo.ch.nom, okteo.ch.numero].filter(Boolean).join(" · ").toUpperCase(),
+        dis: go.getAttribute("aria-disabled"), foot: el.querySelector(".am-foot p").textContent, h1w: getComputedStyle(el.querySelector("h1")).width, bg: getComputedStyle(el).backgroundColor }; });
+    // un clic sur Lancer sans choix ne fait rien
+    await page.click("#am-go");
+    const still = await ev(() => okteoExt.aiModes.visible && okteoExt.aiModes.launched == null);
+    // mode 3 choisi : coche + aria-pressed, mais pas encore lançable
+    await page.click('#ai-modes .am-card[data-mode="3"]');
+    const b = await ev(() => { const el = document.getElementById("ai-modes"); return { p3: el.querySelector('.am-card[data-mode="3"]').getAttribute("aria-pressed"), p1: el.querySelector('.am-card[data-mode="1"]').getAttribute("aria-pressed"), sel: el.querySelector('.am-card[data-mode="3"]').classList.contains("sel"), dis: el.querySelector("#am-go").getAttribute("aria-disabled"), label: el.querySelector("#am-go").textContent }; });
+    await page.click('#ai-modes .am-card[data-mode="1"]');
+    const c = await ev(() => { const el = document.getElementById("ai-modes"); return { dis: el.querySelector("#am-go").getAttribute("aria-disabled"), label: el.querySelector("#am-go").textContent }; });
+    await page.keyboard.press("Escape");
+    const closed = await ev(() => !okteoExt.aiModes.visible && !document.body.classList.contains("am-on"));
+    const noCall = seen.length === n0;
+    const r = { a, still, b, c, closed, noCall };
+    if (!(a.n === 4 && a.titles.join("|") === "Analyse standard|Analyse renforcée|Plan dégradé|Analyse approfondie" && a.pressed.every((x) => x === "false") && a.dots.join("") === "1234"
+      && a.h1 === "Choisissez le mode d'analyse adapté à votre plan" && a.ref === a.expected && a.dis === "true" && /pas des corrections certaines/.test(a.foot) && a.h1w !== "1045px" && a.bg === "rgb(4, 40, 74)"
+      && still && b.p3 === "true" && b.p1 === "false" && b.sel && b.dis === "true" && /préparation/.test(b.label) && c.dis === "false" && /mode 1/.test(c.label) && closed && noCall)) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("relevé par l'IA (v76 : par « Analyse IA » → mode 1, flux v75 inchangé) : image envoyée, aperçu par-dessus le dessin, on coche ce qu'on garde, un seul Ctrl+Z", async () => {
     await ev(() => okteoExt.settings.set({ provider: "anthropic" }));
     const before = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.length, app: okteo.state.app.length }));
     const n0 = seen.length;
     await page.click("#btn-relev"); await page.click("#rv-ai");
+    await page.click('#ai-modes .am-card[data-mode="1"]'); await page.click("#am-go");
     await page.waitForSelector("#ai-ok", { timeout: 30000 });
     const req = seen.slice(n0).find((r) => r.url === "/v1/messages");
     const img = req && req.body.messages[0].content.find((c) => c.type === "image");
@@ -701,8 +728,9 @@ try {
     const after = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.map((r) => r.name).sort().join(","), app: okteo.state.app.length, op: okteo.state.openings.length }));
     await page.keyboard.press("Control+z");
     const undone = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.length, app: okteo.state.app.length }));
-    const r = { img: !!img && img.source.data.length > 20000, P, after, undone, before, txt: txt.includes("Séjour") };
-    if (!r.img || P.walls !== 7 || P.nodes !== 6 || P.coupes !== 2 || P.op !== 2 || P.dev !== 4 || P.links !== 1 || !P.prev || !r.txt
+    const J = await ev(() => { const R = (okteo.cab.releves || {})[okteo.level.id] || {}, x = (R.rapport || []).find((y) => y.type === "releve") || {}; return { mode: x.analyse && x.analyse.mode, id: !!(x.analyse && x.analyse.id), model: req && req.body.model }; });
+    const r = { img: !!img && img.source.data.length > 20000, P, after, undone, before, txt: txt.includes("Séjour"), J };
+    if (!r.img || J.mode !== 1 || !J.id || J.model !== "claude-opus-5-5" || P.walls !== 7 || P.nodes !== 6 || P.coupes !== 2 || P.op !== 2 || P.dev !== 4 || P.links !== 1 || !P.prev || !r.txt
       || after.segs !== 7 || after.rooms !== "Chambre,Séjour" || after.app !== before.app || after.op !== 2
       || undone.segs !== before.segs || undone.rooms !== before.rooms || undone.app !== before.app) throw new Error(JSON.stringify(r));
     return true;
@@ -1715,12 +1743,13 @@ try {
     if (!(r.b && /Alt\+V|indisponible/.test(r.title) && r.open && r.cat && (r.rec || r.msg || !r.sup))) throw new Error(JSON.stringify(r));
     return true;
   });
-  await check("IA (v75) : conversation de l'assistant avec Sonnet, analyse du plan / relevé / relectures avec Opus ; deux modèles dans Paramètres", async () => {
-    const r = await ev(async () => { const m = await import("/src/ext/ai.js"); return { chat: m.modelFor("anthropic", "chat"), an: m.modelFor("anthropic", "analyse"), nv: m.modelFor("nvidia", "analyse") === m.modelFor("nvidia", "chat"), forced: m.modelFor("anthropic", "analyse", { models: { anthropicAnalyse: "claude-haiku-5-5" } }) }; });
+  await check("IA (v75, v76) : conversation de l'assistant avec Sonnet, analyse du plan / relevé / relectures avec Opus 5.5 verrouillé (constante unique)", async () => {
+    const r = await ev(async () => { const m = await import("/src/ext/ai.js"); return { chat: m.modelFor("anthropic", "chat"), an: m.modelFor("anthropic", "analyse"), nv: m.modelFor("nvidia", "analyse") === m.modelFor("nvidia", "chat"), forced: m.modelFor("anthropic", "analyse", { models: { anthropicAnalyse: "claude-haiku-5-5" } }), cfg: (await import("/src/ai-config.js")).ANALYSE_MODEL }; });
     await ev(() => okteo.setTab("params")); await page.waitForTimeout(300);
-    const f = await ev(() => ({ ma: !!document.querySelector('.pcard[data-p="anthropic"] .ma'), ph: document.querySelector('.pcard[data-p="anthropic"] .ma')?.placeholder }));
+    const f = await ev(() => ({ ma: !!document.querySelector('.pcard[data-p="anthropic"] .ma'), lock: document.querySelector('.pcard[data-p="anthropic"] .ma-lock')?.textContent || "" }));
     await ev(() => okteo.setTab("plan"));
-    if (!(r.chat === "claude-sonnet-5-5" && r.an === "claude-opus-5-5" && r.nv && r.forced === "claude-haiku-5-5" && f.ma && f.ph === "claude-opus-5-5")) throw new Error(JSON.stringify({ r, f }));
+    // v76 : modèle de l'analyse verrouillé (src/ai-config.js) : un ancien réglage « anthropicAnalyse » est ignoré, plus de champ dans Paramètres
+    if (!(r.chat === "claude-sonnet-5-5" && r.an === "claude-opus-5-5" && r.cfg === "claude-opus-5-5" && r.nv && r.forced === "claude-opus-5-5" && !f.ma && /claude-opus-5-5/.test(f.lock) && /verrouillé/.test(f.lock))) throw new Error(JSON.stringify({ r, f }));
     return true;
   });
   await check("salle de bain (v74 MAJ 3) : douche à l'italienne posée, volumes dessinés, luminaire dedans signalé, annulable", async () => {

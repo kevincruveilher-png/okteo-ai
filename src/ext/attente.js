@@ -18,7 +18,7 @@ const PTS = [[50, 12], [76.9, 23.1], [88, 50], [76.9, 76.9], [50, 88], [23.1, 76
 const NAMES = ["haut", "haut droite", "droite", "bas droite", "bas", "bas gauche", "gauche", "haut gauche"];
 const ARMS = ["M50 50 Q57.5 29.3 50 12", "M50 50 Q69.9 40.7 76.9 23.1", "M50 50 Q70.7 57.5 88 50", "M50 50 Q59.3 69.9 76.9 76.9", "M50 50 Q42.5 70.7 50 88", "M50 50 Q30.1 59.3 23.1 76.9", "M50 50 Q29.3 42.5 12 50", "M50 50 Q40.7 30.1 23.1 23.1"];
 const HOUSE = `<path d="M50 41.3 L57.2 46.8 V57.7 H42.8 V46.8 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.6" stroke-linejoin="round"/><path d="M47.8 56.67 A4.8 4.8 0 1 1 52.2 56.67 V59 H47.8 Z" fill="#E8534A"/><path d="M50 55.4 V60" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>`;
-const LOGO = `<svg class="aw-logo" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round">${ARMS.map((d) => `<path d="${d}"/>`).join("")}</g><g fill="#FFFFFF">${PTS.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="8"/>`).join("")}</g><circle cx="50" cy="50" r="19" fill="#E8534A"/>${HOUSE}</svg>`;
+export const LOGO = `<svg class="aw-logo" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round">${ARMS.map((d) => `<path d="${d}"/>`).join("")}</g><g fill="#FFFFFF">${PTS.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="8"/>`).join("")}</g><circle cx="50" cy="50" r="19" fill="#E8534A"/>${HOUSE}</svg>`;
 const N = 16, CELL = 27;   // plateau du câble : 16 × 16 cases de 27 px
 const best = { mem: 0, cab: 0 };
 try { Object.assign(best, JSON.parse(localStorage.getItem("okteo.attente.v1") || "{}")); } catch { /* sans stockage */ }

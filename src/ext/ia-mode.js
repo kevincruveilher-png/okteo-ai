@@ -19,7 +19,7 @@ import { tempsOf, fmtDur, coutTemps, iaUsage, estimateReleve, fmtTok } from "./t
 
 const LINK_KINDS = new Set(["lum", "cmd", "vv", "int2"]);
 
-export function createIaMode({ api, aiReleve, recheck, ctl }) {
+export function createIaMode({ api, aiReleve, recheck, ctl, aiModes = null }) {
   const main = document.querySelector(".main");
   const pane = document.createElement("aside");
   pane.className = "iapane"; pane.id = "iapane"; pane.setAttribute("aria-label", "Mode IA");
@@ -83,7 +83,7 @@ export function createIaMode({ api, aiReleve, recheck, ctl }) {
         : !cal ? `<p class="sm">Le plan n'est pas encore à l'échelle.</p><button class="on" id="ia-scale" title="Échelle déduite des cotes du plan ; sinon outil Échelle">Régler l'échelle</button>`
         : `<p class="mut sm">${esc(f.name || "Plan")} · à l'échelle</p>`)}
       ${step(2, "Relevé par l'IA", s2, `<p class="sm">${relIa ? "Relevé ajouté au chantier." : rel ? `${apps.length} appareils déjà sur le plan (relevé fait avant ou à la main).` : "Murs, ouvertures, pièces, appareils et liaisons lus sur le plan."}</p>
-        ${key ? `<button class="${s2 === "todo" ? "on" : ""}" id="ia-rel" ${s1 !== "done" ? "disabled" : ""} title="Envoie l'image du plan à l'IA (clé de Paramètres). Estimation : ${fmtTok(est.tokens)} jetons${est.eur != null ? " ≈ " + est.eur.toFixed(2).replace(".", ",") + " €" : ""}.">✦ ${rel ? "Refaire le relevé" : "Lancer le relevé"}</button> <span class="mut sm">≈ ${fmtTok(est.tokens)} jetons</span>`
+        ${key ? `<button class="${s2 === "todo" ? "on" : ""}" id="ia-rel" ${s1 !== "done" ? "disabled" : ""} title="Ouvre « Analyse IA » : choisissez un des 4 modes (standard à approfondie), puis lancez. Mode standard : ${fmtTok(est.tokens)} jetons${est.eur != null ? " ≈ " + est.eur.toFixed(2).replace(".", ",") + " €" : ""}.">✦ ${rel ? "Refaire le relevé" : "Lancer le relevé"}</button> <span class="mut sm">≈ ${fmtTok(est.tokens)} jetons</span>`
         : `<button class="${s2 === "todo" ? "on" : ""}" id="ia-rel-paste" ${s1 !== "done" ? "disabled" : ""} title="Sans clé : copier la consigne, la coller dans une conversation Claude avec le PDF, coller sa réponse ici">✦ ${rel ? "Recoller un relevé" : "Copier la consigne / coller la réponse"}</button>`}`)}
       ${step(3, "Relecture ciblée", s3, `<p class="sm">${!rel ? "Après le relevé." : pend == null ? "Recherche des erreurs…" : pend ? `<b>${pend}</b> erreur${pend > 1 ? "s" : ""} de relevé à faire relire.` : "Aucune erreur de relevé détectée."}${pct ? ` <span class="mut">Réussite : ${pct.ok}/${pct.tot} (${pct.pct} %).</span>` : ""}</p>
         ${rel ? `${key ? `<button class="${pend ? "on" : ""}" id="ia-rk-auto" ${pend ? "" : "disabled"} title="Relectures automatiques (${pref("relectures")} au plus, Paramètres)">✦ Relire automatiquement</button> ` : ""}<button id="ia-rk" ${pend ? "" : "disabled"} class="${!key && pend ? "on" : ""}" title="Copier la relecture, la coller dans la conversation du relevé, coller sa réponse">${key ? "Copier / coller" : "✦ Copier la relecture / coller la réponse"}</button>` : ""}`)}
@@ -111,7 +111,7 @@ export function createIaMode({ api, aiReleve, recheck, ctl }) {
     on("#ia-be", () => setMode("be"));
     on("#ia-plan", () => api.setTab("chantiers"));
     on("#ia-scale", async () => { const r = await autoScale(api).catch(() => ({ ok: false })); if (!r.ok) { api.setTab("plan"); api.startCalib(); } render(); });
-    on("#ia-rel", () => { api.setTab("plan"); aiReleve.open(); });
+    on("#ia-rel", () => { api.setTab("plan"); if (aiModes) aiModes.open(); else aiReleve.open(); });   // v76 : choix du mode d'analyse
     on("#ia-rel-paste", () => { api.setTab("plan"); aiReleve.pastePanel(); });
     on("#ia-rk-auto", () => { api.setTab("plan"); recheck.loop(); });
     on("#ia-rk", () => { api.setTab("plan"); recheck.open(); });

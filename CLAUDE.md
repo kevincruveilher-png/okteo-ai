@@ -1,4 +1,4 @@
-# À LIRE EN PREMIER — état du projet (mis à jour le 03/11/2026, v75)
+# À LIRE EN PREMIER — état du projet (mis à jour le 03/11/2026, v75 ; v76 en cours sur sa branche)
 
 Ce fichier sert à TOUTES les IA qui travaillent sur le dépôt (Claude, ChatGPT/Codex…) : `AGENTS.md` y renvoie.
 Plusieurs IA se sont succédé (Claude jusqu'à v66, ChatGPT v67 à v72, Claude depuis v72.1) : garder une seule source de
@@ -474,6 +474,15 @@ MAJ 4-5 : `src/print/ftz-symbols.js` (`boxColor`, `ftzSymbol`, `plaques`), préf
 (`hooks.dictate`), catalogue `ai.dictee`. Test `scripts/micro.test.mjs`.
 Modèles : `chat({purpose: "chat"|"analyse"})`, `modelFor` (Sonnet conversation, Opus analyse) ; Worker `pricing(c, purpose)`,
 colonnes `config.analysis_model/analysis_input_price/analysis_output_price` (créées par `analysisColumns`).
+
+### Analyse IA en 4 modes v76 (en cours, branche `feat/analyse-ia-modes-v76`)
+`src/ai-config.js` : `ANALYSE_MODEL` (Opus 5.5, verrouillé : client, Worker, fenêtre Budget) et `ANALYSE_PRICE`. Ne jamais
+réécrire l'identifiant ailleurs. `src/walls/ai-modes.js` (pur : `MODES_IA`, `launchState`, `dossierRef`) + `src/ext/ai-modes-ui.js`
+(`okteoExt.aiModes`, écran `#ai-modes` ouvert par `#rv-ai`, `#ia-rel` et `hooks.aiReleve`) : mode 1 = `aiReleve.open({mode:1})`,
+flux v75 inchangé (non-régression obligatoire) ; modes 2 à 4 : 3 cycles via la boucle `loop()` existante, jamais une
+boucle concurrente. Journal : `src/walls/ai-journal.js` (`analysesOf`), champs `analyse`/`ms`/`usd`/`reste` dans
+`cab.releves[lv].rapport`. Écarts IA = propositions à valider, aucun taux de détection promis. Test `scripts/ai-modes.test.mjs`.
+Workflow temporaire `.github/workflows/verification-v76.yml` (à retirer avant fusion).
 
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,

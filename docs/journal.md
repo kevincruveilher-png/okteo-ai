@@ -1,3 +1,41 @@
+## 03/11/2026 — v76 étapes 0 et 1 : modèle d'analyse verrouillé, journal d'analyse, écran « Analyse IA » (4 modes)
+
+Branche `feat/analyse-ia-modes-v76` (accès en écriture limité à cette branche, rien sur `main` sans « go »). Mission :
+4 modes d'analyse IA (standard, renforcée, plan dégradé, approfondie). Constats de départ (lecture du dépôt) : la
+« lecture par quarts » et la légende n'existent que dans la consigne (`ai-plan.js` `method`) ; Claude reçoit une seule
+image ≤ 1 568 px (l'API réduit au-delà, doc Vision vérifiée le 03/11/2026) ; le Worker refuse outils et `cache_control`
+(autorisation de Kévin d'ouvrir `cache_control` à l'étape 3 ; zoom = demandes dans le JSON, sans outils) ; relectures
+automatiques = réglage 0–3, 2 par défaut.
+- Étape 0 : `src/ai-config.js` (`ANALYSE_MODEL` = `claude-opus-5-5`, `ANALYSE_PRICE` 4 / 20 USD) importé par `ai.js`,
+  `server/worker.js` (regroupé par esbuild) et `src/web/workspace.js`. `modelFor(…, "analyse")` ignore tout ancien
+  réglage `anthropicAnalyse` ; champ `.ma` de Paramètres remplacé par `.ma-lock` (lecture seule). Worker : `pricing`
+  renvoie toujours `ANALYSE_MODEL` pour l'analyse (même si `config.analysis_model` dit autre chose) ; `/api/admin/config`
+  refuse un `analysis_model` différent (400), garde les prix d'analyse ; fenêtre Budget : modèle affiché « verrouillé ».
+  La conversation de l'assistant (Sonnet) est hors périmètre, inchangée.
+- Journal d'analyse : `src/walls/ai-journal.js` (pur : `newAnalyseId`, `callCost` (coût du Worker sinon tarif public),
+  `analysesOf(releve)`, `fmtUsd`, `fmtMs`). Rien de stocké à part : l'élément `releve` du rapport porte
+  `analyse {id, mode}`, `ms`, `usd` ; chaque `relecture` porte `analyse` (id), `usd`, `reste` (points encore signalés).
+  `chat()` renvoie `usage.usd` en ligne (`body.okteo.cost`). Étude → rapport IA : ligne `.ia-journal` par analyse
+  (mode, appels, durée, tokens, coût estimé, zones, zooms, alertes avant → après, écarts proposés « à valider »).
+  Message d'attente du relevé : affiche maintenant le vrai modèle d'analyse (il montrait le modèle de conversation).
+- Étape 1 : `src/walls/ai-modes.js` (pur : `MODES_IA` textes validés, `pts`, `ready`, `cycles` null = réglage pour le
+  mode 1 / 3 pour les modes 2 à 4, `MODES_PAGE`, `dossierRef`, `dotsLabel`, `launchState`) + `src/ext/ai-modes-ui.js`
+  (`createAiModes({api, aiReleve})`, `okteoExt.aiModes` : `open/close/select/launch`, `selected`, `launched`, `visible` ;
+  `#ai-modes.am`, cartes `.am-card[data-mode][aria-pressed]`, `.sel`, `.soon`, `#am-go[aria-disabled]`, Échap, flèches).
+  Maquette page 8 suivie (fond #04284A, grille de 4, coche, bordure corail, 4 points, mention, bouton) ; référence du
+  dossier dynamique (nom · numéro) ; titre et introduction en tailles souples (`clamp`) ; 2 colonnes < 1180 px, 1 < 640 px.
+  `LOGO` exporté par `attente.js`. Entrées : `#rv-ai` (libellé « ✦ Analyse IA ») et `#ia-rel` du Mode IA ;
+  `hooks.aiReleve` (catalogue `releve.ai`) ouvre aussi l'écran ; « Analyser le plan » de l'assistant inchangé.
+  Mode 1 → `aiReleve.open({mode: 1})` : flux v75 inchangé. Modes 2 à 4 : sélectionnables, « En préparation »,
+  lancement grisé. Visite : texte du menu Relevé mis à jour.
+- Tests : `scripts/ai-modes.test.mjs` (6, pur, ajouté en tête de `npm run check`) ; web.test.mjs (+1 : modèle verrouillé,
+  refusé s'il diffère, ignoré même écrit en base, prix réglables) ; smoke : nouvel écran (« v76 : Analyse IA… »), relevé
+  par l'IA passé par l'écran (mode 1, journal `analyse.mode` = 1, modèle Opus), test v75 des modèles adapté.
+  `scripts/shots-v76.mjs` (captures 1440 / 1920 / 1100 / 390 px). npm bloqué dans la session de développement
+  (refus 403 du proxy) : vérification par le workflow TEMPORAIRE `.github/workflows/verification-v76.yml` sur la
+  branche elle-même (à retirer avant fusion).
+- Non mesuré : rien de nouveau à mesurer à ce stade (le mode 1 est le flux v75) ; points durée / coût = niveaux relatifs.
+
 ## 03/11/2026 — v75 (suite) : Sonnet pour la conversation, Opus pour l'analyse
 
 v75 (micro + modèles) fusionnée dans `main` sur « go and push » de Kévin (GitHub Actions : check complet, smoke 178/178,

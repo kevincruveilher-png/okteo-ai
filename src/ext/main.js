@@ -25,6 +25,7 @@ import { mountBoxesPage, mountDirectPage } from "./cablage-pages.js";
 import { createAiReleve } from "./ai-releve.js";
 import { createRecheck } from "./ai-recheck-ui.js";
 import { createIaMode } from "./ia-mode.js";
+import { createAiModes } from "./ai-modes-ui.js";
 import { createOneCard } from "./one-card.js";
 import { createTemps } from "./temps.js";
 import { ensurePaperW, chantierScaleCheck } from "./pdf-page.js";
@@ -67,8 +68,10 @@ function start() {
     api.setHint(`⚠ Les cotes du plan (${s.cotes}) indiquent une échelle fausse de ${pct} % : le PDF n'est peut-être pas à son format d'origine (A3 imprimé en A4 ?). Menu Relevé → 1. Murs → « Corriger l'échelle », ou réglez-la sur une cote.`);
   });
   const recheck = createRecheck({ api, aiReleve });
+  // v76 : « Analyse IA » = écran de choix des 4 modes (menu Relevé et étape 2 du Mode IA)
+  const aiModes = createAiModes({ api, aiReleve });
   hooks.recheck = () => recheck.open();
-  hooks.aiReleve = () => aiReleve.open();
+  hooks.aiReleve = () => aiModes.open();
   hooks.aiPaste = () => aiReleve.pastePanel();
   document.addEventListener("okteo:walls", () => walls.open());
   document.addEventListener("okteo:devices", () => devices.open());
@@ -135,7 +138,7 @@ function start() {
   document.getElementById("rv-walls").onclick = relev(() => walls.open());
   document.getElementById("rv-rooms").onclick = relev(() => rooms.open());
   document.getElementById("rv-devices").onclick = relev(() => devices.open());
-  document.getElementById("rv-ai").onclick = relev(() => aiReleve.open());
+  document.getElementById("rv-ai").onclick = relev(() => aiModes.open());
   document.getElementById("rv-recheck").onclick = relev(() => recheck.open());
   hooks.openReleve = () => setRelev(true);
   document.getElementById("btn-print").onclick = () => printer.open();
@@ -170,11 +173,11 @@ function start() {
   const doubts = createDoubts(api), why = createWhy(api);
   // v63 : temps de travail BE compté sur le chantier ; mode IA (interface simplifiée)
   const temps = createTemps(api);
-  const iaMode = createIaMode({ api, aiReleve, recheck, ctl });
+  const iaMode = createIaMode({ api, aiReleve, recheck, ctl, aiModes });
   const oneCard = createOneCard();   // v64 : une seule fenêtre de travail à la fois
   hooks.modeIa = () => iaMode.setMode(iaMode.mode === "ia" ? "be" : "ia");
   hooks.cabler = () => { const r = cabler(api); api.setHint(r.text); if (pages.etude.ui) pages.etude.ui.render(); return r.text; };
-  window.okteoExt = { doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, prep, levels, aiReleve, recheck, iaMode, temps, oneCard, pages, backup: null };
+  window.okteoExt = { doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, recheck, iaMode, temps, oneCard, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 
