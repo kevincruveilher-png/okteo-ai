@@ -14,6 +14,9 @@ Branche `feat/analyse-ia-modes-v76`.
 - Smoke : limite de 6 min par vérification imposée depuis Node (rechargement de la page après un dépassement) ; la page
   d'attente (« Votre plan est prêt ») est fermée comme par l'opérateur après une analyse longue (elle recouvrait l'écran
   et faisait échouer la suite). Run 41644689440 : smoke 183/183, build:web, test:web 15/15.
+- Validation complète sur le dernier code : run 41647151360 vert — chemin des scans (OpenCV.js + Tesseract.js), check
+  (modes 21, murs 42, câblage 87, chantiers 176, MAILLARD 14, smoke 183/183), build:web, test:web 15/15.
+  Reste avant fusion (sur « go » de Kévin) : retirer les workflows temporaires verification-v76.yml et raster-v76.yml.
 
 ## 03/11/2026 — v76 fonctions complémentaires : recommandation de mode, escalade, banc d'essai
 

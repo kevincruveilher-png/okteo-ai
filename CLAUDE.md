@@ -16,7 +16,7 @@ vérité, celle-ci, et tenir `docs/journal.md` à jour à CHAQUE modification (e
   `public/assets/fond-evrard-04949.jpg`). Décision de Kévin attendue (dépôt privé ou retrait des plans). N'en ajouter aucun.
 - Ne lancer une mise à jour que sur ordre de Kévin ; ne rien pousser sur `main` sans son « go ». Branches de travail :
   `feat/…`, vérification par GitHub Actions sur une branche `verification-…` supprimée après usage.
-- `npm run check` entièrement vert (03/11/2026, v75 : smoke 178/178 ; branche v76 : smoke 179/179). Sans navigateur en local : faire tourner les
+- `npm run check` entièrement vert (03/11/2026, v75 : smoke 178/178 ; branche v76 : smoke 183/183, run 41647151360). Sans navigateur en local : faire tourner les
   tests sur GitHub Actions (workflow temporaire sur une branche `verification-…`, voir journal v72.1).
 
 # Oktéo AI — consignes pour Claude
