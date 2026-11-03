@@ -727,10 +727,11 @@ try {
     await page.uncheck('.aicard [data-k="devices"]');
     await page.click("#ai-ok");
     const after = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.map((r) => r.name).sort().join(","), app: okteo.state.app.length, op: okteo.state.openings.length }));
-    await page.keyboard.press("Control+z");
-    const undone = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.length, app: okteo.state.app.length }));
+    // v76 : journal d'analyse (lu avant le Ctrl+Z, qui l'annule avec le reste)
     const J = await ev(() => { const R = (okteo.cab.releves || {})[okteo.level.id] || {}, x = (R.rapport || []).find((y) => y.type === "releve") || {}; return { mode: x.analyse && x.analyse.mode, id: !!(x.analyse && x.analyse.id) }; });
     J.model = req && req.body.model;   // modèle reçu par le faux serveur IA (côté test, pas dans la page)
+    await page.keyboard.press("Control+z");
+    const undone = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.length, app: okteo.state.app.length }));
     const r = { img: !!img && img.source.data.length > 20000, P, after, undone, before, txt: txt.includes("Séjour"), J };
     if (!r.img || J.mode !== 1 || !J.id || J.model !== "claude-opus-5-5" || P.walls !== 7 || P.nodes !== 6 || P.coupes !== 2 || P.op !== 2 || P.dev !== 4 || P.links !== 1 || !P.prev || !r.txt
       || after.segs !== 7 || after.rooms !== "Chambre,Séjour" || after.app !== before.app || after.op !== 2
