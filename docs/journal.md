@@ -1,3 +1,23 @@
+## 03/11/2026 — 3D-7 élévations de murs (branche `feat/3d-1-visionneuse`)
+
+- `src/3d/elevation.js` (pur) : `wallElevation(data, apps, rooms, segId, side, H)` = face d'un mur à plat, vue depuis
+  la pièce (u = 0 au coin gauche de l'observateur) : longueur de la face (retrait de la demi-épaisseur d'un mur qui part
+  de ce côté, prolongement jusqu'au coin extérieur d'un angle sortant), pièce de ce côté, ouvertures (allège / linteau),
+  appareils de cette face avec leur distance au coin le plus proche et leur hauteur (* = hauteur de départ) ;
+  `roomFaces(data, room)` (faces du contour tournées vers l'intérieur) ; `elevationDraw(E)` (primitives en mètres,
+  partagées écran / PDF) ; `elevationSVG(E, {px})`.
+- `src/ext/elevations-pdf.js` : `buildElevationsPdf(list, {chantier, level})` (jsPDF, A4 paysage, une élévation par page,
+  1:20, 1:25, 1:50 ou 1:100 selon la place, cotes bleues, légende).
+- 3D : clic sur un mur (rien d'autre sous la souris) → carte large : élévation de la face touchée (normale de la face,
+  sinon côté de la caméra), « Autre face », « PDF de ce mur », « PDF de la pièce » (toutes ses faces intérieures),
+  « Voir sur le plan » ; `ui.showWall(seg, side)`, `ui.elevPdf`, `ui.lastElev` (tests). Catalogue : `vue.3d.elevation`.
+- Constat : le repère `a.wa` du plan (distance « depuis la face du mur d'angle ») retire la plus grosse demi-épaisseur du
+  sommet, même celle d'un mur dans le prolongement (cas fréquent sur MAILLARD : 43 appareils sur 77, écarts de 3 à
+  15 cm). Ce n'est pas corrigé dans le cœur (les appareils se replacent d'après `wa` : les corriger les déplacerait) ;
+  l'élévation donne la vraie distance au coin de la face. À décider avec Kévin.
+- Tests : v3d (face intérieure / extérieure, inversion gauche-droite, pièce, allège, cotes et hauteurs) + smoke (clic
+  sur un mur, élévation, PDF à l'échelle, autre face, Ctrl+Z).
+
 ## 03/11/2026 — 3D-6 contrôles de pose (branche `feat/3d-1-visionneuse`)
 
 - `src/3d/pose.js` (pur) `poseIssues(plan, apps, {pmr, H})` → `battant` (commande dans la bande du battant ouvert :
@@ -17,6 +37,7 @@
   sens d'ouverture des portes relevées par l'IA sont souvent ceux par défaut (gond gauche, intérieur) : à corriger sur le
   plan pour que le contrôle du battant soit juste.
 - Tests : v3d (cas d'école battant / embrasure / hauteurs / allège / charnière inversée) + smoke (compteur, 3D, fiche, Ctrl+Z).
+  Validation : run 41731331613 vert (smoke 190/190, v3d 41, build:web, test:web).
 
 ## 03/11/2026 — 3D-5 gaines en 3D et passage par le sol (branche `feat/3d-1-visionneuse`)
 

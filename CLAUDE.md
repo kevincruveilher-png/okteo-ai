@@ -507,7 +507,9 @@ colonnes `config.analysis_model/analysis_input_price/analysis_output_price` (cr�
   3D-4 : `src/ext/vue3d-walk.js` (`ui.walk` : enter/exit/act/update), `importDevices(..., {stay})`, touches capturées.
   3D-5 : `gainePath`, `nearestWall`, `buildGaines`, `box.sol` (gaines.js : longueur par le sol), `setGaineSol`/`gaineKeys`.
   3D-6 : `src/3d/pose.js` `poseIssues` (battant, embrasure, hauteur) → `check.js` `posesAll` (compteur « à vérifier »),
-  `scene.js` `buildMarks` (anneaux, volumes SDB), `.v3d-pose`, `ui.focusDev`. Tests :
+  `scene.js` `buildMarks` (anneaux, volumes SDB), `.v3d-pose`, `ui.focusDev`.
+  3D-7 : `src/3d/elevation.js` (`wallElevation`, `roomFaces`, `elevationDraw`, `elevationSVG`), `src/ext/elevations-pdf.js`,
+  clic sur un mur en 3D → `ui.showWall(seg, side)` (`.v3d-card.wide`), `ui.lastElev`. Tests :
   `scripts/v3d.test.mjs` + smoke. Workflow TEMPORAIRE `verification-3d.yml` à retirer avant fusion.
 
 ### Entreprise Cloudflare v72 / v72.1

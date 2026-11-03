@@ -1236,6 +1236,13 @@ body.am-on{overflow:hidden}
 .v3d-pose summary{cursor:pointer;font-weight:600}.v3d-pose summary .w{color:#e8342a}
 .v3d-pose ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:220px;overflow:auto}
 .v3d-pose li button{width:100%;text-align:left;border:1px solid color-mix(in srgb,#e8342a 55%,var(--line));background:transparent;color:var(--fg);padding:6px 8px;font-size:12px;line-height:1.35}
+.v3d-card.wide{width:min(372px,calc(100% - 28px))}
+.v3d-elev{background:#fff;border-radius:8px;padding:6px;overflow-x:auto}
+.v3d-elev svg{display:block;max-width:100%;height:auto}
+.elev .mur{fill:#f4f1ea;stroke:#3c4048;stroke-width:1.2}.elev .sol{stroke:#282c34;stroke-width:2}
+.elev .ouv{fill:#fff;stroke:#3c4048;stroke-width:1}.elev .ouv.fenetre{fill:#d6e8f6}
+.elev .dev{fill:#d33;stroke:#961414;stroke-width:.6}.elev .rappel{stroke:#969ba5;stroke-width:.6;stroke-dasharray:2 2}
+.elev .cote{stroke:#285aaa;stroke-width:.8}.elev text{font-family:var(--fm,monospace);fill:#1e222a}.elev .dcote,.elev .hcote{fill:#285aaa}.elev .rep{font-weight:700}
 .v3d-card p.v3d-bad{color:var(--fg);border-left:3px solid #e8342a;padding-left:8px;font-size:12px}
 .v3d-card{position:absolute;left:14px;bottom:14px;width:270px;box-sizing:border-box;background:color-mix(in srgb,var(--panel) 94%,transparent);border:1px solid var(--accent2);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;color:var(--fg);font-size:13px}
 .v3d-card .k{font-family:var(--fd);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent2);font-weight:600}

@@ -8,6 +8,7 @@ import { computeCircuits } from "../src/cablage/circuits.js";
 import { CAB_DEFAULTS } from "../src/cablage/settings.js";
 import { parseAiJson, aiToPlan } from "../src/walls/ai-plan.js";
 import { poseIssues } from "../src/3d/pose.js";
+import { wallElevation, roomFaces, elevationDraw, elevationSVG } from "../src/3d/elevation.js";
 
 let ok = 0; const fails = [];
 const check = (name, cond, info = "") => { if (cond) { ok++; console.log("  ✓ " + name); } else { fails.push(name + (info ? " : " + info : "")); console.log("  ✗ " + name + (info ? " : " + info : "")); } };
@@ -134,6 +135,26 @@ console.log("Vue 3D-6 : contrôles de pose");
   // charnière à droite : c'est l'autre côté qui est caché
   const R3 = poseIssues({ ...plan, openings: [{ ...plan.openings[0], hinge: "d" }, plan.openings[1]] }, A, {});
   check("battant : charnière à droite → la commande côté x > 2,4 m est cachée, celle de gauche ne l'est plus", R3.some((r) => r.id === "handle" && r.kind === "battant") && !R3.some((r) => r.id === "behind" && r.kind === "battant"), k(R3));
+}
+
+console.log("Vue 3D-7 : élévations de murs");
+{
+  // pièce 4 × 3 m (y vers le bas comme le plan), murs de 20 cm ; porte de 80 cm centrée à 2 m sur le mur du haut (s1)
+  const data = { nodes: [{ id: "a", x: 0, y: 0 }, { id: "b", x: 4, y: 0 }, { id: "c", x: 4, y: 3 }, { id: "d", x: 0, y: 3 }],
+    segs: [{ id: "s1", a: "a", b: "b", ep: 0.2 }, { id: "s2", a: "b", b: "c", ep: 0.2 }, { id: "s3", a: "c", b: "d", ep: 0.2 }, { id: "s4", a: "d", b: "a", ep: 0.2 }],
+    openings: [{ id: "o1", seg: "s1", t: 2, w: 0.8, kind: "porte" }, { id: "o2", seg: "s2", t: 1.5, w: 1, kind: "fenetre", allege: 1.0 }] };
+  const room = { name: "Chambre", poly: [{ x: 0.1, y: 0.1 }, { x: 3.9, y: 0.1 }, { x: 3.9, y: 2.9 }, { x: 0.1, y: 2.9 }], cycle: [{ seg: "s1" }, { seg: "s2" }, { seg: "s3" }, { seg: "s4" }] };
+  const apps = [{ id: "i", t: "INT", x: 0.5, y: 0.1, h: 110, seg: "s1", rep: "I1" }, { id: "p", t: "PC16", x: 3.5, y: 0.1, h: null, hDef: 30, seg: "s1", rep: "P1" }, { id: "x", t: "PC16", x: 1, y: -0.1, h: 30, seg: "s1" }];
+  const E = wallElevation(data, apps, [room], "s1", 1);
+  const i = E.devices.find((d) => d.id === "i"), p = E.devices.find((d) => d.id === "p");
+  check("élévation : face intérieure de 3,80 m (angles retirés), pièce reconnue, porte de 1,50 à 2,30 m", Math.abs(E.W - 3.8) < 1e-9 && E.room === "Chambre" && Math.abs(E.openings[0].u0 - 1.5) < 1e-9 && Math.abs(E.openings[0].u1 - 2.3) < 1e-9, JSON.stringify(E.openings));
+  check("élévation : interrupteur à 40 cm de l'angle gauche, 1,10 m ; prise à 40 cm de l'angle droit, 0,30 m (hauteur de départ) ; l'appareil de l'autre face n'y est pas", i && i.from === "g" && Math.abs(i.d - 0.4) < 1e-9 && i.v === 1.1 && p && p.from === "d" && Math.abs(p.d - 0.4) < 1e-9 && p.v === 0.3 && p.defH && !E.devices.some((d) => d.id === "x"), JSON.stringify(E.devices));
+  const O = wallElevation(data, apps, [room], "s1", -1);
+  check("élévation : face extérieure vue du dehors : 4,20 m (jusqu'aux coins extérieurs), gauche et droite inversées (porte de 1,70 à 2,50 m), seule la prise du dehors", Math.abs(O.W - 4.2) < 1e-9 && Math.abs(O.openings[0].u0 - 1.7) < 1e-9 && O.devices.length === 1 && O.devices[0].id === "x" && !O.room, JSON.stringify([O.W, O.openings, O.devices]));
+  const F = roomFaces(data, room), w2 = wallElevation(data, apps, [room], "s2", F.find((f) => f.seg === "s2").side);
+  check("faces de la pièce : 4 murs tournés vers l'intérieur ; fenêtre avec son allège de 1 m", F.length === 4 && F.every((f) => wallElevation(data, apps, [room], f.seg, f.side).room === "Chambre") && Math.abs(w2.openings[0].v0 - 1) < 1e-9, JSON.stringify(F));
+  const D = elevationDraw(E), svg = elevationSVG(E);
+  check("dessin : cotes 40 (deux fois) et H 110, H 30* (valeur de départ) ; SVG produit", D.items.filter((t) => t.k === "text" && t.s === "40").length === 2 && D.items.some((t) => t.s === "H 110") && D.items.some((t) => t.s === "H 30*") && /<svg/.test(svg) && /Chambre/.test(svg));
 }
 
 console.log("Vue 3D : relevés IA (MAILLARD, PASQUIER)");

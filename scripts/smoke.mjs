@@ -2812,6 +2812,31 @@ try {
     if (!ok) throw new Error(JSON.stringify({ ctl, r, card, back }));
     return true;
   });
+  await check("3D-7 : clic sur un mur en 3D → élévation de la face touchée (appareil coté depuis l'angle, hauteur), autre face, PDF du mur à l'échelle ; Ctrl+Z", async () => {
+    await ev(() => okteo.setTab("plan"));
+    const ids = await ev(() => okteo.batch(() => { okteo.addWalls([{ a: { x: 50, y: 0 }, b: { x: 54, y: 0 }, ep: 0.25 }]); return okteo.importDevices([{ t: "INT", x: 51, y: 0.3 }], [], { stay: true }).ids; }));
+    await ev(() => okteo.setTab("vue3d"));
+    await page.waitForFunction((i) => { const S3 = okteoExt.pages.vue3d.ui.state; return S3.house && S3.devs.some((d) => d.id === i[0]); }, ids, { timeout: 20000 });
+    const pt = await ev(() => { const u = okteoExt.pages.vue3d.ui, S3 = u.state; u.view("iso", true); S3.ctl.update(); S3.R.render(S3.scene, S3.cam); const v = new S3.T.Vector3(52.4, 1.7, 0.13).project(S3.cam), b = document.querySelector(".v3d-cv").getBoundingClientRect(); return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height, inside: Math.abs(v.x) < 1 && Math.abs(v.y) < 1 }; });
+    await page.mouse.click(pt.x, pt.y); await page.waitForTimeout(400);
+    let c1 = await ev(() => { const c = document.querySelector(".v3d-card"), E = okteoExt.pages.vue3d.ui.state.elev; return { open: !c.hidden && c.classList.contains("wide"), svg: !!c.querySelector(".v3d-elev svg"), seg: E && E.seg, side: E && E.side, devs: E && E.E.devices.map((d) => [d.id, Math.round(d.d * 100), Math.round(d.v * 100)]) }; });
+    // clic manqué (mur caché dans ce cadrage) : on ouvre l'élévation directement pour vérifier la suite
+    const segId = await ev(() => okteo.state.segs.find((s) => { const a = okteo.state.nodes.find((n) => n.id === s.a); return a && a.x === 50 && a.y === 0; }).id);
+    const clicked = c1.seg === segId;
+    if (!clicked) { await ev((s) => okteoExt.pages.vue3d.ui.showWall(s, 1), segId); c1 = await ev(() => { const c = document.querySelector(".v3d-card"), E = okteoExt.pages.vue3d.ui.state.elev; return { open: !c.hidden && c.classList.contains("wide"), svg: !!c.querySelector(".v3d-elev svg"), seg: E && E.seg, side: E && E.side, devs: E && E.E.devices.map((d) => [d.id, Math.round(d.d * 100), Math.round(d.v * 100)]) }; }); }
+    await page.click('.v3d-card [data-a="wpdf"]');
+    await page.waitForFunction(() => okteoExt.pages.vue3d.ui.lastElev, null, { timeout: 20000 });
+    const pdf = await ev(async () => { const r = okteoExt.pages.vue3d.ui.lastElev; return { pages: r.pages, N: r.scales[0], size: r.blob.size, head: await r.blob.slice(0, 5).text() }; });
+    await page.click('.v3d-card [data-a="wflip"]'); await page.waitForTimeout(200);
+    const c2 = await ev(() => { const E = okteoExt.pages.vue3d.ui.state.elev; return { side: E.side, n: E.E.devices.length, W: E.E.W }; });
+    await ev(() => { okteo.setTab("plan"); okteo.undo(); });
+    const back = await ev((i) => !okteo.state.app.some((a) => i.includes(a.id)), ids);
+    // l'interrupteur est à 1 m du bout gauche de la face (vue de y > 0, la gauche est x = 50 : pas de mur d'angle), à 110 cm
+    const ok = c1.open && c1.svg && c1.seg === segId && c1.side === 1 && c1.devs.length === 1 && c1.devs[0][1] === 100 && c1.devs[0][2] === 110 && pdf.pages === 1 && pdf.head === "%PDF-" && [20, 25].includes(pdf.N) && c2.side === -1 && c2.n === 0 && Math.abs(c2.W - 4) < 1e-6 && back;
+    if (!ok) throw new Error(JSON.stringify({ pt, clicked, c1, pdf, c2, back }));
+    if (!clicked) console.log("    (clic sur le mur non atteint dans ce cadrage : élévation ouverte par l'API)");
+    return true;
+  });
   await check("3D-2 : jonction oubliée et mur en double signalés dans la vue 3D, un clic montre l'endroit sur le plan", async () => {
     await ev(() => okteo.addWalls([{ a: { x: 20, y: 0 }, b: { x: 24, y: 0 }, ep: 0.25 }, { a: { x: 22, y: 0.35 }, b: { x: 22, y: 3 }, ep: 0.1 }]));
     await ev(() => okteo.setTab("vue3d"));

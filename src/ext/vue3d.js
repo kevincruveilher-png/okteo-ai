@@ -7,6 +7,8 @@ import { wiringNow, setGaineSol, gaineKeys } from "./cablage-data.js";
 import { boxColor } from "../print/ftz-symbols.js";
 import { getPrefs } from "../prefs.js";
 import { createWalk } from "./vue3d-walk.js";
+import { wallElevation, roomFaces, elevationSVG } from "../3d/elevation.js";
+import { downloadBlob } from "./dossier.js";
 import { esc } from "./util.js";
 
 const fr = (v, d = 2) => Number(v).toFixed(d).replace(".", ",");
@@ -32,7 +34,8 @@ export function planData(api) {
     const room = (geo.rooms || []).find((r) => hspOf.has(r.id) && r.poly && inPoly(a.x, a.y, r.poly));
     return { hsp: room ? hspOf.get(room.id) : null, id: a.id, t: a.t, x: a.x, y: a.y, h: Number.isFinite(a.h) ? a.h : null, hDef: Number.isFinite(g.hDef) ? g.hDef : null, seg: a.seg || null, rep: g.rep || "", name: g.name || a.t, room: g.room || null, color: g.color || null, circuit: g.circuit || null };
   });
-  const rooms = (geo.rooms || []).map((r) => ({ id: r.id, name: r.name, poly: r.poly, area: r.area, label: r.label, hsp: hspOf.get(r.id) || null }));
+  const cyc = new Map(st.rooms.map((r) => [r.id, r.cycle || null]));
+  const rooms = (geo.rooms || []).map((r) => ({ id: r.id, name: r.name, poly: r.poly, area: r.area, label: r.label, hsp: hspOf.get(r.id) || null, cycle: cyc.get(r.id) }));
   // boîtes au-dessus du plus haut plafond
   H.combles = Math.max(H.plafond, ...[...top.values()]) + 0.35;
   const boxes = (geo.boxes || []).map((b) => ({ id: b.id, n: b.n, x: b.x, y: b.y, color: boxColor(b.n) }));
@@ -206,12 +209,18 @@ export function mountVue3d(el, { api }) {
     if (S3.gaines && S3.gaines.group.visible) S3.gaines.tubes.forEach((t) => vis.push(t.pick));
     const hit = ray.intersectObjects(vis, false)[0];
     if (hit && hit.object.userData.gaine) { showGaine(hit.object.userData.gaine); return; }
+    // 3D-7 : rien d'autre sous la souris : un mur → son élévation (la face touchée)
+    if (!hit) {
+      const wh = ray.intersectObjects(S3.house.walls.children.filter((m) => m.isMesh && m.userData.wall), false)[0];
+      if (wh) { showWall(wh.object.userData.wall, faceSide(wh)); return; }
+    }
     showCard(hit ? (hit.object.userData.dev || null) : null, hit && hit.object.userData.box);
   });
   // 3D-5 : fiche d'une gaine : n°, appareil, longueur de la bande, tracé 3D, passage par le sol (propriété de la gaine)
   function showGaine(gid) {
     if (halo) { S3.scene.remove(halo); halo.geometry.dispose(); halo = null; }
     const g = S3.gList.find((x) => x.id === gid); if (!g) { showCard(null); return; }
+    card.classList.remove("wide"); card.dataset.wall = "";
     S3.gaines.highlight(gid); card.dataset.id = ""; card.dataset.gaine = gid;
     card.innerHTML = `<span class="k">Gaine · boîte ${esc(g.box)}</span><b class="t">${esc(g.no)}</b><p>${esc(g.label)}</p>
       <dl><dt>Longueur</dt><dd>${g.length != null ? fr(g.length) + " m" : "—"} (bande, surlongueurs comprises)</dd><dt>Tracé 3D</dt><dd>${fr(g.L3)} m</dd>${g.diam ? `<dt>Diamètre</dt><dd>Ø${esc(String(g.diam))}</dd>` : ""}<dt>Passage</dt><dd>${g.sol ? "par le sol" : "par le plafond"}</dd></dl>
@@ -224,6 +233,7 @@ export function mountVue3d(el, { api }) {
   }
   function showCard(id, boxId) {
     if (halo) { S3.scene.remove(halo); halo.geometry.dispose(); halo = null; }
+    card.classList.remove("wide"); card.dataset.wall = "";
     card.dataset.id = id || ""; card.dataset.gaine = "";
     if (S3.gaines) S3.gaines.highlight(null);
     if (boxId) {
@@ -243,8 +253,51 @@ export function mountVue3d(el, { api }) {
       card.hidden = false;
     }
   }
+  // ---------- 3D-7 : élévation d'un mur ----------
+  function segGeo(id) {
+    const s = S3.P.data.segs.find((x) => x.id === id), n = (k) => S3.P.data.nodes.find((q) => q.id === k);
+    const A = s && n(s.a), B = s && n(s.b); if (!A || !B) return null;
+    const L = Math.hypot(B.x - A.x, B.y - A.y) || 1; return { A, ux: (B.x - A.x) / L, uy: (B.y - A.y) / L };
+  }
+  function faceSide(hit) {
+    const g = segGeo(hit.object.userData.wall); if (!g) return 1;
+    const nW = hit.face ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld) : null, nx = -g.uy, ny = g.ux;
+    const k = nW ? nW.x * nx + nW.z * ny : 0;
+    if (Math.abs(k) > 0.5) return k > 0 ? 1 : -1;
+    const c = S3.cam.position; return (c.x - g.A.x) * nx + (c.z - g.A.y) * ny >= 0 ? 1 : -1;
+  }
+  const elevOf = (seg, side) => wallElevation(S3.P.data, S3.P.apps, S3.P.rooms, seg, side, S3.H);
+  const elevTitle = (E) => `Élévation · ${E.room || "face extérieure"} · mur de ${fr(E.W)} m`;
+  function showWall(seg, side) {
+    if (halo) { S3.scene.remove(halo); halo.geometry.dispose(); halo = null; }
+    const E = elevOf(seg, side); if (!E) { showCard(null); return; }
+    S3.elev = { seg, side, E };
+    card.dataset.id = ""; card.dataset.gaine = ""; card.dataset.wall = seg;
+    const room = E.room && S3.P.rooms.find((r) => r.name === E.room && r.cycle);
+    card.classList.add("wide");
+    card.innerHTML = `<span class="k">Élévation · ${esc(E.room || "face extérieure")}</span><b class="t">Mur de ${fr(E.W)} m · ${E.devices.length} appareil${E.devices.length > 1 ? "s" : ""}</b>
+      <div class="v3d-elev">${elevationSVG(E, { px: 330 })}</div>
+      <p class="sm">Cotes en cm depuis la face du mur d'angle (vue depuis ${E.room ? "la pièce" : "l'extérieur"}), hauteurs depuis le sol ; * = hauteur de départ.</p>
+      <div class="acts"><button type="button" data-a="wflip" title="L'autre face du même mur">Autre face</button><button type="button" class="pri" data-a="wpdf" title="PDF A4 de cette élévation, à l'échelle">PDF de ce mur</button>${room ? `<button type="button" data-a="rpdf" title="Une élévation par mur de la pièce, vue de l'intérieur">PDF de la pièce</button>` : ""}<button type="button" data-a="wplan" title="Sélectionne le mur sur le plan">Voir sur le plan</button><button type="button" data-a="close">Fermer</button></div>`;
+    card.hidden = false;
+  }
+  async function elevPdf(list, name) {
+    const { buildElevationsPdf } = await import("./elevations-pdf.js");
+    const r = await buildElevationsPdf(list, { chantier: api.ch && (api.ch.nom || ""), level: api.level && api.level.name });
+    ui.lastElev = r; downloadBlob(r.blob, name);
+    api.setHint(`Élévations : ${r.pages} page${r.pages > 1 ? "s" : ""} (échelle 1:${[...new Set(r.scales)].join(", 1:")}).`);
+    return r;
+  }
   card.onclick = (e) => {
     const a = e.target.closest("button")?.dataset.a; if (!a) return;
+    if (a === "wflip" && S3.elev) { showWall(S3.elev.seg, -S3.elev.side); return; }
+    if (a === "wpdf" && S3.elev) { const E = S3.elev.E; elevPdf([{ E, title: elevTitle(E) }], `elevation-${(E.room || "exterieur").replace(/\s+/g, "-")}.pdf`); return; }
+    if (a === "rpdf" && S3.elev) {
+      const room = S3.P.rooms.find((r) => r.name === S3.elev.E.room && r.cycle); if (!room) return;
+      const list = roomFaces(S3.P.data, room).map((f) => elevOf(f.seg, f.side)).filter((E) => E && E.W > 0.3).map((E) => ({ E, title: elevTitle(E) }));
+      elevPdf(list, `elevations-${room.name.replace(/\s+/g, "-")}.pdf`); return;
+    }
+    if (a === "wplan" && card.dataset.wall) { const id = card.dataset.wall; api.setTab("plan"); api.select([id]); api.zoomTo([id]); return; }
     if (a === "close") showCard(null);
     if (a === "plan" && card.dataset.id) { const id = card.dataset.id; api.select([id]); api.zoomTo([id]); }
     if (a === "gplan" && card.dataset.gaine) {
@@ -325,7 +378,7 @@ export function mountVue3d(el, { api }) {
   const ui = {
     focusDev: (id) => focusDev(id),
     render() { build(false).then(start).catch((e) => { msg.hidden = false; msg.textContent = "La vue 3D n'a pas pu s'afficher : " + (e && e.message || e); }); },
-    view, state: S3, walk, showGaine: (id) => showGaine(id),
+    view, state: S3, walk, showGaine: (id) => showGaine(id), showWall: (seg, side) => showWall(seg, side), elevPdf,
   };
   ui.render();
   return ui;
