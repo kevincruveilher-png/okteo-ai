@@ -475,14 +475,26 @@ MAJ 4-5 : `src/print/ftz-symbols.js` (`boxColor`, `ftzSymbol`, `plaques`), préf
 Modèles : `chat({purpose: "chat"|"analyse"})`, `modelFor` (Sonnet conversation, Opus analyse) ; Worker `pricing(c, purpose)`,
 colonnes `config.analysis_model/analysis_input_price/analysis_output_price` (créées par `analysisColumns`).
 
-### Analyse IA en 4 modes v76 (en cours, branche `feat/analyse-ia-modes-v76`)
-`src/ai-config.js` : `ANALYSE_MODEL` (Opus 5.5, verrouillé : client, Worker, fenêtre Budget) et `ANALYSE_PRICE`. Ne jamais
-réécrire l'identifiant ailleurs. `src/walls/ai-modes.js` (pur : `MODES_IA`, `launchState`, `dossierRef`) + `src/ext/ai-modes-ui.js`
-(`okteoExt.aiModes`, écran `#ai-modes` ouvert par `#rv-ai`, `#ia-rel` et `hooks.aiReleve`) : mode 1 = `aiReleve.open({mode:1})`,
-flux v75 inchangé (non-régression obligatoire) ; modes 2 à 4 : 3 cycles via la boucle `loop()` existante, jamais une
-boucle concurrente. Journal : `src/walls/ai-journal.js` (`analysesOf`), champs `analyse`/`ms`/`usd`/`reste` dans
-`cab.releves[lv].rapport`. Écarts IA = propositions à valider, aucun taux de détection promis. Test `scripts/ai-modes.test.mjs`.
-Workflow temporaire `.github/workflows/verification-v76.yml` (à retirer avant fusion).
+### Analyse IA en 4 modes v76 (branche `feat/analyse-ia-modes-v76`, pas encore dans `main`)
+- `src/ai-config.js` : `ANALYSE_MODEL` (Opus 5.5, verrouillé : client, Worker, fenêtre Budget), `ANALYSE_PRICE` (avec
+  cache), `CACHE_RATIO`, `IMAGE_LIMITS` (1 568 px / 1,15 Mpx, doc vérifiée le 03/11/2026). Ne jamais réécrire l'identifiant ailleurs.
+- Écran `#ai-modes` (`src/ext/ai-modes-ui.js`, `okteoExt.aiModes`, textes `src/walls/ai-modes.js`) ouvert par `#rv-ai`,
+  `#ia-rel`, `hooks.aiReleve`, `okteo:ai-escalade` ; recommandation `recommend()` (ai-stats.js, ext/ai-reco.js), jamais
+  choisie d'office ; mode 4 : documents joints `#am-docs-file`. Mode 1 = `aiReleve.open({mode:1})`, flux v75 INCHANGÉ.
+- Modes 2 à 4 : `src/ext/ai-modes-run.js` (`okteoExt.aiRunner.run(mode, {docs})`) : lecture globale (mode 1) + tuiles
+  (`src/walls/ai-tiles.js` grille / tailles / repères / fusion ; `src/ext/ai-render.js` PDF vectoriel rendu de nouveau, scan
+  découpé sans agrandissement) + zooms demandés dans le JSON + cache_control ; mode 3 : `src/ext/ai-raster.js` (OpenCV.js,
+  Tesseract.js depuis `/vendor`, raster seulement ; PDF vectoriel = textes du PDF) ; mode 4 : `src/ext/ai-cross.js` +
+  `src/walls/ai-cross.js` (seconde lecture, contrôle croisé). Puis `aiReleve.fromPlan` (même aperçu, un Ctrl+Z) et 3 cycles
+  de la boucle `loop()` existante (`cyclesFor`), jamais une boucle concurrente ; `escalade()` en fin de boucle.
+- Repères : une seule chaîne pixel → mètres (`regionMap`, `unrotate` convention OpenCV) ; écarts = propositions à valider
+  (`plan.ecarts`, `plan.docEcarts`, `cab.releves[lv].ecarts`), aucun taux de détection promis.
+- Journal (`src/walls/ai-journal.js`) : `analyse {id, mode}`, `ms`, `usd`, `tin/tout/cw/cr`, `zones`, `zooms`, `appels`…
+- Dépendances : `scripts/licences.mjs` (dans check : MIT / Apache-2.0 / BSD, équivalents ISC / 0BSD / Zlib signalés) ;
+  `scripts/vendor-ia.mjs` copie OpenCV / Tesseract / fra dans `public/vendor` (non versionné). Worker : CSP `'wasm-unsafe-eval'`.
+- Banc d'essai : `src/walls/ai-bench.js`, `scripts/modes-bench.mjs`, protocole `docs/banc-essai-v76.md`.
+- Tests : `scripts/ai-modes.test.mjs` (pur) + smoke (écran, modes 1 à 4, scan réel OpenCV/OCR, recommandation, escalade).
+  Workflow TEMPORAIRE `.github/workflows/verification-v76.yml` (complète aussi le verrou npm) : à retirer avant fusion.
 
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,
