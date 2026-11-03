@@ -145,9 +145,10 @@ export async function chat({ system, messages, maxTokens = 1800, provider, model
   let text, switched = "", usage = null;
 
   if (provider === "anthropic") {
+    // v76 : `m.blocks` = blocs déjà au format de l'API (images de tuiles, zooms, marques cache_control), passés tels quels
     const msgs = messages.map((m) => ({
       role: m.role,
-      content: m.image
+      content: m.blocks ? m.blocks : m.image
         ? [{ type: "image", source: { type: "base64", media_type: m.image.type, data: m.image.data } },
           // v61 : images supplémentaires (zooms de la relecture ciblée), chacune précédée de son nom
           ...(m.images || []).flatMap((im) => [{ type: "text", text: im.label || "Image" }, { type: "image", source: { type: "base64", media_type: im.type, data: im.data } }]),
@@ -159,7 +160,8 @@ export async function chat({ system, messages, maxTokens = 1800, provider, model
     if(window.okteoSession){ model=body.okteo?.model||body.model||model;document.dispatchEvent(new CustomEvent("okteo:ai-cost")); }
     text = (body.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
     // v76 : en ligne, le Worker renvoie le coût calculé au tarif configuré (USD) ; gardé pour le journal d'analyse
-    if (body.usage) usage = { in: body.usage.input_tokens || 0, out: body.usage.output_tokens || 0, ...(body.okteo && Number.isFinite(body.okteo.cost) ? { usd: body.okteo.cost } : {}) };
+    // v76 : tokens lus / écrits en cache comptés à part (cw, cr) ; `in` = entrée hors cache (champ input_tokens de l'API)
+    if (body.usage) usage = { in: body.usage.input_tokens || 0, out: body.usage.output_tokens || 0, cw: body.usage.cache_creation_input_tokens || 0, cr: body.usage.cache_read_input_tokens || 0, ...(body.okteo && Number.isFinite(body.okteo.cost) ? { usd: body.okteo.cost } : {}) };
   } else {
     const env = settings.env || {};
     if (env.checked && !env.online) throw new AIError("NVIDIA ne marche que dans la version locale du logiciel (NVIDIA bloque les appels depuis un site en ligne). En ligne, utilisez une clé Claude (Paramètres).", 0);

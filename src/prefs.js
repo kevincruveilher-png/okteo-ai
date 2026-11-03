@@ -13,6 +13,9 @@ export const PREFS_DEFAULTS = {
   prixOut: 0, // v63 : prix des jetons de sortie, € par million
   tauxHoraire: 0, // v63 : coût horaire du technicien BE, € / h (0 = non renseigné)
   charteBE: true, // v74 MAJ 4 : plan à l'écran aux symboles du BE (FTZ) et gaines à la couleur de leur boîte
+  grilleIA: "auto", // v76 : grille des tuiles des modes 2 à 4 (« auto » : 4 × 3 en paysage, 3 × 4 en portrait, sinon 3 × 3 ; ou « 3x3 », « 4x4 »)
+  tuilesParallele: 2, // v76 : tuiles envoyées en même temps (1 à 10) ; à régler sur « Analyses simultanées » de l'entreprise
+  zoomsIA: 12, // v76 : zooms à la demande au plus par plan (3 au plus par tuile)
   abrev: "", // v74 : abréviations des noms de pièces du plan imprimé (vide = table par défaut, src/print/abrev.js)
 };
 

@@ -1,3 +1,42 @@
+## 03/11/2026 — v76 étape 2 : mode 2 « Analyse renforcée » (tuiles, zoom à la demande, cache de prompt)
+
+Branche `feat/analyse-ia-modes-v76` (« go » de Kévin pour les étapes 2, 3, 4 à la suite). Écran des modes : cartes du
+rose pâle au rouge foncé (planche de Kévin), coche nette — la règle générale `svg{background:var(--bg);width:100%}`
+colorait le fond de l'icône (carré sombre) ; `.am svg` l'annule.
+- Vérifié dans la doc officielle (03/11/2026) : images ≤ 1 568 px / ~1,15 Mpx (au-delà réduites sans gain), > 20 images
+  = 2 000 px ; cache Opus 5.5 : 512 tokens au moins, écriture 5 min 1,25 × (5 USD/Mtok), lecture 0,05 × (0,20 USD),
+  4 marques au plus, entrée disponible seulement après le début de la 1re réponse (d'où : 1re tuile seule, puis les
+  autres en parallèle). `src/ai-config.js` : `ANALYSE_PRICE` + `cacheWrite`/`cacheRead`, `CACHE_RATIO`, `IMAGE_LIMITS`.
+- `src/walls/ai-tiles.js` (pur) : `chooseGrid` (auto 4 × 3 / 3 × 4 / 3 × 3, ou réglage), `tileGrid` (recouvrement 8 %,
+  `core` = zone propre), `fitSize` (jamais d'agrandissement d'un scan ; PDF vectoriel rendu plus fin), `regionMap`,
+  `toMeters`/`toPixels`, `unrotate` (mode 3), `tileRules` (consigne fixe, mise en cache) / `tilePrompt` / `zoomPrompt`,
+  `parseZooms` (bornés, 24 px mini, 3 par tuile), `tileToDevices` (aiToPlan avec la map de la tuile), `mergeReadings`
+  (doublons des recouvrements réunis à 0,3 m même famille ; type lu en tuile dans sa zone propre remplace celui de la
+  lecture globale, gardé dans `aiTypeGlobal` + `a_confirmer` ; rien supprimé ; écarts `ajout` / `type` / `seul-base`),
+  `ecartsCount`.
+- `src/ext/ai-render.js` : `planSource(api)` → source { kind vector|raster, iw, ih, srcMap, box (bords du dessin),
+  render(région, {maxSide, maxPixels, minSide}) } ; vectoriel = page pdf.js rendue sur la région (viewport décalé),
+  raster = pixels du fond (JPEG d'import), zooms d'un scan agrandis à 400 px au plus pour l'API et dits « sans détail
+  ajouté ». Le PDF n'est utilisé que si son rapport largeur/hauteur est celui du fond.
+- `src/ext/ai-modes-run.js` : `createModeRunner({api, aiReleve})` → `okteoExt.aiRunner.run(mode, {docs})` : lecture
+  globale (celle du mode 1) puis tuiles (1re seule, puis `tuilesParallele` en même temps ; 429 → une reprise après 4 s),
+  zooms dans la même conversation (tuile en cache), fusion, `aiReleve.fromPlan` (même aperçu, mêmes cases, un Ctrl+Z),
+  Arrêter. Tuile en échec : signalée, la zone garde la lecture globale. Journal : `zones`, `zooms`, `tuilesKo`, `grille`,
+  `source`, `ecartsN`, `appels` [{phase, tuile, ms, tin, tout, cw, cr}], `cw`/`cr` ; `cab.releves[lv].ecarts`.
+- ai-releve.js : `prepare({needClaude})` (plan, clé, Claude obligatoire pour les modes 2 à 4, échelle), `fromPlan`,
+  `show`/`message`/`setBusy` exposés ; carte : « N écarts entre lectures » (`.ai-ecarts`, bouton Voir = zoom).
+  ai-recheck-ui.js : `cyclesFor(mode, réglage)` (ai-modes.js) : 3 relectures pour les modes 2 à 4, réglage pour le 1.
+- ai.js : `m.blocks` (blocs API passés tels quels), usage `cw`/`cr` ; journal : `tinOf`, `callCost` avec cache, `addUsage`.
+- Worker : `systemOf` (texte ou ≤ 4 blocs), `cache_control` {type:'ephemeral'} seul (pas d'1 h), 4 marques au plus,
+  coût = entrée + écriture 1,25 × + lecture 0,05 × + sortie (`CACHE_RATIO`) ; CSP des pages connectées :
+  `'wasm-unsafe-eval'` ; `/vendor/*` gardé un jour par le navigateur (pour l'étape 3).
+- Paramètres (section IA) : `#pref-grille` (`grilleIA`), `#pref-parallele` (`tuilesParallele`, 2), `#pref-zooms`
+  (`zoomsIA`, 12). `concurrent_limit` de production inconnu : régler « Tuiles envoyées en même temps » dessus.
+- Tests : ai-modes.test.mjs 15 (grille, tailles, repères aller-retour, zooms, fusion, cache, cycles, consignes) ;
+  web.test (+1 cache) ; smoke mode 2 de bout en bout (faux serveur : tuiles, zoom, cache, fusion, journal, Ctrl+Z).
+- Non mesuré : gain de détection, durée et coût réels (dépend du plan, de la grille et des zooms) ; à mesurer avec le
+  banc d'essai (étape 7). `ai-raster.js` / `ai-cross.js` : emplacements des étapes 3 et 4.
+
 ## 03/11/2026 — v76 étapes 0 et 1 : modèle d'analyse verrouillé, journal d'analyse, écran « Analyse IA » (4 modes)
 
 Branche `feat/analyse-ia-modes-v76` (accès en écriture limité à cette branche, rien sur `main` sans « go »). Mission :

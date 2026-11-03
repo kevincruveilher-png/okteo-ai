@@ -14,8 +14,9 @@ import { settings } from "./settings.js";
 import { recheckPoints, recheckPrompt, parseCorrections, recheckReport, shouldContinue, RECHECK_KINDS } from "../walls/ai-recheck.js";
 import { findRooms, nameRooms, pointInPoly, labelPoint } from "../walls/rooms.js";
 import { pref } from "../prefs.js";
+import { cyclesFor } from "../walls/ai-modes.js";
 import { esc } from "./util.js";
-import { callCost, analysesOf, fmtUsd, fmtMs } from "../walls/ai-journal.js";
+import { callCost, analysesOf, fmtUsd, fmtMs, tinOf } from "../walls/ai-journal.js";
 
 const SYSTEM = "Tu es dessinateur au bureau d'études électricité d'un fabricant de pieuvres électriques. Tu relis un plan déjà relevé, seulement aux points demandés, et tu réponds uniquement en JSON.";
 const TIMEOUT = 180000, MAX_ZOOM = 8, ZOOM_M = 4;
@@ -30,17 +31,26 @@ function saveReleve(api, lv, patch) {
   return all[lv];
 }
 // à l'ajout d'un relevé IA (ai-releve.js) : pièces nommées, ouvertures perdues, remarques, premier rapport
-export function recordReleve(api, plan, { mode = "", info = "", counts = {}, usage = null, ms = 0, analyse = null } = {}) {
+export function recordReleve(api, plan, { mode = "", info = "", counts = {}, usage = null, ms = 0, analyse = null, extra = null } = {}) {
   return saveReleve(api, api.level.id, {
     date: new Date().toISOString(), mode, info, nope: [],
     pieces: (plan.pieces || []).map((p) => ({ name: p.name, x: +p.x.toFixed(3), y: +p.y.toFixed(3) })),
     lost: (plan.lost || []).map((o) => ({ x: +o.x.toFixed(3), y: +o.y.toFixed(3), w: o.w, kind: o.kind })),
     remarques: String(plan.remarques || ""),
     ...(plan.evidence ? { evidence: plan.evidence } : {}),
-    rapport: [{ type: "releve", date: new Date().toISOString(), info, counts, ...(usage ? { tin: usage.in, tout: usage.out, tokens: usage.in + usage.out, usd: callCost(usage) } : {}), ...(ms ? { ms } : {}), ...(analyse ? { analyse: { id: analyse.id, mode: analyse.mode } } : {}) }],
+    rapport: [{ type: "releve", date: new Date().toISOString(), info, counts, ...(usage ? { tin: tinOf(usage), tout: usage.out, tokens: tinOf(usage) + usage.out, usd: callCost(usage) } : {}), ...(ms ? { ms } : {}), ...(analyse ? { analyse: { id: analyse.id, mode: analyse.mode } } : {}), ...(usage && (usage.cw || usage.cr) ? { cw: usage.cw || 0, cr: usage.cr || 0 } : {}), ...(extra ? journalExtra(extra) : {}) }],
+    // v76 : écarts entre lectures et avec les documents (modes 2 à 4), propositions à valider
+    ...(plan.ecarts ? { ecarts: plan.ecarts.slice(0, 300) } : {}), ...(plan.docEcarts ? { docEcarts: plan.docEcarts } : {}),
   });
 }
 
+// v76 : champs du journal propres aux modes 2 à 4 (zones lues, zooms, tuiles en échec, écarts, OCR, documents, appels)
+function journalExtra(J) {
+  const o = {};
+  for (const k of ["zones", "zooms", "tuilesKo", "grille", "source", "ocrMots", "nettoyees", "docs", "ecartsN", "secondeLecture"]) if (J[k] != null) o[k] = J[k];
+  if (Array.isArray(J.appels)) o.appels = J.appels.slice(0, 80);
+  return o;
+}
 export function createRecheck({ api, aiReleve }) {
   const card = document.createElement("div");
   card.className = "wcard aicard rkcard"; card.hidden = true; card.setAttribute("role", "dialog"); card.setAttribute("aria-label", "Relecture ciblée par l'IA");
@@ -239,13 +249,13 @@ export function createRecheck({ api, aiReleve }) {
         } catch (e) { log.why = e.message === "arrêtée" ? "arrêtée" : "relecture " + e.message; break; }
         finally { clearTimeout(t1); clearInterval(t2); }
         log.passes = pass;
-        const tokens = res.usage ? res.usage.in + res.usage.out : 0;
+        const tokens = res.usage ? tinOf(res.usage) + res.usage.out : 0;
         log.tokens += tokens;
         let c;
         try { c = parse(res.text); } catch { log.why = "réponse de l'IA illisible"; break; }
         points.forEach((P) => done.add(P.key));
         const changed = c.count + c.nope.length + c.nopeKeys.length;
-        const { report } = apply(c, { via: "clé", model: res.model, ms: res.ms, tokens, tin: res.usage ? res.usage.in : 0, tout: res.usage ? res.usage.out : 0, usd: callCost(res.usage), zooms: Z.images.length });
+        const { report } = apply(c, { via: "clé", model: res.model, ms: res.ms, tokens, tin: res.usage ? tinOf(res.usage) : 0, tout: res.usage ? res.usage.out : 0, usd: callCost(res.usage), zooms: Z.images.length });
         log.fixed += report.ok; log.reports.push(report);
         // on continue s'il reste des points jamais demandés et que la relecture a corrigé quelque chose
         const rest = pointsNow().length;
@@ -273,7 +283,9 @@ export function createRecheck({ api, aiReleve }) {
       frame = fr;
       const n = stillKeys().size;
       if (!n) return;
-      if (d.mode === "key" && settings.activeProvider() && pref("relectures") > 0) loop();
+      // v76 : modes 2 à 4 = 3 cycles de relecture (décision du 03/11/2026) ; mode 1 = réglage de l'opérateur (inchangé)
+      const m = cyclesFor(d.analyse ? d.analyse.mode : 1, pref("relectures"));
+      if (d.mode === "key" && settings.activeProvider() && m > 0) loop({ max: m });
       else api.setHint(`Relevé IA ajouté. Le logiciel signale ${n} point(s) à revoir : menu Relevé → « Relecture ciblée » pour les faire relire par l'IA. Ctrl+Z annule tout l'ajout.`);
     }, 50);
   });

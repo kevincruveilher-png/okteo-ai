@@ -26,6 +26,7 @@ import { createAiReleve } from "./ai-releve.js";
 import { createRecheck } from "./ai-recheck-ui.js";
 import { createIaMode } from "./ia-mode.js";
 import { createAiModes } from "./ai-modes-ui.js";
+import { createModeRunner } from "./ai-modes-run.js";
 import { createOneCard } from "./one-card.js";
 import { createTemps } from "./temps.js";
 import { ensurePaperW, chantierScaleCheck } from "./pdf-page.js";
@@ -69,7 +70,8 @@ function start() {
   });
   const recheck = createRecheck({ api, aiReleve });
   // v76 : « Analyse IA » = écran de choix des 4 modes (menu Relevé et étape 2 du Mode IA)
-  const aiModes = createAiModes({ api, aiReleve });
+  const aiRunner = createModeRunner({ api, aiReleve });
+  const aiModes = createAiModes({ api, aiReleve, runner: aiRunner });
   hooks.recheck = () => recheck.open();
   hooks.aiReleve = () => aiModes.open();
   hooks.aiPaste = () => aiReleve.pastePanel();
@@ -177,7 +179,7 @@ function start() {
   const oneCard = createOneCard();   // v64 : une seule fenêtre de travail à la fois
   hooks.modeIa = () => iaMode.setMode(iaMode.mode === "ia" ? "be" : "ia");
   hooks.cabler = () => { const r = cabler(api); api.setHint(r.text); if (pages.etude.ui) pages.etude.ui.render(); return r.text; };
-  window.okteoExt = { doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, recheck, iaMode, temps, oneCard, pages, backup: null };
+  window.okteoExt = { doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, aiRunner, recheck, iaMode, temps, oneCard, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 

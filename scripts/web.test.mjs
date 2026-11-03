@@ -65,3 +65,17 @@ test('v76 : modèle de l’analyse verrouillé sur Opus 5.5 (src/ai-config.js) :
   const z=await (await f.call('/ai/anthropic',{messages:[{role:'user',content:'Plan'}],max_tokens:200,purpose:'analyse'},c)).json();
   assert.equal(seen.at(-1).model,'claude-opus-5-5');assert.equal(z.okteo.model,'claude-opus-5-5');assert(Math.abs(z.okteo.cost-(1000*6+100*30)/1e6)<1e-9);
  }finally{globalThis.fetch=original;}});
+
+test('v76 : cache de prompt — cache_control 5 min accepté (système en blocs, texte, image), 1 h et plus de 4 marques refusés, coût du cache compté',async()=>{const f=fixture(),c=await f.admin();const original=globalThis.fetch,seen=[];
+ globalThis.fetch=async(url,opts)=>{const b=JSON.parse(opts.body);if(url.endsWith('/count_tokens'))return Response.json({input_tokens:100});seen.push(b);return Response.json({content:[{type:'text',text:'OK'}],usage:{input_tokens:1000,output_tokens:100,cache_creation_input_tokens:2000,cache_read_input_tokens:10000}});};
+ try{const eph={type:'ephemeral'},img={type:'image',source:{type:'base64',media_type:'image/jpeg',data:'AAAA'}};
+  const ok={purpose:'analyse',max_tokens:200,system:[{type:'text',text:'Consigne fixe',cache_control:eph}],messages:[{role:'user',content:[{...img,cache_control:eph},{type:'text',text:'Tuile 1',cache_control:eph}]}]};
+  const r=await f.call('/ai/anthropic',ok,c);assert.equal(r.status,200);const z=await r.json();
+  assert.deepEqual(seen.at(-1).system,ok.system);assert.equal(seen.at(-1).messages[0].content[1].cache_control.type,'ephemeral');
+  assert(Math.abs(z.okteo.cost-(1000*4+2000*4*1.25+10000*4*0.05+100*20)/1e6)<1e-9);
+  const ttl={...ok,messages:[{role:'user',content:[{type:'text',text:'x',cache_control:{type:'ephemeral',ttl:'1h'}}]}]};
+  assert.equal((await f.call('/ai/anthropic',ttl,c)).status,400);
+  const five={...ok,messages:[{role:'user',content:[1,2,3,4].map(i=>({type:'text',text:'t'+i,cache_control:eph}))}]};
+  assert.equal((await f.call('/ai/anthropic',five,c)).status,400);
+  assert.equal((await f.call('/ai/anthropic',{...ok,system:[{type:'text',text:'x',other:1}]},c)).status,400);
+ }finally{globalThis.fetch=original;}});

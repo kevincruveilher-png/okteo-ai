@@ -104,6 +104,9 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
         <div class="pcards">${card("anthropic")}${card("nvidia")}</div>
         <h4>Fournisseur utilisé par l'assistant</h4>
         <div class="prov">${provHTML()}</div>
+        <label class="cab-row" id="ps-grille" title="Modes 2 à 4 de « Analyse IA » : découpage du plan en tuiles lues une à une en haute définition. Automatique : 4 × 3 en paysage, 3 × 4 en portrait, sinon 3 × 3. Plus de tuiles = lecture plus fine, plus longue et plus coûteuse."><span>Grille des tuiles (modes 2 à 4)<small class="mut">Automatique, 3 × 3 ou 4 × 4</small></span><span class="cab-ctl"><select id="pref-grille"><option value="auto">Automatique</option><option value="3x3">3 × 3</option><option value="4x4">4 × 4</option></select></span></label>
+        <label class="cab-row" id="ps-parallele" title="Nombre de tuiles envoyées à l'IA en même temps. En ligne, ne pas dépasser le réglage « Analyses simultanées » de la fenêtre Budget (sinon Oktéo réessaie une tuile à la fois)."><span>Tuiles envoyées en même temps<small class="mut">1 à 10 ; 2 par défaut</small></span><span class="cab-ctl"><input type="number" min="1" max="10" step="1" id="pref-parallele"></span></label>
+        <label class="cab-row" id="ps-zooms" title="Modes 2 à 4 : l'IA peut demander l'agrandissement d'une zone ambiguë (3 au plus par tuile). Plafond par plan pour maîtriser le coût."><span>Zooms à la demande par plan<small class="mut">0 à 40 ; 12 par défaut</small></span><span class="cab-ctl"><input type="number" min="0" max="40" step="1" id="pref-zooms"></span></label>
         <label class="cab-row" id="ps-relect" title="Avec une clé : après un relevé IA, Oktéo renvoie à l'IA les points signalés par le contrôle (lumière sans commande…). Arrêt quand il n'y a plus rien à revoir ou qu'une relecture ne corrige rien ; 3 min au plus par appel ; bouton Arrêter."><span>Relectures automatiques par l'IA<small class="mut">0 = jamais (relecture à la main seulement), 3 au plus. Chaque relecture coûte un appel à l'IA.</small></span><span class="cab-ctl"><input type="number" min="0" max="3" step="1" id="pref-relect" value="${getPrefs().relectures}"></span></label>
         <h4 id="ps-couts">Coûts d'un chantier</h4>
         <p class="mut sm">Pour chiffrer chaque chantier (mode IA, rapport de l'analyse IA) : jetons de l'IA comptés à chaque appel avec une clé, temps de travail BE compté quand le logiciel est utilisé. Laisser 0 = non chiffré.</p>
@@ -184,6 +187,10 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
       el.querySelector("#pref-abrev-def").onclick = () => { abx.value = ABREV_DEFAUT; setPref("abrev", ""); abEx(); };
     }
     el.querySelectorAll("[data-cost]").forEach((c) => (c.onchange = () => { const v = Math.max(0, +String(c.value).replace(",", ".") || 0); c.value = v; setPref(c.dataset.cost, v); }));
+    // v76 : réglages de la lecture en tuiles (modes 2 à 4)
+    const gr = el.querySelector("#pref-grille"); if (gr) { gr.value = getPrefs().grilleIA; gr.onchange = () => setPref("grilleIA", gr.value); }
+    const pa = el.querySelector("#pref-parallele"); if (pa) { pa.value = getPrefs().tuilesParallele; pa.onchange = () => { const v = Math.max(1, Math.min(10, Math.round(+pa.value || 1))); pa.value = v; setPref("tuilesParallele", v); }; }
+    const zo = el.querySelector("#pref-zooms"); if (zo) { zo.value = getPrefs().zoomsIA; zo.onchange = () => { const v = Math.max(0, Math.min(40, Math.round(+zo.value || 0))); zo.value = v; setPref("zoomsIA", v); }; }
     const rl = el.querySelector("#pref-relect"); if (rl) rl.onchange = () => { const v = Math.max(0, Math.min(3, Math.round(+rl.value || 0))); rl.value = v; setPref("relectures", v); };
     el.querySelectorAll("[data-pref]").forEach((c) => (c.onchange = () => { setPref(c.dataset.pref, c.checked); c.closest(".cab-row").classList.toggle("chg", c.checked !== PREFS_DEFAULTS[c.dataset.pref]); }));
     const fi = el.querySelector(".pset-find");

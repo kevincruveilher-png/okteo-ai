@@ -45,6 +45,16 @@ const mock = http.createServer((req, res) => {
         liaisons: [[0, 1]], remarques: "plan de test",
       }) + "\n```";
     }
+    else if (/Tuile (\d+)\/(\d+) \(ligne/.test(lastText) || /Voici les zooms demandés/.test(lastText)) {
+      // v76 (mode 2) : lecture fine d'une tuile ; la tuile 1 demande un zoom, puis (réponse au zoom) donne une prise RJ45
+      // au centre de la tuile ; les autres tuiles ne trouvent rien
+      const first = (msgs[0] && Array.isArray(msgs[0].content) ? msgs[0].content : []).map((c) => c.text || "").join(" ");
+      const [, n] = (first.match(/Tuile (\d+)\//) || [0, "0"]);
+      const [, W, H] = (first.match(/image de (\d+) × (\d+) pixels/) || [0, 800, 600]).map(Number);
+      const zoomed = /Voici les zooms demandés/.test(lastText);
+      text = JSON.stringify(n === "1" && !zoomed ? { appareils: [], liaisons: [], zooms: [{ x: W / 2 - 30, y: H / 2 - 30, w: 60, h: 60, pourquoi: "symbole petit" }], remarques: "zoom demandé" }
+        : { appareils: n === "1" ? [{ t: "RJ45", x: Math.round(W / 2), y: Math.round(H / 2) }] : [], liaisons: [], zooms: [], remarques: "tuile " + n });
+    }
     else if (/Relecture ciblée/.test(lastText)) {
       // v57 : relecture ciblée : chaque point est relié au premier repère proche
       const L = [];
@@ -60,7 +70,9 @@ const mock = http.createServer((req, res) => {
     if (j.model === "nvidia/nemotron-nano-12b-v2-vl") { res.statusCode = 410; return res.end(JSON.stringify({ error: { message: "The model 'nvidia/nemotron-nano-12b-v2-vl' has reached its end of life" } })); }
     if (req.url === "/v1/messages") {
       if (req.headers["x-api-key"] !== "sk-test") { res.statusCode = 401; return res.end(JSON.stringify({ error: { message: "invalid x-api-key" } })); }
-      return res.end(JSON.stringify({ content: [{ type: "text", text }], usage: { input_tokens: 1000, output_tokens: 200 } }));
+      // v76 : une requête avec marque de cache rend des tokens écrits / lus en cache (comme l'API)
+      const marked = JSON.stringify(j).includes('"cache_control"');
+      return res.end(JSON.stringify({ content: [{ type: "text", text }], usage: { input_tokens: 1000, output_tokens: 200, ...(marked ? { cache_creation_input_tokens: 600, cache_read_input_tokens: 400 } : {}) } }));
     }
     if (req.url === "/v1/chat/completions") {
       if (req.headers.authorization !== "Bearer nvapi-test") { res.statusCode = 401; return res.end(JSON.stringify({ error: { message: "unauthorized" } })); }
@@ -741,6 +753,34 @@ try {
     if (!r.img || J.mode !== 1 || !J.id || J.model !== "claude-opus-5-5" || P.walls !== 7 || P.nodes !== 6 || P.coupes !== 2 || P.op !== 2 || P.dev !== 4 || P.links !== 1 || !P.prev || !r.txt
       || after.segs !== 7 || after.rooms !== "Chambre,Séjour" || after.app !== before.app || after.op !== 2
       || undone.segs !== before.segs || undone.rooms !== before.rooms || undone.app !== before.app) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("v76 étape 2 : mode 2 « Analyse renforcée » — lecture globale + tuiles (3 × 3, consigne en cache), zoom demandé puis rendu, fusion, écarts à vérifier, journal ; ajout en un seul Ctrl+Z", async () => {
+    await ev(() => { okteoExt.settings.set({ provider: "anthropic" }); localStorage.setItem("okteo.prefs.v1", JSON.stringify({ ...JSON.parse(localStorage.getItem("okteo.prefs.v1") || "{}"), grilleIA: "3x3", tuilesParallele: 2, zoomsIA: 12 })); });
+    const before = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.length, app: okteo.state.app.length }));
+    const n0 = seen.length;
+    await ev(() => okteoExt.aiModes.open());
+    await page.click('#ai-modes .am-card[data-mode="2"]'); await page.click("#am-go");
+    await page.waitForSelector("#ai-ok", { timeout: 90000 });
+    const req = seen.slice(n0).filter((r) => r.url === "/v1/messages");
+    const glob = req.filter((r) => /Relève ce plan/.test(JSON.stringify(r.body.messages)));
+    const tiles = req.filter((r) => Array.isArray(r.body.system) && r.body.messages.length === 1);
+    const zooms = req.filter((r) => Array.isArray(r.body.system) && r.body.messages.length === 3);
+    const sysCached = tiles.every((r) => r.body.system[0].cache_control && r.body.system[0].cache_control.type === "ephemeral" && /ZONE du plan/.test(r.body.system[0].text));
+    const imgs = tiles.every((r) => r.body.messages[0].content.some((c) => c.type === "image" && c.source.data.length > 1000));
+    const P = await ev(async () => { const p = okteoExt.aiReleve.plan, f = await okteo.levelFond(okteo.level.id), rj = p.devices.find((d) => d.t === "RJ45");
+      return { dev: p.devices.length, rj: rj ? { x: rj.x, y: rj.y, src: rj.aiSrc } : null, f: { x: f.x, y: f.y, w: f.w, h: f.h }, ec: p.ecarts.map((e) => e.kind), card: !!document.querySelector(".aicard .ai-ecarts"), info: document.querySelector(".aicard").textContent }; });
+    // appareils décochés (comme le test du mode 1) : pas de relecture automatique, le Ctrl+Z annule bien l'ajout
+    await page.uncheck('.aicard [data-k="devices"]');
+    await page.click("#ai-ok");
+    const J = await ev(() => { const R = (okteo.cab.releves || {})[okteo.level.id] || {}, x = (R.rapport || []).find((y) => y.type === "releve") || {}; return { mode: x.analyse && x.analyse.mode, zones: x.zones, zooms: x.zooms, cw: x.cw, cr: x.cr, appels: (x.appels || []).length, grille: x.grille, ecarts: (R.ecarts || []).length, usd: x.usd }; });
+    await page.keyboard.press("Control+z");
+    const undone = await ev(() => ({ segs: okteo.state.segs.length, rooms: okteo.state.rooms.length, app: okteo.state.app.length }));
+    const r = { glob: glob.length, tiles: tiles.length, zooms: zooms.length, sysCached, imgs, model: req.every((x) => x.body.model === "claude-opus-5-5"), P, J, undone, before };
+    const inTopLeft = P.rj && P.rj.x < P.f.x + P.f.w / 2 && P.rj.y < P.f.y + P.f.h / 2 && P.rj.x > P.f.x && P.rj.y > P.f.y;
+    if (!(r.glob === 1 && r.tiles === 9 && r.zooms === 1 && sysCached && imgs && r.model && P.dev === 5 && inTopLeft && P.rj.src.includes("tuile 1") && P.ec.includes("ajout") && P.card && /écart/.test(P.info)
+      && J.mode === 2 && J.zones === 9 && J.zooms === 1 && J.cw > 0 && J.cr > 0 && J.appels === 11 && J.grille === "3x3" && J.ecarts >= 1 && J.usd > 0
+      && undone.segs === before.segs && undone.rooms === before.rooms && undone.app === before.app)) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("v64.1 : consigne du relevé avec méthode imposée (200 dpi, légende, quarts, décompte) ; image de moins de 3 000 px signalée au collage", async () => {

@@ -98,6 +98,7 @@ export function createAiReleve({ api, openParams }) {
       ${row("devices", "Appareils", plan.devices.length, `${plan.links.length} liaisons`, S.app.length)}
       ${plan.devices.some((d) => d.t === "INCONNU" || d.qty != null || d.calibre || d.inscription) ? `<details class="sm"><summary>Informations conservées (quantités, calibres et symboles à préciser)</summary><ul>${plan.devices.filter((d) => d.t === "INCONNU" || d.qty != null || d.calibre || d.inscription).map((d) => `<li>${esc(d.t)}${d.aiType ? ` · type reçu ${esc(d.aiType)}` : ""}${d.qty != null ? ` · ${d.qty} prise(s) physique(s)` : ""}${d.calibre ? ` · ${d.calibre} A` : ""}${d.inscription ? ` · ${esc(d.inscription)}` : ""}</li>`).join("")}</ul><p>Les quantités de blocs sont conservées ; la détermination complète des mécanismes et pontages appartient à une prochaine étape.</p></details>` : ""}
       ${plan.remarques ? `<p class="mut sm">Remarque de l'IA : ${esc(plan.remarques)}</p>` : ""}
+      ${ecartsHTML()}
       ${plan.stats.ouverturesPerdues ? `<p class="warn sm">⚠ ${plan.stats.ouverturesPerdues} ouverture(s) loin de tout mur, ignorée(s).</p>` : ""}
       ${plan.stats.ouverturesAjustees ? `<p class="mut sm">${plan.stats.ouverturesAjustees} ouverture(s) recentrée(s) ou rétrécie(s) pour tenir sur leur morceau de mur : vérifiez-les sur le plan.</p>` : ""}
       <div class="wrow"><button class="on" id="ai-ok">Ajouter la sélection</button><button id="ai-again" title="Redemander à l'IA (la réponse peut changer)">Refaire</button><button id="ai-no">Annuler</button></div>
@@ -106,6 +107,20 @@ export function createAiReleve({ api, openParams }) {
     card.querySelector("#ai-no").onclick = close;
     card.querySelector("#ai-again").onclick = () => { close(); open(); };
     card.querySelector("#ai-ok").onclick = add;
+    // v76 : « Voir » un écart = zoom sur sa position (l'aperçu orange reste affiché)
+    card.querySelectorAll("[data-ex]").forEach((b) => (b.onclick = () => { const x = +b.dataset.ex, y = +b.dataset.ey; api.zoomToBox(x - 1.5, y - 1.5, x + 1.5, y + 1.5); }));
+  }
+  // v76 : écarts entre lectures (modes 2 à 4) et avec les documents du dossier (mode 4) : propositions à valider
+  const EK = { ajout: "vu en lecture fine seulement", type: "type différent", "seul-base": "vu par la lecture globale seulement", "2e": "vu par une seule des deux lectures complètes" };
+  function ecartsHTML() {
+    const E = plan.ecarts || [], D = plan.docEcarts || null, J = plan.journal || {};
+    const li = (e) => `<li><b>${esc(e.t || "")}</b> · ${esc(EK[e.kind] || e.kind)}${e.detail ? ` — <span class="mut">${esc(e.detail)}</span>` : ""}${Number.isFinite(e.x) ? ` <button class="mini" data-ex="${e.x}" data-ey="${e.y}" title="Zoomer sur ce point du plan">Voir</button>` : ""}</li>`;
+    let h = "";
+    if (J.info) h += `<p class="mut sm">${esc(J.info)}</p>`;
+    if (E.length) h += `<details class="sm ai-ecarts" open><summary><b>${E.length} écart${E.length > 1 ? "s" : ""} entre lectures</b> : propositions à vérifier, pas des corrections certaines</summary><ul>${E.slice(0, 80).map(li).join("")}</ul>${E.length > 80 ? `<p class="mut">… et ${E.length - 80} autres (rapport IA de l'onglet Étude).</p>` : ""}</details>`;
+    if (D) h += D.off ? `<p class="mut sm">Contrôle croisé avec les documents : ${esc(D.off)}</p>`
+      : `<details class="sm ai-docs" open><summary><b>Contrôle croisé avec les documents</b> (${esc(D.sources || "")}) : ${D.list.length ? `${D.list.length} écart${D.list.length > 1 ? "s" : ""} à vérifier` : "aucun écart signalé"}</summary><ul>${D.list.slice(0, 60).map((e) => `<li><b>${esc(e.equipement || e.t || "?")}</b>${e.piece ? ` (${esc(e.piece)})` : ""} · document : ${esc(String(e.qDoc ?? "?"))} · plan : ${esc(String(e.qPlan ?? "?"))}${e.source ? ` — <span class="mut">${esc(e.source)}</span>` : ""}${e.extrait ? ` <span class="mut">« ${esc(String(e.extrait).slice(0, 90))} »</span>` : ""}</li>`).join("")}</ul></details>`;
+    return h;
   }
 
   function add() {
@@ -120,7 +135,7 @@ export function createAiReleve({ api, openParams }) {
       }
       if (keep.devices && plan.devices.length) { const r = api.importDevices(plan.devices, plan.links, { replace: true }); devAdded = true; done.push(`${r.appareils} appareils, ${r.liaisons} liaisons`); }
       // v61 : ce que la relecture ciblée et son rapport doivent savoir (pièces nommées, ouvertures perdues, remarques)
-      recordReleve(api, keep.walls ? plan : { ...plan, lost: [] }, { mode: lastMode, info: meta, usage: lastUsage, ms: lastMs, analyse: run, counts: { murs: keep.walls ? plan.walls.length : 0, ouvertures: keep.walls ? plan.openings.length : 0, pieces: plan.pieces.length, appareils: keep.devices ? plan.devices.length : 0, liaisons: keep.devices ? plan.links.length : 0 } });
+      recordReleve(api, keep.walls ? plan : { ...plan, lost: [] }, { mode: lastMode, info: meta, usage: lastUsage, ms: lastMs, analyse: run, extra: plan.journal || null, counts: { murs: keep.walls ? plan.walls.length : 0, ouvertures: keep.walls ? plan.openings.length : 0, pieces: plan.pieces.length, appareils: keep.devices ? plan.devices.length : 0, liaisons: keep.devices ? plan.links.length : 0 } });
     });
     const h=readHistory(api.ch.id); if(!h.initialDrawing) {h.initialAI={raw:lastText,context:meta,mode:lastMode,at:new Date().toISOString()};h.initialDrawing=JSON.parse(api.packData().s);saveHistory(api.ch.id,h);}
     card.hidden = true; plan = null;
@@ -140,6 +155,31 @@ export function createAiReleve({ api, openParams }) {
     keep = { walls: plan.walls.length > 0, rooms: plan.pieces.length > 0 || plan.walls.length > 0, devices: plan.devices.length > 0 };
     preview(); render();
     return plan;
+  }
+
+  // v76 (modes 2 à 4) : plan déjà lu et fusionné par ai-modes-run.js → même aperçu, mêmes cases, même ajout (un Ctrl+Z)
+  function fromPlan(P, { info = "", text = "", usage = null, ms = 0, mode = 2 } = {}) {
+    lastText = String(text || "");
+    recordInitial(api.ch.id, lastText, { map: null, info });
+    plan = P; meta = info; lastMode = "key"; lastUsage = usage; lastMs = ms; run = { id: newAnalyseId(), mode };
+    keep = { walls: plan.walls.length > 0, rooms: plan.pieces.length > 0 || plan.walls.length > 0, devices: plan.devices.length > 0 };
+    preview(); render();
+    return plan;
+  }
+  // v76 : contrôles communs avant une lecture (plan, échelle, clé) ; null si l'opérateur doit d'abord agir (message affiché)
+  async function prepare({ needClaude = false } = {}) {
+    if (busy) return null;
+    if (api.tab !== "plan") api.setTab("plan");
+    if (!api.ch.fond) { message("Ce chantier n'a pas encore de plan. Ajoutez le PDF ou l'image du plan dans l'onglet Chantiers.", [{ label: "Ouvrir Chantiers", run: () => api.setTab("chantiers") }, { label: "Fermer", run: () => {} }]); return null; }
+    const provider = settings.activeProvider();
+    if (!provider) { message("Il faut une clé IA pour ce relevé. En version en ligne : une clé Claude (Anthropic). Sans clé, le mode standard peut se faire par copier / coller.", [{ label: "Coller une réponse", run: pastePanel }, { label: "Ouvrir Paramètres", run: openParams }, { label: "Fermer", run: () => {} }]); return null; }
+    if (needClaude && provider !== "anthropic") { message("Les modes 2 à 4 utilisent uniquement Claude (Opus 5.5) : ajoutez une clé Claude dans Paramètres, ou utilisez le mode standard.", [{ label: "Ouvrir Paramètres", run: openParams }, { label: "Fermer", run: () => {} }]); return null; }
+    if (!api.ch.fond.calibre) {
+      show(`<p>Réglage de l'échelle d'après les cotes du plan…</p>`);
+      const sc = await autoScale(api).catch(() => ({ ok: false }));
+      if (!sc.ok) { message("Réglez d'abord l'échelle du plan (les deux bouts d'une cote connue, puis sa longueur) : l'IA a besoin des vraies dimensions.", [{ label: "Régler l'échelle", run: () => api.startCalib() }, { label: "Fermer", run: () => {} }]); return null; }
+    }
+    return { provider };
   }
 
   // Mode sans clé : la réponse (JSON) est donnée à la main (collée, ou lue dans un fichier .json). Coordonnées en pixels
@@ -217,5 +257,5 @@ export function createAiReleve({ api, openParams }) {
 
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !card.hidden) close(); });
   let copied = "";
-  return { attente, open, close, fromText, fromPaste, pastePanel, pastePrompt, get copied() { return copied; }, fondImage: (o) => fondImage(api, o), get plan() { return plan; }, get lastImage() { return lastImage; }, get run() { return run; } };
+  return { attente, open, close, fromText, fromPaste, pastePanel, pastePrompt, get copied() { return copied; }, fondImage: (o) => fondImage(api, o), get plan() { return plan; }, get lastImage() { return lastImage; }, get run() { return run; }, fromPlan, prepare, show, message, setBusy: (v) => { busy = !!v; }, get busy() { return busy; } };
 }

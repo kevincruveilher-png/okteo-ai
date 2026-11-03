@@ -12,7 +12,7 @@ export const MODES_IA = [
     reco: "plan vectoriel ou scan net, symboles lisibles, densité normale.",
   },
   {
-    n: 2, id: "renforcee", title: "Analyse renforcée", pts: 2, ready: false, cycles: 3,
+    n: 2, id: "renforcee", title: "Analyse renforcée", pts: 2, ready: true, cycles: 3,
     hook: "Une lecture plus fine, sur tout le plan.",
     desc: "Le plan est découpé en zones plus petites, chacune rendue en haute résolution, puis lue par l'IA. Les petits symboles sont mieux visibles et aucune zone n'est survolée. Cette lecture est systématique : elle ne dépend pas d'une alerte pour s'activer.",
     reco: "plans denses, A3 chargés, petits symboles, plans où un oubli serait difficile à repérer à la main.",
@@ -38,6 +38,12 @@ export const MODES_PAGE = {
 };
 
 export const modeOf = (n) => MODES_IA.find((m) => m.n === +n) || null;
+// cycles de relecture après l'ajout d'un relevé : mode 1 = réglage de l'opérateur (0 à 3, inchangé depuis v57) ;
+// modes 2 à 4 = 3 cycles (décision du 03/11/2026). Toujours la même boucle (ai-recheck-ui.js loop), jamais une autre.
+export function cyclesFor(mode, prefValue) {
+  const m = modeOf(mode);
+  return m && m.cycles != null ? m.cycles : Math.max(0, Math.min(3, Math.round(+prefValue || 0)));
+}
 
 // référence du dossier affichée en haut à droite (maquette : « EVRARD · 04949 »)
 export function dossierRef(ch) {

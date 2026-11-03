@@ -1,7 +1,8 @@
 // v76 : modes d'« Analyse IA » et journal des analyses (pur, sans navigateur) : node scripts/ai-modes.test.mjs
 import assert from "node:assert/strict";
-import { MODES_IA, MODES_PAGE, modeOf, dossierRef, dotsLabel, launchState } from "../src/walls/ai-modes.js";
-import { analysesOf, callCost, newAnalyseId, fmtUsd, fmtMs } from "../src/walls/ai-journal.js";
+import { MODES_IA, MODES_PAGE, modeOf, dossierRef, dotsLabel, launchState, cyclesFor } from "../src/walls/ai-modes.js";
+import { chooseGrid, tileGrid, fitSize, regionMap, toMeters, toPixels, unrotate, parseZooms, tileToDevices, mergeReadings, ecartsCount, tilePrompt, tileRules } from "../src/walls/ai-tiles.js";
+import { analysesOf, callCost, newAnalyseId, fmtUsd, fmtMs, addUsage, tinOf } from "../src/walls/ai-journal.js";
 import { ANALYSE_MODEL, ANALYSE_PRICE } from "../src/ai-config.js";
 
 let n = 0;
@@ -9,7 +10,7 @@ const t = (name, fn) => { fn(); n++; console.log("✓ " + name); };
 
 t("constante unique : Opus 5.5 au tarif public vérifié", () => {
   assert.equal(ANALYSE_MODEL, "claude-opus-5-5");
-  assert.deepEqual(ANALYSE_PRICE, { input: 4, output: 20 });
+  assert.deepEqual(ANALYSE_PRICE, { input: 4, output: 20, cacheWrite: 5, cacheRead: 0.2 });
 });
 t("4 modes, points 1 à 4, textes validés, cycles : réglage pour le mode 1, 3 pour les modes 2 à 4", () => {
   assert.deepEqual(MODES_IA.map((m) => [m.n, m.pts]), [[1, 1], [2, 2], [3, 3], [4, 4]]);
@@ -27,10 +28,9 @@ t("référence du dossier dynamique", () => {
   assert.equal(dossierRef({}), "Chantier sans référence");
   assert.match(dotsLabel(3), /niveau 3 sur 4/);
 });
-t("bouton de lancement : grisé sans choix, grisé pour un mode pas encore branché, actif pour le mode 1", () => {
+t("bouton de lancement : grisé sans choix, actif pour un mode branché", () => {
   assert.equal(launchState(null).ok, false);
-  assert.equal(launchState(2).ok, false);
-  assert.match(launchState(2).label, /préparation/);
+  assert.equal(launchState(2).ok, true);
   const L = launchState(1);
   assert.equal(L.ok, true); assert.match(L.label, /mode 1/);
 });
@@ -57,5 +57,83 @@ t("journal : relevé + relectures regroupés par analyse (durée, tokens, coût,
   assert.ok(Math.abs(A.usd - (0.08 + (5000 * 4 + 500 * 20) / 1e6 + (4000 * 4 + 400 * 20) / 1e6)) < 1e-12);
   assert.equal(fmtUsd(0.123), "0,12 USD"); assert.equal(fmtMs(140000), "2 min 20 s");
   assert.deepEqual(analysesOf(null), []);
+});
+
+t("cycles de relecture : mode 1 = réglage de l'opérateur (0 à 3), modes 2 à 4 = 3", () => {
+  assert.equal(cyclesFor(1, 2), 2); assert.equal(cyclesFor(1, 0), 0); assert.equal(cyclesFor(1, 9), 3);
+  assert.deepEqual([2, 3, 4].map((m) => cyclesFor(m, 0)), [3, 3, 3]);
+});
+t("cache : entrée totale et coût (écriture 1,25 ×, lecture 0,05 ×)", () => {
+  const u = { in: 1000, out: 200, cw: 600, cr: 400 };
+  assert.equal(tinOf(u), 2000);
+  assert.ok(Math.abs(callCost(u) - (1000 * 4 + 600 * 5 + 400 * 0.2 + 200 * 20) / 1e6) < 1e-12);
+  const s = addUsage([u, u, null]);
+  assert.equal(s.in, 2000); assert.equal(s.cr, 800); assert.ok(Math.abs(s.usd - 2 * callCost(u)) < 1e-12);
+});
+t("grille : paysage 4 × 3, portrait 3 × 4 ; tuiles qui couvrent tout le plan avec recouvrement", () => {
+  assert.deepEqual(chooseGrid(4000, 2800), { cols: 4, rows: 3 });
+  assert.deepEqual(chooseGrid(2800, 4000), { cols: 3, rows: 4 });
+  assert.deepEqual(chooseGrid(3000, 3000, "4x4"), { cols: 4, rows: 4 });
+  const box = { x: 100, y: 50, w: 3900, h: 2700 }, T = tileGrid(box, { cols: 4, rows: 3, overlap: 0.08 });
+  assert.equal(T.length, 12);
+  // tout point du plan est dans au moins une tuile ; les tuiles restent dans le plan ; recouvrement entre voisines
+  for (const [x, y] of [[100, 50], [3999, 2749], [1075, 950], [2050, 1850]]) assert.ok(T.some((t) => x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h), `${x},${y}`);
+  assert.ok(T.every((t) => t.x >= box.x && t.y >= box.y && t.x + t.w <= box.x + box.w + 1e-9 && t.y + t.h <= box.y + box.h + 1e-9));
+  assert.ok(T[0].x + T[0].w > T[1].x);
+});
+t("taille envoyée : ≤ 1 568 px et 1,15 Mpx ; un scan n'est jamais agrandi, un PDF vectoriel peut l'être", () => {
+  const a = fitSize(1000, 700);
+  assert.deepEqual([a.W, a.H], [1000, 700]);          // pixels d'un scan : pas d'agrandissement
+  const b = fitSize(1000, 700, { upscale: 8 });       // vectoriel : rendu plus fin, dans les limites de l'API
+  assert.ok(b.W <= 1568 && b.H <= 1568 && b.W * b.H <= 1150000 && b.W > 1000);
+  const c = fitSize(4000, 3000);
+  assert.ok(c.W <= 1568 && c.W * c.H <= 1150000);
+});
+t("repères conservés : pixel de tuile → mètres = pixel de source → mètres (aller-retour exact)", () => {
+  const src = { x0: 2, y0: -1, sx: 0.004, sy: 0.004 }, region = { x: 1200, y: 800, w: 1000, h: 700 };
+  const { W, H } = fitSize(region.w, region.h, { upscale: 8 }), m = regionMap(src, region, W, H);
+  const p = toMeters(m, W / 2, H / 2), q = toMeters(src, region.x + region.w / 2, region.y + region.h / 2);
+  assert.ok(Math.abs(p.x - q.x) < 1e-9 && Math.abs(p.y - q.y) < 1e-9);
+  const back = toPixels(src, p.x, p.y);
+  assert.ok(Math.abs(back.u - 1700) < 1e-6 && Math.abs(back.v - 1150) < 1e-6);
+  // redressement (mode 3) : un point tourné puis ramené retombe sur lui-même
+  const r = unrotate(300, 200, 2.5, 1000, 700), rr = unrotate(r.u, r.v, -2.5, 1000, 700);
+  assert.ok(Math.abs(rr.u - 300) < 1e-9 && Math.abs(rr.v - 200) < 1e-9);
+  assert.deepEqual(unrotate(10, 20, 0, 100, 100), { u: 10, v: 20 });
+});
+t("zooms demandés : bornés à la tuile, taille minimale, plafond", () => {
+  const z = parseZooms({ zooms: [{ x: -20, y: 5, w: 10, h: 10, pourquoi: "petit" }, { x: 900, y: 600, w: 400, h: 400 }, { x: 1, y: 1, w: 50, h: 50 }, { x: "a" }] }, 1000, 700, { max: 2 });
+  assert.equal(z.length, 2);
+  assert.ok(z[0].x >= 0 && z[0].w >= 24 && z[0].h >= 24);
+  assert.ok(z[1].x + z[1].w <= 1000 && z[1].y + z[1].h <= 700);
+  assert.deepEqual(parseZooms(null, 10, 10), []);
+});
+t("tuile → mètres (aiToPlan avec la map de la tuile), liaisons gardées", () => {
+  const map = { x0: 10, y0: 20, sx: 0.01, sy: 0.01 };
+  const D = tileToDevices({ appareils: [{ t: "INT", x: 100, y: 50 }, { t: "LUM", x: 300, y: 50 }], liaisons: [[0, 1]] }, map);
+  assert.deepEqual(D.devices.map((d) => [d.t, +d.x.toFixed(3), +d.y.toFixed(3)]), [["INT", 11, 20.5], ["LUM", 13, 20.5]]);
+  assert.deepEqual(D.links, [{ c: 0, l: 1 }]);
+});
+t("fusion : doublons des recouvrements réunis, ajouts et types différents = écarts à vérifier, rien supprimé", () => {
+  const G = { src: "lecture globale", devices: [{ t: "PC16", x: 1, y: 1 }, { t: "INT", x: 3, y: 1 }, { t: "LUM", x: 5, y: 5 }], links: [{ c: 1, l: 2 }] };
+  const T1 = { src: "tuile 1", core: { x0: 0, y0: 0, x1: 2.5, y1: 3 }, devices: [{ t: "PC20", x: 1.1, y: 1, inscription: "20A" }, { t: "RJ45", x: 2, y: 2 }], links: [] };
+  const T2 = { src: "tuile 2", core: { x0: 2.5, y0: 0, x1: 6, y1: 3 }, devices: [{ t: "RJ45", x: 2.05, y: 2.02 }, { t: "INT", x: 3.02, y: 1.01 }], links: [] };
+  const M = mergeReadings([G, T1, T2]);
+  assert.equal(M.devices.length, 4);                       // 3 + la RJ45 (vue par les deux tuiles = une seule)
+  const pc = M.devices.find((d) => d.x === 1);
+  assert.equal(pc.t, "PC20"); assert.equal(pc.aiTypeGlobal, "PC16"); assert.equal(pc.aiStatus, "a_confirmer"); assert.equal(pc.inscription, "20A");
+  assert.deepEqual(M.devices.find((d) => d.t === "RJ45").aiSrc, ["tuile 1", "tuile 2"]);
+  assert.deepEqual(M.links, [{ c: 1, l: 2 }]);
+  const n = ecartsCount(M.ecarts);
+  assert.equal(n.ajout, 1); assert.equal(n.type, 1);
+  assert.equal(n["seul-base"], 0);                         // la LUM (5, 5) n'est dans le cœur d'aucune tuile
+  const M2 = mergeReadings([G, { ...T2, devices: [] , core: { x0: 4, y0: 4, x1: 6, y1: 6 } }]);
+  assert.equal(ecartsCount(M2.ecarts)["seul-base"], 1);    // LUM dans une tuile lue qui ne l'a pas vue
+});
+t("consignes des tuiles : pixels de la tuile, zooms bornés, OCR et image nettoyée signalés", () => {
+  const R = tileRules({ zoomMax: 3 });
+  assert.match(R, /PIXELS de l'image de la tuile/); assert.match(R, /3 au plus/); assert.match(R, /N'invente rien/);
+  const P = tilePrompt({ r: 0, c: 1 }, { n: 2, total: 12, W: 1500, H: 1000, cmPerPx: 0.4, ocr: [{ text: "LL", x: 10, y: 20, conf: 91, src: "orig" }], cleaned: true });
+  assert.match(P, /Tuile 2\/12 \(ligne 1, colonne 2\)/); assert.match(P, /image de 1500 × 1000 pixels/); assert.match(P, /NETTOYÉE/); assert.match(P, /"LL" en \(10, 20\) · 91 %/);
 });
 console.log(`${n}/${n} vérifications (modes d'analyse IA, journal)`);

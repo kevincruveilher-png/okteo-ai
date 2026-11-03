@@ -1,5 +1,5 @@
 import {random,hash,passwordHash,verify,validPassword,json,fail,body,cookie,identity,safeUser} from './security.js';
-import {ANALYSE_MODEL,ANALYSE_PRICE} from '../src/ai-config.js';
+import {ANALYSE_MODEL,ANALYSE_PRICE,CACHE_RATIO} from '../src/ai-config.js';
 // Fichiers produits par Vite : nom-HASH.js / nom-HASH.css (hash de 8 caractères).
 // v72.1 : un relevé complet par Claude dure souvent 5 à 10 min (journal, essais MAILLARD) : 3 min coupait l'appel.
 export const AI_TIMEOUT=900000;
@@ -127,8 +127,10 @@ export async function handle(request,env,ctx={waitUntil(){}}) {
   // Never expose sources/configuration. Only compiled dist is served.
   if(p.startsWith('/src/')||p.startsWith('/server/')||p.startsWith('/migrations/'))fail(404,'Ressource inconnue.');
   const res=await env.ASSETS.fetch(request),headers=new Headers(res.headers);
-  headers.set('cache-control','no-store');headers.set('x-content-type-options','nosniff');headers.set('referrer-policy','same-origin');headers.set('x-frame-options','DENY');
-  headers.set('content-security-policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' blob: data:; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");
+  // v76 : bibliothèques de lecture d'image (OpenCV.js, Tesseract.js, données de langue) servies depuis /vendor/ : gardées
+  // un jour par le navigateur (aucune donnée de chantier dedans) ; WebAssembly autorisé ('wasm-unsafe-eval', pas 'unsafe-eval')
+  headers.set('cache-control',p.startsWith('/vendor/')?'private, max-age=86400':'no-store');headers.set('x-content-type-options','nosniff');headers.set('referrer-policy','same-origin');headers.set('x-frame-options','DENY');
+  headers.set('content-security-policy',"default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' blob: data:; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");
   return new Response(res.body,{status:res.status,headers});
  }catch(e){return json({error:{message:e.status?e.message:'Service temporairement indisponible. Réessayez ou contactez un administrateur.'}},e.status||500);}
 }
@@ -154,6 +156,13 @@ async function analysisColumns(db){
  if(!cols.includes('analysis_input_price'))await run(db,'ALTER TABLE config ADD COLUMN analysis_input_price INTEGER NOT NULL DEFAULT 4');
  if(!cols.includes('analysis_output_price'))await run(db,'ALTER TABLE config ADD COLUMN analysis_output_price INTEGER NOT NULL DEFAULT 20');
 }
+// v76 : consigne système = texte, ou liste de blocs texte (pour y poser une marque de cache)
+export function systemOf(x){
+ if(typeof x==='string')return x;
+ if(Array.isArray(x)&&x.length<=4&&x.every(b=>b&&b.type==='text'&&typeof b.text==='string'&&Object.keys(b).every(k=>['type','text','cache_control'].includes(k))))return x;
+ if(x==null)return '';
+ fail(400,'Consigne système invalide.');
+}
 async function relay(request,env,u,ctx){
  if(!u.ai_enabled)fail(403,'Accès IA désactivé pour votre compte.');if(!env.ANTHROPIC_API_KEY)fail(503,'Clé Claude entreprise non configurée. Le dessin et les exports restent disponibles.');
  const db=env.DB;
@@ -163,9 +172,13 @@ async function relay(request,env,u,ctx){
  const output=number(b.max_tokens,1,32000);
  // v75 : conversation de l'assistant = modèle de base (Sonnet) ; analyse du plan, relevé et relectures = modèle d'analyse (Opus)
  const P=pricing(c,b.purpose);
- const payload={model:P.model,max_tokens:output,system:typeof b.system==='string'?b.system:'',messages:b.messages};
- // Strict content schema: no tools, remote URL sources, caching or arbitrary provider options.
- for(const m of payload.messages){if(!['user','assistant'].includes(m.role))fail(400,'Rôle de message invalide.');if(typeof m.content==='string')continue;if(!Array.isArray(m.content))fail(400,'Contenu invalide.');for(const x of m.content){if(x.type==='text'&&typeof x.text==='string'){if(Object.keys(x).some(k=>!['type','text'].includes(k)))fail(400,'Option non autorisée.');continue;}if(x.type==='image'&&x.source?.type==='base64'&&/^image\/(jpeg|png|webp|gif)$/.test(x.source.media_type)&&typeof x.source.data==='string'&&Object.keys(x).every(k=>['type','source'].includes(k)))continue;fail(400,'Contenu IA non autorisé.');}}
+ const payload={model:P.model,max_tokens:output,system:systemOf(b.system),messages:b.messages};
+ // Strict content schema: no tools, remote URL sources or arbitrary provider options. v76 : cache de prompt autorisé
+ // (décision de Kévin du 03/11/2026) : cache_control {type:'ephemeral'} seul (5 min, pas de durée d'1 h plus chère), 4 marques au plus.
+ let marks=0;const cacheOk=x=>{if(!('cache_control' in x))return true;const c=x.cache_control;if(!c||c.type!=='ephemeral'||Object.keys(c).some(k=>k!=='type'))return false;marks++;return true;};
+ for(const x of Array.isArray(payload.system)?payload.system:[])if(!cacheOk(x))fail(400,'Option de cache non autorisée.');
+ for(const m of payload.messages){if(!['user','assistant'].includes(m.role))fail(400,'Rôle de message invalide.');if(typeof m.content==='string')continue;if(!Array.isArray(m.content))fail(400,'Contenu invalide.');for(const x of m.content){if(x.type==='text'&&typeof x.text==='string'){if(Object.keys(x).some(k=>!['type','text','cache_control'].includes(k))||!cacheOk(x))fail(400,'Option non autorisée.');continue;}if(x.type==='image'&&x.source?.type==='base64'&&/^image\/(jpeg|png|webp|gif)$/.test(x.source.media_type)&&typeof x.source.data==='string'&&Object.keys(x).every(k=>['type','source','cache_control'].includes(k))&&cacheOk(x))continue;fail(400,'Contenu IA non autorisé.');}}
+ if(marks>4)fail(400,'Quatre marques de cache au plus.');
  // Count with provider before reserving; max output + 10% input margin, no speculative token heuristic.
  const headers={'content-type':'application/json','anthropic-version':'2023-06-01','x-api-key':env.ANTHROPIC_API_KEY};
  const countRes=await fetch('https://api.anthropic.com/v1/messages/count_tokens',{method:'POST',headers,body:JSON.stringify({model:payload.model,system:payload.system,messages:payload.messages}),signal:AbortSignal.timeout(30000)});
@@ -185,7 +198,8 @@ async function relay(request,env,u,ctx){
    if(!r.ok){await run(db,"UPDATE usage SET status='rejected',actual=0 WHERE id=?",id);return json({error:{message:`Claude indisponible (${r.status}). Vous pouvez continuer le dessin ou coller une analyse.`}},502);}
    const result=await r.json(),a=result.usage;
    if(!a||!Number.isSafeInteger(a.input_tokens)||!Number.isSafeInteger(a.output_tokens))throw new Error('usage');
-   const actual=Math.ceil(a.input_tokens*P.input_price+a.output_tokens*P.output_price);
+   const cw=Number.isSafeInteger(a.cache_creation_input_tokens)?a.cache_creation_input_tokens:0,cr=Number.isSafeInteger(a.cache_read_input_tokens)?a.cache_read_input_tokens:0;
+   const actual=Math.ceil(a.input_tokens*P.input_price+cw*P.input_price*CACHE_RATIO.write+cr*P.input_price*CACHE_RATIO.read+a.output_tokens*P.output_price);
    await run(db,"UPDATE usage SET status='known',actual=?,input_tokens=?,output_tokens=? WHERE id=?",actual,a.input_tokens,a.output_tokens,id);
    return json({...result,okteo:{model:P.model,purpose:P.purpose,cost:actual/1e6,estimatedInvoice:true}});
   }catch{await run(db,"UPDATE usage SET status='uncertain' WHERE id=?",id);return json({error:{message:'Réponse IA interrompue. Réservation conservée par prudence ; dessin et export disponibles.'}},504);}})();
