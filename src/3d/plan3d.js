@@ -6,6 +6,14 @@
 
 // valeurs de départ (décision du 03/11/2026, réglables ensuite dans Paramètres, section 3D)
 export const H3D = { plafond: 2.5, allege: 0.9, linteau: 2.15, porte: 2.04, baie: 2.15, garage: 2.2, combles: 2.85 };
+// 3D-3 : hauteurs de départ réglées dans Paramètres → Vue 3D (préférences en cm) → mètres ; les boîtes restent 35 cm
+// au-dessus du plafond
+export function heightsFrom(p = {}) {
+  const m = (k, d) => (Number.isFinite(+p[k]) && +p[k] > 0 ? +p[k] / 100 : d);
+  const H = { plafond: m("h3dPlafond", H3D.plafond), allege: m("h3dAllege", H3D.allege), linteau: m("h3dLinteau", H3D.linteau), porte: m("h3dPorte", H3D.porte), baie: m("h3dBaie", H3D.baie), garage: m("h3dGarage", H3D.garage) };
+  H.combles = H.plafond + 0.35;
+  return H;
+}
 // tolérances du nettoyage (mètres)
 export const TOL = { merge: 0.02, gap: 0.08, near: 0.3, angle: 1 };
 // appareils posés au plafond quand le dessin ne donne pas de hauteur
@@ -18,7 +26,7 @@ const isNum = (v) => typeof v === "number" && Number.isFinite(v);
 // data = { nodes [{id,x,y}], segs [{id,a,b,ep,mat?,virt?}], openings [{id,seg,t,w,kind,hinge,swing}] }
 // → { nodes Map id→{id,x,y}, walls [{id (mur d'origine), key, A, B, ep, mat, s0, L, ux, uy}], openings par clé de
 //    morceau, defects [{kind, level: "info"|"warn", text, x, y, ids}], stats }
-export function cleanPlan(data, tol = TOL) {
+export function cleanPlan(data, tol = TOL, H = H3D) {
   const defects = [], stats = { merged: 0, nuls: 0, doubles: 0, recolles: 0, croisements: 0, chevauchements: 0 };
   const raw = new Map((data.nodes || []).filter((n) => n && isNum(n.x) && isNum(n.y)).map((n) => [n.id, { id: n.id, x: n.x, y: n.y }]));
   // 1. sommets confondus (moins de 2 cm) fusionnés
@@ -41,11 +49,12 @@ export function cleanPlan(data, tol = TOL) {
     const A = nodes.get(a), B = nodes.get(b), L = hyp(B.x - A.x, B.y - A.y);
     if (a === b || L < tol.merge) { stats.nuls++; continue; }
     const ep = s.ep > 0 ? s.ep : 0.2, key = a < b ? a + "|" + b : b + "|" + a;
-    const w = { id: s.id, a, b, ep, mat: s.mat || null, s0: 0, sDir: 1 };
+    const w = { id: s.id, a, b, ep, mat: s.mat || null, s0: 0, sDir: 1, top: s.top > 0 ? s.top : null };
     if (byPair.has(key)) {
       const o = byPair.get(key); stats.doubles++;
       defects.push({ kind: "double", level: "warn", text: "Deux murs l'un sur l'autre : un seul est gardé pour la 3D", x: (A.x + B.x) / 2, y: (A.y + B.y) / 2, ids: [o.id, s.id] });
       if (ep > o.ep) Object.assign(o, { id: s.id, ep, mat: w.mat });
+      if (w.top > (o.top || 0)) o.top = w.top;
       continue;
     }
     byPair.set(key, w); segs.push(w);
@@ -141,7 +150,7 @@ export function cleanPlan(data, tol = TOL) {
   // morceaux de murs, avec leur position le long du mur d'origine (pour y placer les ouvertures)
   const walls = segs.map((w, i) => {
     const g = geom(w);
-    return { id: w.id, key: `${w.id}#${i}`, a: w.a, b: w.b, A: g.A, B: g.B, L: g.L, ux: g.ux, uy: g.uy, ep: w.ep, mat: w.mat, s0: w.s0, sDir: w.sDir };
+    return { id: w.id, key: `${w.id}#${i}`, a: w.a, b: w.b, A: g.A, B: g.B, L: g.L, ux: g.ux, uy: g.uy, ep: w.ep, mat: w.mat, s0: w.s0, sDir: w.sDir, top: w.top };
   });
   // ouvertures : sur le morceau qui contient leur centre (position comptée depuis le début du mur d'origine)
   const origin = new Map((data.segs || []).map((s) => [s.id, s]));
@@ -165,7 +174,7 @@ export function cleanPlan(data, tol = TOL) {
     const half = o.w / 2, c = Math.max(half, Math.min(best.w.L - half, best.s1));
     if (best.w.L < o.w - 0.01) { defects.push({ kind: "ouverture", level: "warn", text: `Ouverture de ${Math.round(o.w * 100)} cm plus large que son mur (${Math.round(best.w.L * 100)} cm)`, x: cx, y: cy, ids: [o.id, o.seg] }); continue; }
     if (!opens.has(best.w.key)) opens.set(best.w.key, []);
-    opens.get(best.w.key).push({ id: o.id, c, w: o.w, kind: o.kind, hinge: o.hinge, swing: o.swing, ...openingHeights(o) });
+    opens.get(best.w.key).push({ id: o.id, c, w: o.w, kind: o.kind, hinge: o.hinge, swing: o.swing, ...openingHeights(o, H) });
   }
   // ouvertures qui se chevauchent sur un même mur : signalées, la 2e est réduite
   const byKey = new Map(walls.map((w) => [w.key, w]));
@@ -231,7 +240,7 @@ export function wallEnds(plan) {
 
 // ---------- volumes des murs : un prisme par morceau plein (entre les ouvertures, allèges, linteaux) ----------
 // cut = hauteur de coupe (maison de poupée) ; → [{ q: [[x,y]×4], y0, y1, wall, ext, mat }]
-export function wallPrisms(plan, { cut = H3D.plafond, H = H3D } = {}) {
+export function wallPrisms(plan, { cut = Infinity, H = H3D } = {}) {
   const ends = wallEnds(plan), out = [];
   for (const w of plan.walls) {
     const E = ends.get(w.key), h = w.ep / 2, nx = -w.uy, ny = w.ux;
@@ -254,21 +263,23 @@ export function wallPrisms(plan, { cut = H3D.plafond, H = H3D } = {}) {
       if (Math.abs(A) / 2 < 1e-5) return;
       out.push({ q, y0, y1, wall: w.id, key: w.key, ext, mat: w.mat, ep: w.ep });
     };
+    // 3D-3 : hauteur du mur = la plus haute des pièces qu'il borde (sinon la hauteur de départ)
+    const top = w.top || H.plafond;
     let s = 0;
     for (const o of plan.openings.get(w.key) || []) {
       const a = Math.max(0, o.c - o.w / 2), b = Math.min(w.L, o.c + o.w / 2);
-      piece(s, a, 0, H.plafond);
-      if (o.y0 > 0) piece(a, b, 0, o.y0);
-      if (o.y1 < H.plafond) piece(a, b, o.y1, H.plafond);
+      piece(s, a, 0, top);
+      if (o.y0 > 0) piece(a, b, 0, Math.min(o.y0, top));
+      if (o.y1 < top) piece(a, b, o.y1, top);
       s = Math.max(s, b);
     }
-    piece(s, w.L, 0, H.plafond);
+    piece(s, w.L, 0, top);
   }
   return out;
 }
 
 // vitrages et battants : [{ kind, cx, cy, ang, w, y0, y1, ep, hinge:[x,y], leafAng }]
-export function openingParts(plan, { cut = H3D.plafond } = {}) {
+export function openingParts(plan, { cut = Infinity } = {}) {
   const out = [];
   for (const w of plan.walls) for (const o of plan.openings.get(w.key) || []) {
     const cx = w.A.x + w.ux * o.c, cy = w.A.y + w.uy * o.c, ang = Math.atan2(w.uy, w.ux);
@@ -309,7 +320,7 @@ export function devicesOf(apps, data, H = H3D) {
       h = hcm != null ? hcm / 100 : 1.1;
       return { ...a, x, y, h, n, mount, defH, axis: [A.x + ux * t, A.y + uy * t], seg: s.id };
     }
-    if (hcm == null && PLAFOND_TYPES.has(a.t)) { mount = "plafond"; h = H.plafond - 0.08; }
+    if (hcm == null && PLAFOND_TYPES.has(a.t)) { mount = "plafond"; h = (a.hsp > 0 ? a.hsp : H.plafond) - 0.08; }
     else if (hcm == null) { h = a.t === "TAB" ? 1.3 : 1.0; }
     else h = hcm / 100;
     return { ...a, x, y, h, n, mount, defH };

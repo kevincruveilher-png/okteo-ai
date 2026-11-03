@@ -16,6 +16,8 @@ export const PREFS_DEFAULTS = {
   grilleIA: "auto", // v76 : grille des tuiles des modes 2 à 4 (« auto » : 4 × 3 en paysage, 3 × 4 en portrait, sinon 3 × 3 ; ou « 3x3 », « 4x4 »)
   tuilesParallele: 2, // v76 : tuiles envoyées en même temps (1 à 10) ; à régler sur « Analyses simultanées » de l'entreprise
   zoomsIA: 12, // v76 : zooms à la demande au plus par plan (3 au plus par tuile)
+  // 3D-3 : hauteurs de départ de la vue 3D (cm), quand le dessin ne les donne pas (réglables dans Paramètres → Vue 3D)
+  h3dPlafond: 250, h3dAllege: 90, h3dLinteau: 215, h3dPorte: 204, h3dBaie: 215, h3dGarage: 220,
   abrev: "", // v74 : abréviations des noms de pièces du plan imprimé (vide = table par défaut, src/print/abrev.js)
 };
 

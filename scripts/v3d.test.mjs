@@ -2,7 +2,7 @@
 // Vrais plans : MAILLARD (dessin du BE), relevés IA de MAILLARD et PASQUIER, EVRARD (murs relevés dans le PDF, si
 // pdf.js est installé). Cas d'école : jonctions oubliées, murs en double, croisements, ouvertures contre un angle.
 import fs from "node:fs";
-import { cleanPlan, wallPrisms, prismIssues, openingParts, devicesOf, wallEnds, H3D } from "../src/3d/plan3d.js";
+import { cleanPlan, wallPrisms, prismIssues, openingParts, devicesOf, wallEnds, H3D, heightsFrom } from "../src/3d/plan3d.js";
 import { parseAiJson, aiToPlan } from "../src/walls/ai-plan.js";
 
 let ok = 0; const fails = [];
@@ -47,6 +47,20 @@ console.log("Vue 3D : cas d'école");
   const parts = openingParts(P);
   check("porte : battant ouvert du côté du dessin, fenêtre : vitrage entre allège et linteau", parts.some((p) => p.kind === "porte" && p.leafDir && Math.abs(Math.hypot(...p.leafDir) - 1) < 1e-9) && parts.some((p) => p.kind === "fenetre" && p.y0 === H3D.allege && p.y1 === H3D.linteau));
   check("le dessin n'est jamais modifié par le nettoyage", segs.find((s) => s.id === "AB").a === "A" && nodes.find((n) => n.id === "E").y === 0.14);
+}
+
+console.log("Vue 3D : hauteurs (3D-3)");
+{
+  const H = heightsFrom({ h3dPlafond: 270, h3dAllege: 100, h3dLinteau: 220, h3dPorte: 210, h3dBaie: 225, h3dGarage: 240 });
+  check("hauteurs de départ de Paramètres (cm) → mètres, boîtes 35 cm au-dessus du plafond ; réglage vide = valeur d'origine", H.plafond === 2.7 && H.allege === 1 && H.linteau === 2.2 && H.porte === 2.1 && H.baie === 2.25 && H.garage === 2.4 && Math.abs(H.combles - 3.05) < 1e-9 && heightsFrom({ h3dPlafond: 0 }).plafond === H3D.plafond);
+  const data = { nodes: [{ id: "A", x: 0, y: 0 }, { id: "B", x: 6, y: 0 }, { id: "C", x: 6, y: 4 }], segs: [{ id: "AB", a: "A", b: "B", ep: 0.25, top: 2.8 }, { id: "BC", a: "B", b: "C", ep: 0.25 }],
+    openings: [{ id: "f1", seg: "AB", t: 2, w: 1.2, kind: "fenetre", allege: 1.2, linteau: 2.3 }, { id: "f2", seg: "AB", t: 4.5, w: 1, kind: "fenetre" }, { id: "p1", seg: "BC", t: 2, w: 0.9, kind: "porte" }] };
+  const P = cleanPlan(data, undefined, H), pr = wallPrisms(P, { H });
+  const ab = pr.filter((p) => p.wall === "AB"), bc = pr.filter((p) => p.wall === "BC");
+  check("fenêtre réglée une par une (allège 1,20 m, linteau 2,30 m) ; l'autre prend les valeurs de départ (1,00 / 2,20)", ab.some((p) => Math.abs(p.y1 - 1.2) < 1e-9) && ab.some((p) => Math.abs(p.y0 - 2.3) < 1e-9) && ab.some((p) => Math.abs(p.y1 - 1) < 1e-9) && ab.some((p) => Math.abs(p.y0 - 2.2) < 1e-9));
+  check("mur d'une pièce à 2,80 m sous plafond : monte à 2,80 ; l'autre mur reste à la hauteur de départ (2,70)", Math.max(...ab.map((p) => p.y1)) === 2.8 && Math.max(...bc.map((p) => p.y1)) === 2.7 && bc.some((p) => Math.abs(p.y0 - 2.1) < 1e-9));
+  const d = devicesOf([{ id: "l1", t: "LUM", x: 3, y: 2, h: null, hsp: 2.8 }, { id: "l2", t: "LUM", x: 3, y: 3, h: null }], data, H);
+  check("lumière au plafond de sa pièce (2,80 − 8 cm), sinon au plafond de départ", Math.abs(d[0].h - 2.72) < 1e-9 && Math.abs(d[1].h - 2.62) < 1e-9);
 }
 
 console.log("Vue 3D : MAILLARD (dessin du BE)");

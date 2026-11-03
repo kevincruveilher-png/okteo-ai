@@ -1240,3 +1240,4 @@ body.am-on{overflow:hidden}
 .v3d-card .acts{display:flex;gap:6px;flex-wrap:wrap}.v3d-card button{border:1px solid var(--line);background:transparent;color:var(--fg);padding:6px 10px;font-size:13px}
 .v3d-card button.pri{background:var(--accent2);border-color:var(--accent2);color:#fff;font-weight:600}
 @media (max-width:760px){.v3d-pan{left:10px;right:10px;width:auto;top:auto;bottom:10px;max-height:45%}.v3d-card{top:10px;bottom:auto;left:10px;right:10px;width:auto}}
+.v3d-link{border:0;background:none;color:var(--accent2);padding:0;font-size:12px;text-decoration:underline;cursor:pointer}

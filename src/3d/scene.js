@@ -50,7 +50,7 @@ export function textMesh(T, text, sub, { w = 2.4, color = "rgba(4,40,74,0.85)" }
 // ---------- la maison ----------
 // data3d = { plan (cleanPlan), rooms [{id,name,poly}], devices (devicesOf), boxes [{id,n,x,y}] }
 // → { group, walls (groupe des murs, reconstruit par setCut), devices (groupe), boxes (groupe), pick [meshes], setCut, dispose }
-export function buildHouse(T, data3d, { cut = H3D.plafond, contrast = true } = {}) {
+export function buildHouse(T, data3d, { cut = Infinity, contrast = true, H = H3D } = {}) {
   const root = new T.Group();
   const M = {
     wall: new T.MeshStandardMaterial({ color: 0xffffff, roughness: 0.88, vertexColors: true }),
@@ -60,15 +60,17 @@ export function buildHouse(T, data3d, { cut = H3D.plafond, contrast = true } = {
     leaf: new T.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.6 }),
     plate: new T.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35 }),
     dark: new T.MeshStandardMaterial({ color: 0x222222 }),
+    ceil: new T.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, side: T.DoubleSide }),
   };
-  const wallG = new T.Group(), floorG = new T.Group(), devG = new T.Group(), boxG = new T.Group();
-  root.add(wallG, floorG, devG, boxG);
+  const wallG = new T.Group(), floorG = new T.Group(), devG = new T.Group(), boxG = new T.Group(), ceilG = new T.Group();
+  ceilG.visible = false;   // plafonds : montrés pendant la visite à pied (3D-4)
+  root.add(wallG, floorG, devG, boxG, ceilG);
   const disposeGroup = (g) => { while (g.children.length) { const o = g.children.pop(); o.traverse((x) => { if (x.geometry) x.geometry.dispose(); }); } };
 
   function buildWalls(cutH) {
     disposeGroup(wallG);
     const base = { ext: new T.Color(contrast ? WALLC.ext : WALLC.plain), clo: new T.Color(contrast ? WALLC.clo : WALLC.plain), doublage: new T.Color(contrast ? WALLC.doublage : WALLC.plain) };
-    for (const p of wallPrisms(data3d.plan, { cut: cutH })) {
+    for (const p of wallPrisms(data3d.plan, { cut: cutH, H })) {
       const col = p.mat === "doublage" ? base.doublage : p.ext ? base.ext : base.clo;
       // plinthe : 8 cm du bas, à part
       const parts = contrast && p.y0 < 0.08 && p.y1 > 0.08 ? [[p.y0, 0.08, true], [0.08, p.y1, false]] : [[p.y0, p.y1, false]];
@@ -104,6 +106,7 @@ export function buildHouse(T, data3d, { cut = H3D.plafond, contrast = true } = {
     const col = WET.test(r.name || "") ? FLOOR[3 + (i % 4)] : FLOOR[i % 3];
     const f = new T.Mesh(g, new T.MeshStandardMaterial({ color: col, roughness: 0.95 })); f.position.y = 0.002; f.receiveShadow = true; f.userData.room = r.id;
     floorG.add(f);
+    const c = new T.Mesh(g.clone(), M.ceil); c.position.y = r.hsp > 0 ? r.hsp : H.plafond; ceilG.add(c);
     let ax = 0, ay = 0; P.forEach((p) => { ax += p.x; ay += p.y; });
     const lx = r.label ? r.label.x : ax / P.length, ly = r.label ? r.label.y : ay / P.length;
     const xs = P.map((p) => p.x), ys = P.map((p) => p.y), wmin = Math.min(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
@@ -144,13 +147,13 @@ export function buildHouse(T, data3d, { cut = H3D.plafond, contrast = true } = {
   // boîtes de la pieuvre, dans les combles
   for (const b of data3d.boxes || []) {
     const m = new T.Mesh(new T.BoxGeometry(0.36, 0.2, 0.36), new T.MeshStandardMaterial({ color: b.color || "#E5484D", roughness: 0.5 }));
-    m.position.set(b.x, H3D.combles, b.y); m.castShadow = true; m.userData.box = b.id; boxG.add(m); pick.push(m);
-    const lb = textMesh(T, b.n || "Boîte", "boîte de dérivation"); lb.scale.setScalar(0.55); lb.position.set(b.x, H3D.combles + 0.32, b.y); lb.userData.billboard = true; boxG.add(lb);
+    m.position.set(b.x, H.combles, b.y); m.castShadow = true; m.userData.box = b.id; boxG.add(m); pick.push(m);
+    const lb = textMesh(T, b.n || "Boîte", "boîte de dérivation"); lb.scale.setScalar(0.55); lb.position.set(b.x, H.combles + 0.32, b.y); lb.userData.billboard = true; boxG.add(lb);
   }
 
   return {
-    group: root, walls: wallG, floors: floorG, devices: devG, boxes: boxG, pick, M,
+    group: root, walls: wallG, floors: floorG, devices: devG, boxes: boxG, ceilings: ceilG, pick, M,
     setCut(h) { buildWalls(h); },
-    dispose() { [wallG, floorG, devG, boxG].forEach(disposeGroup); Object.values(M).forEach((m) => m.dispose()); },
+    dispose() { [wallG, floorG, devG, boxG, ceilG].forEach(disposeGroup); Object.values(M).forEach((m) => m.dispose()); },
   };
 }

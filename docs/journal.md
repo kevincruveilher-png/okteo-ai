@@ -1,3 +1,19 @@
+## 03/11/2026 — 3D-3 hauteurs réglables (branche `feat/3d-1-visionneuse`)
+
+« 3 et 4 go » de Kévin. Hauteurs de la vue 3D : valeurs de départ réglables, et réglage une par une.
+- `src/prefs.js` : `h3dPlafond` 250, `h3dAllege` 90, `h3dLinteau` 215, `h3dPorte` 204, `h3dBaie` 215, `h3dGarage` 220
+  (cm, préférences de ce PC). Paramètres : section « Vue 3D » `#ps-3d` (`[data-h3d]`), dans le sommaire.
+- Propriétés : ouverture → « Allège » (fenêtre) et « Haut. linteau » (`#oal`, `#oli` → `o.allege`, `o.linteau` en cm,
+  vide = valeur de départ, un Ctrl+Z) ; pièce → « Sous plafond » (`#rhsp` → `r.hsp` en cm).
+- `plan3d.js` : `heightsFrom(prefs)` → hauteurs en m (boîtes 35 cm au-dessus du plafond), `cleanPlan(data, tol, H)`,
+  mur `top` = la plus haute pièce qu'il borde (`r.cycle`), `wallPrisms` jusqu'à `top`, lumière au plafond de sa pièce ;
+  `cut` par défaut illimité. `scene.js` : `H`, plafonds par pièce (`house.ceilings`, cachés hors visite).
+- `vue3d.js` : `planData` → `segs[].top`, `openings[].allege/linteau` (m), `apps[].hsp`, `rooms[].hsp`, `H` ; la coupe
+  va jusqu'au plus haut mur ; texte des hauteurs de départ + « Régler… » (→ Paramètres, Vue 3D) ; reconstruction sur
+  `okteo:prefs` (clés `h3d*`).
+- Tests : v3d (hauteurs de départ, fenêtre réglée, mur à 2,80 m, lumière sous son plafond) + smoke (Paramètres → 3D,
+  fenêtre réglée, champs de Propriétés).
+
 ## 03/11/2026 — 3D-1 visionneuse 3D + 3D-2 géométrie propre (branche `feat/3d-1-visionneuse`, pas encore dans `main`)
 
 « GO 3d1 ET 2 » de Kévin. Les deux mises à jour sont livrées ensemble sur la même branche (la visionneuse a besoin du

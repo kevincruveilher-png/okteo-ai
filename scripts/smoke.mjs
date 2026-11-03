@@ -2711,6 +2711,24 @@ try {
     await ev(() => okteo.setTab("plan"));
     return true;
   });
+  await check("3D-3 : hauteurs de départ dans Paramètres → Vue 3D, allège / linteau d'une fenêtre et hauteur sous plafond d'une pièce dans Propriétés → la 3D suit", async () => {
+    await ev(() => okteo.setTab("params"));
+    await page.waitForSelector("#ps-3d [data-h3d=\"h3dPlafond\"]");
+    await page.fill('#ps-3d [data-h3d="h3dPlafond"]', "270"); await page.press('#ps-3d [data-h3d="h3dPlafond"]', "Enter");
+    await page.dispatchEvent('#ps-3d [data-h3d="h3dPlafond"]', "change");
+    const pref = await ev(async () => (await import("/src/prefs.js")).pref("h3dPlafond"));
+    // une fenêtre réglée à la main (allège 120 cm), un mur à la main dans le dessin
+    const oid = await ev(() => { const o = okteo.state.openings.find((x) => x.kind === "fenetre"); if (!o) return null; o.allege = 120; o.linteau = 230; okteo.markDirty(); okteo.draw(); return o.id; });
+    await ev(() => okteo.setTab("vue3d"));
+    await page.waitForFunction(() => { const S3 = okteoExt.pages.vue3d.ui.state; return S3.house && S3.H && Math.abs(S3.H.plafond - 2.7) < 1e-9; }, null, { timeout: 30000 });
+    const r = await ev((oid) => { const S3 = okteoExt.pages.vue3d.ui.state, T = S3.T, top = new T.Box3().setFromObject(S3.house.walls).max.y; const o = oid && [...S3.plan.openings.values()].flat().find((x) => x.id === oid); return { top, o: o && [o.y0, o.y1], note: document.querySelector(".v3d-note").textContent }; }, oid);
+    // Propriétés : champs présents
+    await ev((oid) => { okteo.setTab("plan"); if (oid) okteo.select([oid]); }, oid);
+    const fields = await ev(() => ({ al: !!document.getElementById("oal"), li: !!document.getElementById("oli") }));
+    await ev(async () => { (await import("/src/prefs.js")).setPref("h3dPlafond", 250); });
+    if (!(pref === 270 && r.top >= 2.7 - 1e-6 && (!oid || (Math.abs(r.o[0] - 1.2) < 1e-9 && Math.abs(r.o[1] - 2.3) < 1e-9 && fields.al && fields.li)) && /2,70 m/.test(r.note))) throw new Error(JSON.stringify({ pref, r, fields, oid }));
+    return true;
+  });
   await check("3D-2 : jonction oubliée et mur en double signalés dans la vue 3D, un clic montre l'endroit sur le plan", async () => {
     await ev(() => okteo.addWalls([{ a: { x: 20, y: 0 }, b: { x: 24, y: 0 }, ep: 0.25 }, { a: { x: 22, y: 0.35 }, b: { x: 22, y: 3 }, ep: 0.1 }]));
     await ev(() => okteo.setTab("vue3d"));
