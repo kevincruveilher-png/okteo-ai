@@ -1862,6 +1862,8 @@ try {
     return true;
   });
   await check("n° 14 : Relevé → Murs d'équerre : une maison relevée de travers (2 à 3°) remise d'équerre, angles joints, compte rendu, un Ctrl+Z", async () => {
+    // un dialogue laissé ouvert par un test précédent (impression…) recouvrirait le menu Relevé
+    for (let i = 0; i < 3 && (await page.isVisible(".pal-back")); i++) await page.keyboard.press("Escape");
     await ev(() => { okteo.setTab("plan"); okteoExt.panel?.close?.("assistant"); });
     const before = await ev(() => okteo.state.segs.length);
     let r = null, back = -1;
