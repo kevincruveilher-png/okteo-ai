@@ -9,6 +9,7 @@ const DESC = {
   proximite: "Le moins de cuivre (longueur de chaque gaine × nombre de fils), sans mêler les territoires des boîtes ; volets avec les boîtes voisines si c'est moins de cuivre.",
   equilibre: "Comme le BE : le moins de boîtes, parts de départs égales ; une boîte pour les volets (deux s'ils sont aux deux bouts de la maison).",
   piece: "Une boîte par pièce (les petites pièces rejoignent leur voisine) ; chaque volet dans la boîte de sa pièce.",
+  be: "Comme le bureau d'études : une boîte par pièce ou par couple de pièces voisines (chambre + chambre, salle de bain + chambre, cuisine + cellier, séjour + garage), passages avec leur voisine, prises du séjour vers la cuisine s'il est trop chargé ; volets dans leur boîte.",
   zone: "Une boîte par zone : nuit (chambres, salles de bains), jour (séjour, cuisine, bureau, entrée), garage ; WC et dégagements avec leurs voisines ; plus de boîtes si la zone est trop chargée.",
 };
 const COL = ["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#9a6324", "#469990", "#808000"];

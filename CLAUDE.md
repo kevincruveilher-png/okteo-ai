@@ -535,6 +535,11 @@ gaines.js : association `memeEndroit` (jamais courant faible + autre) ; pontage 
 length}] + `pontLen` (comptés dans cuivre / longueur / totaux). Plan : `__ponts` dans `setGaineGroups`, `boxLayout` `d.head` /
 `d.ponts`, `path.pont` ; geo `deps[].ponts`. Test `scripts/pontage.test.mjs`.
 
+### Mode « Bureau d'études » (n° 7, lot B du 04/11/2026)
+boites.js `MODES.be`, `beKindOf`, `BE_COUPLES`, `placeLevelBE` (pièces voisines fusionnées : passages, puis couples, puis
+petites pièces ; séjour trop chargé → prises vers la cuisine ; boîte dans ses pièces) ; volets toujours à part en mode BE ;
+`autoBoxes` passe les pièces. Test `scripts/mode-be.test.mjs`.
+
 ### Sanitaires (n° 9, lot A du 04/11/2026)
 volumes.js `SANI` + WC / LAVABO / VASQUE / EVIER (`vol` seulement BAIG / RECV / DITAL : `hasVolumes`), `saniShape(a)`
 (dessin commun écran + impression, gris pointillé), `sani3d(a)` (volumes 3D) ; `exportGeometry().sanis` ; scene.js
