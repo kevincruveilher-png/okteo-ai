@@ -21,7 +21,7 @@
   Essai sur la réponse réelle (axes mesurés sur l'image) : 33 murs collés, écart moyen 9 → 4 cm, x × 0,989.
 - Tests : `scripts/ai-align.test.mjs` (8, maison synthétique, aucun plan client) dans `npm run check` (`npm run
   test:recalage`) ; smoke : réponse collée avec « ref » minuscule et calibres texte. Vérification : workflow TEMPORAIRE
-  `.github/workflows/verification-releve-colle.yml` (à retirer avant fusion).
+  `.github/workflows/verification-releve-colle.yml` (à retirer avant fusion) : run 41871291592 vert (smoke 194/194, ai-align 8).
 
 ## 04/11/2026 — Q-111 « distance depuis l'angle » à trancher avec Thibaut ; QR de la bande sans nom dans `main`
 
