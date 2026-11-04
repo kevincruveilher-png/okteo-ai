@@ -247,7 +247,7 @@ async function main() {
   if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./plan3d-sw.js", { scope: "./plan3d" }).then(async (r) => {
     S.sw = r.scope;
     const w = (await navigator.serviceWorker.ready).active;
-    const keep = [location.pathname, ...performance.getEntriesByType("resource").map((x) => x.name).filter((u) => u.startsWith(location.origin) && /\.(js|css|mjs|woff2?)(\?|$)/.test(u))];
+    const keep = [location.pathname, ...performance.getEntriesByType("resource").map((x) => x.name).filter((u) => u.startsWith(location.origin))];
     if (w) w.postMessage({ keep }); S.keep = keep.length;
   }).catch((e) => { S.swErr = String(e && e.message || e); });
 }

@@ -57,5 +57,17 @@ console.log("MAILLARD Économique : " + E.boxes.map((b) => `${b.n} ${appG(b).len
 check("v62 Économique : moins de cuivre que l'Équilibrée, au plus une boîte de plus que le BE, aucune boîte de moins de 3 départs, aucun croisement dans une boîte",
   E.totals.cuivre < D.totals.cuivre && E.boxes.length <= BE.boites + 1 && eDep.every((n) => n >= 3) && (E.traces || {}).intra === 0, JSON.stringify({ eDep, cu: E.totals.cuivre, intra: (E.traces || {}).intra }));
 
+// 3D-5 : longueurs des gaines comparées à celles des bandes du BE (repères communs, boîtes placées différemment)
+{
+  const BEL = JSON.parse(fs.readFileSync("docs/chantiers/MAILLARD_longueurs_BE.json", "utf8")).gaines, be = new Map(), us = new Map();
+  BEL.forEach((g) => g.reps.forEach((r) => be.set(r, g.len)));
+  B.forEach((b) => appG(b).forEach((g) => (g.reps || []).forEach((r) => us.set(r, g.length))));
+  const common = [...be.keys()].filter((r) => us.has(r) && us.get(r) > 0), d = common.map((r) => us.get(r) - be.get(r)).sort((p, q) => p - q);
+  const med = d.length ? d[Math.floor(d.length / 2)] : null, abs = d.map(Math.abs), in1 = abs.filter((x) => x <= 1).length, in2 = abs.filter((x) => x <= 2).length;
+  const sumUs = common.reduce((s, r) => s + us.get(r), 0), sumBe = common.reduce((s, r) => s + be.get(r), 0);
+  console.log(`Longueurs (3D-5) : ${common.length} repères communs sur ${be.size} ; écart médian ${med == null ? "—" : med.toFixed(2)} m ; ${in1} à ±1 m, ${in2} à ±2 m ; total Oktéo ${sumUs.toFixed(1)} m / BE ${sumBe.toFixed(1)} m`);
+  check("3D-5 : longueurs comparées aux bandes du BE sur au moins 30 repères communs (écarts affichés, boîtes différentes)", common.length >= 30, `${common.length} repères communs`);
+}
+
 console.log(`\n${ok} vérifications réussies, ${fails.length} en échec.`);
 if (fails.length) process.exit(1);
