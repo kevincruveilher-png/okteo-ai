@@ -1861,6 +1861,22 @@ try {
     if (!(r0.thick && r0.thin && w.mat === "doublage" && w.wave > 0 && back === r0.was && gris.st === "gris" && gris.grey > 0 && gris.hatch === 0 && pdf.cotes.length >= 1 && r.abrev && !r.full && r.cm)) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("n° 14 : Relevé → Murs d'équerre : une maison relevée de travers (2 à 3°) remise d'équerre, angles joints, compte rendu, un Ctrl+Z", async () => {
+    const before = await ev(() => ({ segs: okteo.state.segs.length, nodes: okteo.state.nodes.map((n) => [n.id, n.x, n.y]) }));
+    await ev(() => okteo.importWalls({ nodes: [{ x: 200, y: 200 }, { x: 208, y: 200.3 }, { x: 208.25, y: 206 }, { x: 200.1, y: 206.1 }], walls: [{ a: 0, b: 1, ep: 0.2 }, { a: 1, b: 2, ep: 0.2 }, { a: 2, b: 3, ep: 0.2 }, { a: 3, b: 0, ep: 0.2 }], openings: [{ seg: 0, t: 4, w: 0.9, kind: "fenetre" }] }));
+    await page.click("#btn-relev"); await page.click("#rv-square");
+    const r = await ev(() => {
+      const S = okteo.state, segs = S.segs.slice(-4), N = (id) => S.nodes.find((n) => n.id === id);
+      const right = segs.every((s) => { const a = N(s.a), b = N(s.b); return Math.abs(a.x - b.x) < 1e-3 || Math.abs(a.y - b.y) < 1e-3; });
+      const joined = segs.every((s, i) => s.b === segs[(i + 1) % 4].a);
+      return { right, joined, hint: document.getElementById("hint").textContent, op: S.openings.length };
+    });
+    await page.keyboard.press("Control+z");
+    await page.keyboard.press("Control+z");
+    const back = await ev(() => okteo.state.segs.length);
+    if (!(r.right && r.joined && /Murs : .*d'équerre/.test(r.hint) && back === before.segs)) throw new Error(JSON.stringify({ r, back, before: before.segs }));
+    return true;
+  });
   await check("v77 : murs dessinés avec un seul contour d'ensemble (pas de trait en travers des angles ni des T)", async () => {
     const r = await ev(() => {
       const out = document.querySelector("#sv g.walls-out"), fill = out && out.nextElementSibling;

@@ -9,6 +9,8 @@ import { newAnalyseId } from "../walls/ai-journal.js";
 import { settings } from "./settings.js";
 import { aiPrompt, pastePrompt, parseAiJson, aiToPlan, MIN_REF_W, refOf } from "../walls/ai-plan.js";
 import { alignPlan } from "../walls/ai-align.js";
+import { squareReleve, squareOptions, squareText } from "../walls/squaring.js";
+import { getPrefs } from "../prefs.js";
 import { detectWalls } from "../walls/detect.js";
 import { findRooms, nameRooms, labelPoint, pointInPoly } from "../walls/rooms.js";
 import { autoScale, chantierPage, pageMap } from "./pdf-page.js";
@@ -158,12 +160,19 @@ export function createAiReleve({ api, openParams }) {
     recal = null;
     try { plan = aiToPlan(raw, map, { defEp: api.state.wallEp }); }
     catch (e) { api.setPreview(null); plan = null; message("Import annulé : " + esc(e.message)); return null; }
-    meta = info;
+    meta = info + squareStep();
     keep = { walls: plan.walls.length > 0, rooms: plan.pieces.length > 0 || plan.walls.length > 0, devices: plan.devices.length > 0 };
     preview(); render();
     return plan;
   }
 
+  // n° 14 : murs mis d'équerre (réglages de Paramètres → Murs) avant le recalage ; renvoie le texte du compte rendu
+  function squareStep() {
+    const S = squareReleve(plan, squareOptions(getPrefs()));
+    if (!S.R) return "";
+    plan = S.plan;
+    return " · murs : " + squareText(S.R);
+  }
   // v77 : recalage du relevé sur les murs du PDF vectoriel (src/walls/ai-align.js) ; rien sur un scan ou sans murs
   async function realign() {
     if (!plan || !plan.walls.length) return null;
@@ -187,7 +196,7 @@ export function createAiReleve({ api, openParams }) {
   function fromPlan(P, { info = "", text = "", usage = null, ms = 0, mode = 2 } = {}) {
     lastText = String(text || "");
     recordInitial(api.ch.id, lastText, { map: null, info });
-    plan = P; meta = info; recal = null; lastMode = "key"; lastUsage = usage; lastMs = ms; run = { id: newAnalyseId(), mode };
+    plan = P; meta = info; recal = null; meta += squareStep(); lastMode = "key"; lastUsage = usage; lastMs = ms; run = { id: newAnalyseId(), mode };
     keep = { walls: plan.walls.length > 0, rooms: plan.pieces.length > 0 || plan.walls.length > 0, devices: plan.devices.length > 0 };
     preview(); render();
     return plan;

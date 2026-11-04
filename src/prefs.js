@@ -18,6 +18,9 @@ export const PREFS_DEFAULTS = {
   zoomsIA: 12, // v76 : zooms à la demande au plus par plan (3 au plus par tuile)
   // 3D-3 : hauteurs de départ de la vue 3D (cm), quand le dessin ne les donne pas (réglables dans Paramètres → Vue 3D)
   h3dPlafond: 250, h3dAllege: 90, h3dLinteau: 215, h3dPorte: 204, h3dBaie: 215, h3dGarage: 220,
+  // n° 14 : autocorrection des murs (Paramètres → Murs) : angle léger mis d'équerre, tolérance autour de 45°, déplacement
+  // au-delà duquel le mur corrigé est signalé (cm)
+  equerreTol: 10, equerre45: 10, equerreMax: 15,
   abrev: "", // v74 : abréviations des noms de pièces du plan imprimé (vide = table par défaut, src/print/abrev.js)
 };
 
