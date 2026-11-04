@@ -20,6 +20,9 @@
   main dans une zone n'est pas signalée.
 - Tests : `scripts/zones.test.mjs` (7, dans check) ; smoke : zone posée entre une boîte et un appareil, groupes « Autres » à 8.
 
+- Fusion dans `main` le 04/11/2026 (go de Kévin « go bloc C et fusionne ») : `npm run check` vert sur GitHub Actions
+  (smoke 201/201) ; workflow temporaire retiré.
+
 ## 04/11/2026 — n° 7 : mode de pieuvre « Bureau d'études » (lot B)
 
 - Demande de Kévin : séjour seul ou + garage ; cuisine seule ou + PC du séjour ou + cellier proche ; chambre 1 + 2 ;
