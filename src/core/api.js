@@ -345,7 +345,8 @@ window.okteo = {
   // Les appareils muraux se collent au mur le plus proche (≤ 60 cm) et restent attachés à leur distance de l'angle.
   importDevices(list, links = [], {
     replace = false,
-    stay = false   // 3D-4 : pose depuis la vue 3D : on reste sur l'onglet et l'outil en cours
+    stay = false,   // 3D-4 : pose depuis la vue 3D : on reste sur l'onglet et l'outil en cours
+    roomSide = false   // n° 13 : relevé IA : un appareil posé dans l'épaisseur d'un mur se colle côté pièce
   } = {}) {
     // Préflight avant snapshot/remplacement : aucun chantier partiellement effacé sur donnée invalide.
     if (!Array.isArray(list) || list.some((d) => !d || !TYPES[d.t] || !Number.isFinite(d.x) || !Number.isFinite(d.y))) throw new Error("Import annulé : appareil ou position invalide.");
@@ -356,7 +357,7 @@ window.okteo = {
     }
     const ids = list.map(d => {
       if (!TYPES[d.t]) return null;
-      const p = wallMounted(d.t) ? snapToWall(d.x, d.y, d.t) || {
+      const p = wallMounted(d.t) ? snapToWall(d.x, d.y, roomSide ? d.t : null) || {
         x: d.x,
         y: d.y
       } : {

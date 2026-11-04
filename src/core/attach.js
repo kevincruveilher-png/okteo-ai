@@ -179,8 +179,8 @@ export function projOnSeg(wx, wy, seg) {
 // accrocher un appareil mural au mur le plus proche (face côté curseur)
 // n° 13 : appareils posés dehors (sinon un appareil mural se colle toujours côté pièce)
 export const EXTERIEURS = new Set(["PCEXT", "GEXT", "PX4", "MGAR", "ANT", "VREJ"]);
-// t (facultatif, type de l'appareil) : un appareil d'intérieur posé pile sur l'axe d'un mur, ou du mauvais côté, se colle
-// du côté où il y a une pièce (si une seule des deux faces en a une)
+// t (facultatif, type de l'appareil) : un appareil d'intérieur posé DANS l'épaisseur d'un mur (relevé IA estimé à l'œil)
+// se colle du côté où il y a une pièce (si une seule des deux faces en a une) ; posé franchement d'un côté, il y reste
 export function snapToWall(wx, wy, t = null) {
   let best = null,
     bd = 0.6;
@@ -202,7 +202,7 @@ export function snapToWall(wx, wy, t = null) {
     ny = d.ux;
   let sideSign = (wx - d.a.x) * nx + (wy - d.a.y) * ny >= 0 ? 1 : -1;
   const off = epOf(best.seg) / 2 + 0.06;
-  if (t && !EXTERIEURS.has(t) && state.rooms.length) {
+  if (t && !EXTERIEURS.has(t) && state.rooms.length && best.p.d < epOf(best.seg) / 2 + 0.02) {
     const inHere = roomAt(best.p.x + nx * off * sideSign, best.p.y + ny * off * sideSign), inThere = roomAt(best.p.x - nx * off * sideSign, best.p.y - ny * off * sideSign);
     if (!inHere && inThere) sideSign = -sideSign;
   }

@@ -1868,8 +1868,8 @@ try {
     return true;
   });
   await check("n° 14 : Relevé → Murs d'équerre : une maison relevée de travers (2 à 3°) remise d'équerre, angles joints, compte rendu, un Ctrl+Z", async () => {
-    // un dialogue laissé ouvert par un test précédent (impression…) recouvrirait le menu Relevé
-    for (let i = 0; i < 3 && (await page.isVisible(".pal-back")); i++) await page.keyboard.press("Escape");
+    // un dialogue laissé ouvert par un test précédent (impression…) recouvre le menu : masqué le temps du test, puis remis
+    await ev(() => document.querySelectorAll(".pal-back").forEach((e) => { e.dataset.hid = e.style.display || "-"; e.style.display = "none"; }));
     await ev(() => { okteo.setTab("plan"); okteoExt.panel?.close?.("assistant"); });
     const before = await ev(() => okteo.state.segs.length);
     let r = null, back = -1;
@@ -1886,12 +1886,14 @@ try {
       // toujours revenir au dessin de départ (sinon la maison d'essai fausse les tests suivants)
       for (let i = 0; i < 3 && (await ev(() => okteo.state.segs.length)) !== before; i++) await ev(() => okteo.undo());
       back = await ev(() => okteo.state.segs.length);
+      await ev(() => document.querySelectorAll(".pal-back").forEach((e) => { if (e.dataset.hid) { e.style.display = e.dataset.hid === "-" ? "" : e.dataset.hid; delete e.dataset.hid; } }));
     }
     if (!(r && r.right && r.joined && /Murs : .*d'équerre/.test(r.hint) && back === before)) throw new Error(JSON.stringify({ r, back, before }));
     return true;
   });
   await check("n° 13 + 8 : symboles muraux hors du mur et dans le sens de leur mur ; appareil dans un mur signalé puis recollé ; repère glissé à la main (gardé, un Ctrl+Z)", async () => {
-    for (let i = 0; i < 3 && (await page.isVisible(".pal-back")); i++) await page.keyboard.press("Escape");
+    await ev(() => document.querySelectorAll(".pal-back").forEach((e) => { e.dataset.hid = e.style.display || "-"; e.style.display = "none"; }));
+    const keepView = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits }));
     await ev(() => { okteo.setTab("plan"); okteo.setTool("sel"); okteo.viewPreset("impl"); okteo.fit(); okteoExt.panel?.close?.("assistant"); });
     const r1 = await ev(() => {
       const S = okteo.state, N = (id) => S.nodes.find((n) => n.id === id);
@@ -1925,6 +1927,8 @@ try {
       const back = await ev((id) => { const a = okteo.state.app.find((x) => x.id === id); return a && a.rpx == null; }, lab.id);
       r3 = { moved, back };
     }
+    await ev(() => document.querySelectorAll(".pal-back").forEach((e) => { if (e.dataset.hid) { e.style.display = e.dataset.hid === "-" ? "" : e.dataset.hid; delete e.dataset.hid; } }));
+    await ev((V) => { Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; }, keepView);
     if (!(r1.n > 5 && r1.worst > 0.055 && r1.best > 0.08 && /rotate\(-?90/.test(r1.rot || "") && r2.flagged && r2.k >= 1 && r2.seg && r2.kind && r3 && r3.moved && r3.back)) throw new Error(JSON.stringify({ r1, r2, r3, lab }));
     return true;
   });
@@ -1939,13 +1943,16 @@ try {
   });
   await check("plan du BE (v74 MAJ 4) : symboles FTZ à l'écran (préférence), gaines à la couleur de la boîte, PMR, feuille A3 (repères Courier, plaques)", async () => {
     await page.waitForFunction(() => document.querySelectorAll("#sv g.dev g.ftz").length > 0, null, { timeout: 15000 });
+    const cnt = await ev(() => ({ ftz: document.querySelectorAll("#sv g.dev g.ftz").length, dev: document.querySelectorAll("#sv g.dev").length }));
+    await ev(() => { okteo.showCircuits = true; });
+    await page.waitForFunction(() => document.querySelector("#sv path.gaine:not(.alim)"), null, { timeout: 15000 });
     const scr = await ev(() => {
-      const ftz = document.querySelectorAll("#sv g.dev g.ftz").length, dev = document.querySelectorAll("#sv g.dev").length;
-      okteo.showCircuits = true;
+      const ftz = 0, dev = 0;
       const g = document.querySelector("#sv path.gaine:not(.alim)"), b = g && okteo.cab.boxes.find((x) => x.id === g.dataset.b);
       const col = g && g.getAttribute("stroke"), n = b && b.n;
       return { ftz, dev, col, n };
     });
+    Object.assign(scr, cnt);
     await ev(async () => { const m = await import("/src/prefs.js"); m.setPref("charteBE", false); });
     const off = await ev(() => ({ ftz: document.querySelectorAll("#sv g.dev g.ftz").length, col: document.querySelector("#sv path.gaine:not(.alim)")?.getAttribute("stroke") }));
     await ev(async () => { const m = await import("/src/prefs.js"); m.setPref("charteBE", true); okteo.showCircuits = false; });

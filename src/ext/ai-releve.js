@@ -141,7 +141,7 @@ export function createAiReleve({ api, openParams }) {
         const list = roomsFor(false).map((r) => ({ ...r, also: r.labels.filter((n) => n !== r.name) }));
         if (list.length) done.push(`${api.addRooms(list, { replace: true })} pièces`);
       }
-      if (keep.devices && plan.devices.length) { const r = api.importDevices(plan.devices, plan.links, { replace: true }); devAdded = true; done.push(`${r.appareils} appareils, ${r.liaisons} liaisons`); }
+      if (keep.devices && plan.devices.length) { const r = api.importDevices(plan.devices, plan.links, { replace: true, roomSide: true }); devAdded = true; done.push(`${r.appareils} appareils, ${r.liaisons} liaisons`); }
       // v61 : ce que la relecture ciblée et son rapport doivent savoir (pièces nommées, ouvertures perdues, remarques)
       recordReleve(api, keep.walls ? plan : { ...plan, lost: [] }, { mode: lastMode, info: meta, usage: lastUsage, ms: lastMs, analyse: run, extra: plan.journal || null, counts: { murs: keep.walls ? plan.walls.length : 0, ouvertures: keep.walls ? plan.openings.length : 0, pieces: plan.pieces.length, appareils: keep.devices ? plan.devices.length : 0, liaisons: keep.devices ? plan.links.length : 0 } });
     });

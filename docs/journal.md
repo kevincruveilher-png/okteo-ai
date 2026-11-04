@@ -42,6 +42,10 @@
 - Côté pièce : `snapToWall(x, y, t)` choisit la face où il y a une pièce pour un appareil d'intérieur (`EXTERIEURS` : PCEXT, GEXT,
   PX4, MGAR, ANT, VREJ) ; `importDevices` passe le type. Contrôle `mur` (« appareil dans l'épaisseur d'un mur ») ;
   `okteo.reattachWalls()` + catalogue `app.reattach` « Recoller les appareils à leur mur ».
+  Le collage côté pièce ne joue que pour un relevé IA (`importDevices(..., {roomSide: true})`) et un appareil posé dans
+  l'épaisseur du mur (sinon le relevé automatique et le câblage changeaient). Clic : un symbole affiché plus près que le
+  sommet du mur gagne (`hitAny`) ; un point de passage de gaine reste saisissable sous un symbole ; un repère cliqué dans son
+  texte gagne sur le symbole voisin. Impression : `rotD` ignore une forme sans tracé (symbole du BE tourné).
 - Tests : `scripts/placement.test.mjs` (5) dans `npm run check` ; smoke : symboles hors du mur, rotation sur mur vertical,
   contrôle `mur` + recollage, repère glissé et Ctrl+Z.
 
@@ -63,6 +67,9 @@
   (`#ps-murs`, 0 = rien corrigé).
 - Tests : `scripts/squaring.test.mjs` (9) dans `npm run check` (`npm run test:equerre`) ; smoke : maison relevée de travers
   remise d'équerre par le menu, angles joints, deux Ctrl+Z. Workflow TEMPORAIRE `.github/workflows/verification-lot-a.yml`.
+
+- Fusion dans `main` le 04/11/2026 (lot A, go de Kévin) : `npm run check` vert sur GitHub Actions (run 41890979246) ;
+  workflow temporaire `verification-lot-a.yml` retiré.
 
 ## 04/11/2026 — v77 fusionnée dans `main` (« go » de Kévin pour le lot A)
 
