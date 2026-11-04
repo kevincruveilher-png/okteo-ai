@@ -21,10 +21,10 @@ self.addEventListener("fetch", (e) => {
   if (r.mode === "navigate") {
     // (copie faite tout de suite : une fois la réponse rendue à la page, son contenu n'est plus lisible)
     e.respondWith(fetch(r).then((res) => { if (res.ok) { const cp = res.clone(); e.waitUntil(caches.open(CACHE).then((c) => c.put(u.pathname, cp))); } return res; })
-      .catch(async () => (await caches.match(u.pathname)) || (await caches.match("/plan3d.html")) || (await caches.match("/plan3d")) || Response.error()));
+      .catch(async () => (await caches.match(u.pathname, { ignoreVary: true })) || (await caches.match("/plan3d.html", { ignoreVary: true })) || (await caches.match("/plan3d", { ignoreVary: true })) || Response.error()));
     return;
   }
   // scripts, styles, polices : la copie gardée d'abord (fichiers à nom haché en ligne)
   // (demandés sans le cache du navigateur : une réponse « 304 inchangé » ne peut pas être gardée)
-  e.respondWith(caches.match(r).then((hit) => hit || fetch(r.url, { cache: "no-store", credentials: "same-origin" }).then((res) => { if (res.ok) { const cp = res.clone(); e.waitUntil(caches.open(CACHE).then((c) => c.put(r, cp))); } return res; })));
+  e.respondWith(caches.match(r, { ignoreVary: true, ignoreSearch: false }).then((hit) => hit || fetch(r.url, { cache: "no-store", credentials: "same-origin" }).then((res) => { if (res.ok) { const cp = res.clone(); e.waitUntil(caches.open(CACHE).then((c) => c.put(r, cp))); } return res; })));
 });
