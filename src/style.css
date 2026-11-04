@@ -188,6 +188,10 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .thumb img{width:180px;height:auto;border:1px solid var(--line);background:#fff}
 .thumb.on{border:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--panel));color:var(--fg)}
 .thumb.on span{font-weight:700;color:var(--accent)}
+/* n° 15 : rôle de chaque page du dossier */
+.thumb-w{display:flex;flex-direction:column;gap:4px;width:194px}
+.thumb-w .pg-role{width:100%;font-size:12px}
+.thumb-w .pg-role.doubt{border-color:#c98a00;background:color-mix(in srgb,#c98a00 12%,var(--panel))}
 .thumb span{font-size:12px}
 @media (max-width:760px){.ch-list thead{display:none}.ch-list tr{display:grid;grid-template-columns:1fr auto}.ch-list td{border:0}.ch-list .acts{grid-column:1/-1;justify-content:flex-start}}
 

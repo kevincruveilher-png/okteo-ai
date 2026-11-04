@@ -409,12 +409,26 @@ try {
     await page.click('.thumb[data-page="3"]');
     return n === 3 && (await page.isVisible('.thumb.on[data-page="3"]'));
   });
+  await check("n° 15 : rôle proposé pour chaque page (plan du RDC en page 3, pages sans plan « à ignorer »), modifiable ; un seul plan par niveau", async () => {
+    const r0 = await ev(() => [...document.querySelectorAll(".pg-role")].map((s) => s.value));
+    await page.selectOption('.pg-role[data-page="1"]', "devis");
+    await page.selectOption('.pg-role[data-page="2"]', "niv:RDC");
+    const r1 = await ev(() => ({ v: [...document.querySelectorAll(".pg-role")].map((s) => s.value), on: document.querySelector(".thumb.on")?.dataset.page }));
+    await page.click('.thumb[data-page="3"]');
+    await page.selectOption('.pg-role[data-page="2"]', "ignorer");
+    const r2 = await ev(() => ({ v: [...document.querySelectorAll(".pg-role")].map((s) => s.value), on: document.querySelector(".thumb.on")?.dataset.page }));
+    if (!(r0.join() === "ignorer,ignorer,niv:RDC" && r1.v.join() === "devis,niv:RDC,ignorer" && r1.on === "2" && r2.v.join() === "devis,ignorer,niv:RDC" && r2.on === "3")) throw new Error(JSON.stringify({ r0, r1, r2 }));
+    return true;
+  });
   await check("création : chantier ouvert, fond haute définition chargé, échelle à régler", async () => {
     await Promise.all([page.waitForNavigation({ timeout: 60000 }), page.click("#nf-ok")]);
     await reopened();
     await page.waitForFunction(() => okteo.FOND && okteo.FOND.startsWith("blob:"), null, { timeout: 30000 });
     const px = await ev(() => JSON.parse(localStorage.getItem("okteo.chantiers.v1")).find((c) => c.nom === "ESSAI").fond.pxW);
-    return (await page.textContent(".badge")).includes("ESSAI · 99999") && (await ev(() => okteo.tool)) === "calib" && (await ev(() => okteo.state.rooms.length)) === 0 && px > 3000;
+    const dos = await ev(() => { const d = okteo.ch.dossier; return d && { lv: d.levels.map((l) => l.name + ":" + l.page).join(), devis: d.devis.join(), lvs: okteo.levels.length }; });
+    const pg = await ev(async () => (await import("/src/ext/ai-cross.js")).otherPages(okteo));
+    return (await page.textContent(".badge")).includes("ESSAI · 99999") && (await ev(() => okteo.tool)) === "calib" && (await ev(() => okteo.state.rooms.length)) === 0 && px > 3000
+      && dos && dos.lv === "RDC:3" && dos.devis === "1" && dos.lvs === 1 && pg === 1;
   });
   await check("sans échelle : « Relevé → 1. Murs » règle l'échelle tout seul d'après les cotes du plan (à 1,5 % près)", async () => {
     await page.keyboard.press("Escape");
@@ -3084,6 +3098,25 @@ try {
     const r = await ev(() => ({ tab: okteo.tab }));
     await ev(() => okteo.undo());
     if (!(n >= 1 && r.tab === "plan")) throw new Error(JSON.stringify({ n, r }));
+    return true;
+  });
+  await check("n° 15 : dossier PDF de 3 pages (plan RDC, plan R+1, devis) → nouveau chantier avec ses 2 niveaux et leur fond ; le devis est joint à l'analyse (mode 4)", async () => {
+    const { jsPDF } = await import("jspdf");
+    const d = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
+    d.setFontSize(14); d.text("PLAN ELECTRICITE - REZ-DE-CHAUSSEE (RDC)", 20, 20); d.text("Legende : prise de courant, interrupteur, va-et-vient, point lumineux, RJ45", 20, 30); d.rect(40, 50, 300, 200);
+    d.addPage("a3", "landscape"); d.text("PLAN ELECTRICITE - ETAGE R+1", 20, 20); d.text("Legende : prise de courant, interrupteur, point lumineux", 20, 30); d.rect(40, 50, 250, 180);
+    d.addPage("a4", "portrait"); d.text("DEVIS DESCRIPTIF - Designation, quantite, prix unitaire, montant total HT, TVA, total TTC", 15, 20);
+    const buffer = Buffer.from(d.output("arraybuffer"));
+    await ev(() => okteo.saveNow());
+    await page.click('#tabs button[data-tab="chantiers"]');
+    await page.click("#ch-new"); await page.fill("#nf-nom", "DOSSIER"); await page.fill("#nf-num", "88888");
+    await page.setInputFiles("#nf-file", { name: "dossier.pdf", mimeType: "application/pdf", buffer });
+    await page.waitForSelector(".pg-role", { timeout: 30000 });
+    const roles = await ev(() => [...document.querySelectorAll(".pg-role")].map((s) => s.value));
+    await Promise.all([page.waitForNavigation({ timeout: 90000 }), page.click("#nf-ok")]);
+    await page.waitForFunction(() => window.okteo && window.okteoExt && okteo.FOND, null, { timeout: 30000 });
+    const r = await ev(async () => ({ nom: okteo.ch.nom, lv: okteo.levels.map((l) => l.name).join(), fonds: okteo.ch.levels.filter((l) => l.fond && l.fond.src === "idb").map((l) => l.fond.page).join(), devis: (okteo.ch.dossier || {}).devis?.join(), pg: await (await import("/src/ext/ai-cross.js")).otherPages(okteo) }));
+    if (!(roles.join() === "niv:RDC,niv:R+1,devis" && r.nom === "DOSSIER" && r.lv === "RDC,R+1" && r.fonds === "1,2" && r.devis === "3" && r.pg === 1)) throw new Error(JSON.stringify({ roles, r }));
     return true;
   });
   await page.screenshot({ path: process.env.OKTEO_SHOT || "scripts/derniere-capture.png" });

@@ -1,3 +1,27 @@
+## 04/11/2026 — n° 15 : import du dossier PDF par rôle de page (bloc D, go de Kévin)
+
+- Décision de Kévin : on importe le dossier PDF entier, l'opérateur désigne les pages (implantation par niveau, plan cuisine,
+  devis) ; le reste est ignoré ; l'IA ne lit que les pages désignées.
+- `src/walls/page-roles.js` (pur) : `ROLES` (niv:RDC, niv:R+1, niv:R+2, niv:Sous-sol, niv:Combles, cuisine, devis, ignorer),
+  `proposeRole(page)` d'après le texte de la page (mots du plan électrique, du plan cuisine, du devis, façades / coupes /
+  plan de masse ; niveau écrit : sous-sol, combles, R+2, R+1 / étage, sinon RDC) et son sens (texte illisible : paysage =
+  plan, portrait = à ignorer, confiance basse) ; `proposeRoles` (une page par niveau : la plus probable, à égalité la
+  dernière en paysage comme avant) ; `setRole` (une page prise pour un niveau libère l'ancienne) ; `dossierOf` ;
+  `analysisPages`.
+- `fond-import.js` `pdfThumbs` : texte de chaque page (6 000 caractères). `chantiers-page.js` : liste du rôle sous chaque
+  vignette (`.pg-role`, orange « ? » si douteux, infobulle = raison) ; un clic sur une vignette la prend pour le RDC
+  (nouveau chantier) ou le niveau ouvert. Nouveau chantier : un niveau par page d'implantation (RDC = 1er, clés
+  habituelles ; les autres `l…`), chacun avec son fond et son PDF ; `meta.dossier` {name, at, levels, cuisine, devis,
+  ignorer, pages}. Changer le fond : rôles enregistrés, fond du niveau ouvert seulement (pas de création de niveau).
+- Mode 4 (`ai-cross.js`) : avec un dossier, seules les pages « plan cuisine » et « devis » du PDF du chantier sont jointes
+  (libellées), sinon comme avant toutes les pages hors plans ; écran des modes : « n pages du dossier jointes
+  automatiquement ». Catalogue `help.dossier`.
+- Tests : `scripts/page-roles.test.mjs` (4, dans check) ; smoke : rôles d'EVRARD (page 3 = RDC, pages sans texte à ignorer),
+  modifiés à la main ; dossier de 3 pages généré (RDC, R+1, devis) → chantier à 2 niveaux avec leur fond, devis joint.
+
+- Fusion dans `main` le 04/11/2026 (go de Kévin pour le bloc D) : `npm run check` vert sur GitHub Actions (run 41910067884,
+  smoke 204/204) ; workflow temporaire retiré.
+
 ## 04/11/2026 — n° 11 : bibliothèque de mobilier (lot C)
 
 - Demande de Kévin : un petit bouton qui affiche les meubles à implanter (canapé, table, chaise, plante, meuble TV, lit…),

@@ -6,6 +6,7 @@
 //   une seule question à l'IA → liste ciblée d'écarts (équipements des documents absents du plan, quantités différentes).
 //   Sans aucun document : partie désactivée proprement, et dit à l'opérateur.
 import * as CHS from "../chantiers.js";
+import { analysisPages } from "../walls/page-roles.js";
 import { pdfjs } from "./fond-import.js";
 import { AI_SYSTEM } from "../walls/ai-data.js";
 import { aiPrompt, parseAiJson, aiToPlan } from "../walls/ai-plan.js";
@@ -51,6 +52,8 @@ async function imageSource(file) {
 
 // nombre d'autres pages dans le PDF du chantier (écran des modes, mode 4)
 export async function otherPages(api) {
+  const AP = analysisPages(api.ch.dossier);   // n° 15 : rôles des pages : plan cuisine et devis seulement
+  if (AP) return AP.length;
   const blob = await CHS.getFile(CHS.pdfKey(api.ch)).catch(() => null);
   if (!blob) return 0;
   try { const d = await openDoc(new Uint8Array(await blob.arrayBuffer())), n = d.numPages, skip = planPages(api); await d.destroy(); return [...Array(n).keys()].filter((i) => !skip.has(i + 1)).length; }
@@ -64,8 +67,10 @@ export async function gatherDocs(api, files = []) {
   const blob = await CHS.getFile(CHS.pdfKey(api.ch)).catch(() => null);
   if (blob) {
     try {
-      const d = await openDoc(new Uint8Array(await blob.arrayBuffer())), skip = planPages(api);
-      for (let i = 1; i <= Math.min(d.numPages, 30); i++) if (!skip.has(i)) push(await pageSource(await d.getPage(i), `PDF du chantier, page ${i}`));
+      const d = await openDoc(new Uint8Array(await blob.arrayBuffer())), skip = planPages(api), AP = analysisPages(api.ch.dossier);
+      // n° 15 : avec les rôles des pages, seulement le plan cuisine et le devis ; sans, toutes les pages hors plans
+      if (AP) { for (const x of AP) if (x.page <= d.numPages) push(await pageSource(await d.getPage(x.page), `${x.label} (PDF du chantier)`)); }
+      else for (let i = 1; i <= Math.min(d.numPages, 30); i++) if (!skip.has(i)) push(await pageSource(await d.getPage(i), `PDF du chantier, page ${i}`));
       await d.destroy();
     } catch { /* PDF illisible : on continue avec les documents joints */ }
   }

@@ -35,7 +35,10 @@ export async function pdfThumbs(doc, width = 220) {
     const c = document.createElement("canvas"); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
     const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
     await page.render({ canvasContext: g, viewport: vp }).promise;
-    out.push({ page: i, url: c.toDataURL("image/jpeg", 0.75), wPt: vp1.width, hPt: vp1.height });
+    // n° 15 : texte de la page (cartouche, titres, légende) pour proposer son rôle
+    let text = "";
+    try { text = (await page.getTextContent()).items.map((x) => x.str).join(" ").slice(0, 6000); } catch { /* page sans texte */ }
+    out.push({ page: i, url: c.toDataURL("image/jpeg", 0.75), wPt: vp1.width, hPt: vp1.height, text });
   }
   return out;
 }
