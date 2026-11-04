@@ -1,4 +1,4 @@
-# À LIRE EN PREMIER — état du projet (mis à jour le 04/11/2026, v77 + vue 3D + lots A (n° 1, 2, 8, 9, 12, 13, 14) et B (n° 6, 7) dans `main`)
+# À LIRE EN PREMIER — état du projet (mis à jour le 04/11/2026, v77 + vue 3D + lots A (n° 1, 2, 8, 9, 12, 13, 14), B (n° 6, 7), C (n° 10, 11) et n° 4 dans `main`)
 
 Ce fichier sert à TOUTES les IA qui travaillent sur le dépôt (Claude, ChatGPT/Codex…) : `AGENTS.md` y renvoie.
 Plusieurs IA se sont succédé (Claude jusqu'à v66, ChatGPT v67 à v72, Claude depuis v72.1) : garder une seule source de
@@ -16,7 +16,7 @@ vérité, celle-ci, et tenir `docs/journal.md` à jour à CHAQUE modification (e
   `public/assets/fond-evrard-04949.jpg`). Décision de Kévin attendue (dépôt privé ou retrait des plans). N'en ajouter aucun.
 - Ne lancer une mise à jour que sur ordre de Kévin ; ne rien pousser sur `main` sans son « go ». Branches de travail :
   `feat/…`, vérification par GitHub Actions sur une branche `verification-…` supprimée après usage.
-- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854). Sans navigateur en local : faire tourner les
+- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854 ; lot C : smoke 202/202, run 41904201702). Sans navigateur en local : faire tourner les
   tests sur GitHub Actions (workflow temporaire sur une branche `verification-…`, voir journal v72.1).
 
 # Oktéo AI — consignes pour Claude
@@ -544,6 +544,11 @@ length}] + `pontLen` (comptés dans cuivre / longueur / totaux). Plan : `__ponts
 boites.js `MODES.be`, `beKindOf`, `BE_COUPLES`, `placeLevelBE` (pièces voisines fusionnées : passages, puis couples, puis
 petites pièces ; séjour trop chargé → prises vers la cuisine ; boîte dans ses pièces) ; volets toujours à part en mode BE ;
 `autoBoxes` passe les pièces. Test `scripts/mode-be.test.mjs`.
+
+### Mobilier (n° 11, lot C du 04/11/2026)
+volumes.js `meuble: true` / `isMeuble` (10 meubles, `saniShape`, `sani3d` matière meuble / plante) ; appareils.js groupe
+« Mobilier » ; bouton `[data-tool="__meubles"]` (`K.moreOpen = "meubles"`) ; `AI_TYPES` sans Mobilier ni Zones.
+Test `scripts/mobilier.test.mjs`.
 
 ### Zones d'exclusion (n° 10, lot C du 04/11/2026)
 Types `ZONE` / `ZONEC` (volumes.js `zone: true`, groupe « Zones d'exclusion ») ; `src/cablage/exclusion.js` (`zonesByLevel`,

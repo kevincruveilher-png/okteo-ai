@@ -21,7 +21,19 @@ export const SANI = {
   // n° 10 : zones d'exclusion (rien dedans : ni boîte, ni gaine, ni appareil, ni ligne directe) ; exclusion.js
   ZONE: { n: "Zone d'exclusion (rectangle)", w: 1.2, d: 0.8, zone: true },
   ZONEC: { n: "Zone d'exclusion (cercle)", w: 1, d: 1, zone: true },
+  // n° 11 : mobilier (sans électricité ni repère) : rend la 3D parlante, puis sert à l'implantation des meubles du client
+  CANAPE: { n: "Canapé", w: 2.1, d: 0.9, meuble: true },
+  FAUTEUIL: { n: "Fauteuil", w: 0.85, d: 0.85, meuble: true },
+  TABLE: { n: "Table", w: 1.6, d: 0.9, meuble: true },
+  CHAISE: { n: "Chaise", w: 0.45, d: 0.5, meuble: true },
+  LIT2: { n: "Lit double", w: 1.6, d: 2.0, meuble: true },
+  LIT1: { n: "Lit simple", w: 0.9, d: 1.9, meuble: true },
+  MTV: { n: "Meuble TV", w: 1.6, d: 0.45, meuble: true },
+  ARMOIRE: { n: "Armoire / rangement", w: 1.2, d: 0.6, meuble: true },
+  MBUREAU: { n: "Bureau (meuble)", w: 1.2, d: 0.6, meuble: true },
+  PLANTE: { n: "Plante", w: 0.5, d: 0.5, meuble: true },
 };
+export const isMeuble = (t) => !!(SANI[t] && SANI[t].meuble);
 export const isSani = (t) => !!SANI[t];
 export const hasVolumes = (t) => !!(SANI[t] && SANI[t].vol);
 export const V1_H = 2.25, V2_H = 3, V2_W = 0.6, ITAL_R = 1.2;
@@ -64,6 +76,22 @@ export function saniShape(a) {
       return out;
     }
     case "ZONE": return [P("out", rrect(F, u0, v0, u1, v1))];
+    // n° 11 : mobilier (dos = côté v0, contre le mur)
+    case "CANAPE": case "FAUTEUIL": {
+      const bk = Math.min(0.22, d * 0.28), ar = Math.min(0.2, w * 0.18), n = a.t === "CANAPE" ? Math.max(2, Math.round((w - 2 * ar) / 0.65)) : 1, out = [P("out", rrect(F, u0, v0, u1, v1, 0.06)), P("in", rrect(F, u0, v0, u1, v0 + bk, 0.04)), P("in", rrect(F, u0, v0 + bk, u0 + ar, v1, 0.04)), P("in", rrect(F, u1 - ar, v0 + bk, u1, v1, 0.04))];
+      for (let i = 1; i < n; i++) { const u = u0 + ar + ((w - 2 * ar) * i) / n; out.push(P("line", [F(u, v0 + bk), F(u, v1)])); }
+      return out;
+    }
+    case "TABLE": case "MBUREAU": return [P("out", rrect(F, u0, v0, u1, v1, 0.03))];
+    case "CHAISE": return [P("out", rrect(F, u0, v0 + 0.06, u1, v1, 0.03)), P("in", rrect(F, u0, v0, u1, v0 + 0.06))];
+    case "LIT2": case "LIT1": {
+      const out = [P("out", rrect(F, u0, v0, u1, v1, 0.04)), P("line", [F(u0, v0 + 0.5), F(u1, v0 + 0.5)])], np = a.t === "LIT2" ? 2 : 1, pw = (w - 0.2) / np;
+      for (let i = 0; i < np; i++) out.push(P("in", rrect(F, u0 + 0.1 + i * pw + 0.03, v0 + 0.08, u0 + 0.1 + (i + 1) * pw - 0.03, v0 + 0.38, 0.05)));
+      return out;
+    }
+    case "MTV": return [P("out", rrect(F, u0, v0, u1, v1)), P("line", [F(0, v0), F(0, v1)])];
+    case "ARMOIRE": return [P("out", rrect(F, u0, v0, u1, v1)), P("line", [F(0, v0), F(0, v1)]), P("line", [F(u0, v0), F(u1, v1)])];
+    case "PLANTE": return [P("out", ell(F, 0, 0, w / 2, d / 2, 20)), ...[0, 1, 2, 3, 4].map((i) => P("in", ell(F, Math.cos(i * 1.257) * w * 0.2, Math.sin(i * 1.257) * d * 0.2, w * 0.14, d * 0.14, 10)))];
     case "ZONEC": return [P("out", ell(F, 0, 0, w / 2, d / 2, 24))];
     case "EVIER": {
       const b1 = Math.min(u0 + 0.08 + 0.45, u1 - 0.2), out = [P("out", rrect(F, u0, v0, u1, v1)), P("in", rrect(F, u0 + 0.08, v0 + 0.1, b1, v1 - 0.08, 0.04)), P("in", ell(F, (u0 + 0.08 + b1) / 2, v0 + 0.05, 0.02, 0.02, 10))];
@@ -89,6 +117,14 @@ export function sani3d(a) {
     // n° 10 : bloc rouge transparent sur toute la hauteur (hauteur réelle : plafond de la vue 3D)
     case "ZONE": return [{ ...R(-w / 2, -d / 2, w / 2, d / 2, 0, 2.5), zone: true }];
     case "ZONEC": return [{ pts: ell(F, 0, 0, w / 2, d / 2, 24), z0: 0, z1: 2.5, zone: true }];
+    // n° 11 : mobilier en volumes simples (matière « meuble » dans la 3D)
+    case "CANAPE": case "FAUTEUIL": { const bk = Math.min(0.22, d * 0.28), ar = Math.min(0.2, w * 0.18); return [R(-w / 2, -d / 2, w / 2, d / 2, 0, 0.42, 0.06), R(-w / 2, -d / 2, w / 2, -d / 2 + bk, 0.42, 0.85, 0.04), R(-w / 2, -d / 2 + bk, -w / 2 + ar, d / 2, 0.42, 0.62, 0.04), R(w / 2 - ar, -d / 2 + bk, w / 2, d / 2, 0.42, 0.62, 0.04)].map((p) => ({ ...p, meuble: true })); }
+    case "TABLE": case "MBUREAU": return [R(-w / 2, -d / 2, w / 2, d / 2, 0.71, 0.75, 0.03), ...[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([i, j]) => R(i * (w / 2 - 0.08) - 0.03, j * (d / 2 - 0.08) - 0.03, i * (w / 2 - 0.08) + 0.03, j * (d / 2 - 0.08) + 0.03, 0, 0.71))].map((p) => ({ ...p, meuble: true }));
+    case "CHAISE": return [R(-w / 2, -d / 2 + 0.06, w / 2, d / 2, 0.43, 0.47), R(-w / 2, -d / 2, w / 2, -d / 2 + 0.06, 0.43, 0.9), ...[[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([i, j]) => R(i * (w / 2 - 0.04) - 0.02, j * (d / 2 - 0.05) - 0.02, i * (w / 2 - 0.04) + 0.02, j * (d / 2 - 0.05) + 0.02, 0, 0.43))].map((p) => ({ ...p, meuble: true }));
+    case "LIT2": case "LIT1": return [R(-w / 2, -d / 2, w / 2, d / 2, 0, 0.5, 0.04), R(-w / 2, -d / 2, w / 2, -d / 2 + 0.06, 0, 0.95)].map((p) => ({ ...p, meuble: true }));
+    case "MTV": return [{ ...R(-w / 2, -d / 2, w / 2, d / 2, 0, 0.5), meuble: true }];
+    case "ARMOIRE": return [{ ...R(-w / 2, -d / 2, w / 2, d / 2, 0, 2.0), meuble: true }];
+    case "PLANTE": return [{ pts: ell(F, 0, 0, w * 0.3, d * 0.3, 14), z0: 0, z1: 0.4, meuble: true }, { pts: ell(F, 0, 0, w / 2, d / 2, 16), z0: 0.4, z1: 1.1, plante: true }];
   }
   return [];
 }

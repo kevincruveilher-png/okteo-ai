@@ -1,3 +1,20 @@
+## 04/11/2026 — n° 11 : bibliothèque de mobilier (lot C)
+
+- Demande de Kévin : un petit bouton qui affiche les meubles à implanter (canapé, table, chaise, plante, meuble TV, lit…),
+  sans électricité ni repère, pour rendre la 3D parlante puis implanter les meubles avec le client.
+- Meubles = « appareils » sans électricité posés comme les sanitaires (`volumes.js` `meuble: true`, `isMeuble`) : CANAPE,
+  FAUTEUIL, TABLE, CHAISE, LIT2, LIT1, MTV, ARMOIRE, MBUREAU, PLANTE ; `saniShape` (assise, dossier, accoudoirs, oreillers,
+  portes, feuilles), `sani3d` (assise 42 cm, dossier 85 cm, plateau 75 cm sur pieds, lit 50 cm + tête, armoire 2 m, pot +
+  feuillage) ; `appareils.js` groupe « Mobilier » (hors « Autres »).
+- Barre des appareils : bouton « Mobilier ▾ » (`[data-tool="__meubles"]`, `K.moreOpen = "meubles"`, même menu que
+  « Autres »). Plan et impression : trait gris clair continu (sanitaires : gris pointillé). 3D : bois clair, plante verte.
+  Propriétés : longueur, largeur, rotation + aide. Catalogue `help.mobilier`.
+- Le relevé IA ne propose ni meubles ni zones d'exclusion (`AI_TYPES` les écarte).
+- Tests : `scripts/mobilier.test.mjs` (4, dans check) ; smoke (bouton, 10 meubles, canapé + table, 3D, Ctrl+Z).
+
+- Fusion dans `main` le 04/11/2026 (go de Kévin « go bloc C et fusionne ») : `npm run check` vert sur GitHub Actions
+  (run 41904201702, smoke 202/202) ; workflow temporaire retiré. **Lot C terminé** (n° 10, 11).
+
 ## 04/11/2026 — n° 10 : zones d'exclusion (lot C, go de Kévin)
 
 - Décision de Kévin : une zone d'exclusion exclut tout (boîtes, gaines, appareils, lignes directes) ; hachurée en 2D, bloc

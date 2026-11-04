@@ -252,6 +252,8 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       (geo.sanis || []).filter((V) => V.zone).forEach((V) => { const Q = (V.shape[0] || {}).pts; if (!Q) return; doc.setLineDashPattern([], 0); doc.setDrawColor(221, 51, 51); doc.setLineWidth(0.1); hatchLines(Q, 0.12).forEach(([a, b]) => line(a, b)); doc.setLineWidth(0.25); dashPoly(Q); });
       doc.setDrawColor(130); doc.setLineWidth(0.12); doc.setLineDashPattern([0.7, 0.45], 0);
       (geo.sanis || []).filter((V) => !V.zone).forEach((V) => (V.shape || []).forEach((p) => {
+        // n° 11 : mobilier en trait gris clair continu
+        doc.setDrawColor(V.meuble ? 170 : 130); doc.setLineDashPattern(V.meuble ? [] : [0.7, 0.45], 0);
         if (p.k === "line") { for (let k = 1; k < p.pts.length; k++) line(p.pts[k - 1], p.pts[k]); }
         else if (p.k === "out") { doc.setLineDashPattern([], 0); poly(p.pts, "F"); doc.setLineDashPattern([0.7, 0.45], 0); dashPoly(p.pts); }
         else dashPoly(p.pts);

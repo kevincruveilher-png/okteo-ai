@@ -35,7 +35,8 @@ const HINT = {
   EQP: "équipotentielle principale", EQL: "équipotentielle locale (salle de bain)", AIG: "gaine aiguillée en attente (fibre, réseau)",
   ILOT: "prises de l'îlot central de cuisine", BPS: "bouton poussoir de sonnette (à l'entrée)", SON: "sonnette / carillon",
 };
-export const AI_TYPES = { ...BASE_TYPES, ...Object.fromEntries(Object.entries(APPAREILS).map(([k, v]) => [k, HINT[k] || v.n])) };
+// n° 10 / 11 : ni les zones d'exclusion ni le mobilier ne sont relevés par l'IA (choix du dessinateur, pas du plan électrique)
+export const AI_TYPES = { ...BASE_TYPES, ...Object.fromEntries(Object.entries(APPAREILS).filter(([, v]) => v.groupe !== "Mobilier" && v.groupe !== "Zones d'exclusion").map(([k, v]) => [k, HINT[k] || v.n])) };
 const LIGHT = new Set(["LUM", "APP", "SPOT"]), CMD = new Set(["INT", "VV", "BP"]), VOLET = new Set(["VR", "VEL"]);
 
 // consigne commune (relevé avec clé : image envoyée ; sans clé : PDF joint dans une autre conversation)
