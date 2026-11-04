@@ -19,6 +19,9 @@
   `help.sani`.
 - Tests : `scripts/charte.test.mjs` (formes, rotation, vasque double, pas de volume ni de contrôle, volumes 3D) ; smoke
   (4 sanitaires posés : pointillés, sans repère ni circuit, PDF, 3D, un Ctrl+Z).
+- Fusion dans `main` le 04/11/2026 (lot A, go de Kévin) : `npm run check` vert sur GitHub Actions (run 41893797352,
+  smoke 199/199) ; workflow temporaire retiré. **Lot A terminé** (n° 1, 14, 13 + 8, 12, 2, 9).
+
 ## 04/11/2026 — n° 2 : la légende de la feuille A3 s'adapte et ne passe plus sur le plan (lot A)
 
 - Constat de Kévin : à l'impression, la légende se superposait au plan. Cause : `freeCorner` essayait 4 coins du rectangle
