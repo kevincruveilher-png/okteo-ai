@@ -15,6 +15,7 @@ const WHAT = {
   battant: "commande derrière le battant ouvert : la placer côté poignée (vue 3D pour voir la porte ouverte)",
   embrasure: "appareil dans le vide d'une ouverture : le décaler à côté du tableau",
   hauteur: "hauteur de pose à revoir (Propriétés → hauteur)",
+  mur: "appareil dans l'épaisseur d'un mur : Ctrl+K → « Recoller les appareils à leur mur », ou glissez-le contre le mur",
   split: "allumage coupé : la commande et sa lumière sont dans deux boîtes (panneau Câblage → regrouper)",
 };
 

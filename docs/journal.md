@@ -1,3 +1,32 @@
+## 04/11/2026 — n° 13 + 8 : appareils contre les murs, dans le sens du mur ; repères lisibles et déplaçables (lot A)
+
+- Constats de Kévin : appareils à cheval sur les murs, tableau qui ne suit pas le sens du mur, repères (P5, P6…) dans les murs
+  ou masqués, impossibles à déplacer. Cause du chevauchement : centre posé à 6 cm de la face du mur, symbole affiché de 15 à
+  25 cm de rayon.
+- `src/place.js` : `pushOff(p, wall, R)` (symbole poussé hors du mur, bord contre la face, à tous les zooms ; position réelle
+  inchangée), `wallBoxes(P)`, `lineBoxes(pts)`, `repCandidates(p, R, gap, h, side)` (3 couronnes de 12, côté pièce d'abord).
+- Écran (`render.js`) : `wallU(a)` donne aussi axe, normale côté appareil et épaisseur ; `K.dispPos` = position poussée puis
+  écartée, `K.dispLead` = seuls les appareils écartés par un voisin ont un trait de rappel ; `appRot(a)` : tout appareil
+  mural tourne avec son mur, ramené dans (-90°, 90°] (jamais à l'envers, vue tournée comprise ; l'applique garde son dos au mur).
+  Repères : murs = obstacles durs (`WALLS`), liaisons et gaines = à éviter si possible (`SOFT`), trait de rappel au-delà de
+  la 1re couronne au lieu de masquer, `text.rep[data-id]`, `K.repLabelBoxes`.
+- Repère déplaçable : glisser `text.rep` (interact `K.repDrag`) → `a.rpx` / `a.rpy` (m depuis l'appareil, un Ctrl+Z) ; Propriétés
+  `#f_rep0` « Replacer le repère » ; exporté (`exportGeometry().apps[].rpx/rpy`) et repris à l'impression.
+- Impression (`print.js`) : même poussée hors du mur, même rotation (normalisée après `rotateGeo`, axe et normale tournés),
+  repères hors des murs (`WB`), trait de rappel, plus de repère masqué.
+- Côté pièce : `snapToWall(x, y, t)` choisit la face où il y a une pièce pour un appareil d'intérieur (`EXTERIEURS` : PCEXT, GEXT,
+  PX4, MGAR, ANT, VREJ) ; `importDevices` passe le type. Contrôle `mur` (« appareil dans l'épaisseur d'un mur ») ;
+  `okteo.reattachWalls()` + catalogue `app.reattach` « Recoller les appareils à leur mur ».
+  Le collage côté pièce ne joue que pour un relevé IA (`importDevices(..., {roomSide: true})`) et un appareil posé dans
+  l'épaisseur du mur (sinon le relevé automatique et le câblage changeaient). Clic : un symbole affiché plus près que le
+  sommet du mur gagne (`hitAny`) ; un point de passage de gaine reste saisissable sous un symbole ; un repère cliqué dans son
+  texte gagne sur le symbole voisin. Impression : `rotD` ignore une forme sans tracé (symbole du BE tourné).
+- Tests : `scripts/placement.test.mjs` (5) dans `npm run check` ; smoke : symboles hors du mur, rotation sur mur vertical,
+  contrôle `mur` + recollage, repère glissé et Ctrl+Z.
+
+- Fusion dans `main` le 04/11/2026 (lot A, go de Kévin) : `npm run check` vert sur GitHub Actions (run 41892006715,
+  smoke 197/197) ; workflow temporaire retiré.
+
 ## 04/11/2026 — n° 14 : autocorrection des murs (lot A, branche `feat/lot-a-14-murs-equerre`)
 
 - Demande de Kévin : un mur légèrement de travers doit être remis d'équerre (angle en L non droit, rectangle de biais).

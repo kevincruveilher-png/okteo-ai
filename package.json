@@ -8,7 +8,7 @@
     "build": "node scripts/vendor-ia.mjs && vite build && node scripts/build-web.mjs",
     "preview": "vite preview",
     "deploy": "node scripts/deploy.mjs",
-    "check": "node scripts/syntax.mjs && node scripts/licences.mjs && node scripts/vendor-ia.mjs && node scripts/ai-modes.test.mjs && node scripts/charte.test.mjs && node scripts/micro.test.mjs && node scripts/vmc-comparaison.test.mjs && node scripts/equipements.test.mjs && node scripts/ai-reading.test.mjs && node scripts/ai-align.test.mjs && node scripts/squaring.test.mjs && node scripts/symbols.test.mjs && node scripts/regles-library.test.mjs && node scripts/v3d.test.mjs && node scripts/walls.test.mjs && node scripts/cablage.test.mjs && node scripts/chantiers.test.mjs && node scripts/maillard.test.mjs && node scripts/smoke.mjs",
+    "check": "node scripts/syntax.mjs && node scripts/licences.mjs && node scripts/vendor-ia.mjs && node scripts/ai-modes.test.mjs && node scripts/charte.test.mjs && node scripts/micro.test.mjs && node scripts/vmc-comparaison.test.mjs && node scripts/equipements.test.mjs && node scripts/ai-reading.test.mjs && node scripts/ai-align.test.mjs && node scripts/squaring.test.mjs && node scripts/placement.test.mjs && node scripts/symbols.test.mjs && node scripts/regles-library.test.mjs && node scripts/v3d.test.mjs && node scripts/walls.test.mjs && node scripts/cablage.test.mjs && node scripts/chantiers.test.mjs && node scripts/maillard.test.mjs && node scripts/smoke.mjs",
     "test:murs": "node scripts/walls.test.mjs",
     "regles": "node scripts/regles-import.mjs",
     "test:symboles": "node scripts/symbols.test.mjs",

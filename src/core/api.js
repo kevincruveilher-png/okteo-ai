@@ -345,7 +345,8 @@ window.okteo = {
   // Les appareils muraux se collent au mur le plus proche (≤ 60 cm) et restent attachés à leur distance de l'angle.
   importDevices(list, links = [], {
     replace = false,
-    stay = false   // 3D-4 : pose depuis la vue 3D : on reste sur l'onglet et l'outil en cours
+    stay = false,   // 3D-4 : pose depuis la vue 3D : on reste sur l'onglet et l'outil en cours
+    roomSide = false   // n° 13 : relevé IA : un appareil posé dans l'épaisseur d'un mur se colle côté pièce
   } = {}) {
     // Préflight avant snapshot/remplacement : aucun chantier partiellement effacé sur donnée invalide.
     if (!Array.isArray(list) || list.some((d) => !d || !TYPES[d.t] || !Number.isFinite(d.x) || !Number.isFinite(d.y))) throw new Error("Import annulé : appareil ou position invalide.");
@@ -356,7 +357,7 @@ window.okteo = {
     }
     const ids = list.map(d => {
       if (!TYPES[d.t]) return null;
-      const p = wallMounted(d.t) ? snapToWall(d.x, d.y) || {
+      const p = wallMounted(d.t) ? snapToWall(d.x, d.y, roomSide ? d.t : null) || {
         x: d.x,
         y: d.y
       } : {
@@ -776,6 +777,16 @@ window.okteo = {
     return batiStyle();
   },
   setBatiStyle,
+  // n° 13 : recolle à leur mur (côté pièce) les appareils muraux du niveau ouvert qui ne sont accrochés à aucun mur
+  // (posés à moins de 60 cm d'un mur) ; un seul Ctrl+Z ; renvoie le nombre d'appareils recollés
+  reattachWalls() {
+    const L = state.app.filter(a => !a.seg && wallMounted(a.t)).map(a => ({ a, p: snapToWall(a.x, a.y, a.t) })).filter(x => x.p);
+    if (!L.length) return 0;
+    snapshot();
+    L.forEach(({ a, p }) => { a.x = p.x; a.y = p.y; a.seg = p.seg; attach(a); });
+    markDirty(); draw(); showSide();
+    return L.length;
+  },
   // n° 14 : met les murs du niveau ouvert d'équerre (sens de la maison ; options de squarePlan) ; un seul Ctrl+Z.
   // Les appareils accrochés et les pièces suivent leurs murs au dessin suivant ; les ouvertures gardent leur place relative.
   squareWalls(opts = {}) {

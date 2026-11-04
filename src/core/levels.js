@@ -429,7 +429,8 @@ export function okteoGeo() {
     room: (roomAt(a.x, a.y) || {}).name || null,
     xlink: xl[a.id] || null,
     rot: appRot(a),
-    wall: wallU(a).ux != null ? wallU(a) : null,   // v58 : direction du mur (décalage d'affichage le long du mur)
+    wall: wallU(a).ux != null ? wallU(a) : null,   // v58 : direction du mur ; n° 13 : axe, normale côté appareil, épaisseur
+    ...(a.rpx != null && a.rpy != null ? { rpx: a.rpx, rpy: a.rpy } : {}),   // n° 8 : repère placé à la main (m depuis l'appareil)
     color: (cmap[a.id] || {}).color || null,
     circuit: (cmap[a.id] || {}).n || null
   }));

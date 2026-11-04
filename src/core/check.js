@@ -11,7 +11,8 @@ import { permanentDetector } from "../cablage/detecteur.js";
 import { K } from "./k.js";
 import { TYPES } from "./model.js";
 import { appIndex, allLinks } from "./levels.js";
-import { linkRole, roomPoly } from "./attach.js";
+import { linkRole, roomPoly, wallMounted, EXTERIEURS } from "./attach.js";
+import { epOf, segDir } from "./model.js";
 import { checkVolumes } from "../cablage/volumes.js";
 import { state } from "./model.js";
 import { circuitMap } from "./render.js";
@@ -22,6 +23,7 @@ import { hDefault, isPmr } from "./model.js";
 
 export const CHECK_KINDS = {
   sdb: "Appareil dans un volume de salle de bain",
+  mur: "Appareil dans l'épaisseur d'un mur",
   ...POSE_KINDS,
   vmc: "Parcours VMC à vérifier",
   implantation: "Emplacement à préciser",
@@ -61,6 +63,13 @@ export function linkTables(idx = appIndex()) {
 export function controlIssues() {
   const idx = appIndex(), { lights, cmds } = linkTables(idx), out = [];
   for (const [id, { lv, a }] of idx) {
+    // n° 13 : appareil mural (d'intérieur) posé dans l'épaisseur d'un mur sans y être accroché (niveau ouvert)
+    if (lv === K.LV.cur && !a.seg && wallMounted(a.t) && !EXTERIEURS.has(a.t) && state.segs.some(sg => {
+      if (sg.virt) return false;
+      const d = segDir(sg); if (!d.a || !d.L) return false;
+      const t = (a.x - d.a.x) * d.ux + (a.y - d.a.y) * d.uy;
+      return t > 0 && t < d.L && Math.abs((a.x - d.a.x) * -d.uy + (a.y - d.a.y) * d.ux) < epOf(sg) / 2;
+    })) out.push({ kind: "mur", ids: [id], lv });
     if (a.t === "INCONNU" || a.aiStatus === "a_identifier" || a.aiStatus === "a_confirmer") out.push({ kind: "lecture", ids: [id], lv });
     if (implantationPending(a)) out.push({ kind:"implantation", ids:[id], lv });
     if (permanentDetector(a) && cmds.has(id)) out.push({ kind:"detecteur", ids:[id], lv });

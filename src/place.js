@@ -82,3 +82,58 @@ export function spreadSymbols(items, D, { iter = 40, maxShift = 6 } = {}) {
   }
   return out;
 }
+
+// n° 13 (lot A) : symbole d'un appareil mural poussé hors du mur. w = { ax, ay, ux, uy, nx, ny, ep } (axe du mur, normale
+// côté appareil, épaisseur) ; p = point du symbole ; R = rayon du symbole affiché. Le bord du symbole touche la face du mur
+// sans jamais la chevaucher, quel que soit le zoom ; la position réelle de l'appareil (câblage, longueurs) ne change pas.
+export function pushOff(p, w, R) {
+  if (!w || w.nx == null) return p;
+  const d = (p.x - w.ax) * w.nx + (p.y - w.ay) * w.ny, need = (w.ep || 0) / 2 + R * 1.05;
+  return d >= need ? p : { x: p.x + w.nx * (need - d), y: p.y + w.ny * (need - d) };
+}
+
+// n° 8 (lot A) : boîtes d'obstacle le long d'un mur (pour que les repères ne tombent pas dedans) : un rectangle de mur
+// (4 sommets dans l'ordre) découpé en carrés de la taille de son épaisseur, le long de son grand côté
+export function wallBoxes(P, pad = 0) {
+  if (!P || P.length < 4) return [];
+  const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }), len = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
+  const l01 = len(P[0], P[1]), l12 = len(P[1], P[2]);
+  const [A, B, ep] = l01 >= l12 ? [mid(P[0], P[3]), mid(P[1], P[2]), l12] : [mid(P[0], P[1]), mid(P[3], P[2]), l01];
+  const L = len(A, B), step = Math.max(ep, 1e-6), n = Math.max(1, Math.ceil(L / step)), h = ep / 2 + pad, out = [];
+  for (let i = 0; i <= n; i++) {
+    const t = Math.min(1, i / n), x = A.x + (B.x - A.x) * t, y = A.y + (B.y - A.y) * t;
+    out.push({ x0: x - h, y0: y - h, x1: x + h, y1: y + h });
+  }
+  return out;
+}
+
+// boîtes d'obstacle le long d'un trait (liaison, gaine) : petits carrés tous les `step`
+export function lineBoxes(pts, step, half) {
+  const out = [];
+  for (let k = 1; k < pts.length; k++) {
+    const a = pts[k - 1], b = pts[k], L = Math.hypot(b.x - a.x, b.y - a.y), n = Math.max(1, Math.ceil(L / step));
+    for (let i = 0; i <= n; i++) { const x = a.x + (b.x - a.x) * i / n, y = a.y + (b.y - a.y) * i / n; out.push({ x0: x - half, y0: y - half, x1: x + half, y1: y + half }); }
+  }
+  return out;
+}
+
+// positions candidates d'un repère autour de son symbole (centre p, rayon R, gap entre symbole et texte) : 3 couronnes
+// de 12 positions, du plus près au plus loin ; dans chaque couronne, le côté `side` (normale du mur, côté pièce) d'abord.
+// Chaque candidat = {x, y, an ("start" | "end" | "middle"), ring}
+export function repCandidates(p, R, gap, h, side = null) {
+  const out = [];
+  [1, 1.9, 2.9].forEach((k, ring) => {
+    const r = R + gap * k + h * (k - 1);
+    const C = [];
+    for (let i = 0; i < 12; i++) {
+      const t = (i * 30 * Math.PI) / 180, cx = Math.cos(t), cy = Math.sin(t);
+      const an = cx > 0.3 ? "start" : cx < -0.3 ? "end" : "middle";
+      const x = p.x + cx * r, y = p.y + cy * (r + (an === "middle" ? h * 0.5 : 0));
+      const pref = side ? -(cx * side.x + cy * side.y) : 0;   // plus petit = plus côté pièce
+      C.push({ x, y, an, ring, pref, i });
+    }
+    C.sort((a, b) => a.pref - b.pref || a.i - b.i);
+    out.push(...C);
+  });
+  return out;
+}

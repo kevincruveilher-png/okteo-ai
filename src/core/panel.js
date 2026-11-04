@@ -450,6 +450,7 @@ export function showSide() {
       <div class="field"><label>Y plan <span class="u">m</span></label><input id="f_y" type="number" step="0.01" value="${a.y}"></div>
       ${isSani(a.t) ? saniHTML(a) : `<div class="field full"><label>Hauteur <span class="u">cm</span></label><input id="f_h" type="number" step="1" value="${a.h ?? ""}" ${a.h == null ? 'placeholder="— plafond —"' : ''}></div>${raccHTML(a)}${ptHTML(a)}`}</div>
      ${a.hp ? `<p class="note hp-note" id="f_hp">Équipement hors plan, posé d'après le devis : <b>à vérifier avec le devis</b> et à mettre à sa vraie place. <button id="f_hpok" title="Vérifié avec le devis : retire la marque violette">Vérifié</button></p>` : ""}
+     ${a.rpx != null ? `<p class="note" id="f_repm">Repère placé à la main. <button id="f_rep0" title="Le repère revient à sa place automatique (à côté du symbole, sans gêner)">Replacer le repère</button></p>` : `<p class="note" id="f_repm">Glissez le repère de l'appareil (P1, L2…) sur le plan pour le mettre exactement où vous voulez.</p>`}
      ${a.aiNo ? `<p class="note" id="f_aino">Relecture IA : ${esc0(a.aiNo)} — ce point ne sera plus redemandé. <button id="f_ainox" title="Le redemander à la prochaine relecture">Redemander</button></p>` : ""}
      <div style="display:flex;gap:6px;margin-top:12px"><button id="dup">Dupliquer</button><button id="del" class="danger">Supprimer</button></div>
      <p class="note">${m ? "Fixé au mur : les distances sont mesurées depuis la face intérieure du mur d'angle, comme sur le chantier. Tapez 30 pour « à 30 cm de l'angle »." : "Approchez l'appareil d'un mur pour qu'il s'y fixe et afficher ses distances aux angles."}</p>`;
@@ -493,6 +494,7 @@ export function showSide() {
     const fv = b.querySelector("#f_var"); if (fv) fv.onchange = e => set("var", e.target.value);
     const fr = b.querySelector("#f_racc"); if (fr) fr.onchange = e => set("racc", e.target.value);
     const fp = b.querySelector("#f_p"); if (fp) fp.onchange = e => set("p", e.target.value === "" ? "" : Math.max(0, +e.target.value));
+    const r0b = b.querySelector("#f_rep0"); if (r0b) r0b.onclick = () => { snapshot(); delete a.rpx; delete a.rpy; markDirty(); re(); };
     const hok = b.querySelector("#f_hpok"); if (hok) hok.onclick = () => { snapshot(); delete a.hp; markDirty(); re(); };
     const aix = b.querySelector("#f_ainox"); if (aix) aix.onclick = () => { snapshot(); delete a.aiNo; markDirty(); re(); };
     const fpt = b.querySelector("#f_pt"); if (fpt) fpt.onchange = e => set("pt", e.target.value === "" ? "" : e.target.value === "oui");
