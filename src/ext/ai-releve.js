@@ -7,7 +7,7 @@ import { AI_SYSTEM } from "../walls/ai-data.js";
 import { chat, PROVIDERS, modelFor } from "./ai.js";
 import { newAnalyseId } from "../walls/ai-journal.js";
 import { settings } from "./settings.js";
-import { aiPrompt, pastePrompt, parseAiJson, aiToPlan, MIN_REF_W, refOf } from "../walls/ai-plan.js";
+import { aiPrompt, pastePrompt, parseAiJson, aiToPlan, MIN_REF_W, refOf, scaleCheck } from "../walls/ai-plan.js";
 import { alignPlan } from "../walls/ai-align.js";
 import { squareReleve, squareOptions, squareText } from "../walls/squaring.js";
 import { getPrefs } from "../prefs.js";
@@ -160,12 +160,19 @@ export function createAiReleve({ api, openParams }) {
     recal = null;
     try { plan = aiToPlan(raw, map, { defEp: api.state.wallEp }); }
     catch (e) { api.setPreview(null); plan = null; message("Import annulé : " + esc(e.message)); return null; }
-    meta = info + squareStep();
+    meta = info + scaleStep(raw, map) + squareStep();
     keep = { walls: plan.walls.length > 0, rooms: plan.pieces.length > 0 || plan.walls.length > 0, devices: plan.devices.length > 0 };
     preview(); render();
     return plan;
   }
 
+  // n° 4 : échelle mesurée par l'IA sur les cotes ↔ échelle du fond (calibrage) ; un écart de plus de 3 % = à vérifier
+  function scaleStep(raw, map) {
+    const c = scaleCheck(raw && raw.remarques, map);
+    if (!c) return "";
+    const f = (v) => String(v).replace(".", ",");
+    return c.ok ? ` · échelle de l'IA conforme au fond (${f(c.ia)} px/m, écart ${f(c.ecart)} %)` : ` · ⚠ échelle annoncée par l'IA ${f(c.ia)} px/m, fond ${f(c.fond)} px/m (écart ${f(c.ecart)} %) : vérifiez l'échelle du fond (outil Échelle) ou le « ref » de la réponse`;
+  }
   // n° 14 : murs mis d'équerre (réglages de Paramètres → Murs) avant le recalage ; renvoie le texte du compte rendu
   function squareStep() {
     const S = squareReleve(plan, squareOptions(getPrefs()));
