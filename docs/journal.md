@@ -23,6 +23,9 @@
 - Catalogue `help.pontage`. Tests : `scripts/pontage.test.mjs` (7, dans check) ; smoke (case cochée → moins de départs,
   tronçons sur le plan, un Ctrl+Z).
 
+- Fusion dans `main` le 04/11/2026 (go de Kévin « go et fusionne B ») : `npm run check` vert sur GitHub Actions
+  (smoke 200/200) ; workflow temporaire retiré.
+
 ## 04/11/2026 — n° 12 : cotes des boîtes depuis la face EXTÉRIEURE du mur extérieur (réponse de Kévin)
 
 - Kévin : « extérieur de la boîte est extérieure du mur » → la cote part de la face extérieure du mur extérieur (et plus de
