@@ -1,3 +1,24 @@
+## 04/11/2026 — n° 7 : mode de pieuvre « Bureau d'études » (lot B)
+
+- Demande de Kévin : séjour seul ou + garage ; cuisine seule ou + PC du séjour ou + cellier proche ; chambre 1 + 2 ;
+  chambre + dégagement ; SdB + chambre ; boîte VR seule ; pieuvres équitables ; le moins de croisements possible.
+- `boites.js` : `MODES.be` = « Bureau d'études », `BE_KINDS` / `beKindOf(nom)` (sejour, cuisine, garage, cellier, sdb,
+  chambre (bureau compris), passage (dégagement, couloir, entrée, WC, placard, dressing…), autre), `BE_COUPLES`,
+  `placeLevelBE` : une boîte par pièce (appareil hors pièce → pièce la plus proche), puis fusions de pièces VOISINES (moins
+  de 35 cm entre contours) par priorité — passage avec une voisine (entrée → séjour / cuisine, WC → salle de bain,
+  dégagement → côté nuit), puis les couples (chambre + chambre, chambre + salle de bain, cuisine + cellier, séjour +
+  garage), puis petite pièce (moins que « départs minimum ») avec sa voisine ; jamais plus de deux pièces principales ;
+  à priorité égale, la fusion la plus petite d'abord (équité) ; une place de marge (R-073). Séjour trop chargé : ses unités
+  de prises (`u.prises`, nouveau champ de `buildUnits`) les plus proches de la cuisine vont dans la boîte de la cuisine ;
+  encore trop chargé : coupé en parts (comme « par pièce »). Boîte posée dans ses pièces. Volets : `placeBoxes` met
+  toujours les volets à part en mode BE, dans une seule boîte (deux seulement si la capacité l'impose).
+- Interface : liste des modes (Câblage, Mode IA, journal des règles) ; comparatif : 5 modes (« Comparer les modes »),
+  description du mode BE ; catalogue `help.modes`. Les pièces sont transmises au placement (`autoBoxes`).
+- Tests : `scripts/mode-be.test.mjs` (8, maison synthétique de 10 pièces) ; smoke : comparatif à 5 modes.
+
+- Fusion dans `main` le 04/11/2026 (go de Kévin « go et fusionne B ») : `npm run check` vert sur GitHub Actions
+  (run 41900550854, smoke 200/200) ; workflow temporaire retiré. **Lot B terminé** (n° 6, 7).
+
 ## 04/11/2026 — n° 6 : association et pontage dans le moteur de câblage (lot B, go de Kévin)
 
 - Décisions de Kévin (04/11) : association toujours active ; jamais un courant faible avec une prise ou une commande ;

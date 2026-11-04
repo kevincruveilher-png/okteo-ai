@@ -133,6 +133,7 @@ export function buildUnits(items, links, circuits) {
     ids: g.map((a) => a.id), lv: g[0].lv, x: g.reduce((s, a) => s + a.x, 0) / g.length, y: g.reduce((s, a) => s + a.y, 0) / g.length,
     pts: g.map((a) => ({ x: a.x, y: a.y, f: wiresOf(a) })), circuits: [...new Set(g.map((a) => circOf.get(a.id)?.id).filter(Boolean))],
     volet: g.every((a) => isVolet(a.t)),
+    prises: g.every((a) => /^PC/.test(a.t)),   // n° 7 : unité faite seulement de prises (« PC du séjour » vers la cuisine)
     // pièce de l'unité (mode « par pièce ») : celle de la majorité de ses lumières, sinon de ses appareils
     room: majority(g.filter((a) => LIGHT.has(a.t) && a.room).map((a) => a.room)) || majority(g.filter((a) => a.room).map((a) => a.room)) || null,
   }));
@@ -441,6 +442,95 @@ function placeLevelZones(units, tab, S, roomsLv) {
   return out;
 }
 
+// ---------- mode « Bureau d'études » (n° 7, Kévin 04/11/2026) ----------
+// les boîtes comme les fait le BE : une boîte par pièce principale, ou un couple de pièces voisines — chambre + chambre,
+// salle de bain + chambre, cuisine + cellier, séjour + garage ; les pièces de passage (dégagement, couloir, entrée, WC,
+// placard, dressing…) rejoignent une voisine ; une pièce trop petite (moins que « départs minimum ») rejoint la plus proche ;
+// séjour trop chargé : ses prises les plus proches de la cuisine vont dans la boîte de la cuisine ; boîte des volets
+// toujours seule (placeBoxes) ; à capacité égale, la fusion la plus petite d'abord (pieuvres équitables) ; chaque boîte
+// dans ses pièces (pas de gaine qui traverse le territoire d'une autre).
+export const BE_KINDS = {
+  sejour: ["sejour", "séjour", "salon", "living", "piece de vie", "pièce de vie", "salle a manger", "salle à manger", "sam", "vie"],
+  cuisine: ["cuisine", "kitchenette"],
+  garage: ["garage", "atelier", "abri"],
+  cellier: ["cellier", "buanderie", "cave", "local tech", "chaufferie", "lingerie", "arriere cuisine", "arrière cuisine"],
+  sdb: ["sdb", "sde", "bain", "salle d'eau", "douche"],
+  chambre: ["chambre", "ch", "suite", "parental", "bureau", "jeux"],
+  passage: ["degagement", "dégagement", "degt", "dgt", "couloir", "hall", "entree", "entrée", "palier", "wc", "toilette", "placard", "dressing", "rangement", "escalier", "circulation"],
+};
+export function beKindOf(name) {
+  const n = String(name || "").toLowerCase().replace(/[^a-z0-9àâäçéèêëîïôöùûü']+/g, " ").trim();
+  const hit = (m) => (m.length <= 3 ? new RegExp("(^| )" + m + "( |\\d|$)").test(n) : n.includes(m));
+  for (const k of ["passage", "sdb", "cuisine", "cellier", "garage", "sejour", "chambre"]) if (BE_KINDS[k].some(hit)) return k;
+  return "autre";
+}
+export const BE_COUPLES = [["chambre", "chambre"], ["chambre", "sdb"], ["cellier", "cuisine"], ["garage", "sejour"]];
+function placeLevelBE(units, tab, S, roomsLv) {
+  if (!units.length) return [];
+  const R = (roomsLv || []).filter((r) => r.poly && r.poly.length > 2);
+  if (!units.some((u) => u.room) || !R.length) return placeLevelBalanced(units, tab, S, minBoxes(units, S)) || placeLevel(units, tab, S);
+  const polyOf = new Map(R.map((r) => [r.name, r.poly]));
+  const roomNear = (u) => { let best = null, bd = Infinity; R.forEach((r) => { const d = polyDist([{ x: u.x, y: u.y }], r.poly); if (d < bd) { bd = d; best = r.name; } }); return best; };
+  const G = new Map();
+  units.forEach((u) => { const r = u.room && polyOf.has(u.room) ? u.room : roomNear(u) || u.room; if (!G.has(r)) G.set(r, []); G.get(r).push(u); });
+  let groups = [...G].map(([room, L]) => ({ rooms: [room], units: L }));
+  const kindsOf = (g) => g.rooms.map(beKindOf), majors = (g) => kindsOf(g).filter((k) => k !== "passage").sort();
+  const near = (A, B) => A.rooms.some((a) => B.rooms.some((b) => { const P = polyOf.get(a), Q = polyOf.get(b); return P && Q ? Math.min(polyDist(P, Q), polyDist(Q, P)) < 0.35 : false; }));
+  const ctr = (L) => ({ x: L.reduce((s, u) => s + u.x, 0) / L.length, y: L.reduce((s, u) => s + u.y, 0) / L.length });
+  const fits = (L) => departsOf(L, S) <= S.departsMax - 1 && boxOk({ ...seat(L, tab, S, false), units: L }, tab, S);   // une place de marge (R-073)
+  const minD = S.piecesMinDeparts ?? 3;
+  const pref = (g, h) => {   // une pièce de passage va de préférence chez…
+    const n = g.rooms.join(" ").toLowerCase(), M = majors(h);
+    if (/entr|hall/.test(n)) return M.includes("sejour") || M.includes("cuisine") ? 0 : 0.5;
+    if (/wc|toilet/.test(n)) return M.includes("sdb") || !M.length ? 0 : M.includes("chambre") ? 0.2 : 0.5;
+    return M.includes("chambre") || M.includes("sdb") || !M.length ? 0 : 0.4;   // dégagement, couloir : côté nuit
+  };
+  for (let guard = 0; guard < 200; guard++) {
+    let best = null;
+    for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length; j++) {
+      const A = groups[i], B = groups[j], L = [...A.units, ...B.units];
+      const MA = majors(A), MB = majors(B), M = [...MA, ...MB].sort(), dA = departsOf(A.units, S), dB = departsOf(B.units, S);
+      let p = null;
+      if (!near(A, B)) { if (Math.min(dA, dB) < minD && (!MA.length || !MB.length || MA.length + MB.length <= 2)) p = 4; }
+      else if (!MA.length || !MB.length) p = !MA.length ? pref(A, B) : pref(B, A);
+      else if (MA.length + MB.length === 2 && BE_COUPLES.some((c) => c.join() === M.join())) p = 1 + BE_COUPLES.findIndex((c) => c.join() === M.join()) * 0.1;
+      else if (Math.min(dA, dB) < minD) p = 3;
+      if (p == null || !fits(L)) continue;
+      const k = [p, departsOf(L, S), d2(ctr(A.units), ctr(B.units))];
+      if (!best || k[0] < best.k[0] - 1e-9 || (Math.abs(k[0] - best.k[0]) < 1e-9 && (k[1] < best.k[1] || (k[1] === best.k[1] && k[2] < best.k[2])))) best = { i, j, k };
+    }
+    if (!best) break;
+    const A = groups[best.i], B = groups[best.j];
+    groups = groups.filter((g) => g !== A && g !== B).concat([{ rooms: [...A.rooms, ...B.rooms], units: [...A.units, ...B.units] }]);
+  }
+  // séjour trop chargé : ses prises (les plus proches de la cuisine d'abord) dans la boîte de la cuisine
+  const sej = groups.find((g) => kindsOf(g).includes("sejour") && !fits(g.units)), cui = groups.find((g) => kindsOf(g).includes("cuisine") && g !== sej);
+  if (sej && cui) {
+    const c = ctr(cui.units);
+    for (const u of sej.units.filter((x) => x.prises).sort((p, q) => d2(p, c) - d2(q, c))) {
+      if (fits(sej.units)) break;
+      if (!fits([...cui.units, u])) break;
+      sej.units = sej.units.filter((x) => x !== u); cui.units.push(u);
+    }
+  }
+  const out = [];
+  for (const g of groups) {
+    let parts = [g.units];
+    for (let k = 2; !parts.every((P) => boxOk({ ...seat(P, tab, S, false), units: P }, tab, S)) && k <= 6; k++) parts = bisect(g.units, k, S);
+    for (const P of parts) {
+      let p = seat(P, tab, S, false);
+      const polys = g.rooms.map((r) => polyOf.get(r)).filter(Boolean);
+      if (polys.length && !polys.some((Q) => pointInPoly(p.x, p.y, Q))) {
+        // dans la pièce de la boîte qui a le plus de départs
+        const main = g.rooms.slice().sort((a, b) => departsOf(P.filter((u) => u.room === b), S) - departsOf(P.filter((u) => u.room === a), S))[0];
+        p = labelPoint(polyOf.get(main) || polys[0]);
+      }
+      out.push({ ...p, units: P, rooms: g.rooms });
+    }
+  }
+  return out;
+}
+
 // toutes les boîtes du chantier ; tabs : {[niveau]: {x, y}} position du tableau (ou de la trémie qui y mène) par niveau
 // keep = boîtes à garder telles quelles (verrouillées ou non cochées) : elles gardent position, nom, tracés et
 // appareils ; une unité dont un appareil est déjà dans une boîte gardée y va en entier ; le reste est réparti.
@@ -448,7 +538,7 @@ function placeLevelZones(units, tab, S, roomsLv) {
 // mode (v39) : "proximite" (le moins de cuivre, défaut), "equilibre" (parts égales), "piece" (une boîte par pièce ;
 // rooms = {[niveau]: [{name, poly}]})
 // v62 : « proximite » s'appelle Économique (le moins de cuivre) ; la clé reste pour les chantiers déjà enregistrés
-export const MODES = { proximite: "Économique", equilibre: "Équilibrée", piece: "Par pièce", zone: "Par zone" };
+export const MODES = { proximite: "Économique", equilibre: "Équilibrée", piece: "Par pièce", zone: "Par zone", be: "Bureau d'études" };
 export function placeBoxes(items0, links, circuits, tabs, S0, { keep = [], count = 0, mode = "proximite", rooms = {}, volets = "" } = {}) {
   const items = sansCvr(items0, S0);
   const secOf = new Map(circuits.map((c) => [c.id, c.section || 1.5]));
@@ -486,6 +576,7 @@ export function placeBoxes(items0, links, circuits, tabs, S0, { keep = [], count
   const placeMode = (L, lv, k) => {
     if (mode === "piece") return placeLevelRooms(L, tabs[lv] || null, S, rooms[lv]);
     if (mode === "zone") return placeLevelZones(L, tabs[lv] || null, S, rooms[lv]);
+    if (mode === "be") return placeLevelBE(L, tabs[lv] || null, S, rooms[lv]);
     // v56 (R-094, H-041) : en mode équilibrée, le moins de boîtes possible (comme le BE) : on part du minimum de boîtes
     // permis par les départs, et on n'en ajoute que si les parts ne tiennent pas (départs ou gaines par face)
     if (mode === "equilibre") return placeLevelBalanced(L, tabs[lv] || null, S, k || minBoxes(L, S));
@@ -502,7 +593,7 @@ export function placeBoxes(items0, links, circuits, tabs, S0, { keep = [], count
     if (LV.length && LO.length) {
       if (volets === "boite_a_part") apart = true;
       else if (volets === "melanges") apart = false;
-      else if (mode === "equilibre") apart = true;
+      else if (mode === "equilibre" || mode === "be") apart = true;   // n° 7 : boîte des volets toujours seule
       else if (mode === "proximite") {
         const cost = (B) => (B || []).reduce((s2, b) => s2 + boxCost(b, b.units, tabOf(lv), S.memeEndroit ?? 0.3), 0) + (B || []).length * 0.5;
         const mix = placeMode(L, lv, want[lv] || 0), sep = [...(placeLevel(LV, tabOf(lv), S, 4, 0) || []), ...(placeMode(LO, lv, 0) || [])];
@@ -511,7 +602,8 @@ export function placeBoxes(items0, links, circuits, tabs, S0, { keep = [], count
       // v62 : par pièce = chaque volet dans la boîte de sa pièce (proposé à Kévin, Q-87) : mélangés
     }
     if (apart) {
-      const rv = mode === "equilibre" ? voletsBalanced(LV, tabOf(lv), S) : placeLevel(LV, tabOf(lv), S, 4, 0);
+      const one = { ...seat(LV, tabOf(lv), S, false), units: LV };
+      const rv = mode === "be" ? (boxOk(one, tabOf(lv), S) ? [one] : placeLevel(LV, tabOf(lv), S, 4, 0)) : mode === "equilibre" ? voletsBalanced(LV, tabOf(lv), S) : placeLevel(LV, tabOf(lv), S, 4, 0);
       const ro = placeMode(LO, lv, want[lv] ? Math.max(1, want[lv] - (rv || []).length) : 0);
       r = rv && ro ? [...ro, ...rv] : null;
     } else r = placeMode(L, lv, want[lv] || 0);

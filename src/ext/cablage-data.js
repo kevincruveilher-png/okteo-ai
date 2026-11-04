@@ -61,7 +61,7 @@ export function autoBoxes(api, keepIds = [], count = 0, mode = (api.cab.mode || 
   const tab = items.find((a) => a.t === "TAB");
   const tabs = {}; api.levels.forEach((l) => { if (tab) tabs[l.id] = { x: tab.x, y: tab.y }; });
   const keep = (api.cab.boxes || []).filter((b) => keepIds.includes(b.id));
-  return placeBoxes(items, links, circuits, tabs, S, { keep, count, mode, rooms: mode === "piece" || mode === "zone" ? roomsByLevel(api) : {}, volets: (api.cab.choix || {}).volets || "" });
+  return placeBoxes(items, links, circuits, tabs, S, { keep, count, mode, rooms: mode === "piece" || mode === "zone" || mode === "be" ? roomsByLevel(api) : {}, volets: (api.cab.choix || {}).volets || "" });
 }
 
 // comparatif des modes de pieuvre (v39) : pour chacun, les boîtes, les circuits qui en découlent et les chiffres

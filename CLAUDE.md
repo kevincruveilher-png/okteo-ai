@@ -1,4 +1,4 @@
-# À LIRE EN PREMIER — état du projet (mis à jour le 04/11/2026, v77 + vue 3D + lot A (n° 1, 2, 8, 9, 12, 13, 14) dans `main`)
+# À LIRE EN PREMIER — état du projet (mis à jour le 04/11/2026, v77 + vue 3D + lots A (n° 1, 2, 8, 9, 12, 13, 14) et B (n° 6, 7) dans `main`)
 
 Ce fichier sert à TOUTES les IA qui travaillent sur le dépôt (Claude, ChatGPT/Codex…) : `AGENTS.md` y renvoie.
 Plusieurs IA se sont succédé (Claude jusqu'à v66, ChatGPT v67 à v72, Claude depuis v72.1) : garder une seule source de
@@ -16,7 +16,7 @@ vérité, celle-ci, et tenir `docs/journal.md` à jour à CHAQUE modification (e
   `public/assets/fond-evrard-04949.jpg`). Décision de Kévin attendue (dépôt privé ou retrait des plans). N'en ajouter aucun.
 - Ne lancer une mise à jour que sur ordre de Kévin ; ne rien pousser sur `main` sans son « go ». Branches de travail :
   `feat/…`, vérification par GitHub Actions sur une branche `verification-…` supprimée après usage.
-- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352). Sans navigateur en local : faire tourner les
+- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854). Sans navigateur en local : faire tourner les
   tests sur GitHub Actions (workflow temporaire sur une branche `verification-…`, voir journal v72.1).
 
 # Oktéo AI — consignes pour Claude
@@ -534,6 +534,11 @@ gaines.js : association `memeEndroit` (jamais courant faible + autre) ; pontage 
 `cab.choix.pontage`, `#bx-pont`, passé par `cabS` / `plan-wiring.js`), `S.pontageMax` ; gaine `ponts` [{de, vers, from, to, ids,
 length}] + `pontLen` (comptés dans cuivre / longueur / totaux). Plan : `__ponts` dans `setGaineGroups`, `boxLayout` `d.head` /
 `d.ponts`, `path.pont` ; geo `deps[].ponts`. Test `scripts/pontage.test.mjs`.
+
+### Mode « Bureau d'études » (n° 7, lot B du 04/11/2026)
+boites.js `MODES.be`, `beKindOf`, `BE_COUPLES`, `placeLevelBE` (pièces voisines fusionnées : passages, puis couples, puis
+petites pièces ; séjour trop chargé → prises vers la cuisine ; boîte dans ses pièces) ; volets toujours à part en mode BE ;
+`autoBoxes` passe les pièces. Test `scripts/mode-be.test.mjs`.
 
 ### Sanitaires (n° 9, lot A du 04/11/2026)
 volumes.js `SANI` + WC / LAVABO / VASQUE / EVIER (`vol` seulement BAIG / RECV / DITAL : `hasVolumes`), `saniShape(a)`
