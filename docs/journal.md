@@ -19,6 +19,9 @@
 - Tests : `scripts/page-roles.test.mjs` (4, dans check) ; smoke : rôles d'EVRARD (page 3 = RDC, pages sans texte à ignorer),
   modifiés à la main ; dossier de 3 pages généré (RDC, R+1, devis) → chantier à 2 niveaux avec leur fond, devis joint.
 
+- Fusion dans `main` le 04/11/2026 (go de Kévin pour le bloc D) : `npm run check` vert sur GitHub Actions (run 41910067884,
+  smoke 204/204) ; workflow temporaire retiré.
+
 ## 04/11/2026 — n° 11 : bibliothèque de mobilier (lot C)
 
 - Demande de Kévin : un petit bouton qui affiche les meubles à implanter (canapé, table, chaise, plante, meuble TV, lit…),
