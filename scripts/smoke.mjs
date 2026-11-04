@@ -929,6 +929,7 @@ try {
     return true;
   });
   await check("n° 5 : halo à la couleur de sa famille ; « Pourquoi ça clignote ? » : explication, preuves, choix (et conséquence), question au pavillonneur ; rapport par famille copié pour le BE", async () => {
+    const keepV = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits }));
     await ev(() => { okteoExt.panel.close("assistant"); okteo.setTab("plan"); okteo.viewPreset("impl"); });
     const ids = await ev(() => { const S = okteo.state, X = Math.max(0, ...S.nodes.map((n) => n.x)) + 3, Y = Math.min(0, ...S.nodes.map((n) => n.y)) + 1;
       return okteo.importDevices([{ t: "LUM", x: X, y: Y }, { t: "INT", x: X + 2, y: Y, h: 110, aiStatus: "a_confirmer", aiOrigin: "interpretation", aiNote: "INT ou VV ? un seul bras lisible" }], [], { stay: true }).ids; });
@@ -953,6 +954,7 @@ try {
     const txt = await ev(() => okteoExt.whyBlink.lastText);
     await ev(() => { okteo.undo(); okteo.undo(); okteo.undo(); okteo.clearSel(); document.querySelector(".rapcard").hidden = true; document.querySelector(".whyb").hidden = true; });
     const back = await ev((i) => okteo.state.app.filter((a) => i.includes(a.id)).length, ids);
+    await ev((V) => { Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; }, keepV);
     if (!(/fam-montage/.test(halo.lum || "") && /fam-montage/.test(halo.int || "") && /Montage faux/.test(c1.t) && /Recommandation/.test(c1.t) && c1.q && q.length === 1 && /Quelle commande allume/.test(q[0])
       && choix.length === 2 && /Va-et-vient/.test(choix[1]) && after.t === "VV" && after.dec.some((d) => /Va-et-vient/.test(d)) && /Questions au pavillonneur/.test(txt) && back === 0)) throw new Error(JSON.stringify({ halo, c1: { ...c1, t: c1.t.slice(0, 200) }, q, choix, after, txt: (txt || "").slice(0, 300), back }));
     return true;

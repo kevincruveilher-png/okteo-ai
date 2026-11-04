@@ -38,6 +38,8 @@ export function createWhyBlink({ api }) {
     if (!a) return;
     const issues = api.control.filter((it) => (it.ids || []).includes(id));
     const pts = issues.map((it) => explain(it, a, api.TYPES, decisions()[`${it.kind}:${(it.ids || []).join(",")}`] || null));
+    // les types candidats ne sont proposés qu'une fois (sur le premier point qui en a)
+    let seenC = false; pts.forEach((p) => { if (p.choix.length) { if (seenC) p.choix = []; seenC = true; } });
     cur = { id, pts };
     card.innerHTML = `<button class="wx" title="Fermer (Échap)" aria-label="Fermer">✕</button><h3>Pourquoi ça clignote ? · ${esc(a.rep || a.t)}${a.room ? ` <span class="mut sm">${esc(a.room)}</span>` : ""}</h3>
       <div class="why-img" hidden><img alt="Extrait du plan autour de l'appareil"><span class="sm mut">Extrait du plan (1,20 m autour)</span></div>
@@ -75,7 +77,7 @@ export function createWhyBlink({ api }) {
     rcard.hidden = false;
     rcard.querySelector(".wx").onclick = () => (rcard.hidden = true);
     rcard.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { const id = b.dataset.go; api.setTab("plan"); api.select([id]); api.zoomTo([id]); rcard.hidden = true; open(id); }));
-    const copy = async (t) => { api.lastRapport = t; try { await navigator.clipboard.writeText(t); api.setHint("Copié dans le presse-papiers."); } catch { api.setHint("Copie impossible : le texte est dans la console (okteoExt.whyBlink.lastText)."); } ui.lastText = t; };
+    const copy = async (t) => { ui.lastText = t; try { await navigator.clipboard.writeText(t); api.setHint("Copié dans le presse-papiers."); } catch { api.setHint("Copie impossible ici : le texte est dans okteoExt.whyBlink.lastText."); } };
     rcard.querySelector("#rap-copy").onclick = () => copy(rapportText(R, { chantier }));
     rcard.querySelector("#rap-q").onclick = () => copy(R.questions.map((q, i) => `${i + 1}. ${q}`).join("\n"));
   }
