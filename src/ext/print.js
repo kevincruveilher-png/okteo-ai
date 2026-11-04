@@ -2,7 +2,7 @@ import { arrowPoints, hatchLines, wallLook, wavePoints } from "../plan-style.js"
 import { ABREV_DEFAUT, abrevRoom, parseAbrev } from "../print/abrev.js";
 import { drawSymbol, drawText as ftzText } from "../print/ftz-sheet.js";
 import { boxColor, ftzSymbol, plaques, symIndex } from "../print/ftz-symbols.js";
-import { Placer, roomCandidates, spreadSymbols, pushOff, wallBoxes, repCandidates } from "../place.js";
+import { Placer, roomCandidates, spreadSymbols, pushOff, wallBoxes, repCandidates, lineBoxes } from "../place.js";
 import { pref } from "../prefs.js";
 import { logoData, LOGO_RATIO } from "./logo.js";
 // Sortie PDF imprimable du plan (vectorielle, à l'échelle exacte) : page 1 = plan + légende + échelle graphique
@@ -570,17 +570,62 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       return new Set(geo.apps.filter((a) => a.t === "TAB" || (inBox.has(a.id) ? !ids || ids.has(inBox.get(a.id)) : direct.has(a.id) ? pg.direct : pg.autres !== false)).map((a) => a.id));
     });
     pageApps.forEach((s) => geo.apps.forEach((a) => { if (s.has(a.id) && !used.some((u) => u.id === a.id)) used.push(a); }));
+    // n° 2 : ce qu'occupe une page (rectangles en mm) si le plan est dessiné dans la zone A : murs, pièces, appareils,
+    // boîtes, gaines, lignes directes, bandes des cotes des boîtes, encarts ; la légende va dans ce qui reste
+    const blockedFor = (A, pg, pgApps, pgBoxes, extra = []) => {
+      const PX = (x) => A.x + A.w / 2 + (x - cx) * Lay.f, PY = (y) => A.y + A.h / 2 + (y - cy) * Lay.f, P = (p) => ({ x: PX(p.x), y: PY(p.y) });
+      const out = [], bb = (L) => { const xs = L.map((p) => p.x), ys = L.map((p) => p.y); return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) }; };
+      (geo.walls || []).forEach((W) => out.push(bb(W.map(P))));
+      (geo.rooms || []).forEach((r) => { if (r.poly && r.poly.length > 2) out.push(bb(r.poly.map(P))); });
+      const u = 2.1, BS = Math.max(3.6 * u, 9);
+      geo.apps.forEach((a) => { if (pgApps.has(a.id)) { const q = P(a); out.push({ x0: q.x - u - 1.5, y0: q.y - u - 1.5, x1: q.x + u + 1.5, y1: q.y + u + 1.5 }); } });
+      pgBoxes.forEach((b) => { const q = P(b); out.push({ x0: q.x - BS / 2 - 3, y0: q.y - BS * 0.7 - 3, x1: q.x + BS / 2 + 3, y1: q.y + BS * 0.5 + 3 });
+        (b.deps || []).forEach((d) => d.ends.forEach((e) => out.push(...lineBoxes([q, ...(e.route || []).map(P), P(e)], 3, 1.2)))); });
+      if (pg.direct) (geo.direct || []).forEach((l) => { if (l.a && l.b) out.push(...lineBoxes([P(l.a), P(l.b)], 3, 1.2)); });
+      // cotes des boîtes : rangées le long du bâti, 7 mm puis 5 mm par cote, du côté le plus proche de la boîte
+      if (pg.cotes !== false && pgBoxes.length && o.boites !== false) {
+        const env = out.length ? bb(geo.walls.flatMap((W) => W.map(P))) : null;
+        if (env) {
+          const midX = (env.x0 + env.x1) / 2, midY = (env.y0 + env.y1) / 2, n = { top: 0, bottom: 0, left: 0, right: 0 };
+          S.boxCotes(pgBoxes, geo.walls).filter((c) => c.cm >= S.COTE_STYLE.min).forEach((c) => { if (c.axis === "x") n[PY(c.at) < midY ? "top" : "bottom"]++; else n[PX(c.at) < midX ? "left" : "right"]++; });
+          const band = (k) => (k ? S.COTE_STYLE.gap + (k - 1) * S.COTE_STYLE.step + 4 : 0);
+          if (n.top) out.push({ x0: env.x0, y0: env.y0 - band(n.top), x1: env.x1, y1: env.y0 });
+          if (n.bottom) out.push({ x0: env.x0, y0: env.y1, x1: env.x1, y1: env.y1 + band(n.bottom) });
+          if (n.left) out.push({ x0: env.x0 - band(n.left), y0: env.y0, x1: env.x0, y1: env.y1 });
+          if (n.right) out.push({ x0: env.x1, y0: env.y0, x1: env.x1 + band(n.right), y1: env.y1 });
+        }
+      }
+      (F.items || []).filter((it) => (it.page || 1) === pages.indexOf(pg) + 1).forEach((it) => out.push({ x0: it.x, y0: it.y, x1: it.x + (it.w || 20), y1: it.y + (it.h || 10) }));
+      return out.concat(extra);
+    };
+    // plan décalé dans la zone (la zone garde sa taille ; seul le centre bouge) : d (mm) vers la gauche, la droite, le haut…
+    const shifted = (dx, dy) => ({ ...area, x: area.x + dx, y: area.y + dy });
+    const marginX = (area.w - (plan.x1 - plan.x0)) / 2 - 12, marginY = (area.h - (plan.y1 - plan.y0)) / 2 - 12;
+    const legendInfo = [];   // n° 2 : où est allée la légende (centré, plan décalé, page à part), pour la fenêtre d'impression
     for (let i = 0; i < pages.length; i++) {
       const pg = pages[i];
       if (i) doc.addPage("a3", "landscape");
       const boxIds = pg.boxes === "all" ? null : new Set(pg.boxes || []);
-      await drawPlan(geo, { ...o, bare: true, liaisons: false, ftzSyms: F.symbols === false ? null : symIdx, plaques: F.plaques, ftzRooms: { rules: parseAbrev(pref("abrev") || ABREV_DEFAUT) }, appIds: pageApps[i], boxIds, directOn: !!pg.direct, boites: o.boites !== false && (pg.boxes === "all" || (pg.boxes || []).length > 0), gaines: o.gaines !== false }, Lay);
+      // n° 2 : sur la page de la légende, le plan est décalé si la légende ne trouve pas de place libre autour du plan centré
+      let pArea = area, pFit = null, rows0 = null;
+      const pgBoxes0 = (geo.boxes || []).filter((b) => pg.boxes === "all" || (pg.boxes || []).includes(b.id));
+      if (pg.legend && !pg.legendAt) {
+        rows0 = S.legendRows(used, { boxes: (geo.boxes || []).length > 0, arrow: (geo.boxes || []).length > 0 || direct.size > 0 });
+        const tries = [[0, 0], [-marginX, 0], [marginX, 0], [0, marginY], [0, -marginY]].filter(([dx, dy], k) => !k || Math.abs(dx) + Math.abs(dy) > 1);
+        for (const [dx, dy] of tries) {
+          const A = shifted(dx, dy), fit = S.legendFit(area, blockedFor(A, pg, pageApps[i], pgBoxes0), rows0);
+          if (fit) { pArea = A; pFit = fit; break; }
+        }
+      }
+      const LayP = pArea === area ? Lay : { ...Lay, area: pArea };
+      const planP = pArea === area ? plan : { x0: plan.x0 + pArea.x - area.x, x1: plan.x1 + pArea.x - area.x, y0: plan.y0 + pArea.y - area.y, y1: plan.y1 + pArea.y - area.y };
+      await drawPlan(geo, { ...o, bare: true, liaisons: false, ftzSyms: F.symbols === false ? null : symIdx, plaques: F.plaques, ftzRooms: { rules: parseAbrev(pref("abrev") || ABREV_DEFAUT) }, appIds: pageApps[i], boxIds, directOn: !!pg.direct, boites: o.boites !== false && (pg.boxes === "all" || (pg.boxes || []).length > 0), gaines: o.gaines !== false }, LayP);
       plq.push({ page: i + 1, list: geo.__plaques || [] });
       // v74 MAJ 2 : cotes de position des boîtes de la page (violet), hors du plan
       const pgBoxes = (geo.boxes || []).filter((b) => pg.boxes === "all" || (pg.boxes || []).includes(b.id));
       if (pg.cotes !== false && pgBoxes.length && o.boites !== false) {
-        const PX = (x) => area.x + area.w / 2 + (x - cx) * Lay.f, PY = (y) => area.y + area.h / 2 + (y - cy) * Lay.f;
-        cotes.push({ page: i + 1, list: S.drawBoxCotes(doc, S.boxCotes(pgBoxes, geo.walls), PX, PY, plan, area, geo.walls) });
+        const PX = (x) => pArea.x + pArea.w / 2 + (x - cx) * Lay.f, PY = (y) => pArea.y + pArea.h / 2 + (y - cy) * Lay.f;
+        cotes.push({ page: i + 1, list: S.drawBoxCotes(doc, S.boxCotes(pgBoxes, geo.walls), PX, PY, planP, area, geo.walls) });
       }
       S.drawFrame(doc);
       S.drawCartouche(doc, cart, fields, F.logo || null);
@@ -589,13 +634,26 @@ export async function buildPlanPdf(geoIn, opts = {}) {
         // v74 MAJ 4 : plaques multipostes posées sur les pages déjà dessinées (et celle-ci)
         const pn = [...new Set(plq.flatMap((x) => x.list.map((p) => p.name)))].sort();
         if (pn.length) rows.splice(rows.length - (rows[rows.length - 1]?.key === "ARROW" ? 1 : 0) - (rows.some((r) => r.key === "BOX") ? 1 : 0), 0, ...pn.map((n) => ({ key: n, label: n })));
-        const size = S.legendSize(rows), at = pg.legendAt || S.freeCorner(area, plan, size);
-        legends.push({ page: i + 1, ...S.drawLegend(doc, rows, at[0], at[1], (d, t, x, y, r) => {
+        // n° 2 : jamais sur le plan : place libre réelle (plan, cotes, boîtes, gaines…), 1 à 3 colonnes, réduite jusqu'à
+        // 70 %, plan décalé si besoin ; sinon une page « Légende » à part. Une légende placée à la main (préparation) est gardée.
+        const drawSym = (d, t, x, y, r, k = 1) => {
           const sym = symIdx.get(S.FTZ_NAMES[r.key] || r.key) || null;
-          if (!sym) return symbol(d, t, x, y, 1.8);
-          const k = Math.min(1, (S.rowH(r) - 0.8) / sym.h, (S.LEG.colS - 1.6) / sym.w);
-          S.drawSymbol(d, sym, x, y, k, 0);
-        }) });
+          if (!sym) return symbol(d, t, x, y, 1.8 * k);
+          const kk = Math.min(1, (S.rowH(r) - 0.8) / sym.h, (S.LEG.colS - 1.6) / sym.w) * k;
+          S.drawSymbol(d, sym, x, y, kk, 0);
+        };
+        let at = pg.legendAt ? { x: pg.legendAt[0], y: pg.legendAt[1], cols: pg.legendCols || 1, k: 1 } : null, where = at ? "main" : "plan";
+        if (!at) {
+          const bl = blockedFor(pArea, pg, pageApps[i], pgBoxes0);
+          at = rows.length === (rows0 || []).length && pFit ? pFit : S.legendFit(area, bl, rows);
+          if (at && pArea !== area) where = "plan décalé";
+        }
+        if (at) legends.push({ page: i + 1, where, ...S.drawLegend(doc, rows, at.x, at.y, drawSym, at) });
+        else {
+          // dernier recours : une page « Légende » juste après celle-ci, avec cadre et cartouche
+          legendInfo.push({ page: i + 1, apart: true });
+          pg.__legendApart = { rows, drawSym };
+        }
       }
       // 3D-8 : QR « maquette 3D » de ce qui est imprimé sur cette face (coin libre, hors légende)
       if (F.qr3d) {
@@ -605,7 +663,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
             const Q = await qrMatrix(q.url), size = 48, cap = 4, ms = size / Q.n, leg = legends.find((l) => l.page === i + 1);
             const corners = [[area.x + area.w - size - 2, area.y + area.h - size - cap - 2], [area.x + 2, area.y + area.h - size - cap - 2], [area.x + area.w - size - 2, area.y + 2], [area.x + 2, area.y + 2]];
             const over = ([x, y], r) => r ? Math.max(0, Math.min(x + size, r.x + r.w) - Math.max(x, r.x)) * Math.max(0, Math.min(y + size + cap, r.y + r.h) - Math.max(y, r.y)) : 0;
-            const R0 = leg ? { x: leg.x, y: leg.y, w: leg.w, h: leg.h } : null, PL = { x: plan.x0, y: plan.y0, w: plan.x1 - plan.x0, h: plan.y1 - plan.y0 };
+            const R0 = leg ? { x: leg.x, y: leg.y, w: leg.w, h: leg.h } : null, PL = { x: planP.x0, y: planP.y0, w: planP.x1 - planP.x0, h: planP.y1 - planP.y0 };
             const [qx, qy] = corners.map((c) => ({ c, o: over(c, R0) * 100 + over(c, PL) })).sort((a, b) => a.o - b.o)[0].c;
             doc.setFillColor(255, 255, 255); doc.rect(qx - 1.5, qy - 1.5, size + 3, size + cap + 3, "F");
             doc.setFillColor(0);
@@ -616,9 +674,15 @@ export async function buildPlanPdf(geoIn, opts = {}) {
         } catch (e) { qrs.push({ page: i + 1, error: String(e && e.message || e) }); }
       }
       if (!F.bg) (F.items || []).filter((it) => (it.page || 1) === i + 1).forEach((it) => S.drawItem(doc, it, F.images || {}));
+      if (pg.__legendApart) {
+        const { rows: R0, drawSym: DS } = pg.__legendApart; delete pg.__legendApart;
+        doc.addPage("a3", "landscape"); S.drawFrame(doc); S.drawCartouche(doc, cart, fields, F.logo || null);
+        const fit = S.legendFit(area, [], R0) || { x: area.x + 4, y: area.y + 4, cols: 3, k: 0.7 };
+        legends.push({ page: doc.getNumberOfPages(), where: "page à part", ...S.drawLegend(doc, R0, fit.x, fit.y, DS, fit) });
+      }
     }
     doc.setProperties({ title: `Plan ${geo.chantier.nom} ${geo.chantier.numero}`.trim(), creator: "Oktéo AI — KiTéOHM" });
-    return { blob: doc.output("blob"), layout: Lay, pages: doc.getNumberOfPages(), legends, plan, area, ftz: true, rotated: F.rotated || 0, cotes, plaques: plq, qrs };
+    return { blob: doc.output("blob"), layout: Lay, pages: doc.getNumberOfPages(), legends, legendInfo, plan, area, ftz: true, rotated: F.rotated || 0, cotes, plaques: plq, qrs };
   }
 }
 

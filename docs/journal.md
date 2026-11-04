@@ -1,3 +1,18 @@
+## 04/11/2026 — n° 2 : la légende de la feuille A3 s'adapte et ne passe plus sur le plan (lot A)
+
+- Constat de Kévin : à l'impression, la légende se superposait au plan. Cause : `freeCorner` essayait 4 coins du rectangle
+  englobant le plan et, faute de coin libre, prenait le moins mauvais.
+- `src/print/ftz-sheet.js` : `legendCols` (1 à 3 colonnes équilibrées), `legendSize(rows, {cols, k})`, `LEGEND_LAYOUTS`
+  (k = 1 → 0,7 × 1 à 3 colonnes), `legendFit(area, blocked, rows)` (grille de 2 mm, somme cumulée : la plus grande mise en
+  page qui tient, au plus près d'un coin) ; `drawLegend(doc, rows, x, y, drawSym, {cols, k})` (symboles et textes réduits).
+- `print.js` `buildFtz` : `blockedFor(zone, page…)` = ce qu'occupe la page (murs, pièces, appareils, boîtes, gaines, lignes
+  directes, bandes des cotes des boîtes, encarts) ; sur la page de la légende, plan centré, sinon décalé à gauche, à droite, en
+  haut ou en bas (`LayP`, `planP`, cotes et QR suivent) ; en dernier recours une page « Légende » à part (cadre + cartouche).
+  `legends[].where` (« plan », « plan décalé », « main », « page à part »), `cols`, `k`. Légende déplacée à la main dans la
+  préparation (`legendAt`) : inchangée.
+- Tests : `scripts/charte.test.mjs` (colonnes, coin libre, plan presque plein, aucune place) ; smoke : légende dans la zone de
+  dessin, avec sa mise en page.
+
 ## 04/11/2026 — n° 12 : cotes des boîtes prises sur le mur extérieur (lot A)
 
 - Demande de Kévin : les cotes de position des boîtes (feuille A3 du BE) doivent être prises sur le mur extérieur, et le trait

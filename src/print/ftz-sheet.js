@@ -116,29 +116,78 @@ export function legendRows(apps, { boxes = false, arrow = false, names = {} } = 
   return rows;
 }
 export const rowH = (r) => (["INT", "VV", "TAB", "BOX"].includes(r.key) ? 6.2 : 5);
-export const legendSize = (rows) => ({ w: LEG.colS + LEG.colL, h: rows.reduce((s, r) => s + rowH(r), 0) });
+// n° 2 (lot A) : la légende s'adapte : 1 à 3 colonnes, réduite de k (0,7 à 1)
+export function legendCols(rows, cols = 1) {
+  if (cols <= 1 || rows.length <= 1) return [rows];
+  const total = rows.reduce((s, r) => s + rowH(r), 0), out = [[]];
+  let acc = 0;
+  for (const r of rows) {
+    if (acc >= (total / cols) * out.length - 1e-9 && out.length < cols && out[out.length - 1].length) out.push([]);
+    out[out.length - 1].push(r); acc += rowH(r);
+  }
+  return out;
+}
+export const legendSize = (rows, { cols = 1, k = 1 } = {}) => {
+  const C = legendCols(rows, cols);
+  return { w: C.length * (LEG.colS + LEG.colL) * k, h: Math.max(...C.map((c) => c.reduce((s, r) => s + rowH(r), 0))) * k };
+};
+// mises en page essayées, de la plus confortable à la plus compacte
+export const LEGEND_LAYOUTS = [1, 0.9, 0.8, 0.7].flatMap((k) => [1, 2, 3].map((cols) => ({ cols, k })));
+// place libre pour la légende dans la zone de dessin : grille de 2 mm, cases occupées = rectangles `blocked` (plan, cotes,
+// boîtes…) ; renvoie {x, y, cols, k} (la mise en page la plus grande qui tient, au plus près d'un coin), sinon null
+export function legendFit(area, blocked, rows, { pad = 2, cell = 2, layouts = LEGEND_LAYOUTS } = {}) {
+  const nx = Math.floor(area.w / cell), ny = Math.floor(area.h / cell);
+  if (nx < 2 || ny < 2) return null;
+  const occ = new Uint8Array(nx * ny);
+  for (const b of blocked) {
+    const i0 = Math.max(0, Math.floor((b.x0 - pad - area.x) / cell)), i1 = Math.min(nx - 1, Math.floor((b.x1 + pad - area.x) / cell));
+    const j0 = Math.max(0, Math.floor((b.y0 - pad - area.y) / cell)), j1 = Math.min(ny - 1, Math.floor((b.y1 + pad - area.y) / cell));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) occ[j * nx + i] = 1;
+  }
+  // somme cumulée : une case libre de w × h se teste en temps constant
+  const S = new Int32Array((nx + 1) * (ny + 1));
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) S[(j + 1) * (nx + 1) + i + 1] = occ[j * nx + i] + S[j * (nx + 1) + i + 1] + S[(j + 1) * (nx + 1) + i] - S[j * (nx + 1) + i];
+  const sum = (i, j, w, h) => S[(j + h) * (nx + 1) + i + w] - S[j * (nx + 1) + i + w] - S[(j + h) * (nx + 1) + i] + S[j * (nx + 1) + i];
+  for (const L of layouts) {
+    const z = legendSize(rows, L), w = Math.ceil(z.w / cell) + 1, h = Math.ceil(z.h / cell) + 1;
+    if (w > nx || h > ny) continue;
+    let best = null;
+    for (let j = 0; j + h <= ny; j++) for (let i = 0; i + w <= nx; i++) {
+      if (sum(i, j, w, h)) continue;
+      const d = Math.min(i, nx - i - w) + Math.min(j, ny - j - h);   // distance au coin le plus proche
+      if (!best || d < best.d) best = { i, j, d };
+    }
+    if (best) return { x: area.x + best.i * cell + cell / 2, y: area.y + best.j * cell + cell / 2, ...L, w: z.w, h: z.h };
+  }
+  return null;
+}
 
-// dessin de la légende en (x, y) = coin haut gauche ; drawSym(doc, t, cx, cy) dessine le symbole du plan
-export function drawLegend(doc, rows, x, y, drawSym) {
-  const { w, h } = legendSize(rows);
+// dessin de la légende en (x, y) = coin haut gauche ; drawSym(doc, t, cx, cy, r, k) dessine le symbole du plan ;
+// n° 2 : en `cols` colonnes côte à côte, réduite de `k`
+export function drawLegend(doc, rows, x, y, drawSym, { cols = 1, k = 1 } = {}) {
+  const C = legendCols(rows, cols), cw = (LEG.colS + LEG.colL) * k, { w, h } = legendSize(rows, { cols, k });
   doc.setFillColor(255, 255, 255); doc.setDrawColor(0); doc.setLineWidth(0.12); doc.setLineDashPattern([], 0);
-  doc.rect(x, y, w, h, "FD");
-  doc.line(x + LEG.colS, y, x + LEG.colS, y + h);
-  let yy = y;
-  rows.forEach((r, i) => {
-    const rh = rowH(r), cy = yy + rh / 2, cx = x + LEG.colS / 2;
-    if (i) doc.line(x, yy, x + w, yy);
-    if (r.key === "ARROW") {
-      doc.setDrawColor(0); doc.setLineWidth(0.12); doc.line(cx - 4.5, cy, cx + 4, cy);
-      doc.setFillColor(0); doc.triangle(cx + 4.6, cy, cx + 3.2, cy - 0.7, cx + 3.2, cy + 0.7, "F");
-    } else if (r.key === "BOX") {
-      doc.setDrawColor(0, 128, 0); doc.setLineWidth(0.12); doc.setFillColor(255, 255, 255); doc.rect(cx - 3, cy - 2.4, 6, 4.8, "FD");
-      drawText(doc, { str: "LI", font: "Times-Roman", sy: 3.52, sx: 2.08, at: [cx - 1.2, cy + 1.2], color: "#008000" });
-    } else drawSym(doc, r.t, cx, cy, r);
-    drawText(doc, { str: r.label, font: LEG.font.font, sy: LEG.font.sy, sx: LEG.font.sx, at: [x + LEG.colS + 1.2, cy + 0.75], color: "#000000" });
-    yy += rh;
+  C.forEach((col, c) => {
+    const x0 = x + c * cw, ch = col.reduce((s, r) => s + rowH(r), 0) * k;
+    doc.setFillColor(255, 255, 255); doc.setDrawColor(0); doc.setLineWidth(0.12);
+    doc.rect(x0, y, cw, ch, "FD");
+    doc.line(x0 + LEG.colS * k, y, x0 + LEG.colS * k, y + ch);
+    let yy = y;
+    col.forEach((r, i) => {
+      const rh = rowH(r) * k, cy = yy + rh / 2, cx = x0 + (LEG.colS * k) / 2;
+      if (i) { doc.setDrawColor(0); doc.setLineWidth(0.12); doc.line(x0, yy, x0 + cw, yy); }
+      if (r.key === "ARROW") {
+        doc.setDrawColor(0); doc.setLineWidth(0.12); doc.line(cx - 4.5 * k, cy, cx + 4 * k, cy);
+        doc.setFillColor(0); doc.triangle(cx + 4.6 * k, cy, cx + 3.2 * k, cy - 0.7 * k, cx + 3.2 * k, cy + 0.7 * k, "F");
+      } else if (r.key === "BOX") {
+        doc.setDrawColor(0, 128, 0); doc.setLineWidth(0.12); doc.setFillColor(255, 255, 255); doc.rect(cx - 3 * k, cy - 2.4 * k, 6 * k, 4.8 * k, "FD");
+        drawText(doc, { str: "LI", font: "Times-Roman", sy: 3.52 * k, sx: 2.08 * k, at: [cx - 1.2 * k, cy + 1.2 * k], color: "#008000" });
+      } else drawSym(doc, r.t, cx, cy, r, k);
+      drawText(doc, { str: r.label, font: LEG.font.font, sy: LEG.font.sy * k, sx: LEG.font.sx * k, at: [x0 + LEG.colS * k + 1.2 * k, cy + 0.75 * k], color: "#000000" });
+      yy += rh;
+    });
   });
-  return { x, y, w, h };
+  return { x, y, w, h, cols, k };
 }
 
 // coin libre de la zone de dessin : le premier coin où la légende ne touche pas le plan, sinon celui qui le touche le moins
