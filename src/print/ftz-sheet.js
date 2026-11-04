@@ -284,7 +284,7 @@ export function drawBoxCotes(doc, cotes, X, Y, plan, area, walls = []) {
 // ---------- v74 MAJ 4 : symboles FTZ sur le plan imprimé ----------
 // tracé d'un symbole tourné de rot degrés autour de son centre (toutes les valeurs de « d » sont des couples x y)
 export function rotD(d, deg) {
-  if (!deg) return d;
+  if (!deg || typeof d !== "string") return d;
   const t = (deg * Math.PI) / 180, c = Math.cos(t), s = Math.sin(t);
   let k = 0, x = 0;
   return d.replace(/-?[\d.]+(?:e-?\d+)?/g, (v) => { if (k++ % 2 === 0) { x = +v; return v; } const y = +v; return `__${(x * c - y * s).toFixed(4)} ${(x * s + y * c).toFixed(4)}`; })

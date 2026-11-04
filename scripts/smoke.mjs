@@ -1885,7 +1885,7 @@ try {
     return true;
   });
   await check("n° 13 + 8 : symboles muraux hors du mur et dans le sens de leur mur ; appareil dans un mur signalé puis recollé ; repère glissé à la main (gardé, un Ctrl+Z)", async () => {
-    for (let i = 0; i < 3 && (await page.isVisible(".pal-back")); i++) await page.keyboard.press("Escape");
+    await ev(() => document.querySelectorAll(".pal-back").forEach((e) => { e.dataset.hid = e.style.display || "-"; e.style.display = "none"; }));
     await ev(() => { okteo.setTab("plan"); okteo.setTool("sel"); okteo.viewPreset("impl"); okteo.fit(); okteoExt.panel?.close?.("assistant"); });
     const r1 = await ev(() => {
       const S = okteo.state, N = (id) => S.nodes.find((n) => n.id === id);
@@ -1919,6 +1919,7 @@ try {
       const back = await ev((id) => { const a = okteo.state.app.find((x) => x.id === id); return a && a.rpx == null; }, lab.id);
       r3 = { moved, back };
     }
+    await ev(() => document.querySelectorAll(".pal-back").forEach((e) => { if (e.dataset.hid) { e.style.display = e.dataset.hid === "-" ? "" : e.dataset.hid; delete e.dataset.hid; } }));
     if (!(r1.n > 5 && r1.worst > 0.055 && r1.best > 0.08 && /rotate\(-?90/.test(r1.rot || "") && r2.flagged && r2.k >= 1 && r2.seg && r2.kind && r3 && r3.moved && r3.back)) throw new Error(JSON.stringify({ r1, r2, r3, lab }));
     return true;
   });

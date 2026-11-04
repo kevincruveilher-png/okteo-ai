@@ -17,6 +17,10 @@
 - Côté pièce : `snapToWall(x, y, t)` choisit la face où il y a une pièce pour un appareil d'intérieur (`EXTERIEURS` : PCEXT, GEXT,
   PX4, MGAR, ANT, VREJ) ; `importDevices` passe le type. Contrôle `mur` (« appareil dans l'épaisseur d'un mur ») ;
   `okteo.reattachWalls()` + catalogue `app.reattach` « Recoller les appareils à leur mur ».
+  Le collage côté pièce ne joue que pour un relevé IA (`importDevices(..., {roomSide: true})`) et un appareil posé dans
+  l'épaisseur du mur (sinon le relevé automatique et le câblage changeaient). Clic : un symbole affiché plus près que le
+  sommet du mur gagne (`hitAny`) ; un point de passage de gaine reste saisissable sous un symbole ; un repère cliqué dans son
+  texte gagne sur le symbole voisin. Impression : `rotD` ignore une forme sans tracé (symbole du BE tourné).
 - Tests : `scripts/placement.test.mjs` (5) dans `npm run check` ; smoke : symboles hors du mur, rotation sur mur vertical,
   contrôle `mur` + recollage, repère glissé et Ctrl+Z.
 
