@@ -49,6 +49,9 @@
 - Tests : `scripts/placement.test.mjs` (5) dans `npm run check` ; smoke : symboles hors du mur, rotation sur mur vertical,
   contrôle `mur` + recollage, repère glissé et Ctrl+Z.
 
+- Fusion dans `main` le 04/11/2026 (lot A, go de Kévin) : `npm run check` vert sur GitHub Actions (run 41892006715,
+  smoke 197/197) ; workflow temporaire retiré.
+
 ## 04/11/2026 — n° 14 : autocorrection des murs (lot A, branche `feat/lot-a-14-murs-equerre`)
 
 - Demande de Kévin : un mur légèrement de travers doit être remis d'équerre (angle en L non droit, rectangle de biais).
