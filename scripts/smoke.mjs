@@ -2916,6 +2916,8 @@ try {
     // la page et chacun de ses scripts sont gardés sur le téléphone (la page envoie sa liste au service)
     await p2.waitForFunction(async () => { const urls = [location.pathname, ...performance.getEntriesByType("resource").filter((e) => e.name.startsWith(location.origin)).map((e) => e.name)]; for (const u of urls) if (!(await caches.match(u))) return false; return true; }, null, { timeout: 15000, polling: 500 }).catch(() => {});
     const kept = await p2.evaluate(async () => { const urls = [location.pathname, ...performance.getEntriesByType("resource").filter((e) => e.name.startsWith(location.origin)).map((e) => e.name)]; const miss = []; for (const u of urls) if (!(await caches.match(u))) miss.push(u.replace(location.origin, "")); return { n: urls.length, miss: miss.slice(0, 5), controlled: !!navigator.serviceWorker.controller }; });
+    const failed = []; p2.on("requestfailed", (q) => failed.push(q.url().replace(/^https?:\/\/[^/]+/, "") + " " + (q.failure() || {}).errorText));
+    p2.on("console", (m) => { if (m.type() === "error") failed.push("console: " + m.text().slice(0, 120)); });
     await p2.context().setOffline(true);
     let offline = false;
     try { await p2.reload(); await p2.waitForFunction(() => window.__plan3d && window.__plan3d.ready, null, { timeout: 20000 }); offline = true; } catch (e) { offline = String(e).slice(0, 120); }
@@ -2925,7 +2927,7 @@ try {
     const warn = await p2.evaluate(() => (document.querySelector(".warn") || {}).textContent || "");
     await p2.close();
     const ok = /Face 1\/2/.test(r1.face) && /autre face/.test(r1.face) && !r1.warn && r1.no && r1.fg && r1.fd && r1.none === null && card && card.includes(r1.no) && flat && /plan3d/.test(sw) && kept.controlled && kept.n > 2 && !kept.miss.length && offline === true && /autre impression/.test(warn) && !errs.length;
-    if (!ok) throw new Error(JSON.stringify({ r1, card, flat, sw, kept, offline, warn, errs }));
+    if (!ok) throw new Error(JSON.stringify({ r1, card, flat, sw, kept, offline, failed: failed.slice(0, 8), warn, errs }));
     return true;
   });
   await check("3D-2 : jonction oubliée et mur en double signalés dans la vue 3D, un clic montre l'endroit sur le plan", async () => {
