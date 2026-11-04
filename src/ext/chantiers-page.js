@@ -6,6 +6,7 @@ import {event,readHistory,saveHistory,revisionLabel} from "../web/history.js";
 // Changer de chantier recharge la page (le cœur repart proprement sur le chantier choisi).
 import * as CHS from "../chantiers.js";
 import { isPdf, isImage, openPdf, pdfThumbs, renderPdfPage, loadImage } from "./fond-import.js";
+import { ROLES, roleLabel, proposeRoles, setRole, dossierOf } from "../walls/page-roles.js";
 import { esc, norm } from "./util.js";
 import { buildOkteo, dataURLToBlob, download, fileName } from "./okteo-file.js";
 import { backupBox, wireBackupBox, onChange as onBackupChange } from "./backup.js";
@@ -27,14 +28,18 @@ async function storeFond(meta, file, pdfDoc, pageNo) {
 export function mountChantiers(el, { api }) {
   let cur = CHS.current();
   let q = "", mode = null; // mode : null | "new" | "fond"
-  let pick = { file: null, doc: null, thumbs: [], page: 1, busy: "" };
+  let pick = { file: null, doc: null, thumbs: [], page: 1, busy: "", roles: [] };
+  // n° 15 : rôle visé par un clic sur une vignette : le RDC (nouveau chantier) ou le niveau ouvert s'il porte un nom connu
+  const targetRole = () => { const n = mode === "new" ? "RDC" : (CHS.levelsOf(CHS.current()).find((l) => l.id === (CHS.current().level || "rdc")) || {}).name; return ROLES.includes("niv:" + n) ? "niv:" + n : "niv:RDC"; };
+  const roleOf = (p) => (pick.roles.find((x) => x.page === p) || {});
   let confirmDel = null;
 
   function fondHTML() {
     if (!pick.file) return `<p class="mut">Facultatif : PDF du plan (choix de la page) ou image (JPG, PNG, photo).</p>`;
     if (pick.busy) return `<p class="mut">${esc(pick.busy)}</p>`;
-    if (pick.doc) return `<p class="mut">${esc(pick.file.name)} · ${pick.doc.numPages} page${pick.doc.numPages > 1 ? "s" : ""} : cliquez la page du plan à utiliser.</p>
-      <div class="thumbs">${pick.thumbs.map((t) => `<button type="button" class="thumb ${t.page === pick.page ? "on" : ""}" data-page="${t.page}"><img src="${t.url}" alt="Page ${t.page}"><span>Page ${t.page}</span></button>`).join("")}</div>`;
+    if (pick.doc) return `<p class="mut">${esc(pick.file.name)} · ${pick.doc.numPages} page${pick.doc.numPages > 1 ? "s" : ""} : Oktéo propose le rôle de chaque page (plan d'implantation d'un niveau, plan cuisine, devis, à ignorer) ; corrigez si besoin. Un clic sur une vignette la prend comme plan ${mode === "new" ? "du RDC" : "du niveau ouvert"}.${mode === "new" ? " Chaque niveau trouvé est créé avec sa page ; le plan cuisine et le devis seront joints à l'analyse IA." : " Le plan cuisine et le devis seront joints à l'analyse IA."}</p>
+      <div class="thumbs">${pick.thumbs.map((t) => { const r = roleOf(t.page); return `<div class="thumb-w"><button type="button" class="thumb ${t.page === pick.page ? "on" : ""}" data-page="${t.page}"><img src="${t.url}" alt="Page ${t.page}"><span>Page ${t.page}</span></button>
+        <select class="pg-role${r.conf != null && r.conf < 0.6 ? " doubt" : ""}" data-page="${t.page}" title="${esc(r.why ? "Proposé par Oktéo : " + r.why + (r.conf < 0.6 ? " (à vérifier)" : "") : "Rôle de la page")}" aria-label="Rôle de la page ${t.page}">${ROLES.map((k) => `<option value="${k}"${r.role === k ? " selected" : ""}>${esc(roleLabel(k))}${r.role === k && r.conf < 0.6 ? " ?" : ""}</option>`).join("")}</select></div>`; }).join("")}</div>`;
     return `<p class="mut">${esc(pick.file.name)} (image)</p>`;
   }
 
@@ -129,8 +134,8 @@ export function mountChantiers(el, { api }) {
     el.querySelector("#ch-calib")?.addEventListener("click", () => api.startCalib());
     el.querySelector("#ch-walls")?.addEventListener("click", () => document.dispatchEvent(new CustomEvent("okteo:walls")));
     el.querySelector("#ch-devices")?.addEventListener("click", () => document.dispatchEvent(new CustomEvent("okteo:devices")));
-    el.querySelector("#ch-fond").onclick = () => { mode = "fond"; pick = { file: null, doc: null, thumbs: [], page: 1, busy: "" }; render(); };
-    el.querySelector("#ch-new").onclick = () => { mode = "new"; pick = { file: null, doc: null, thumbs: [], page: 1, busy: "" }; render(); el.querySelector("#nf-nom")?.focus(); };
+    el.querySelector("#ch-fond").onclick = () => { mode = "fond"; pick = { file: null, doc: null, thumbs: [], page: 1, busy: "", roles: [] }; render(); };
+    el.querySelector("#ch-new").onclick = () => { mode = "new"; pick = { file: null, doc: null, thumbs: [], page: 1, busy: "", roles: [] }; render(); el.querySelector("#nf-nom")?.focus(); };
     const qi = el.querySelector("#ch-q"); qi.oninput = () => { q = qi.value; const pos = qi.selectionStart; render(); const n = el.querySelector("#ch-q"); n.focus(); n.setSelectionRange(pos, pos); };
     el.querySelector("#ch-import").onchange = (e) => importFile(e.target.files[0]).catch(err=>notify(err.message));
     el.querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => act(b.dataset.act, b.dataset.id).catch(err=>notify(err.message))));
@@ -143,13 +148,16 @@ export function mountChantiers(el, { api }) {
       const f = fi.files[0]; if (!f) return;
       if (!isPdf(f) && !isImage(f)) { err("Format non pris en charge : PDF, JPG ou PNG."); return; }
       const keep = { nom: el.querySelector("#nf-nom")?.value, num: el.querySelector("#nf-num")?.value, cli: el.querySelector("#nf-cli")?.value };
-      pick = { file: f, doc: null, thumbs: [], page: 1, busy: isPdf(f) ? "Lecture du PDF…" : "" };
+      pick = { file: f, doc: null, thumbs: [], page: 1, busy: isPdf(f) ? "Lecture du PDF…" : "", roles: [] };
       refreshFond();
       if (isPdf(f)) {
         try {
           pick.doc = await openPdf(f); pick.thumbs = await pdfThumbs(pick.doc);
-          // un plan est en général en paysage : on présélectionne la dernière page paysage
-          const land = pick.thumbs.filter((t) => t.wPt > t.hPt); pick.page = (land.at(-1) || pick.thumbs.at(-1)).page;
+          // n° 15 : rôle proposé pour chaque page ; la page du niveau visé est présélectionnée (sinon la dernière en paysage)
+          pick.roles = proposeRoles(pick.thumbs);
+          const land = pick.thumbs.filter((t) => t.wPt > t.hPt), want = pick.roles.find((x) => x.role === targetRole()) || pick.roles.find((x) => x.role.startsWith("niv:"));
+          pick.page = want ? want.page : (land.at(-1) || pick.thumbs.at(-1)).page;
+          if (!want) pick.roles = setRole(pick.roles, pick.page, targetRole());
         } catch (e) { pick.file = null; err("PDF illisible : " + e.message); }
         pick.busy = ""; refreshFond(keep);
       }
@@ -160,7 +168,13 @@ export function mountChantiers(el, { api }) {
   function refreshFond() {
     const box = el.querySelector("#nf-fond"); if (!box) return;
     box.innerHTML = fondHTML();
-    box.querySelectorAll(".thumb").forEach((b) => (b.onclick = () => { pick.page = +b.dataset.page; refreshFond(); }));
+    box.querySelectorAll(".thumb").forEach((b) => (b.onclick = () => { pick.page = +b.dataset.page; pick.roles = setRole(pick.roles, pick.page, targetRole()); refreshFond(); }));
+    box.querySelectorAll(".pg-role").forEach((s) => (s.onchange = () => {
+      const p = +s.dataset.page; pick.roles = setRole(pick.roles, p, s.value);
+      if (s.value === targetRole()) pick.page = p;
+      else if (p === pick.page) { const o = pick.roles.find((x) => x.role === targetRole()); if (o) pick.page = o.page; }
+      refreshFond();
+    }));
     const ok = el.querySelector("#nf-ok"); if (ok) ok.disabled = !!pick.busy;
   }
 
@@ -179,6 +193,19 @@ export function mountChantiers(el, { api }) {
     ok.disabled = true; ok.textContent = "Préparation du fond…";
     try {
       const target = meta || CHS.current();
+      // n° 15 : dossier PDF : chaque niveau trouvé reçoit sa page (nouveau chantier) ; rôles gardés pour l'analyse IA
+      const dossier = pick.doc && pick.roles.length ? { name: pick.file.name, at: Date.now(), ...dossierOf(pick.roles) } : null;
+      if (meta && dossier && dossier.levels.length) {
+        const first = dossier.levels.find((l) => l.page === pick.page) || dossier.levels[0], order = [first, ...dossier.levels.filter((l) => l !== first)];
+        const levels = [];
+        for (const [i, l] of order.entries()) {
+          const id = i === 0 ? "rdc" : "l" + (Date.now() + i).toString(36);
+          ok.textContent = `Préparation du fond ${l.name} (page ${l.page})…`;
+          levels.push({ id, name: l.name, fond: await storeFond({ ...meta, level: id }, pick.file, pick.doc, l.page) });
+        }
+        Object.assign(meta, { levels, level: "rdc", fond: levels[0].fond, dossier });
+        CHS.add(meta); openChantier(id); return;
+      }
       let fond = pick.file ? await storeFond(target, pick.file, pick.doc, pick.page) : null;
       // autre page du même PDF qu'un niveau déjà à l'échelle (même format) : on reprend sa position et son échelle
       if (fond && !meta) {
@@ -186,8 +213,8 @@ export function mountChantiers(el, { api }) {
         const twin = CHS.levelsOf(target).find((l) => l.id !== (target.level || "rdc") && l.fond && l.fond.calibre && l.fond.pxW === fond.pxW && l.fond.pxH === fond.pxH && base(l.fond.name) === base(fond.name));
         if (twin) fond = { ...fond, x: twin.fond.x, y: twin.fond.y, w: twin.fond.w, h: twin.fond.h, calibre: true, reprise: twin.name };
       }
-      if (meta) { meta.fond = fond; CHS.add(meta); }
-      else { api.saveNow(); CHS.update(id, { fond }); }
+      if (meta) { meta.fond = fond; if (dossier) meta.dossier = dossier; CHS.add(meta); }
+      else { api.saveNow(); CHS.update(id, dossier ? { fond, dossier } : { fond }); }
       openChantier(id);
     } catch (e) { ok.disabled = false; ok.textContent = "Réessayer"; err("Échec : " + e.message); }
   }

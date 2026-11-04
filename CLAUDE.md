@@ -523,6 +523,11 @@ garde-fous ≥ 6 murs / 60 % / 1,5 m / 5 %) ; `ai-releve.js` `realign()` après 
 print.js passe contour puis remplissage). Feuille de route du 04/11 (lots A à D) : document du projet claude.ai
 `claude/feuille-de-route-2026-11.md`, résumé dans le journal.
 
+### Rôle des pages du dossier (n° 15, bloc D du 04/11/2026)
+`src/walls/page-roles.js` (`proposeRoles`, `setRole`, `dossierOf`, `analysisPages`) ; `pdfThumbs` rend le texte ; chantiers-page
+`.pg-role` ; nouveau chantier = un niveau par page d'implantation ; `meta.dossier` ; mode 4 (`ai-cross.js`) ne joint que plan
+cuisine et devis. Test `scripts/page-roles.test.mjs`.
+
 ### Consigne du relevé IA (n° 4, 04/11/2026)
 `ai-plan.js` `promptBody` : échelle sur 3 cotes en tête de « remarques », mur extérieur maçonnerie + doublage = un seul mur,
 cloisons jusqu'à l'axe, pointillés jamais des murs, placards sur 3 côtés, symboles tournés, doutes à deux types, guillemets
