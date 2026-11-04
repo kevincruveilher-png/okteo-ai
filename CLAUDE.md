@@ -540,6 +540,11 @@ boites.js `MODES.be`, `beKindOf`, `BE_COUPLES`, `placeLevelBE` (pièces voisines
 petites pièces ; séjour trop chargé → prises vers la cuisine ; boîte dans ses pièces) ; volets toujours à part en mode BE ;
 `autoBoxes` passe les pièces. Test `scripts/mode-be.test.mjs`.
 
+### Mobilier (n° 11, lot C du 04/11/2026)
+volumes.js `meuble: true` / `isMeuble` (10 meubles, `saniShape`, `sani3d` matière meuble / plante) ; appareils.js groupe
+« Mobilier » ; bouton `[data-tool="__meubles"]` (`K.moreOpen = "meubles"`) ; `AI_TYPES` sans Mobilier ni Zones.
+Test `scripts/mobilier.test.mjs`.
+
 ### Zones d'exclusion (n° 10, lot C du 04/11/2026)
 Types `ZONE` / `ZONEC` (volumes.js `zone: true`, groupe « Zones d'exclusion ») ; `src/cablage/exclusion.js` (`zonesByLevel`,
 `detour`, `detourVia`, `pushOut`) ; gaines / pontages / alimentations / lignes directes `via` + `detour` (gaines.js) ;

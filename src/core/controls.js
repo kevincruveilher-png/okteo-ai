@@ -48,12 +48,16 @@ export function buildTools() {
   const more = APPAREILS[K.tool];
   h += `<span class="palette" role="group" aria-label="Appareils">` + PAL.map(pb).join("") +
     `<span class="more-w"><button data-tool="__more" class="pb more ${more || K.moreOpen ? 'on' : ''}" title="Autres appareils : radiateurs, sèche-serviette, VMC, four, lave-linge, plaque, hotte, chauffe-eau, prises extérieures, volets roulants, interphone, TV, équipotentielles, gaine aiguillée…" aria-label="Autres appareils" aria-haspopup="true" aria-expanded="${!!K.moreOpen}"><svg class="ticon" viewBox="-1.25 -1.35 2.5 2.7" aria-hidden="true">${more ? glyph(K.tool) : `<circle cx="-0.7" r="0.22" class="gf"/><circle r="0.22" class="gf"/><circle cx="0.7" r="0.22" class="gf"/>`}</svg><span class="tl">Autres ▾</span></button>` +
-    (K.moreOpen ? `<div class="more-pop" role="menu">${GROUPES.map(g => `<div class="mg"><b>${g}</b><div class="mgl">${Object.keys(APPAREILS).filter(t => APPAREILS[t].groupe === g).map(pb).map((x, i) => x.replace('class="pb', 'class="pb mi')).join("")}</div></div>`).join("")}</div>` : "") + `</span></span></div>`;
+    (K.moreOpen === true ? `<div class="more-pop" role="menu">${GROUPES.map(g => `<div class="mg"><b>${g}</b><div class="mgl">${Object.keys(APPAREILS).filter(t => APPAREILS[t].groupe === g).map(pb).map((x, i) => x.replace('class="pb', 'class="pb mi')).join("")}</div></div>`).join("")}</div>` : "") + `</span>` +
+    // n° 11 : « Mobilier ▾ » : canapé, table, chaises, lits, meuble TV… (sans électricité ni repère : 3D et implantation client)
+    `<span class="more-w"><button data-tool="__meubles" class="pb more ${APPAREILS[K.tool]?.groupe === "Mobilier" || K.moreOpen === "meubles" ? 'on' : ''}" title="Mobilier : canapé, fauteuil, table, chaise, lits, meuble TV, armoire, bureau, plante (sans électricité ni repère ; dessiné en gris, en volume dans la vue 3D)" aria-label="Mobilier" aria-haspopup="true" aria-expanded="${K.moreOpen === "meubles"}"><svg class="ticon" viewBox="-1.25 -1.35 2.5 2.7" aria-hidden="true"><rect x="-1" y="-0.3" width="2" height="0.8" rx="0.15" class="gs"/><rect x="-1" y="-0.75" width="2" height="0.45" rx="0.1" class="gs"/></svg><span class="tl">Mobilier ▾</span></button>` +
+    (K.moreOpen === "meubles" ? `<div class="more-pop" role="menu"><div class="mg"><b>Mobilier</b><div class="mgl">${Object.keys(APPAREILS).filter(t => APPAREILS[t].groupe === "Mobilier").map(pb).map(x => x.replace('class="pb', 'class="pb mi')).join("")}</div></div></div>` : "") + `</span></span></div>`;
   t.innerHTML = h;
   t.querySelectorAll("button").forEach(btn => btn.onclick = () => {
     const v = btn.dataset.tool;
-    if (v === "__more") {
-      K.moreOpen = !K.moreOpen;
+    if (v === "__more" || v === "__meubles") {
+      const want = v === "__more" ? true : "meubles";
+      K.moreOpen = K.moreOpen === want ? false : want;
       if (!K.moreHook) {
         // le menu se ferme au clic ailleurs ou avec Échap
         K.moreHook = true;

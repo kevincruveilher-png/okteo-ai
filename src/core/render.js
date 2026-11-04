@@ -20,7 +20,7 @@ import { portLayout, portXY } from "../cablage/boites.js";
 import { chooseBows, BOW0, curve, polyCross } from "../cablage/trace.js";
 import { implantationPending } from "../cablage/equipements.js";
 import { APPAREILS, raccOf } from "../cablage/appareils.js";
-import { isSani, roomFor, saniShape, volumesOf } from "../cablage/volumes.js";
+import { isSani, isMeuble, roomFor, saniShape, volumesOf } from "../cablage/volumes.js";
 import { isZone, zonePoly, detour, detourVia } from "../cablage/exclusion.js";
 import { boxColor, ftzSymbol, symIndex } from "../print/ftz-symbols.js";
 import { symbolSVG } from "../print/ftz-draw.js";
@@ -247,8 +247,9 @@ export function draw() {
         sv += `<g class="sani zone" data-id="${a.id}" data-t="${a.t}"><polygon points="${pts(P)}" fill="url(#zhatch)" fill-opacity=".9" stroke="${on ? "var(--sel)" : "#d33"}" stroke-width="${on ? .03 : .018}"><title>Zone d'exclusion : ni boîte, ni gaine, ni appareil, ni ligne directe</title></polygon></g>`;
         return;
       }
-      // n° 9 : tous les sanitaires en trait gris fin pointillé (forme commune écran / impression : saniShape)
-      const st = on ? `stroke="var(--sel)" stroke-width=".022"` : `stroke="#8a8f96" stroke-width=".01" stroke-dasharray=".035 .022"`;
+      // n° 9 : tous les sanitaires en trait gris fin pointillé (forme commune écran / impression : saniShape) ;
+      // n° 11 : mobilier en trait gris clair continu
+      const st = on ? `stroke="var(--sel)" stroke-width=".022"` : isMeuble(a.t) ? `stroke="#a7adb4" stroke-width=".01"` : `stroke="#8a8f96" stroke-width=".01" stroke-dasharray=".035 .022"`;
       sv += `<g class="sani" data-id="${a.id}" data-t="${a.t}">` + saniShape(a).map(p => p.k === "line"
         ? `<polyline points="${pts(p.pts)}" fill="none" ${st} stroke-linecap="round"/>`
         : `<polygon points="${pts(p.pts)}" fill="${p.k === "out" ? "#fff" : "none"}" ${st} stroke-linejoin="round"/>`).join("") + `</g>`;

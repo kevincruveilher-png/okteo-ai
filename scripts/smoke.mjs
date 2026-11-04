@@ -2873,6 +2873,26 @@ try {
     if (!(r.added === 4 && r.dashed && r.inGeo === 4 && r.asApp === 0 && r.vol === 0 && r.reps === 0 && r.pdf && z > 0.79 && back === 0)) throw new Error(JSON.stringify({ r, z, back }));
     return true;
   });
+  await check("n° 11 : bouton « Mobilier ▾ » (10 meubles) ; canapé et table posés : gris clair, sans repère, en volume dans la vue 3D, un Ctrl+Z", async () => {
+    await ev(() => { okteo.setTab("plan"); okteoExt.panel.close("assistant"); });
+    await page.click('#tools [data-tool="__meubles"]');
+    const pop = await ev(() => ({ n: document.querySelectorAll("#tools .more-pop .mi").length, g: [...document.querySelectorAll("#tools .more-pop .mg b")].map((b) => b.textContent).join() }));
+    await page.click('#tools .more-pop [data-tool="CANAPE"]');
+    const tool = await ev(() => okteo.tool);
+    await ev(() => okteo.setTool("sel"));
+    const r = await ev(() => {
+      const S = okteo.state, X = Math.max(0, ...S.nodes.map((n) => n.x)) + 2, Y = Math.min(0, ...S.nodes.map((n) => n.y)) + 1;
+      const res = okteo.importDevices([{ t: "CANAPE", x: X, y: Y }, { t: "TABLE", x: X + 3, y: Y }], [], { stay: true }); window.__okteo.draw();
+      const g = [...document.querySelectorAll("#sv g.sani")].filter((e) => (res.ids || []).includes(e.dataset.id));
+      return { ids: res.ids, n: g.length, solid: g.every((e) => [...e.querySelectorAll("polygon, polyline")].every((p) => !p.getAttribute("stroke-dasharray"))), reps: [...document.querySelectorAll("#sv text.rep")].filter((e) => (res.ids || []).includes(e.dataset.id)).length };
+    });
+    await page.keyboard.press("Alt+4");
+    await page.waitForFunction((ids) => { const S3 = okteoExt.pages.vue3d?.ui?.state; return S3 && S3.house && S3.house.sanis && ids.every((id) => S3.house.sanis.children.some((o) => o.userData.sani === id)); }, r.ids, { timeout: 60000 });
+    await ev(() => { okteo.setTab("plan"); okteo.undo(); });
+    const back = await ev((ids) => okteo.state.app.filter((a) => ids.includes(a.id)).length, r.ids);
+    if (!(pop.n === 10 && pop.g === "Mobilier" && tool === "CANAPE" && r.n === 2 && r.solid && r.reps === 0 && back === 0)) throw new Error(JSON.stringify({ pop, tool, r, back }));
+    return true;
+  });
   await check("3D-3 : hauteurs de départ dans Paramètres → Vue 3D, allège / linteau d'une fenêtre et hauteur sous plafond d'une pièce dans Propriétés → la 3D suit", async () => {
     await ev(() => okteo.setTab("params"));
     await page.waitForSelector("#ps-3d [data-h3d=\"h3dPlafond\"]");

@@ -5,7 +5,7 @@ import {ductPath,ductReport} from '../cablage/vmc.js';
 import { K } from "./k.js";
 import * as CHS from "../chantiers.js";
 import { labelPoint } from "../walls/rooms.js";
-import { hasVolumes, isSani, roomFor, sani3d, saniRect, saniShape, volumesOf } from "../cablage/volumes.js";
+import { hasVolumes, isSani, isMeuble, roomFor, sani3d, saniRect, saniShape, volumesOf } from "../cablage/volumes.js";
 import { isZone, zonePoly, detour, detourVia } from "../cablage/exclusion.js";
 import { CH, LKEYS, TYPES, batiStyle, hDefault, dist, epOf, matOf, nodeById, segById, segDir, state, symScaleOf } from "./model.js";
 import { markDirty, snapshot } from "./persist.js";
@@ -418,7 +418,7 @@ export function okteoGeo() {
   const roomPolys = state.rooms.map(roomPoly);
   const volumes = state.app.filter(a => hasVolumes(a.t)).map(a => ({ id: a.id, t: a.t, x: a.x, y: a.y, rect: a.t === "DITAL" ? null : saniRect(a), ...volumesOf(a, roomFor(a, roomPolys)) }));
   // n° 9 : dessin de chaque sanitaire (trait gris pointillé à l'impression) et ses volumes pour la vue 3D
-  const sanis = state.app.filter(a => isSani(a.t)).map(a => ({ id: a.id, t: a.t, x: a.x, y: a.y, shape: saniShape(a), solid: sani3d(a), ...(isZone(a.t) ? { zone: true } : {}) }));
+  const sanis = state.app.filter(a => isSani(a.t)).map(a => ({ id: a.id, t: a.t, x: a.x, y: a.y, shape: saniShape(a), solid: sani3d(a), ...(isZone(a.t) ? { zone: true } : {}), ...(isMeuble(a.t) ? { meuble: true } : {}) }));
   const apps = state.app.filter(a => !isSani(a.t)).map(a => ({
     id: a.id,
     t: a.t,
