@@ -66,6 +66,18 @@ test('v76 : modèle de l’analyse verrouillé sur Opus 5.5 (src/ai-config.js) :
   assert.equal(seen.at(-1).model,'claude-opus-5-5');assert.equal(z.okteo.model,'claude-opus-5-5');assert(Math.abs(z.okteo.cost-(1000*6+100*30)/1e6)<1e-9);
  }finally{globalThis.fetch=original;}});
 
+test('n° 3 : outils de l’IA définis par Oktéo acceptés (tool_use / tool_result, comptés avec les outils) ; outil serveur, outil inconnu et bloc mal formé refusés',async()=>{const f=fixture(),c=await f.admin();const original=globalThis.fetch,seen=[],counted=[];
+ globalThis.fetch=async(url,opts)=>{const b=JSON.parse(opts.body);if(url.endsWith('/count_tokens')){counted.push(b);return Response.json({input_tokens:100});}seen.push(b);return Response.json({content:[{type:'text',text:'OK'}],stop_reason:'end_turn',usage:{input_tokens:100,output_tokens:10}});};
+ try{const tools=[{name:'symboles',description:'Formes du PDF',input_schema:{type:'object',properties:{x:{type:'number'}}}},{name:'zoom',description:'Image agrandie',input_schema:{type:'object',properties:{}}}];
+  const msgs=[{role:'user',content:'Relève ce plan'},{role:'assistant',content:[{type:'text',text:'Je regarde.'},{type:'tool_use',id:'tu1',name:'symboles',input:{x:0}},{type:'tool_use',id:'tu2',name:'zoom',input:{}}]},{role:'user',content:[{type:'tool_result',tool_use_id:'tu1',content:'3 symboles'},{type:'tool_result',tool_use_id:'tu2',content:[{type:'text',text:'Zoom'},{type:'image',source:{type:'base64',media_type:'image/jpeg',data:'AAAA'}}]}]}];
+  const ok={purpose:'analyse',max_tokens:200,tools,messages:msgs};
+  const r=await f.call('/ai/anthropic',ok,c);assert.equal(r.status,200);assert.deepEqual(seen.at(-1).tools,tools);assert.deepEqual(counted.at(-1).tools,tools);assert.equal((await r.json()).stop_reason,'end_turn');
+  assert.equal((await f.call('/ai/anthropic',{...ok,tools:[{type:'web_search_20250305',name:'web_search'}]},c)).status,400);
+  assert.equal((await f.call('/ai/anthropic',{...ok,tools:[{name:'symboles',description:'x',input_schema:{type:'object'},cache_control:{type:'ephemeral'}}]},c)).status,400);
+  const unknown=structuredClone(msgs);unknown[1].content[1].name='bash';assert.equal((await f.call('/ai/anthropic',{...ok,messages:unknown},c)).status,400);
+  const url=structuredClone(msgs);url[2].content[1].content[1]={type:'image',source:{type:'url',url:'https://x'}};assert.equal((await f.call('/ai/anthropic',{...ok,messages:url},c)).status,400);
+  const noTools=structuredClone(msgs);assert.equal((await f.call('/ai/anthropic',{purpose:'analyse',max_tokens:200,messages:noTools},c)).status,400);
+ }finally{globalThis.fetch=original;}});
 test('v76 : cache de prompt — cache_control 5 min accepté (système en blocs, texte, image), 1 h et plus de 4 marques refusés, coût du cache compté',async()=>{const f=fixture(),c=await f.admin();const original=globalThis.fetch,seen=[];
  globalThis.fetch=async(url,opts)=>{const b=JSON.parse(opts.body);if(url.endsWith('/count_tokens'))return Response.json({input_tokens:100});seen.push(b);return Response.json({content:[{type:'text',text:'OK'}],usage:{input_tokens:1000,output_tokens:100,cache_creation_input_tokens:2000,cache_read_input_tokens:10000}});};
  try{const eph={type:'ephemeral'},img={type:'image',source:{type:'base64',media_type:'image/jpeg',data:'AAAA'}};

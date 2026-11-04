@@ -442,7 +442,7 @@ export function showSide() {
     ].filter(([,v]) => v != null && v !== "").map(([k,v]) => `<p><b>${k}</b> : ${safe(v)}</p>`).join("")}</details>` : "";
     b.innerHTML = `<h3>Appareil · <span style="color:var(--accent2)">${rm[a.id] || ""}</span></h3>
      ${a.implantation ? `<div class="placement-note"><b>${implantationPending(a) ? "Halo violet : emplacement à préciser" : "Emplacement confirmé"}</b><p>${safe(a.implantation.motif || "")}</p>${implantationPending(a) ? `<button id="f-placement-confirm" title="Confirmer la position actuelle après déplacement ou vérification">Confirmer cet emplacement</button>` : `<button id="f-placement-review">Remettre à préciser</button>`}</div>` : ""}
-     ${reading}<div class="prop">
+     ${reading}${(a.aiOrigin || a.aiType || a.aiStatus) && !isSani(a.t) && a.t !== "INCONNU" ? `<p class="note full" id="f_memow">Le type est juste ? <button id="f_memo" title="n° 16 : mémoriser ce symbole (extrait du dessin + type) pour le pavillonneur du chantier ; l'IA s'en servira sur ses prochains plans">Mémoriser ce symbole</button></p>` : ""}<div class="prop">
       <div class="field full"><label>Type</label><select id="f_t">${Object.keys(TYPES).map(t => `<option value="${t}"${t === a.t ? " selected" : ""}>${TYPES[t].n}</option>`).join("")}</select></div>
       ${m ? `<div class="field"><label>Depuis l'angle A <span class="u">cm</span></label><input id="f_dA" type="number" step="1" value="${Math.round(m.dA * 100)}"></div>
       <div class="field"><label>Depuis l'angle B <span class="u">cm</span></label><input id="f_dB" type="number" step="1" value="${Math.round(m.dB * 100)}"></div>` : ""}
@@ -494,6 +494,7 @@ export function showSide() {
     const fv = b.querySelector("#f_var"); if (fv) fv.onchange = e => set("var", e.target.value);
     const fr = b.querySelector("#f_racc"); if (fr) fr.onchange = e => set("racc", e.target.value);
     const fp = b.querySelector("#f_p"); if (fp) fp.onchange = e => set("p", e.target.value === "" ? "" : Math.max(0, +e.target.value));
+    const mb = b.querySelector("#f_memo"); if (mb) mb.onclick = () => document.dispatchEvent(new CustomEvent("okteo:symbol-memo", { detail: { id: a.id } }));
     const r0b = b.querySelector("#f_rep0"); if (r0b) r0b.onclick = () => { snapshot(); delete a.rpx; delete a.rpy; markDirty(); re(); };
     const hok = b.querySelector("#f_hpok"); if (hok) hok.onclick = () => { snapshot(); delete a.hp; markDirty(); re(); };
     const aix = b.querySelector("#f_ainox"); if (aix) aix.onclick = () => { snapshot(); delete a.aiNo; markDirty(); re(); };

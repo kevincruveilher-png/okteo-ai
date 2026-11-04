@@ -523,6 +523,12 @@ garde-fous ≥ 6 murs / 60 % / 1,5 m / 5 %) ; `ai-releve.js` `realign()` après 
 print.js passe contour puis remplissage). Feuille de route du 04/11 (lots A à D) : document du projet claude.ai
 `claude/feuille-de-route-2026-11.md`, résumé dans le journal.
 
+### Outils de l'IA et mémoire des symboles (n° 3 + 16, bloc D du 04/11/2026)
+Worker : outils définis par Oktéo seulement (pas d'outil serveur), `tool_use` / `tool_result` contrôlés. `chat({tools})` →
+`content`, `stop`. `src/walls/ai-tools.js` (`AI_TOOLS`, `runTool`, `checkReleve`) + `src/ext/ai-agent.js` (`toolContext`,
+`readWithTools`) dans la lecture globale du mode 4. Préférences `modesIA` (« 4 » | « tous »), `toursOutils` ; mode 4 = 5
+relectures ; échelle bloquante (`.am-scale`). Mémoire : `src/ext/symbol-memory.js`, `#f_memo` → `okteo:symbol-memo`.
+
 ### Rôle des pages du dossier (n° 15, bloc D du 04/11/2026)
 `src/walls/page-roles.js` (`proposeRoles`, `setRole`, `dossierOf`, `analysisPages`) ; `pdfThumbs` rend le texte ; chantiers-page
 `.pg-role` ; nouveau chantier = un niveau par page d'implantation ; `meta.dossier` ; mode 4 (`ai-cross.js`) ne joint que plan

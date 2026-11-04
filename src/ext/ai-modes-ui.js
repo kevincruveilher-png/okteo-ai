@@ -10,6 +10,8 @@ import { LOGO } from "./attente.js";
 import { otherPages } from "./ai-cross.js";
 import { recommendFor } from "./ai-reco.js";
 import { esc as esc_ } from "./util.js";
+import { pref, setPref } from "../prefs.js";
+import { chantierScaleCheck } from "./pdf-page.js";
 
 export function createAiModes({ api, aiReleve, runner = null }) {
   const el = document.createElement("div");
@@ -17,7 +19,7 @@ export function createAiModes({ api, aiReleve, runner = null }) {
   el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "am-title");
   document.body.appendChild(el);
   // v76 : reco = recommandation calculée sur le plan (acceptée ou non par l'opérateur) ; esc = escalade proposée
-  let sel = null, launched = null, back = null, docs = [], pages = null, reco = null, esc = null, recoTok = 0;   // v76 : documents joints pour le contrôle croisé (mode 4)
+  let sel = null, launched = null, back = null, docs = [], pages = null, reco = null, esc = null, recoTok = 0, scale = null;   // v76 : documents joints pour le contrôle croisé (mode 4)
 
   const dots = (pts) => `<span class="am-dots" role="img" aria-label="${esc_(dotsLabel(pts))}">${[1, 2, 3, 4].map((i) => `<span class="am-dot${i <= pts ? " on" : ""}"></span>`).join("")}</span>`;
   // v76 : carte = élément « bouton » (role, aria-pressed, Entrée / Espace) et non <button> : le texte doit pouvoir défiler
@@ -45,12 +47,16 @@ export function createAiModes({ api, aiReleve, runner = null }) {
           <button type="button" class="am-x" title="Fermer (Échap)" aria-label="Fermer">✕</button></div>
       </div>
       <div class="am-intro"><h1 id="am-title">${esc_(MODES_PAGE.title)}</h1><p>${esc_(MODES_PAGE.intro)}</p></div>
-      ${bannerHTML()}
-      <div class="am-grid" role="group" aria-label="Modes d'analyse">${MODES_IA.map(card).join("")}</div>
+      ${only4() ? "" : bannerHTML()}
+      ${scaleHTML()}
+      <div class="am-grid${only4() ? " one" : ""}" role="group" aria-label="Modes d'analyse">${(only4() ? MODES_IA.filter((m) => m.n === 4) : MODES_IA).map(card).join("")}</div>
+      ${only4() ? `<p class="am-all"><button type="button" id="am-all" title="Les modes 1 à 3 restent des étapes du mode 4 ; vous pouvez les afficher pour comparer">Afficher aussi les modes 1 à 3</button></p>` : ""}
       ${sel === 4 ? docsHTML() : ""}
       <div class="am-foot"><p>${esc_(MODES_PAGE.foot)}</p>
         <button type="button" class="am-cta" id="am-go" aria-disabled="${!L.ok}" title="${esc_(L.why)}">${esc_(L.label)}</button></div>
     </div>`;
+    const all = el.querySelector("#am-all"); if (all) all.onclick = () => { setPref("modesIA", "tous"); render(); };
+    el.querySelectorAll("[data-scale]").forEach((b) => (b.onclick = () => { close(); if (b.dataset.scale === "calib") api.startCalib(); else document.dispatchEvent(new CustomEvent("okteo:walls")); }));
     el.querySelectorAll(".am-card").forEach((b) => {
       b.onclick = () => select(+b.dataset.mode, true);
       b.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(+b.dataset.mode, true); } };
@@ -85,6 +91,21 @@ export function createAiModes({ api, aiReleve, runner = null }) {
         ${docs.map((d, i) => `<span class="am-chip">${esc_(d.name)}<button type="button" data-rmdoc="${i}" aria-label="Retirer ${esc_(d.name)}" title="Retirer">✕</button></span>`).join("")}</div>
     </div>`;
   }
+  // n° 3 : seul le mode 4 à l'écran (préférence « modesIA ») ; échelle bloquante si elle n'est pas confirmée
+  function only4() { return pref("modesIA") !== "tous" && !esc; }
+  function scaleHTML() {
+    if (scale == null || scale.ok) return "";
+    return `<div class="am-scale warnbox" role="alert"><p><b>Échelle du plan non confirmée</b> — ${esc_(scale.why)} L'analyse est bloquée tant que l'échelle n'est pas juste (sinon tout le relevé serait décalé).</p>
+      <p><button type="button" data-scale="walls" title="Relève les murs du PDF et règle l'échelle d'après les cotes">Relever les murs (règle l'échelle)</button> <button type="button" data-scale="calib" title="Deux points d'une cote connue, ou 1/50">Régler l'échelle à la main</button></p></div>`;
+  }
+  async function checkScale() {
+    const f = api.ch.fond;
+    if (!f) return { ok: true };
+    if (!f.calibre) return { ok: false, why: "le fond n'a pas encore été mis à l'échelle." };
+    const c = await chantierScaleCheck(api).catch(() => null);
+    if (c && Math.abs(c.facteur - 1) > 0.03) return { ok: false, why: `les ${c.cotes} cotes lues sur le plan donnent un écart de ${Math.abs((c.facteur - 1) * 100).toFixed(1).replace(".", ",")} %.` };
+    return { ok: true };
+  }
   function select(n, focus = false) {
     if (!modeOf(n)) return;
     sel = n; render();
@@ -94,10 +115,12 @@ export function createAiModes({ api, aiReleve, runner = null }) {
 
   function open({ escalade = null } = {}) {
     back = document.activeElement;
-    sel = null; launched = null; pages = null; esc = escalade;
+    sel = null; launched = null; pages = null; esc = escalade; scale = null;
+    checkScale().then((r) => { scale = r; if (!el.hidden) render(); }).catch(() => { scale = { ok: true }; });
     // seul le dernier calcul compte (un calcul lancé par une ouverture précédente est ignoré)
     if (!esc) { reco = null; const tok = ++recoTok; recommendFor(api).then((r) => { if (tok !== recoTok) return; reco = r || { mode: 1, why: ["pas de plan sur ce niveau"], docs: 0 }; if (!el.hidden) render(); }).catch(() => { if (tok !== recoTok) return; reco = { mode: 1, why: ["mesure du plan impossible"], docs: 0 }; if (!el.hidden) render(); }); }
-    render(); el.hidden = false; document.body.classList.add("am-on");
+    if (only4()) select(4); else render();
+    el.hidden = false; document.body.classList.add("am-on");
     el.querySelector(".am-card")?.focus();
   }
   function close() {
@@ -108,6 +131,7 @@ export function createAiModes({ api, aiReleve, runner = null }) {
 
   function launch() {
     const L = launchState(sel), m = modeOf(sel);
+    if (scale && !scale.ok) { el.querySelector(".am-scale")?.animate?.([{ transform: "translateX(-4px)" }, { transform: "translateX(4px)" }, { transform: "none" }], { duration: 180 }); return false; }
     if (!L.ok) { el.querySelector("#am-go")?.animate?.([{ transform: "translateX(-4px)" }, { transform: "translateX(4px)" }, { transform: "none" }], { duration: 180 }); return false; }
     launched = m.n;
     close();

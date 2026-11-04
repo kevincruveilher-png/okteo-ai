@@ -1,3 +1,33 @@
+## 04/11/2026 — n° 3 + 16 : outils de l'IA pendant l'analyse, mode 4 seul, échelle bloquante, mémoire des symboles (bloc D)
+
+- Relais en ligne (`server/worker.js`) : jusqu'ici « aucun outil ». Ouvert aux **outils définis par Oktéo seulement**
+  (12 au plus, {name, description, input_schema} sans « type » : ni recherche web, ni exécution de code, ni outil serveur),
+  blocs `tool_use` (réponse de l'IA rejouée, outil déclaré) et `tool_result` (texte ou image base64, aucune adresse) ;
+  outils comptés avec la consigne (count_tokens) : même réservation de budget. Test `scripts/web.test.mjs`.
+- `ai.js` `chat({tools})` : outils transmis, réponse avec `content` (blocs) et `stop` (raison d'arrêt).
+- `src/walls/ai-tools.js` (pur) : `AI_TOOLS` (legende, symboles, textes, murs, zoom, verifier), `runTool`, `checkReleve`
+  (décompte, lumières sans commande, commandes sans lumière, va-et-vient seul, VR / CVR, symboles du PDF non couverts),
+  `TOOLS_GUIDE`. `src/ext/ai-agent.js` : `toolContext(api, G, S)` (formes, textes et légende du PDF vectoriel et murs
+  détectés, en pixels de l'image envoyée ; zoom rendu depuis le PDF ; mémoire des symboles) et `readWithTools` (boucle
+  bornée : `toursOutils` 8, 8 zooms). Mode 4 (`ai-modes-run.js`) : la lecture globale passe par les outils ; journal
+  `outils`, `outilsListe` ; carte du relevé « n outils d'Oktéo utilisés ».
+- « Analyse IA » : préférence `modesIA` = « 4 » (seul le mode 4 à l'écran, choisi d'office ; « Afficher aussi les modes
+  1 à 3 » → « tous ») ; mode 4 : 5 relectures (au lieu de 3) ; **échelle bloquante** : fond pas mis à l'échelle, ou cotes
+  du plan qui s'écartent de plus de 3 % → encart `.am-scale` (Relever les murs / Régler l'échelle), lancement refusé.
+- n° 16 : `src/ext/symbol-memory.js` (`okteo.symmemo.v1` par pavillonneur : type, description, extrait du dessin, chantier,
+  qui, date ; `symbolMemory(pav)` y ajoute les symboles BE communs avec correspondance Oktéo ; `remember`, `forget`,
+  `cropAround`) ; Propriétés d'un appareil relevé par l'IA : « Mémoriser ce symbole » (`#f_memo` → `okteo:symbol-memo`).
+  Lue par l'outil « legende » ; la légende du plan reste prioritaire (contradiction à signaler dans les remarques).
+- Pas encore : signalement automatique des contradictions dans le rapport de Thibaut, question à l'opérateur pendant
+  l'analyse pour un symbole inconnu (il reste INCONNU, à mémoriser après correction), outil « suivre_trait », mémoire
+  partagée entre opérateurs (elle est dans le coffre de chaque compte ; la bibliothèque commune reste éditée par l'administration).
+- Tests : `scripts/ai-tools.test.mjs` (5, dans check), `web.test.mjs` (outils au relais), `ai-modes.test.mjs` (5 relectures) ;
+  smoke : mode 4 avec outils (faux serveur : 3 outils puis relevé), mode 4 seul + échelle bloquante, mémoire d'un symbole.
+
+- Fusion dans `main` le 04/11/2026 (go de Kévin pour le bloc D) : `npm run check` vert (run 41911939621, smoke 206/206) et
+  `npm run test:web` vert (16/16, relais en ligne) sur GitHub Actions ; workflow temporaire retiré. À vérifier en ligne :
+  première analyse mode 4 réelle (outils appelés par Claude, coût).
+
 ## 04/11/2026 — n° 15 : import du dossier PDF par rôle de page (bloc D, go de Kévin)
 
 - Décision de Kévin : on importe le dossier PDF entier, l'opérateur désigne les pages (implantation par niveau, plan cuisine,

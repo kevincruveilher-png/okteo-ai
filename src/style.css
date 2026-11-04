@@ -1166,6 +1166,10 @@ body.am-on{overflow:hidden}
 .am-cta{flex:none;height:56px;padding:0 32px;border:0;border-radius:12px;background:#E8534A;color:#FFFFFF;font-family:"Rubik",sans-serif;font-size:19px;font-weight:700;cursor:pointer}
 .am-cta[aria-disabled="true"]{background:#1A4A78;color:#A9B8CB;cursor:not-allowed}
 @media (max-width:1180px){.am-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* n° 3 : mode 4 seul à l'écran ; échelle non confirmée = analyse bloquée */
+.am-grid.one{grid-template-columns:minmax(0,520px);justify-content:center}
+.am-all{text-align:center;margin:10px 0 0}.am-all button{background:none;border:0;color:var(--mut);text-decoration:underline;cursor:pointer}
+.am-scale{margin:0 0 16px;padding:10px 14px}.am-scale p{margin:4px 0}
 @media (max-width:640px){.am-grid{grid-template-columns:1fr}.am-foot{flex-direction:column;align-items:stretch;gap:16px}.am-cta{width:100%}.am-in{padding-top:24px}}
 @media (prefers-reduced-motion:reduce){.am-card,.am-ring,.am-ring svg{transition:none}.am-card:hover,.am-card.sel{transform:none}}
 .ma-lock{margin:4px 0}
