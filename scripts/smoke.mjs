@@ -2913,6 +2913,9 @@ try {
     // mémoire hors ligne : le service est installé, la page se rouvre sans réseau
     const sw = await p2.evaluate(async () => { try { const r = await navigator.serviceWorker.ready; return r.scope; } catch (e) { return "erreur " + e; } });
     await p2.reload(); await p2.waitForFunction(() => window.__plan3d && window.__plan3d.ready, null, { timeout: 60000 });
+    await p2.waitForTimeout(500);
+    // la page et chacun de ses scripts sont gardés sur le téléphone
+    const kept = await p2.evaluate(async () => { const urls = [location.pathname, ...performance.getEntriesByType("resource").filter((e) => /\.(js|css)(\?|$)/.test(e.name) && e.name.startsWith(location.origin)).map((e) => e.name)]; const miss = []; for (const u of urls) if (!(await caches.match(u))) miss.push(u.replace(location.origin, "")); return { n: urls.length, miss: miss.slice(0, 5), controlled: !!navigator.serviceWorker.controller }; });
     await p2.context().setOffline(true);
     let offline = false;
     try { await p2.reload(); await p2.waitForFunction(() => window.__plan3d && window.__plan3d.ready, null, { timeout: 20000 }); offline = true; } catch (e) { offline = String(e).slice(0, 120); }
@@ -2921,8 +2924,8 @@ try {
     await open(u.b);
     const warn = await p2.evaluate(() => (document.querySelector(".warn") || {}).textContent || "");
     await p2.close();
-    const ok = /Face 1\/2/.test(r1.face) && /autre face/.test(r1.face) && !r1.warn && r1.no && r1.fg && r1.fd && r1.none === null && card && card.includes(r1.no) && flat && /plan3d/.test(sw) && offline === true && /autre impression/.test(warn) && !errs.length;
-    if (!ok) throw new Error(JSON.stringify({ r1, card, flat, sw, offline, warn, errs }));
+    const ok = /Face 1\/2/.test(r1.face) && /autre face/.test(r1.face) && !r1.warn && r1.no && r1.fg && r1.fd && r1.none === null && card && card.includes(r1.no) && flat && /plan3d/.test(sw) && kept.controlled && kept.n > 2 && !kept.miss.length && offline === true && /autre impression/.test(warn) && !errs.length;
+    if (!ok) throw new Error(JSON.stringify({ r1, card, flat, sw, kept, offline, warn, errs }));
     return true;
   });
   await check("3D-2 : jonction oubliée et mur en double signalés dans la vue 3D, un clic montre l'endroit sur le plan", async () => {

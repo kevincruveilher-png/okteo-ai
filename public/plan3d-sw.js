@@ -12,7 +12,8 @@ self.addEventListener("fetch", (e) => {
   if (r.method !== "GET" || u.origin !== location.origin) return;
   // la page : réseau d'abord (nouvelle version), sinon la copie gardée
   if (r.mode === "navigate") {
-    e.respondWith(fetch(r).then((res) => { if (res.ok) caches.open(CACHE).then((c) => c.put(u.pathname, res.clone())); return res; })
+    // (copie faite tout de suite : une fois la réponse rendue à la page, son contenu n'est plus lisible)
+    e.respondWith(fetch(r).then((res) => { if (res.ok) { const cp = res.clone(); e.waitUntil(caches.open(CACHE).then((c) => c.put(u.pathname, cp))); } return res; })
       .catch(async () => (await caches.match(u.pathname)) || (await caches.match("/plan3d.html")) || (await caches.match("/plan3d")) || Response.error()));
     return;
   }
