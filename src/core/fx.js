@@ -34,6 +34,7 @@ export function fxDraw(items) {
     const it = want.get(g.dataset.k);
     if (it) {
       g.classList.toggle("vmc-pulse", !!it.pulse);
+      if (it.fam) ["ia", "montage", "pose", "cablage"].forEach((f) => g.classList.toggle("fam-" + f, it.fam === f));
       g.setAttribute("transform", tr(it));
       if (g.classList.contains("gone")) { g.classList.remove("gone"); clearTimeout(+g.dataset.t); }
       want.delete(g.dataset.k);
@@ -46,6 +47,7 @@ export function fxDraw(items) {
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
     g.setAttribute("class", it.kind === "glow" ? "fx-glow" : it.kind === "doubt" ? "fx-doubt" + (it.bloquant ? " blq" : "") : it.kind === "placement" ? "fx-placement" : "fx-halo");
     g.classList.toggle("vmc-pulse", !!it.pulse);
+    if (it.fam) g.classList.add("fam-" + it.fam);   // n° 5 : couleur de la famille du point (IA, montage, pose, câblage)
     g.dataset.k = k;
     g.setAttribute("transform", tr(it));
     g.innerHTML = tpl(it);

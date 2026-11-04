@@ -456,6 +456,11 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .fx-halo .ring{fill:none;stroke:#f28c1b;stroke-width:2.2px;vector-effect:non-scaling-stroke;opacity:.95}
 .fx-halo .pulse{fill:#f28c1b;opacity:0;transform-box:fill-box;transform-origin:center;animation:fx-pulse 1.8s ease-out infinite}
 .fx-halo.gone{display:none}
+/* n° 5 : couleur du halo = famille du point (L'IA hésite, montage faux, pose, câblage) */
+.fx-halo.fam-ia .ring{stroke:#2f6fe0}.fx-halo.fam-ia .pulse{fill:#2f6fe0}
+.fx-halo.fam-montage .ring{stroke:#d33a2c}.fx-halo.fam-montage .pulse{fill:#d33a2c}
+.fx-halo.fam-pose .ring{stroke:#f28c1b}.fx-halo.fam-pose .pulse{fill:#f28c1b}
+.fx-halo.fam-cablage .ring{stroke:#0b8a7a}.fx-halo.fam-cablage .pulse{fill:#0b8a7a}
 @keyframes fx-pulse{0%{opacity:.42;transform:scale(.85)}100%{opacity:0;transform:scale(2)}}
 .fx-glow{mix-blend-mode:normal}
 .fx-in{animation:fx-on .7s cubic-bezier(.2,.8,.3,1) both}
@@ -1286,3 +1291,11 @@ body.am-on{overflow:hidden}
 .why-sol{display:flex;gap:6px;align-items:center;margin:6px 0;font-size:13px}
 .v3d-gl{display:flex;flex-wrap:wrap;gap:4px}.v3d-gl button{border:1px solid var(--line);background:transparent;color:var(--fg);padding:4px 8px;font-family:var(--fm);font-size:12px}
 .v3d-sol{display:flex;gap:8px;align-items:center}
+
+/* n° 5 : pourquoi ça clignote, rapport d'analyse */
+.whyb,.rapcard{max-width:440px;max-height:70vh;overflow:auto}
+.fam-badge{display:inline-block;padding:1px 8px;border-radius:10px;background:color-mix(in srgb,var(--fc) 16%,transparent);color:var(--fc);border:1px solid var(--fc);font-size:12px;font-weight:600}
+.why-pt{border-top:1px solid var(--line);padding:8px 0}.why-pt p{margin:4px 0}.why-pr{margin:4px 0 4px 18px;padding:0}
+.why-ch{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:center;margin:6px 0}
+.why-act{display:flex;gap:6px;flex-wrap:wrap}.why-img img{display:block;max-width:100%;border:1px solid var(--line);background:#fff}
+.hud-why{color:#d33a2c;font-weight:600}.rap-fam ul{margin:4px 0 8px 16px;padding:0}.rap-fam li{margin:2px 0}

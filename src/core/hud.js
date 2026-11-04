@@ -101,7 +101,7 @@ export function hudHTML() {
     return `<span class="lab">${repMap()[a.id] || a.t}</span><span class="vsep"></span>
       <span class="lab">h</span><input data-h="h" type="number" step="1" value="${a.h ?? ""}" ${a.h == null ? 'placeholder="plaf."' : ''}>${dc}
       <span class="vsep"></span><span class="lab">×</span><input data-h="n" type="number" min="2" max="40" step="1" value="${K.seriesN}" style="width:40px"><button data-h="serie" title="Poser une série équirépartie jusqu'au point cliqué">Série</button>
-      <button data-h="dup" title="Dupliquer (Ctrl+D)">Dupliquer</button><span class="vsep"></span><button data-h="del">🗑</button>`;
+      <button data-h="dup" title="Dupliquer (Ctrl+D)">Dupliquer</button><span class="vsep"></span><button data-h="del">🗑</button>${(K.ctl || []).some(it => (it.ids || []).includes(a.id)) ? `<span class="vsep"></span><button data-h="why" class="hud-why" title="n° 5 : pourquoi cet appareil clignote, preuves, choix possibles et leurs conséquences">Pourquoi ça clignote ?</button>` : ""}`;
   }
   if (K.sel.kind === "seg") {
     const s = segById(K.sel.id);
@@ -182,6 +182,7 @@ export function wireHud() {
       return;
     }
     el.onclick = () => {
+      if (act === "why") { document.dispatchEvent(new CustomEvent("okteo:why", { detail: { id: K.sel && K.sel.id } })); return; }
       if (act === "pack") {
         // le menu des packs est dans l'extension Packs (src/ext/packs-ui.js)
         const r = el.getBoundingClientRect();

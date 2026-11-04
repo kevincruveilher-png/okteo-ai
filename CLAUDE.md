@@ -523,6 +523,11 @@ garde-fous ≥ 6 murs / 60 % / 1,5 m / 5 %) ; `ai-releve.js` `realign()` après 
 print.js passe contour puis remplissage). Feuille de route du 04/11 (lots A à D) : document du projet claude.ai
 `claude/feuille-de-route-2026-11.md`, résumé dans le journal.
 
+### Rapport d'analyse clair (n° 5, bloc D du 04/11/2026)
+`src/cablage/rapport.js` (`FAMILLES`, `familyOf`, `explain`, `buildRapport`, `rapportText`) ; halos `fam-…` (drawFx) ; HUD
+`data-h="why"` → `okteo:why` → `src/ext/why-blink.js` (`.whyb`, `.rapcard`, `cab.decisions`, `cab.questions`,
+`okteoExt.whyBlink`). Test `scripts/rapport.test.mjs`.
+
 ### Outils de l'IA et mémoire des symboles (n° 3 + 16, bloc D du 04/11/2026)
 Worker : outils définis par Oktéo seulement (pas d'outil serveur), `tool_use` / `tool_result` contrôlés. `chat({tools})` →
 `content`, `stop`. `src/walls/ai-tools.js` (`AI_TOOLS`, `runTool`, `checkReleve`) + `src/ext/ai-agent.js` (`toolContext`,

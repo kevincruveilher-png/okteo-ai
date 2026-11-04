@@ -35,6 +35,7 @@ import { ensurePaperW, chantierScaleCheck } from "./pdf-page.js";
 import { mountBandsPage } from "./cablage-bandes.js";
 import { mountTableauPage } from "./tableau-page.js";
 import { mountVue3d } from "./vue3d.js";
+import { createWhyBlink } from "./why-blink.js";
 
 function start() {
   const api = window.okteo;
@@ -85,6 +86,8 @@ function start() {
   const aiModes = createAiModes({ api, aiReleve, runner: aiRunner });
   hooks.recheck = () => recheck.open();
   hooks.aiReleve = () => aiModes.open();
+  const whyBlink = createWhyBlink({ api });   // n° 5 : « Pourquoi ça clignote ? » et rapport d'analyse
+  hooks.rapport = () => whyBlink.openRapport();
   hooks.aiPaste = () => aiReleve.pastePanel();
   document.addEventListener("okteo:walls", () => walls.open());
   // n° 16 : « Mémoriser ce symbole » (Propriétés) : type validé + extrait du dessin dans la mémoire du pavillonneur
@@ -204,7 +207,7 @@ function start() {
   const oneCard = createOneCard();   // v64 : une seule fenêtre de travail à la fois
   hooks.modeIa = () => iaMode.setMode(iaMode.mode === "ia" ? "be" : "ia");
   hooks.cabler = () => { const r = cabler(api); api.setHint(r.text); if (pages.etude.ui) pages.etude.ui.render(); return r.text; };
-  window.okteoExt = { doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, aiRunner, recheck, iaMode, temps, oneCard, pages, backup: null };
+  window.okteoExt = { whyBlink, doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, aiRunner, recheck, iaMode, temps, oneCard, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 
