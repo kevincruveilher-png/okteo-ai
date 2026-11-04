@@ -118,7 +118,12 @@ export function showText(s) {
 
 export function hitAny(wx, wy) {
   if (layers.murs.on && !layers.murs.lock) {
-    const n = hitNode(wx, wy);
+    let n = hitNode(wx, wy);
+    // n° 13 : un symbole poussé hors du mur peut se trouver près d'un sommet : le plus proche du clic gagne
+    if (n && layers.appareils.on && !layers.appareils.lock) {
+      const a = hitApp(wx, wy), D = a && K.dispPos && K.dispPos.get(a.id);
+      if (a && D && Math.hypot(wx - D.x, wy - D.y) < Math.hypot(wx - n.x, wy - n.y)) n = null;
+    }
     if (n) return {
       kind: "node",
       id: n.id,
@@ -390,7 +395,8 @@ sv.addEventListener("pointerdown", e => {
       return;
     }
     // gaine : saisir un point de passage, ou en créer un en tirant la gaine
-    const hr = hitApp(wx, wy) ? null : hitRoute(wx, wy);
+    // n° 13 : un point de passage de gaine (petit rond visible) reste saisissable même sous un symbole décalé
+    const hr0 = hitRoute(wx, wy), hr = hr0 && (hr0.wp != null || !hitApp(wx, wy)) ? hr0 : null;
     if (hr) {
       const b = hr.box;
       // 2e clic rapide sur le même point de passage = double-clic : on le supprime
@@ -429,8 +435,10 @@ sv.addEventListener("pointerdown", e => {
     }
     // n° 8 : repère d'appareil (P9…) saisi : on le glisse exactement où on veut (position gardée, « Replacer le repère »
     // dans Propriétés l'efface) ; un simple clic sélectionne l'appareil
-    const rpl = !hitApp(wx, wy) && layers.appareils.on && K.showReps ? (K.repLabelBoxes || []).find(q => wx >= q.x0 && wx <= q.x1 && wy >= q.y0 && wy <= q.y1) : null;
-    if (rpl && state.app.some(a => a.id === rpl.id)) {
+    const rpl = layers.appareils.on && K.showReps ? (K.repLabelBoxes || []).find(q => wx >= q.x0 && wx <= q.x1 && wy >= q.y0 && wy <= q.y1) : null;
+    // le repère gagne sur un symbole voisin si le clic est dans son texte et plus près de lui que du symbole
+    const ha = rpl && hitApp(wx, wy), hd = ha && ((K.dispPos && K.dispPos.get(ha.id)) || ha);
+    if (rpl && state.app.some(a => a.id === rpl.id) && (!ha || Math.hypot(wx - rpl.cx, wy - rpl.cy) < Math.hypot(wx - hd.x, wy - hd.y))) {
       K.repDrag = { id: rpl.id, dx: wx - rpl.cx, dy: wy - rpl.cy, moved: false };
       return;
     }
