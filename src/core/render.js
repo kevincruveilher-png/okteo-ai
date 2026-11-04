@@ -22,6 +22,7 @@ import { implantationPending } from "../cablage/equipements.js";
 import { APPAREILS, raccOf } from "../cablage/appareils.js";
 import { isSani, isMeuble, roomFor, saniShape, volumesOf } from "../cablage/volumes.js";
 import { isZone, zonePoly, detour, detourVia } from "../cablage/exclusion.js";
+import { familyOf } from "../cablage/rapport.js";
 import { boxColor, ftzSymbol, symIndex } from "../print/ftz-symbols.js";
 import { symbolSVG } from "../print/ftz-draw.js";
 
@@ -850,7 +851,10 @@ export function drawFx() {
   const items = [];
   if (layers.appareils.on && K.tab === "plan") {
     const by = Object.fromEntries(state.app.map((a) => [a.id, a])), ss = symView();
-    if (pref("halos")) list.filter(it => it.kind !== "implantation" && (it.kind !== "vmc" || it.bloquant)).forEach((it) => it.ids.forEach((id) => { const a0 = by[id], a = a0 && ((K.dispPos && K.dispPos.get(id)) || a0); if (a) items.push({ key: id, kind: "halo", x: a.x, y: a.y, r: 1.5 * ss }); }));
+    // n° 5 : un halo par appareil, à la couleur de la famille la plus grave (montage, pose, IA, câblage)
+    const RANKF = { montage: 0, pose: 1, ia: 2, cablage: 3 }, famOf = new Map();
+    list.filter(it => it.kind !== "implantation" && (it.kind !== "vmc" || it.bloquant)).forEach((it) => { const f = familyOf(it.kind); it.ids.forEach((id) => { if (!famOf.has(id) || RANKF[f] < RANKF[famOf.get(id)]) famOf.set(id, f); }); });
+    if (pref("halos")) famOf.forEach((fam, id) => { const a0 = by[id], a = a0 && ((K.dispPos && K.dispPos.get(id)) || a0); if (a) items.push({ key: id, kind: "halo", fam, x: a.x, y: a.y, r: 1.5 * ss }); });
     state.app.filter(implantationPending).forEach(a0 => { const a = K.dispPos?.get(a0.id) || a0; items.push({ key:a0.id, kind:"placement", pulse:a0.implantation?.origine === "vmc", x:a.x, y:a.y, r:1.65*ss }); });
     if (K.testMode) litSet().forEach((id) => { const a0 = by[id], a = a0 && ((K.dispPos && K.dispPos.get(id)) || a0); if (a) items.push({ key: id, kind: "glow", x: a.x, y: a.y, r: Math.max(1.4, 4 * ss) }); });
   }

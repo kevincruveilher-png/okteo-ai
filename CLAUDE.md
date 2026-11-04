@@ -1,4 +1,4 @@
-# À LIRE EN PREMIER — état du projet (mis à jour le 04/11/2026, v77 + vue 3D + lots A (n° 1, 2, 8, 9, 12, 13, 14), B (n° 6, 7), C (n° 10, 11) et n° 4 dans `main`)
+# À LIRE EN PREMIER — état du projet (mis à jour le 04/11/2026, v77 + vue 3D + lots A (n° 1, 2, 8, 9, 12, 13, 14), B (n° 6, 7), C (n° 10, 11), n° 4 et bloc D (n° 15, 3 + 16, 5) dans `main`)
 
 Ce fichier sert à TOUTES les IA qui travaillent sur le dépôt (Claude, ChatGPT/Codex…) : `AGENTS.md` y renvoie.
 Plusieurs IA se sont succédé (Claude jusqu'à v66, ChatGPT v67 à v72, Claude depuis v72.1) : garder une seule source de
@@ -16,7 +16,7 @@ vérité, celle-ci, et tenir `docs/journal.md` à jour à CHAQUE modification (e
   `public/assets/fond-evrard-04949.jpg`). Décision de Kévin attendue (dépôt privé ou retrait des plans). N'en ajouter aucun.
 - Ne lancer une mise à jour que sur ordre de Kévin ; ne rien pousser sur `main` sans son « go ». Branches de travail :
   `feat/…`, vérification par GitHub Actions sur une branche `verification-…` supprimée après usage.
-- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854 ; lot C : smoke 202/202, run 41904201702). Sans navigateur en local : faire tourner les
+- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854 ; lot C : smoke 202/202, run 41904201702 ; bloc D : smoke 207/207, run 41913594686). Sans navigateur en local : faire tourner les
   tests sur GitHub Actions (workflow temporaire sur une branche `verification-…`, voir journal v72.1).
 
 # Oktéo AI — consignes pour Claude
@@ -522,6 +522,11 @@ garde-fous ≥ 6 murs / 60 % / 1,5 m / 5 %) ; `ai-releve.js` `realign()` après 
 `okteoExt.aiReleve.recal`. Test `scripts/ai-align.test.mjs`. Murs : un seul contour d'ensemble (render.js `g.walls-out`,
 print.js passe contour puis remplissage). Feuille de route du 04/11 (lots A à D) : document du projet claude.ai
 `claude/feuille-de-route-2026-11.md`, résumé dans le journal.
+
+### Rapport d'analyse clair (n° 5, bloc D du 04/11/2026)
+`src/cablage/rapport.js` (`FAMILLES`, `familyOf`, `explain`, `buildRapport`, `rapportText`) ; halos `fam-…` (drawFx) ; HUD
+`data-h="why"` → `okteo:why` → `src/ext/why-blink.js` (`.whyb`, `.rapcard`, `cab.decisions`, `cab.questions`,
+`okteoExt.whyBlink`). Test `scripts/rapport.test.mjs`.
 
 ### Outils de l'IA et mémoire des symboles (n° 3 + 16, bloc D du 04/11/2026)
 Worker : outils définis par Oktéo seulement (pas d'outil serveur), `tool_use` / `tool_result` contrôlés. `chat({tools})` →

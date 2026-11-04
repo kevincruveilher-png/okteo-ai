@@ -928,6 +928,37 @@ try {
     if (!(r && r.type === "RJ45" && /RJ45 : /.test(t))) throw new Error(JSON.stringify({ r: r && { ...r, image: !!r.image }, t: t.slice(0, 300) }));
     return true;
   });
+  await check("n° 5 : halo à la couleur de sa famille ; « Pourquoi ça clignote ? » : explication, preuves, choix (et conséquence), question au pavillonneur ; rapport par famille copié pour le BE", async () => {
+    const keepV = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits }));
+    await ev(() => { okteoExt.panel.close("assistant"); okteo.setTab("plan"); okteo.viewPreset("impl"); });
+    const ids = await ev(() => { const S = okteo.state, X = Math.max(0, ...S.nodes.map((n) => n.x)) + 3, Y = Math.min(0, ...S.nodes.map((n) => n.y)) + 1;
+      return okteo.importDevices([{ t: "LUM", x: X, y: Y }, { t: "INT", x: X + 2, y: Y, h: 110, aiStatus: "a_confirmer", aiOrigin: "interpretation", aiNote: "INT ou VV ? un seul bras lisible" }], [], { stay: true }).ids; });
+    await page.waitForTimeout(300);
+    const halo = await ev((i) => { const g = document.querySelector(`#fx g.fx-halo[data-k="halo:${i[0]}"]`), h = document.querySelector(`#fx g.fx-halo[data-k="halo:${i[1]}"]`); return { lum: g ? g.getAttribute("class") : null, int: h ? h.getAttribute("class") : null }; }, ids);
+    await ev((i) => okteo.select([i]), ids[0]);
+    await page.waitForSelector('#hud [data-h="why"]', { timeout: 10000 });
+    await page.click('#hud [data-h="why"]');
+    await page.waitForSelector(".whyb:not([hidden]) .why-pt");
+    const c1 = await ev(() => ({ t: document.querySelector(".whyb").textContent, q: !!document.querySelector(".whyb [data-q]") }));
+    await page.click(".whyb [data-q]");
+    const q = await ev(() => (okteo.cab.questions || []).map((x) => x.text));
+    await ev((i) => okteo.select([i]), ids[1]);
+    await page.click('#hud [data-h="why"]');
+    await page.waitForSelector('.whyb:not([hidden]) [data-c]');
+    const choix = await ev(() => [...document.querySelectorAll(".whyb [data-c]")].map((b) => b.textContent));
+    await page.click('.whyb [data-c]:has-text("Va-et-vient")');
+    const after = await ev((i) => ({ t: okteo.state.app.find((a) => a.id === i).t, dec: Object.values(okteo.cab.decisions || {}).map((d) => d.label) }), ids[1]);
+    await ev(() => okteoExt.whyBlink.openRapport());
+    await page.waitForSelector(".rapcard:not([hidden])");
+    await page.click("#rap-copy");
+    const txt = await ev(() => okteoExt.whyBlink.lastText);
+    await ev(() => { okteo.undo(); okteo.undo(); okteo.undo(); okteo.clearSel(); document.querySelector(".rapcard").hidden = true; document.querySelector(".whyb").hidden = true; });
+    const back = await ev((i) => okteo.state.app.filter((a) => i.includes(a.id)).length, ids);
+    await ev((V) => { Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; }, keepV);
+    if (!(/fam-montage/.test(halo.lum || "") && /fam-montage/.test(halo.int || "") && /Montage faux/.test(c1.t) && /Recommandation/.test(c1.t) && c1.q && q.length === 1 && /Quelle commande allume/.test(q[0])
+      && choix.length === 2 && /Va-et-vient/.test(choix[1]) && after.t === "VV" && after.dec.some((d) => /Va-et-vient/.test(d)) && /Questions au pavillonneur/.test(txt) && back === 0)) throw new Error(JSON.stringify({ halo, c1: { ...c1, t: c1.t.slice(0, 200) }, q, choix, after, txt: (txt || "").slice(0, 300), back }));
+    return true;
+  });
   await check("v64.1 : consigne du relevé avec méthode imposée (200 dpi, légende, quarts, décompte) ; image de moins de 3 000 px signalée au collage", async () => {
     const t = await ev(async () => { const m = await import("/src/walls/ai-plan.js"); return { p: m.pastePrompt({ page: 2 }), k: m.aiPrompt({ W: 1500, H: 1000, cmPerPx: 1.2 }) }; });
     const ok = /Méthode \(obligatoire\)/.test(t.p) && /200 dpi/.test(t.p) && /page 2/.test(t.p) && /légende/.test(t.p) && /par quarts/.test(t.p) && /décompte/.test(t.p) && /CHAQUE symbole/.test(t.p) && /CVR\) à côté de la fenêtre/.test(t.p)

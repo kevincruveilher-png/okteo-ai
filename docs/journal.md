@@ -1,3 +1,22 @@
+## 04/11/2026 — n° 5 : rapport d'analyse clair (« Pourquoi ça clignote ? », familles de couleur, décisions, questions au pavillonneur) (bloc D)
+
+- Constat du 04/11 : le même halo orange pour les doutes de l'IA, les montages faux, la pose et le câblage ; le clic
+  n'expliquait rien. Demande de Kévin : bulle au clic, une couleur par famille, preuves, conséquence de chaque choix,
+  recommandation, questionnaire pour Kévin puis relais au technicien BE (qui a décidé quoi), questions au pavillonneur.
+- `src/cablage/rapport.js` (pur) : `FAMILLES` (ia bleu « L'IA hésite », montage rouge, pose orange, câblage vert),
+  `familyOf(kind)`, `candidates(note)` (« INT ou VV ? » → types), `consequence(t)`, `explain(issue, a)` (pourquoi,
+  preuves : inscription, lecture et remarque de l'IA, calibre ; choix et conséquences ; recommandation ; question au
+  pavillonneur), `buildRapport`, `rapportText`.
+- Plan : halo d'un appareil à la couleur de sa famille la plus grave (`fx-halo fam-…`, render.js `drawFx`). Menu flottant
+  d'un appareil signalé : « Pourquoi ça clignote ? » (`data-h="why"` → `okteo:why`). `src/ext/why-blink.js` : carte
+  `.whyb` (extrait du plan autour de l'appareil, points expliqués, boutons des types candidats = type changé + décision,
+  « Question au pavillonneur », « Vu, je garde »), décisions `cab.decisions` {clé: {choix, label, by, at}} et
+  `cab.questions` (annulables, enregistrées avec le chantier) ; carte `.rapcard` « Rapport d'analyse » (points par
+  famille, décidés ou à décider, questions ; « Copier pour le BE », « Copier les questions ») ; catalogue `ai.rapport`.
+- Tests : `scripts/rapport.test.mjs` (3, dans check) ; smoke (halos rouges, bulle, question, choix VV, rapport, Ctrl+Z).
+- Fusion dans `main` le 04/11/2026 (go de Kévin pour le bloc D) : `npm run check` vert sur GitHub Actions (run 41913594686,
+  smoke 207/207) ; workflow temporaire retiré. Bloc D terminé (n° 15, 3 + 16, 5).
+
 ## 04/11/2026 — n° 3 + 16 : outils de l'IA pendant l'analyse, mode 4 seul, échelle bloquante, mémoire des symboles (bloc D)
 
 - Relais en ligne (`server/worker.js`) : jusqu'ici « aucun outil ». Ouvert aux **outils définis par Oktéo seulement**
