@@ -59,12 +59,18 @@ ${method(first)}
 
 Règles :
 ${coords}
-- Murs : un segment sur l'AXE du mur (milieu de son épaisseur), d'un angle à l'autre ; "ep" = épaisseur en cm (murs extérieurs souvent 20 à 30 cm, cloisons 5 à 10 cm). Les murs se rejoignent exactement aux angles et aux jonctions en T (même point).
+- Échelle : mesure-la sur au moins 3 cotes écrites du plan (longueur en pixels du trait de cote ÷ valeur écrite) et écris au début de "remarques" : « échelle : N pixels par mètre (cotes utilisées : …) ». Vérifie qu'un mur relevé de la longueur d'une cote fait bien cette longueur.
+- Murs : un segment sur l'AXE du mur (milieu de son épaisseur), d'un angle à l'autre ; "ep" = épaisseur en cm (murs extérieurs souvent 20 à 35 cm, cloisons 5 à 10 cm). Les murs se rejoignent exactement aux angles et aux jonctions en T (même point).
+- Mur extérieur dessiné en DEUX bandes collées (maçonnerie ~20 cm + doublage isolant ~10 à 14 cm, parfois de couleur ou de hachure différente) : c'est UN SEUL mur. Un seul segment sur l'axe de l'ensemble (milieu entre la face extérieure de la maçonnerie et la face intérieure du doublage), "ep" = épaisseur totale (ex. 34). Ne relève jamais le doublage à part.
+- Cloisons : prolonge chaque cloison jusqu'à l'AXE du mur qu'elle touche (même si elle s'arrête sur la face du doublage sur le dessin), pour que l'angle ou le T tombe sur le même point.
+- Traits en pointillés ou en tirets (retombées, faux-plafonds, limites, meubles hauts, réseaux) : JAMAIS des murs.
+- Placard : fermé sur 3 côtés par des murs ou cloisons dessinés ; le 4e côté (portes du placard) n'est pas un mur. Ne crée pas de cloison là où il n'y a que des portes de placard.
 - Un mur PASSE à travers ses portes et fenêtres : ne le coupe jamais à une ouverture. Donne les ouvertures à part : centre sur l'axe du mur, largeur en cm, type "porte", "fenetre" ou "garage" (porte de garage sectionnelle ou basculante : grande, sans arc de battant). Chaque pièce doit être entièrement fermée par des murs.
 - Portes : relève seulement le centre du passage et sa largeur réelle, avec le type "porte". Le rendu laisse cet espace ouvert. Ne relève ni gonds, ni battant, ni arc, ni sens d’ouverture. Conserve impérativement chaque ouverture ; les axes des murs restent continus pour la détection des pièces.
 - Pièces : le nom écrit sur le plan et un point à l'intérieur de la pièce. Ne crée pas de pièce qui n'est pas écrite.
 - Appareils : le centre du symbole, son type parmi la liste ci-dessous, et "h" = hauteur en cm quand elle est écrite à côté (ex. « H:1.20m » → 120), sinon pas de "h".
 ${types}
+  Symboles tournés : un symbole posé sur un mur est tourné avec son mur (ex. le « I » de la légende apparaît en « H » sur un mur vertical). Compare à la légende dans tous les sens avant de conclure à un symbole inconnu.
   Prends le type le plus précis : une prise marquée « LL » ou « lave-linge » est LL, pas PC20 ; un chauffe-eau est CETH, pas SC ; une commande de volet est CVR, pas SC ni INT. SC seulement si l'usage n'est pas reconnaissable.
   Une prise posée le long du plan de travail de la cuisine (souvent écrite « H:1.10m » ou « PT ») : ajoute "pt": true.
   Plusieurs symboles côte à côte : relève CHAQUE symbole séparément. Un symbole unique marqué « bloc 2 prises » ou « bloc 4 prises » : un objet avec "qty": 2 ou 4 et "inscription" exacte ; si la quantité est illisible, "qty": null. Ne crée pas de centres individuels inventés. Un bloc n'est ni un nombre de repères BE ni un nombre de gaines.
@@ -75,6 +81,7 @@ ${types}
   Points extérieurs (appliques, spots en façade, terrasse) : leur commande est presque toujours À L'INTÉRIEUR, près de la porte ou de la baie la plus proche, souvent dans un boîtier double avec une autre commande ; suis le trait de liaison. Une lumière sans commande visible est signalée « commande non identifiée » dans "aiNote" ; ne lui invente pas de commande. L’interprétation détaillée appartient au premier cycle de correction.
   Chaque volet (VR) a en général sa commande (CVR) à côté de la fenêtre, à l'intérieur : cherche-la.
 - Ignore les annotations ajoutées à la main sur le plan (écritures manuscrites, surlignages, traits de feutre, tampons) : ne relève que le dessin et les symboles de l'électricité.
+- Doutes : un doute porte TOUJOURS sur deux types nommés (« RJ45 ou TV ? », « INT ou VV ? ») avec la raison ; pas de doute vague. Si tu hésites entre plus de deux types, mets INCONNU avec l'inscription.
 - N'invente rien : ce que tu ne vois pas reste absent. Une information visible mais mal comprise reste présente, à identifier. Mets les doutes par appareil dans "aiNote" et leur synthèse dans "remarques".`;
 }
 const JSON_FORM = `{"murs":[{"x1":0,"y1":0,"x2":0,"y2":0,"ep":20}],
@@ -82,14 +89,28 @@ const JSON_FORM = `{"murs":[{"x1":0,"y1":0,"x2":0,"y2":0,"ep":20}],
  "pieces":[{"nom":"Cuisine","x":0,"y":0}],
  "appareils":[{"t":"PC16","x":0,"y":0},{"t":"INT","x":0,"y":0,"h":110},{"t":"LUM","x":0,"y":0},{"t":"PC16","x":0,"y":0,"h":110,"pt":true,"qty":4,"inscription":"BLOC 4 PRISES","aiOrigin":"plan"}],
  "liaisons":[[1,2]],
- "remarques":"décompte par type, puis ce qui est douteux"}`;
+ "remarques":"échelle mesurée, décompte par type, puis ce qui est douteux"}`;
+
+// n° 4 : échelle annoncée par l'IA en tête des remarques (« échelle : 236 pixels par mètre ») ; null si absente
+export function scaleClaim(text) {
+  const m = /(\d+(?:[.,]\d+)?)\s*(?:pixels?|px)\s*(?:par|\/|pour\s+1)\s*m(?:è|e)?(?:tre)?\b/i.exec(String(text || ""));
+  const v = m ? +m[1].replace(",", ".") : NaN;
+  return v > 1 && v < 10000 ? v : null;
+}
+// comparée à l'échelle de l'image (map.sx = mètres par pixel) : { ia, fond (px/m), ecart (%), ok (≤ 3 %) } ou null
+export function scaleCheck(text, map) {
+  const ia = scaleClaim(text);
+  if (!ia || !(map && map.sx > 0)) return null;
+  const fond = 1 / map.sx, ecart = Math.abs(ia / fond - 1) * 100;
+  return { ia, fond: +fond.toFixed(1), ecart: +ecart.toFixed(1), ok: ecart <= 3 };
+}
 
 // relevé avec clé : l'image (rognée) est envoyée avec la consigne
 export function aiPrompt({ W, H, cmPerPx }) {
   return `Voici le plan d'une maison individuelle (image de ${W} × ${H} pixels ; 1 pixel ≈ ${cmPerPx.toFixed(2)} cm ; origine en haut à gauche, x vers la droite, y vers le bas).
 ${promptBody("- Coordonnées en PIXELS de cette image, nombres entiers.", "Regarde l'image jointe en entier, puis zoome partout où les symboles sont serrés : chaque symbole compte.")}
 
-Réponds UNIQUEMENT avec ce JSON (sans texte autour) :
+Réponds UNIQUEMENT avec ce JSON (sans texte autour, guillemets droits ") :
 ${JSON_FORM}`;
 }
 // relevé sans clé (v36) : consigne à copier dans une conversation neuve avec le PDF joint ; la réponse se colle dans Oktéo
@@ -100,7 +121,7 @@ Voici le plan d'une maison individuelle (PDF joint, page ${page}). Ignore les au
 ${promptBody(`- Coordonnées en PIXELS de l'image entière de la page ${page} (origine en haut à gauche, x vers la droite, y vers le bas), nombres entiers. Donne la taille de cette image dans "ref" (W = largeur, H = hauteur en pixels) : sans "ref", la réponse ne peut pas être placée.
 - Mesure les positions sur l'image (pas à l'estime) : les murs doivent tomber sur les murs du plan.`, METHOD_PASTE(page))}
 
-Réponds UNIQUEMENT avec ce JSON (sans texte autour) :
+Réponds UNIQUEMENT avec ce JSON (sans texte autour, guillemets droits " : pas de guillemets typographiques) :
 ${JSON_FORM.replace("{", '{"ref":{"W":0,"H":0},\n ')}`;
 }
 

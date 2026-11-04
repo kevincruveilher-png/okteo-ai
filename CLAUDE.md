@@ -523,6 +523,11 @@ garde-fous ≥ 6 murs / 60 % / 1,5 m / 5 %) ; `ai-releve.js` `realign()` après 
 print.js passe contour puis remplissage). Feuille de route du 04/11 (lots A à D) : document du projet claude.ai
 `claude/feuille-de-route-2026-11.md`, résumé dans le journal.
 
+### Consigne du relevé IA (n° 4, 04/11/2026)
+`ai-plan.js` `promptBody` : échelle sur 3 cotes en tête de « remarques », mur extérieur maçonnerie + doublage = un seul mur,
+cloisons jusqu'à l'axe, pointillés jamais des murs, placards sur 3 côtés, symboles tournés, doutes à deux types, guillemets
+droits ; `scaleClaim` / `scaleCheck` (3 %) → carte du relevé (`ai-releve.js` `scaleStep`).
+
 ### Murs d'équerre (n° 14, lot A du 04/11/2026)
 `src/walls/squaring.js` (pur : `houseAngle`, `squarePlan`, `keepOpenings`, `squareReleve`, `squareOptions`, `squareText`) ;
 appliqué après chaque relevé (`ai-releve.js` `squareStep`, `walls-ui.js`) et par `okteo.squareWalls(opts)` (Relevé →

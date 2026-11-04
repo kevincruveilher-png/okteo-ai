@@ -22,6 +22,25 @@
 
 - Fusion dans `main` le 04/11/2026 (go de Kévin « go bloc C et fusionne ») : `npm run check` vert sur GitHub Actions
   (smoke 201/201) ; workflow temporaire retiré.
+## 04/11/2026 — n° 4 : consigne du relevé IA réécrite (validée par l'essai de Kévin)
+
+- Essai de Kévin le 04/11 (consigne type par copier-coller, plan d'une maison de plain-pied, page entière 4961 × 3508 px) :
+  murs extérieurs en un seul mur de 34 cm (emprise 10,31 m conforme aux cotes), échelle mesurée sur 5 cotes (236 px/m =
+  1:50 à 300 dpi), rangée du séjour juste (3 prises, 2 RJ45, 1 TV), 10 plafonniers et 5 appliques tous reliés, doutes tous
+  entre deux types nommés, placards fermés sur 3 côtés. Réserves : guillemets typographiques (lus par `parseAiJson`),
+  une applique posée sur le « tableau » du placard technique.
+- `ai-plan.js` `promptBody` (commun au relevé avec clé et au collage) : échelle mesurée sur au moins 3 cotes, écrite en tête
+  de « remarques » ; mur extérieur maçonnerie + doublage = un seul mur (axe de l'ensemble, épaisseur totale) ; cloisons
+  prolongées jusqu'à l'axe ; pointillés et tirets jamais des murs ; placard fermé sur 3 côtés ; symboles tournés avec leur
+  mur ; doute = toujours entre deux types nommés, sinon INCONNU ; guillemets droits demandés. Format JSON inchangé.
+- Contrôle d'échelle : `scaleClaim(texte)` (« N pixels par mètre », « N px/m ») et `scaleCheck(texte, map)` (écart avec
+  l'échelle de l'image, 3 % de tolérance) ; carte du relevé IA (`ai-releve.js` `scaleStep`) : « échelle de l'IA conforme au
+  fond » ou « ⚠ échelle annoncée … : vérifiez l'échelle du fond ou le « ref » ».
+- Tests : `scripts/ai-align.test.mjs` (consigne avec et sans clé, échelle, réponse à guillemets typographiques).
+- Reste du n° 4 : banc d'essai du mode 4 sur ce plan (avec clé, en ligne).
+- Fusion dans `main` le 04/11/2026 (go de Kévin) : `npm run check` vert sur GitHub Actions (run 41902521558,
+  smoke 200/200) ; workflow temporaire retiré.
+
 
 ## 04/11/2026 — n° 7 : mode de pieuvre « Bureau d'études » (lot B)
 
