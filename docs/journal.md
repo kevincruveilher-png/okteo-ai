@@ -1,3 +1,28 @@
+## 04/11/2026 — v77 : réponse IA collée — « ref » tolérant, calibre en texte, recalage sur les murs du PDF (branche `feat/releve-colle-ref-calibre`)
+
+- Constat (relevé collé par Kévin sur un plan client) : 1) « Cette réponse n'indique pas la taille de l'image de
+  référence » alors que la réponse avait `"ref":{"w":1568,"h":1100}` (minuscules : seul `W`/`H` était lu) ; 2) « Appareil 41 :
+  calibre invalide » pour `"calibre":"20 A"` (seul un nombre passait) ; 3) relevé décalé sur le fond. Mesuré sur la page
+  rendue : l'image fait 1 568 × 1 109 px (l'IA a annoncé 1 100, +0,8 % d'étirement vertical) et ses murs sont estimés à
+  l'œil (mur droit 15 px trop à droite, largeur globale ~1 % trop grande).
+- `ai-plan.js` `refOf(raw, {fondW, fondH})` : `W/H`, `w/h`, `width/height`, `largeur/hauteur`, nombres ou textes (« 1109 px ») ;
+  hauteur recalculée d'après la largeur si la proportion annoncée diffère de moins de 3 % de celle du fond (`ajuste`,
+  `annonce`). Message d'erreur avec un exemple de « ref ».
+- `ai-data.js` `calibreOf` : `20`, `"20 A"`, `"32A"`, `"16"` acceptés (nombre gardé) ; texte illisible toujours refusé.
+  Consigne : « calibre » en nombre d'ampères sans unité.
+- `src/walls/ai-align.js` (pur) : `axisLines`, `alignTransform`, `alignPlan` = recalage u' = a·u + b par axe sur les murs
+  du PDF vectoriel (`detectWalls`) : décalage grossier (essais = écarts entre murs, 15 cm), puis moindres carrés pondérés
+  (tolérances 60 → 15 cm), puis chaque mur reconnu collé sur son mur du PDF (30 cm) ; ouvertures gardées à la même place
+  relative sur leur mur ; appareils, pièces et ouvertures perdues : recalage d'ensemble seulement (l'IA place souvent mieux
+  les symboles que les murs ; les muraux sont recollés à l'ajout). Garde-fous : ≥ 6 murs droits, ≥ 60 % de leur longueur
+  retrouvée, décalage ≤ 1,5 m, échelle ± 5 % ; sinon rien ne bouge et la carte l'écrit (« non recalé sur le PDF (…) »).
+- `ai-releve.js` : `realign()` après `fromText` (réponse collée ET relevé avec clé, mode 1 ; les modes 2 à 4 ne changent
+  pas) ; case « Recaler sur les murs du PDF » `#ai-recal` (cochée, décochable avant l'ajout) ; `okteoExt.aiReleve.recal`.
+  Essai sur la réponse réelle (axes mesurés sur l'image) : 33 murs collés, écart moyen 9 → 4 cm, x × 0,989.
+- Tests : `scripts/ai-align.test.mjs` (8, maison synthétique, aucun plan client) dans `npm run check` (`npm run
+  test:recalage`) ; smoke : réponse collée avec « ref » minuscule et calibres texte. Vérification : workflow TEMPORAIRE
+  `.github/workflows/verification-releve-colle.yml` (à retirer avant fusion).
+
 ## 04/11/2026 — Q-111 « distance depuis l'angle » à trancher avec Thibaut ; QR de la bande sans nom dans `main`
 
 - Décision de Kévin (00:19) : la règle actuelle de distance « depuis l'angle » (`a.wa`, demi-épaisseur la plus grosse du

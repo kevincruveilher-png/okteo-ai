@@ -515,6 +515,12 @@ colonnes `config.analysis_model/analysis_input_price/analysis_output_price` (cr�
   `buildFtz` option `ftz.qr3d` → `r.qrs`, `#prep-qr3d` ; page publique `plan3d.html` + `src/plan3d-view.js` (`window.__plan3d`), Worker. Tests :
   `scripts/v3d.test.mjs` + smoke. Workflow temporaire `verification-3d.yml` retiré à la fusion (pour revérifier : en recréer un sur une branche `verification-…`).
 
+### Réponse IA collée v77 (branche `feat/releve-colle-ref-calibre`)
+`ai-plan.js` `refOf` (« ref » W/H, w/h, width/height ; hauteur corrigée si proportion à 3 % de celle du fond) ;
+`ai-data.js` `calibreOf` (« 20 A » accepté) ; `src/walls/ai-align.js` (`alignPlan` : recalage par axe sur les murs du PDF,
+garde-fous ≥ 6 murs / 60 % / 1,5 m / 5 %) ; `ai-releve.js` `realign()` après `fromText` (mode 1), case `#ai-recal`,
+`okteoExt.aiReleve.recal`. Test `scripts/ai-align.test.mjs`.
+
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,
 sessions, budget Claude (D1, `migrations/0001_enterprise.sql`), relais Claude avec réservation atomique.

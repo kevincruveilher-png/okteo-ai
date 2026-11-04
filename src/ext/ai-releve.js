@@ -7,9 +7,11 @@ import { AI_SYSTEM } from "../walls/ai-data.js";
 import { chat, PROVIDERS, modelFor } from "./ai.js";
 import { newAnalyseId } from "../walls/ai-journal.js";
 import { settings } from "./settings.js";
-import { aiPrompt, pastePrompt, parseAiJson, aiToPlan, MIN_REF_W } from "../walls/ai-plan.js";
+import { aiPrompt, pastePrompt, parseAiJson, aiToPlan, MIN_REF_W, refOf } from "../walls/ai-plan.js";
+import { alignPlan } from "../walls/ai-align.js";
+import { detectWalls } from "../walls/detect.js";
 import { findRooms, nameRooms, labelPoint, pointInPoly } from "../walls/rooms.js";
-import { autoScale } from "./pdf-page.js";
+import { autoScale, chantierPage, pageMap } from "./pdf-page.js";
 import { esc } from "./util.js";
 import { recordReleve } from "./ai-recheck-ui.js";
 import { createAttente } from "./attente.js";
@@ -61,7 +63,7 @@ export function createAiReleve({ api, openParams }) {
   document.querySelector(".stage").appendChild(card);
   // v76 : run = analyse en cours { id, mode } (journal)
   let lastMode = "", lastUsage = null, lastMs = 0, run = null, again = null;   // v57 : "key" (relevé envoyé à l'IA) ou "paste" (réponse collée) : décide de la relecture automatique
-  let busy = false, plan = null, rooms = [], meta = "", keep = { walls: true, rooms: true, devices: true }, lastImage = null, lastText = "";
+  let busy = false, plan = null, rooms = [], meta = "", recal = null, keep = { walls: true, rooms: true, devices: true }, lastImage = null, lastText = "";
 
   const close = () => { card.hidden = true; api.setPreview(null); plan = null; };
   const show = (html) => { card.innerHTML = `<div class="wcard-h"><b>✦ Relevé par l'IA</b><button class="wx" title="Fermer">✕</button></div>${html}`; card.hidden = false; card.querySelector(".wx").onclick = close; };
@@ -96,6 +98,7 @@ export function createAiReleve({ api, openParams }) {
       ${row("walls", "Murs", plan.walls.length, `${plan.openings.length} ouvertures (${nP} portes${plan.stats.portesOrientees ? `, dont ${plan.stats.portesOrientees} avec leur sens` : ""}, ${plan.openings.length - nP - nG} fenêtres${nG ? `, ${nG} porte(s) de garage` : ""})`, S.segs.filter((s) => !s.virt).length)}
       ${row("rooms", "Pièces", keep.rooms ? rooms.length : roomsFor(keep.walls).length, keep.rooms && rooms.length ? esc(rooms.map((r) => r.name).join(", ")) : plan.pieces.length && !rooms.length && keep.rooms ? "les murs ne ferment aucune pièce" : "", S.rooms.length)}
       ${row("devices", "Appareils", plan.devices.length, `${plan.links.length} liaisons`, S.app.length)}
+      ${recal ? `<label class="ai-row" title="Les positions de l'IA sont estimées : le relevé est recalé pour que ses murs tombent sur ceux du PDF. Décochez pour garder les positions telles que l'IA les a données."><input type="checkbox" id="ai-recal" ${recal.on ? "checked" : ""}><span><b>Recaler sur les murs du PDF</b><br><span class="sm">${esc(recal.txt)}</span></span></label>` : ""}
       ${plan.devices.some((d) => d.t === "INCONNU" || d.qty != null || d.calibre || d.inscription) ? `<details class="sm"><summary>Informations conservées (quantités, calibres et symboles à préciser)</summary><ul>${plan.devices.filter((d) => d.t === "INCONNU" || d.qty != null || d.calibre || d.inscription).map((d) => `<li>${esc(d.t)}${d.aiType ? ` · type reçu ${esc(d.aiType)}` : ""}${d.qty != null ? ` · ${d.qty} prise(s) physique(s)` : ""}${d.calibre ? ` · ${d.calibre} A` : ""}${d.inscription ? ` · ${esc(d.inscription)}` : ""}</li>`).join("")}</ul><p>Les quantités de blocs sont conservées ; la détermination complète des mécanismes et pontages appartient à une prochaine étape.</p></details>` : ""}
       ${plan.remarques ? `<p class="mut sm">Remarque de l'IA : ${esc(plan.remarques)}</p>` : ""}
       ${ecartsHTML()}
@@ -104,6 +107,8 @@ export function createAiReleve({ api, openParams }) {
       <div class="wrow"><button class="on" id="ai-ok">Ajouter la sélection</button><button id="ai-again" title="Redemander à l'IA (la réponse peut changer)">Refaire</button><button id="ai-no">Annuler</button></div>
       <details class="sm"><summary>Réponse brute de l'IA</summary><pre class="ai-raw">${esc(lastText.slice(0, 4000))}</pre></details>`);
     card.querySelectorAll("[data-k]").forEach((el) => (el.onchange = () => { keep[el.dataset.k] = el.checked; preview(); render(); }));
+    const rc = card.querySelector("#ai-recal");
+    if (rc) rc.onchange = () => { recal.on = rc.checked; plan = recal.on ? recal.aligned : recal.raw; preview(); render(); };
     card.querySelector("#ai-no").onclick = close;
     // v76 : « Refaire » relance le même mode (modes 2 à 4 par ai-modes-run.js)
     card.querySelector("#ai-again").onclick = () => { close(); if (run && run.mode > 1 && again) again(run.mode); else open(); };
@@ -150,6 +155,7 @@ export function createAiReleve({ api, openParams }) {
     recordInitial(api.ch.id,lastText,{map,info});
     let raw;
     try { raw = parseAiJson(lastText); } catch (e) { message("La réponse de l'IA n'est pas exploitable : " + esc(e.message) + " Cliquez « Refaire » pour redemander.", [{ label: "Refaire", run: open }, { label: "Fermer", run: () => {} }]); return null; }
+    recal = null;
     try { plan = aiToPlan(raw, map, { defEp: api.state.wallEp }); }
     catch (e) { api.setPreview(null); plan = null; message("Import annulé : " + esc(e.message)); return null; }
     meta = info;
@@ -158,11 +164,30 @@ export function createAiReleve({ api, openParams }) {
     return plan;
   }
 
+  // v77 : recalage du relevé sur les murs du PDF vectoriel (src/walls/ai-align.js) ; rien sur un scan ou sans murs
+  async function realign() {
+    if (!plan || !plan.walls.length) return null;
+    const page = await chantierPage(api).catch(() => null);
+    const skip = (why) => { meta += ` · non recalé sur le PDF (${why})`; render(); return null; };
+    if (!page || page.segs.length < 30) return skip("plan scanné ou sans PDF : positions de l'IA gardées");
+    let ref; try { ref = detectWalls(page.segs, pageMap(api, page), { shapes: page.shapes }); } catch { return skip("murs du PDF illisibles"); }
+    const r = alignPlan(plan, ref);
+    const cm = (v) => v == null ? "?" : Math.round(v * 100);
+    if (r.ok) {
+      const ech = Math.max(Math.abs(r.T.x.a - 1), Math.abs(r.T.y.a - 1)) * 100;
+      recal = { on: true, raw: plan, aligned: r.plan, r,
+        txt: `${r.colles} murs collés sur le PDF, écart moyen ${cm(r.avant)} → ${cm(r.apres)} cm${ech >= 0.5 ? `, échelle corrigée de ${ech.toFixed(1).replace(".", ",")} %` : ""}` };
+      plan = r.plan;
+    } else meta += ` · non recalé sur le PDF (${r.raison})`;
+    preview(); render();
+    return r;
+  }
+
   // v76 (modes 2 à 4) : plan déjà lu et fusionné par ai-modes-run.js → même aperçu, mêmes cases, même ajout (un Ctrl+Z)
   function fromPlan(P, { info = "", text = "", usage = null, ms = 0, mode = 2 } = {}) {
     lastText = String(text || "");
     recordInitial(api.ch.id, lastText, { map: null, info });
-    plan = P; meta = info; lastMode = "key"; lastUsage = usage; lastMs = ms; run = { id: newAnalyseId(), mode };
+    plan = P; meta = info; recal = null; lastMode = "key"; lastUsage = usage; lastMs = ms; run = { id: newAnalyseId(), mode };
     keep = { walls: plan.walls.length > 0, rooms: plan.pieces.length > 0 || plan.walls.length > 0, devices: plan.devices.length > 0 };
     preview(); render();
     return plan;
@@ -194,13 +219,17 @@ export function createAiReleve({ api, openParams }) {
       const sc = await autoScale(api).catch(() => ({ ok: false }));
       if (!sc.ok) return message("Réglez d'abord l'échelle du plan (outil Échelle : « 1/50 » si le plan est au 1/50 sur sa feuille d'origine), puis recollez la réponse.", [{ label: "Régler l'échelle", run: () => api.startCalib() }, { label: "Fermer", run: () => {} }]);
     }
-    const f2 = await api.levelFond(api.level.id), ref = raw.ref && raw.ref.W > 0 && raw.ref.H > 0 ? raw.ref : null;
-    if (!ref) return message("Cette réponse n'indique pas la taille de l'image de référence (champ « ref »). Elle ne peut pas être placée sur le plan.", [{ label: "Fermer", run: () => {} }]);
+    // v77 : « ref » lu avec tolérance (W/H, w/h, width/height) et hauteur corrigée si la proportion est presque celle du fond
+    const f2 = await api.levelFond(api.level.id), ref = refOf(raw, { fondW: f2.w, fondH: f2.h });
+    if (!ref) return message("Cette réponse n'indique pas la taille de l'image de référence (champ « ref », par exemple <code>\"ref\":{\"W\":1568,\"H\":1109}</code>). Elle ne peut pas être placée sur le plan.", [{ label: "Fermer", run: () => {} }]);
     const map = { x0: f2.x, y0: f2.y, sx: f2.w / ref.W, sy: f2.h / ref.H };
     lastMode = "paste"; lastUsage = null; lastMs = 0; run = { id: newAnalyseId(), mode: 1 };
     // v64.1 : image trop petite = symboles de quelques pixels, appareils oubliés (essai MAILLARD : 1 654 px, 63 appareils sur 102)
     const low = Math.max(ref.W, ref.H) < MIN_REF_W ? ` · ⚠ image de ${ref.W} px seulement : relevé fait en basse définition, des appareils sont probablement oubliés (la consigne demande ${MIN_REF_W} px au moins : redemandez-le)` : "";
-    return fromText(text, map, `Réponse donnée à la main · image de référence ${ref.W} × ${ref.H} px${low}`);
+    const adj = ref.ajuste ? ` (hauteur annoncée ${ref.annonce.H} px, corrigée d'après la proportion du plan)` : "";
+    const P = fromText(text, map, `Réponse donnée à la main · image de référence ${ref.W} × ${Math.round(ref.H)} px${adj}${low}`);
+    if (P) await realign();
+    return plan;
   }
   function pastePanel() {
     if (api.tab !== "plan") api.setTab("plan");
@@ -250,7 +279,7 @@ export function createAiReleve({ api, openParams }) {
       attente.finish(job, !!r.sawImage);
       if (!r.sawImage) { busy = false; return message(`Le modèle ${esc(r.model)} ne lit pas les images : choisissez un modèle « vision » dans Paramètres.`, [{ label: "Ouvrir Paramètres", run: openParams }, { label: "Fermer", run: () => {} }]); }
       lastMode = "key"; lastUsage = r.usage || null; lastMs = r.ms || 0; run = { id: newAnalyseId(), mode };
-      fromText(r.text, img.map, `${PROVIDERS[r.provider].name} · ${r.model} · ${(r.ms / 1000).toFixed(0)} s · image ${img.W} × ${img.H} px`);
+      if (fromText(r.text, img.map, `${PROVIDERS[r.provider].name} · ${r.model} · ${(r.ms / 1000).toFixed(0)} s · image ${img.W} × ${img.H} px`)) await realign();
     } catch (e) {
       message("Le relevé par l'IA a échoué : " + esc(e.message), [{ label: "Fermer", run: () => {} }, { label: "Ouvrir Paramètres", run: openParams }]);
     } finally { busy = false; }
@@ -258,5 +287,5 @@ export function createAiReleve({ api, openParams }) {
 
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !card.hidden) close(); });
   let copied = "";
-  return { attente, open, close, fromText, fromPaste, pastePanel, pastePrompt, get copied() { return copied; }, fondImage: (o) => fondImage(api, o), get plan() { return plan; }, get lastImage() { return lastImage; }, get run() { return run; }, fromPlan, prepare, show, message, setAgain: (f) => { again = f; }, setBusy: (v) => { busy = !!v; }, get busy() { return busy; } };
+  return { attente, open, close, fromText, fromPaste, realign, pastePanel, pastePrompt, get copied() { return copied; }, fondImage: (o) => fondImage(api, o), get plan() { return plan; }, get recal() { return recal; }, get lastImage() { return lastImage; }, get run() { return run; }, fromPlan, prepare, show, message, setAgain: (f) => { again = f; }, setBusy: (v) => { busy = !!v; }, get busy() { return busy; } };
 }

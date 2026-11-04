@@ -900,6 +900,20 @@ try {
       || undone.segs !== before.segs || undone.app !== before.app) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("v77 : réponse collée avec « ref » en minuscules et calibre en texte (« 20 A ») acceptée ; 4 murs = pas de recalage sur le PDF (garde-fou affiché)", async () => {
+    const rep = { ref: { w: 1000, h: 1000 }, murs: [{ x1: 200, y1: 200, x2: 800, y2: 200, ep: 20 }, { x1: 800, y1: 200, x2: 800, y2: 700, ep: 20 }, { x1: 800, y1: 700, x2: 200, y2: 700, ep: 20 }, { x1: 200, y1: 700, x2: 200, y2: 200, ep: 20 }],
+      ouvertures: [], pieces: [{ nom: "Essai v77", x: 500, y: 450 }], appareils: [{ t: "LV", x: 300, y: 300, calibre: "20 A" }, { t: "PLAQ", x: 320, y: 300, calibre: "32A" }], liaisons: [] };
+    await ev(() => okteoExt.aiReleve.pastePanel());
+    await page.fill("#ai-paste", JSON.stringify(rep));
+    await page.click("#ai-read");
+    await page.waitForSelector("#ai-ok", { timeout: 15000 });
+    await page.waitForFunction(() => /recalé sur le PDF/.test(document.querySelector(".aicard").textContent), null, { timeout: 15000 }).catch(() => {});
+    const txt = await page.textContent(".aicard");
+    const P = await ev(() => ({ cal: okteoExt.aiReleve.plan.devices.map((d) => d.calibre).join(","), recal: !!okteoExt.aiReleve.recal }));
+    await ev(() => okteoExt.aiReleve.close());
+    if (P.cal !== "20,32" || P.recal || !/Réponse donnée à la main/.test(txt) || !/non recalé sur le PDF/.test(txt)) throw new Error(JSON.stringify({ P, txt: txt.slice(0, 400) }));
+    return true;
+  });
   await check("relevé IA sans clé (v55.1) : « Copier la consigne » (ref, 40 types, hauteurs, CVR) ; réponse avec radiateur, volet + CVR, hauteur lue", async () => {
     await ev(() => okteoExt.aiReleve.pastePanel());
     await page.click("#ai-copy");
