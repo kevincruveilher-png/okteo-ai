@@ -1862,8 +1862,8 @@ try {
     return true;
   });
   await check("n° 14 : Relevé → Murs d'équerre : une maison relevée de travers (2 à 3°) remise d'équerre, angles joints, compte rendu, un Ctrl+Z", async () => {
-    // un dialogue laissé ouvert par un test précédent (impression…) recouvrirait le menu Relevé
-    for (let i = 0; i < 3 && (await page.isVisible(".pal-back")); i++) await page.keyboard.press("Escape");
+    // un dialogue laissé ouvert par un test précédent (impression…) recouvre le menu : masqué le temps du test, puis remis
+    await ev(() => document.querySelectorAll(".pal-back").forEach((e) => { e.dataset.hid = e.style.display || "-"; e.style.display = "none"; }));
     await ev(() => { okteo.setTab("plan"); okteoExt.panel?.close?.("assistant"); });
     const before = await ev(() => okteo.state.segs.length);
     let r = null, back = -1;
@@ -1880,6 +1880,7 @@ try {
       // toujours revenir au dessin de départ (sinon la maison d'essai fausse les tests suivants)
       for (let i = 0; i < 3 && (await ev(() => okteo.state.segs.length)) !== before; i++) await ev(() => okteo.undo());
       back = await ev(() => okteo.state.segs.length);
+      await ev(() => document.querySelectorAll(".pal-back").forEach((e) => { if (e.dataset.hid) { e.style.display = e.dataset.hid === "-" ? "" : e.dataset.hid; delete e.dataset.hid; } }));
     }
     if (!(r && r.right && r.joined && /Murs : .*d'équerre/.test(r.hint) && back === before)) throw new Error(JSON.stringify({ r, back, before }));
     return true;
