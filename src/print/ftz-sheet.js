@@ -232,10 +232,42 @@ function rayHit(walls, x, y, dx, dy) {
   }
   return best;
 }
+// n° 12 : toutes les rencontres d'un rayon avec les contours des murs : [{d, i (n° du mur)}], de la plus proche à la plus loin
+function rayHits(walls, x, y, dx, dy) {
+  const out = [];
+  walls.forEach((P, w) => { for (let i = 0; i < P.length; i++) {
+    const a = P[i], b = P[(i + 1) % P.length];
+    if (dy === 0) {
+      if ((a.y > y) === (b.y > y)) continue;
+      const t = (y - a.y) / (b.y - a.y), d = (a.x + t * (b.x - a.x) - x) * dx;
+      if (d > 0.01) out.push({ d, i: w });
+    } else {
+      if ((a.x > x) === (b.x > x)) continue;
+      const t = (x - a.x) / (b.x - a.x), d = (a.y + t * (b.y - a.y) - y) * dy;
+      if (d > 0.01) out.push({ d, i: w });
+    }
+  } });
+  return out.sort((p, q) => p.d - q.d);
+}
+// distance de la boîte à la face côté pièce du MUR EXTÉRIEUR dans une direction : le dernier mur rencontré par le rayon
+// (au-delà, plus rien : c'est l'enveloppe). Un rayon qui passe par une fenêtre ne voit pas le mur extérieur : on essaie des
+// rayons décalés jusqu'à 1,5 m de part et d'autre et on garde le mur le plus lointain trouvé.
+function extHit(walls, x, y, dx, dy) {
+  let best = null;
+  for (const o of [0, 0.5, -0.5, 1, -1, 1.5, -1.5]) {
+    const H = rayHits(walls, x + (dy ? o : 0), y + (dx ? o : 0), dx, dy);
+    if (!H.length) continue;
+    const far = H[H.length - 1], inner = H.find((h) => h.i === far.i);
+    if (!best || far.d > best.far + 0.05) best = { far: far.d, d: inner.d };
+  }
+  return best ? best.d : Infinity;
+}
+// cotes de position d'une boîte (n° 12, Kévin 04/11) : prises sur le MUR EXTÉRIEUR (face côté pièce), dans chaque axe du
+// côté du mur extérieur le plus proche ; plus jamais sur une cloison
 export function boxCotes(boxes, walls, max = 12) {
   const out = [];
   for (const b of boxes) {
-    const L = rayHit(walls, b.x, b.y, -1, 0), R = rayHit(walls, b.x, b.y, 1, 0), U = rayHit(walls, b.x, b.y, 0, -1), D = rayHit(walls, b.x, b.y, 0, 1);
+    const L = extHit(walls, b.x, b.y, -1, 0), R = extHit(walls, b.x, b.y, 1, 0), U = extHit(walls, b.x, b.y, 0, -1), D = extHit(walls, b.x, b.y, 0, 1);
     const h = Math.min(L, R), v = Math.min(U, D);
     if (h < max) out.push({ box: b.id, n: b.n, axis: "x", a: L <= R ? b.x - L : b.x + R, b: b.x, at: b.y, cm: Math.round(h * 100) });
     if (v < max) out.push({ box: b.id, n: b.n, axis: "y", a: U <= D ? b.y - U : b.y + D, b: b.y, at: b.x, cm: Math.round(v * 100) });
@@ -243,7 +275,7 @@ export function boxCotes(boxes, walls, max = 12) {
   return out;
 }
 // dessin : cotes horizontales au-dessus ou au-dessous du plan, verticales à gauche ou à droite (côté le plus proche de la
-// boîte), lignes d'attache jusqu'au bord du plan, valeur en cm (Courier gras 2,97 mm ×0,66, violet #800080)
+// boîte), lignes d'attache (côté mur jusqu'au mur extérieur, côté boîte jusqu'à la boîte), valeur en cm (Courier gras 2,97 mm ×0,66, violet #800080)
 export const COTE_STYLE = { color: [128, 0, 128], w: 0.12, font: { font: "Courier-Bold", sy: 2.97, sx: 1.96, color: "#800080" }, gap: 7, step: 5, min: 20 };
 export function drawBoxCotes(doc, cotes, X, Y, plan, area, walls = []) {
   const C = COTE_STYLE, used = { top: 0, bottom: 0, left: 0, right: 0 };
@@ -264,7 +296,8 @@ export function drawBoxCotes(doc, cotes, X, Y, plan, area, walls = []) {
       yy = Math.max(area.y + 3, Math.min(area.y + area.h - 1, yy));
       const xa = X(c.a), xb = X(c.b);
       doc.line(xa, yy, xb, yy); tick(xa, yy); tick(xb, yy);
-      [[xa, c.a], [xb, c.b]].forEach(([x, xm]) => { const p = Y(c.at), e = top ? Math.min(edgeY(xm, top), p) : Math.max(edgeY(xm, top), p); doc.line(x, yy + (top ? -1 : 1), x, e + (top ? -0.6 : 0.6)); });
+      // n° 12 : côté mur, le trait d'attache s'arrête au mur extérieur ; côté boîte, il va jusqu'à la boîte
+      [[xa, c.a, false], [xb, c.b, true]].forEach(([x, xm, box]) => { const p = Y(c.at), e = box ? p : top ? Math.min(edgeY(xm, top), p) : Math.max(edgeY(xm, top), p); doc.line(x, yy + (top ? -1 : 1), x, e + (box ? 0 : top ? -0.6 : 0.6)); });
       drawText(doc, { str: String(c.cm), ...C.font, at: [(xa + xb) / 2 - String(c.cm).length * 0.9, yy - 0.8] });
       drawn.push({ ...c, line: yy, side });
     } else {
@@ -273,7 +306,7 @@ export function drawBoxCotes(doc, cotes, X, Y, plan, area, walls = []) {
       xx = Math.max(area.x + 3, Math.min(area.x + area.w - 3, xx));
       const ya = Y(c.a), yb = Y(c.b);
       doc.line(xx, ya, xx, yb); tick(xx, ya); tick(xx, yb);
-      [[ya, c.a], [yb, c.b]].forEach(([y, ym]) => { const p = X(c.at), e = left ? Math.min(edgeX(ym, left), p) : Math.max(edgeX(ym, left), p); doc.line(xx + (left ? -1 : 1), y, e + (left ? -0.6 : 0.6), y); });
+      [[ya, c.a, false], [yb, c.b, true]].forEach(([y, ym, box]) => { const p = X(c.at), e = box ? p : left ? Math.min(edgeX(ym, left), p) : Math.max(edgeX(ym, left), p); doc.line(xx + (left ? -1 : 1), y, e + (box ? 0 : left ? -0.6 : 0.6), y); });
       drawText(doc, { str: String(c.cm), ...C.font, angle: 90, at: [xx - 0.8, (ya + yb) / 2 + String(c.cm).length * 0.9] });
       drawn.push({ ...c, line: xx, side });
     }

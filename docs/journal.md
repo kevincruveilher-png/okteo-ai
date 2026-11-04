@@ -1,3 +1,13 @@
+## 04/11/2026 — n° 12 : cotes des boîtes prises sur le mur extérieur (lot A)
+
+- Demande de Kévin : les cotes de position des boîtes (feuille A3 du BE) doivent être prises sur le mur extérieur, et le trait
+  doit rejoindre la boîte (avant : distance au mur le plus proche, souvent une cloison ; trait d'attache arrêté au mur).
+- `src/print/ftz-sheet.js` : `rayHits` (toutes les rencontres d'un rayon avec les murs), `extHit` (face côté pièce du DERNIER
+  mur rencontré = mur extérieur ; rayons décalés jusqu'à ±1,5 m si le rayon passe par une fenêtre) ; `boxCotes` mesure sur le
+  mur extérieur le plus proche dans chaque axe ; `drawBoxCotes` : trait d'attache côté mur arrêté au mur extérieur, côté boîte
+  prolongé jusqu'à la boîte. Choix à confirmer avec Kévin : face côté pièce du mur extérieur (et non face extérieure).
+- Test : `scripts/charte.test.mjs` (cote mesurée sur le mur extérieur et non sur la cloison, y compris à travers une fenêtre).
+
 ## 04/11/2026 — n° 13 + 8 : appareils contre les murs, dans le sens du mur ; repères lisibles et déplaçables (lot A)
 
 - Constats de Kévin : appareils à cheval sur les murs, tableau qui ne suit pas le sens du mur, repères (P5, P6…) dans les murs
