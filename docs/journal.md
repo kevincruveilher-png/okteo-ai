@@ -24,6 +24,10 @@
 - Tests : `scripts/ai-tools.test.mjs` (5, dans check), `web.test.mjs` (outils au relais), `ai-modes.test.mjs` (5 relectures) ;
   smoke : mode 4 avec outils (faux serveur : 3 outils puis relevé), mode 4 seul + échelle bloquante, mémoire d'un symbole.
 
+- Fusion dans `main` le 04/11/2026 (go de Kévin pour le bloc D) : `npm run check` vert (run 41911939621, smoke 206/206) et
+  `npm run test:web` vert (16/16, relais en ligne) sur GitHub Actions ; workflow temporaire retiré. À vérifier en ligne :
+  première analyse mode 4 réelle (outils appelés par Claude, coût).
+
 ## 04/11/2026 — n° 15 : import du dossier PDF par rôle de page (bloc D, go de Kévin)
 
 - Décision de Kévin : on importe le dossier PDF entier, l'opérateur désigne les pages (implantation par niveau, plan cuisine,
