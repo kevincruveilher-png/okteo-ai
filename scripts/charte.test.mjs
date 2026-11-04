@@ -58,16 +58,40 @@ check("noms abrégés : Pièce de vie → SEJOUR, Chambre 2 → CH2, Salle de ba
   if (got.join() !== want.join()) throw new Error(got.join(", "));
   return abrevRoom("Chambre 1", parseAbrev("Chambre = CHB")) === "CHB1" && abrevRoom("Placard", parseAbrev("Pla = X")) === "PLACARD";
 });
-check("cotes de boîte : distance au mur le plus proche, horizontale et verticale, en cm", () => {
+check("cotes de boîte (n° 12) : prises sur le mur extérieur le plus proche (jamais une cloison), même à travers une fenêtre, en cm", () => {
   const R = (x0, y0, x1, y1) => [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }];
   const walls = [R(0, 0, 10, 0.2), R(0, 7.8, 10, 8), R(0, 0, 0.2, 8), R(9.8, 0, 10, 8), R(4, 0, 4.07, 8)];   // pièce 10 × 8 + cloison en x = 4
   const c = boxCotes([{ id: "b1", n: "LI01", x: 2.6, y: 1.7 }, { id: "b2", n: "LI02", x: 7, y: 6 }], walls);
   const f = (id, ax) => c.find((k) => k.box === id && k.axis === ax);
-  if (!(f("b1", "x").cm === 140 && f("b1", "y").cm === 150 && f("b2", "x").cm === 280 && f("b2", "y").cm === 180 && Math.abs(f("b2", "x").a - 9.8) < 1e-9)) throw new Error(JSON.stringify(c));
+  if (!(f("b1", "x").cm === 240 && f("b1", "y").cm === 150 && f("b2", "x").cm === 280 && f("b2", "y").cm === 180 && Math.abs(f("b2", "x").a - 9.8) < 1e-9)) throw new Error(JSON.stringify(c));
+  // mur du haut coupé par une fenêtre de 1,20 m au droit de la boîte, cloison horizontale à y = 3 : la cote vise le mur extérieur
+  const w2 = [R(0, 0, 2, 0.2), R(3.2, 0, 10, 0.2), R(0, 7.8, 10, 8), R(0, 0, 0.2, 8), R(9.8, 0, 10, 8), R(0.2, 3, 4, 3.07)];
+  const c2 = boxCotes([{ id: "b3", n: "LI03", x: 2.6, y: 1.7 }], w2), up = c2.find((k) => k.axis === "y");
+  if (!(up && up.cm === 150)) throw new Error(JSON.stringify(c2));
 });
 check("dessin des murs : maçonnerie hachurée ou gris plein, cloison pleine, doublage ondulé", () => {
   return wallLook("maconnerie").hatch && wallLook("maconnerie", "gris").fill === "#9A9A9A" && !wallLook("maconnerie", "gris").hatch && wallLook("cloison").fill === "#202020" && wallLook("doublage").wave && wavePoints({ x: 0, y: 0 }, { x: 1, y: 0 }, 0.1).length > 20;
 });
+console.log("Légende qui s'adapte (n° 2)");
+{
+  const { legendCols, legendSize, legendFit } = await import("../src/print/ftz-sheet.js");
+  const rows = Array.from({ length: 14 }, (_, i) => ({ key: "K" + i, t: "PC16", label: "Ligne " + i }));
+  check("légende : 1 à 3 colonnes équilibrées, taille réduite de k", () => {
+    const one = legendSize(rows), three = legendSize(rows, { cols: 3 }), small = legendSize(rows, { cols: 3, k: 0.7 });
+    return legendCols(rows, 3).length === 3 && Math.abs(three.w - 3 * one.w) < 1e-9 && three.h < one.h / 2.5 && Math.abs(small.w - three.w * 0.7) < 1e-9;
+  });
+  const area = { x: 0, y: 0, w: 400, h: 260 };
+  check("légende : posée dans un coin libre quand le plan laisse de la place, jamais sur le plan", () => {
+    const plan = [{ x0: 100, y0: 40, x1: 300, y1: 220 }], L = legendFit(area, plan, rows), z = legendSize(rows, L);
+    const over = L && !(L.x + z.w <= 100 - 2 || L.x >= 300 + 2 || L.y + z.h <= 40 - 2 || L.y >= 220 + 2);
+    return L && !over && L.k === 1 && L.cols === 1;
+  });
+  check("légende : plan qui remplit presque tout → plusieurs colonnes et / ou réduite, toujours hors du plan", () => {
+    const plan = [{ x0: 4, y0: 4, x1: 396, y1: 200 }], L = legendFit(area, plan, rows);
+    return L && L.y >= 200 && (L.cols > 1 || L.k < 1);
+  });
+  check("légende : aucune place nulle part → null (page « Légende » à part)", () => legendFit(area, [{ x0: 0, y0: 0, x1: 400, y1: 260 }], rows) === null);
+}
 console.log("Volumes de la salle de bain (v74 MAJ 3)");
 const VOL = await import("../src/cablage/volumes.js");
 check("baignoire contre le mur : volume 1 = son emprise, volume 2 = 0,60 m autour, coupé par les murs de la pièce", () => {

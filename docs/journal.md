@@ -19,6 +19,36 @@
   `help.sani`.
 - Tests : `scripts/charte.test.mjs` (formes, rotation, vasque double, pas de volume ni de contrôle, volumes 3D) ; smoke
   (4 sanitaires posés : pointillés, sans repère ni circuit, PDF, 3D, un Ctrl+Z).
+## 04/11/2026 — n° 2 : la légende de la feuille A3 s'adapte et ne passe plus sur le plan (lot A)
+
+- Constat de Kévin : à l'impression, la légende se superposait au plan. Cause : `freeCorner` essayait 4 coins du rectangle
+  englobant le plan et, faute de coin libre, prenait le moins mauvais.
+- `src/print/ftz-sheet.js` : `legendCols` (1 à 3 colonnes équilibrées), `legendSize(rows, {cols, k})`, `LEGEND_LAYOUTS`
+  (k = 1 → 0,7 × 1 à 3 colonnes), `legendFit(area, blocked, rows)` (grille de 2 mm, somme cumulée : la plus grande mise en
+  page qui tient, au plus près d'un coin) ; `drawLegend(doc, rows, x, y, drawSym, {cols, k})` (symboles et textes réduits).
+- `print.js` `buildFtz` : `blockedFor(zone, page…)` = ce qu'occupe la page (murs, pièces, appareils, boîtes, gaines, lignes
+  directes, bandes des cotes des boîtes, encarts) ; sur la page de la légende, plan centré, sinon décalé à gauche, à droite, en
+  haut ou en bas (`LayP`, `planP`, cotes et QR suivent) ; en dernier recours une page « Légende » à part (cadre + cartouche).
+  `legends[].where` (« plan », « plan décalé », « main », « page à part »), `cols`, `k`. Légende déplacée à la main dans la
+  préparation (`legendAt`) : inchangée.
+- Tests : `scripts/charte.test.mjs` (colonnes, coin libre, plan presque plein, aucune place) ; smoke : légende dans la zone de
+  dessin, avec sa mise en page.
+
+- Fusion dans `main` le 04/11/2026 (lot A, go de Kévin) avec le n° 2 (sa branche contient le n° 12) : `npm run check`
+  vert sur GitHub Actions (run 41892789253, smoke 198/198) ; workflow temporaire retiré.
+
+## 04/11/2026 — n° 12 : cotes des boîtes prises sur le mur extérieur (lot A)
+
+- Demande de Kévin : les cotes de position des boîtes (feuille A3 du BE) doivent être prises sur le mur extérieur, et le trait
+  doit rejoindre la boîte (avant : distance au mur le plus proche, souvent une cloison ; trait d'attache arrêté au mur).
+- `src/print/ftz-sheet.js` : `rayHits` (toutes les rencontres d'un rayon avec les murs), `extHit` (face côté pièce du DERNIER
+  mur rencontré = mur extérieur ; rayons décalés jusqu'à ±1,5 m si le rayon passe par une fenêtre) ; `boxCotes` mesure sur le
+  mur extérieur le plus proche dans chaque axe ; `drawBoxCotes` : trait d'attache côté mur arrêté au mur extérieur, côté boîte
+  prolongé jusqu'à la boîte. Choix à confirmer avec Kévin : face côté pièce du mur extérieur (et non face extérieure).
+- Test : `scripts/charte.test.mjs` (cote mesurée sur le mur extérieur et non sur la cloison, y compris à travers une fenêtre).
+
+- Fusion dans `main` le 04/11/2026 (lot A, go de Kévin) avec le n° 2 (sa branche contient le n° 12) : `npm run check`
+  vert sur GitHub Actions (run 41892789253, smoke 198/198) ; workflow temporaire retiré.
 
 ## 04/11/2026 — n° 13 + 8 : appareils contre les murs, dans le sens du mur ; repères lisibles et déplaçables (lot A)
 
@@ -45,6 +75,9 @@
   texte gagne sur le symbole voisin. Impression : `rotD` ignore une forme sans tracé (symbole du BE tourné).
 - Tests : `scripts/placement.test.mjs` (5) dans `npm run check` ; smoke : symboles hors du mur, rotation sur mur vertical,
   contrôle `mur` + recollage, repère glissé et Ctrl+Z.
+
+- Fusion dans `main` le 04/11/2026 (lot A, go de Kévin) : `npm run check` vert sur GitHub Actions (run 41892006715,
+  smoke 197/197) ; workflow temporaire retiré.
 
 ## 04/11/2026 — n° 14 : autocorrection des murs (lot A, branche `feat/lot-a-14-murs-equerre`)
 
