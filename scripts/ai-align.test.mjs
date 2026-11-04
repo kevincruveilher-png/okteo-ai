@@ -1,7 +1,7 @@
 // v77 : réponse collée — « ref » tolérant, calibre en texte, recalage du relevé IA sur les murs du PDF.
 // Maison synthétique (aucun plan client) : murs « vrais » = ceux du PDF ; relevé IA = mêmes murs décalés, étirés et bruités.
 import assert from "node:assert/strict";
-import { aiToPlan, refOf, pastePrompt } from "../src/walls/ai-plan.js";
+import { aiToPlan, refOf, pastePrompt, aiPrompt, scaleClaim, scaleCheck, parseAiJson } from "../src/walls/ai-plan.js";
 import { readingData, validateReleve, calibreOf } from "../src/walls/ai-data.js";
 import { alignPlan, alignTransform, axisLines } from "../src/walls/ai-align.js";
 
@@ -97,5 +97,22 @@ test("garde-fous : 4 murs seulement, ou relevé sans rapport avec le PDF → pas
   for (let i = 0; i < 5; i++) far.murs.push({ x1: 40 + i * 85, y1: 40, x2: 40 + i * 85, y2: 400, ep: 10 }, { x1: 40, y1: 40 + i * 90, x2: 380, y2: 40 + i * 90, ep: 10 });
   const r2 = alignTransform(aiToPlan(far, { ...map, x0: map.x0 + 0.8, y0: map.y0 + 0.8 }), ref);
   assert.ok(!r2.ok, JSON.stringify(r2));
+});
+test("n° 4 : consigne (collage et relevé avec clé) : un seul mur maçonnerie + doublage, cloisons jusqu'à l'axe, pointillés, placards, symboles tournés, doutes à deux types, échelle sur les cotes, guillemets droits", () => {
+  for (const p of [pastePrompt({ page: 2 }), aiPrompt({ W: 1500, H: 1000, cmPerPx: 0.8 })]) {
+    for (const re of [/UN SEUL mur/, /jusqu'à l'AXE du mur/, /JAMAIS des murs/, /Placard : fermé sur 3 côtés/, /Symboles tournés/, /deux types nommés/, /pixels par mètre/, /guillemets droits/]) assert.match(p, re);
+  }
+  assert.match(pastePrompt({ page: 2 }), /page 2/);
+});
+test("n° 4 : échelle annoncée dans les remarques comparée à l'échelle du fond (3 % de tolérance) ; réponse à guillemets typographiques lue", () => {
+  assert.equal(scaleClaim("échelle : 236 pixels par mètre (cotes utilisées : 2,00 = 473 px)"), 236);
+  assert.equal(scaleClaim("236,2 px/m"), 236.2);
+  assert.equal(scaleClaim("aucune échelle"), null);
+  assert.ok(scaleCheck("échelle : 236 pixels par mètre", { sx: 1 / 236.2 }).ok);
+  const bad = scaleCheck("échelle : 236 pixels par mètre", { sx: 1 / 200 });
+  assert.ok(!bad.ok && bad.ecart > 15);
+  assert.equal(scaleCheck("rien", { sx: 0.004 }), null);
+  const raw = parseAiJson("{\u201cref\u201d:{\u201cW\u201d:4961,\u201dH\u201d:3508},\u201cmurs\u201d:[],\u201cremarques\u201d:\u201d\u00e9chelle : 236 pixels par m\u00e8tre\u201d}");
+  assert.equal(raw.ref.H, 3508); assert.equal(scaleClaim(raw.remarques), 236);
 });
 console.log(`ai-align : ${n} vérifications OK`);
