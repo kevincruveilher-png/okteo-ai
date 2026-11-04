@@ -14,6 +14,8 @@
   `cab.questions` (annulables, enregistrées avec le chantier) ; carte `.rapcard` « Rapport d'analyse » (points par
   famille, décidés ou à décider, questions ; « Copier pour le BE », « Copier les questions ») ; catalogue `ai.rapport`.
 - Tests : `scripts/rapport.test.mjs` (3, dans check) ; smoke (halos rouges, bulle, question, choix VV, rapport, Ctrl+Z).
+- Fusion dans `main` le 04/11/2026 (go de Kévin pour le bloc D) : `npm run check` vert sur GitHub Actions (run 41913594686,
+  smoke 207/207) ; workflow temporaire retiré. Bloc D terminé (n° 15, 3 + 16, 5).
 
 ## 04/11/2026 — n° 3 + 16 : outils de l'IA pendant l'analyse, mode 4 seul, échelle bloquante, mémoire des symboles (bloc D)
 
