@@ -10,6 +10,8 @@ import { settings, mountParams } from "./settings.js";
 import { PROVIDERS, testProvider, serverStatus, listModels } from "./ai.js";
 import { mountChantiers } from "./chantiers-page.js";
 import { createWallsTool } from "./walls-ui.js";
+import { squareOptions, squareText } from "../walls/squaring.js";
+import { getPrefs } from "../prefs.js";
 import { createRoomsTool } from "./rooms-ui.js";
 import { createPrintTool } from "./print-ui.js";
 import { createPrepTool } from "./prep-ui.js";
@@ -45,6 +47,14 @@ function start() {
     analyse: () => { panel.show("assistant"); assistant?.analyse(); },
     openPalette: () => palette?.open(),
     detectWalls: () => walls.open(),
+    // n° 14 : murs du niveau ouvert mis d'équerre (réglages de Paramètres → Murs), compte rendu dans la barre d'aide
+    squareWalls: () => {
+      if (api.tab !== "plan") api.setTab("plan");
+      const R = api.squareWalls(squareOptions(getPrefs()));
+      const t = R ? "Murs : " + squareText(R) + (R.biais.length + R.verifier.length + R.refus.length ? " · Ctrl+Z annule." : "") : "Aucun mur à mettre d'équerre sur ce niveau.";
+      api.setHint(t);
+      return t;
+    },
     detectRooms: () => rooms.open(),
     detectDevices: () => devices.open(),
     print: () => printer.open(),
@@ -140,6 +150,7 @@ function start() {
   const setRelev = popMenu("pop-relev", "btn-relev");
   const relev = (fn) => () => { setRelev(false); fn(); };
   document.getElementById("rv-walls").onclick = relev(() => walls.open());
+  document.getElementById("rv-square").onclick = relev(() => hooks.squareWalls());
   document.getElementById("rv-rooms").onclick = relev(() => rooms.open());
   document.getElementById("rv-devices").onclick = relev(() => devices.open());
   document.getElementById("rv-ai").onclick = relev(() => aiModes.open());

@@ -4,6 +4,7 @@ import { readingData } from "../walls/ai-data.js";
 import { K } from "./k.js";
 import * as CHS from "../chantiers.js";
 import { addLimit } from "../walls/rooms.js";
+import { squarePlan, keepOpenings } from "../walls/squaring.js";
 import { CH, MATS, PAL, hDefault, isPmr, PLAN, TYPES, VB, batiStyle, epOf, layers, matOf, node, nodeById, segById, state, uidA, uidN, uidO, uidR, uidS } from "./model.js";
 import { markDirty, packData, snapshot, writeNow } from "./persist.js";
 import { fit, renumberReps, repMap, rotExtent, rotateView, syncVB } from "./view.js";
@@ -775,6 +776,23 @@ window.okteo = {
     return batiStyle();
   },
   setBatiStyle,
+  // n° 14 : met les murs du niveau ouvert d'équerre (sens de la maison ; options de squarePlan) ; un seul Ctrl+Z.
+  // Les appareils accrochés et les pièces suivent leurs murs au dessin suivant ; les ouvertures gardent leur place relative.
+  squareWalls(opts = {}) {
+    const N = state.nodes, idx = new Map(N.map((n, i) => [n.id, i]));
+    const walls = state.segs.map((s) => ({ a: idx.get(s.a), b: idx.get(s.b), virt: !!s.virt })).filter((w) => w.a != null && w.b != null);
+    if (!walls.length) return null;
+    const plan = { nodes: N.map((n) => ({ x: n.x, y: n.y })), walls };
+    const R = squarePlan(plan, opts);
+    if (!R.nodes.some((p, i) => Math.hypot(p.x - N[i].x, p.y - N[i].y) > 1e-4)) return R;
+    snapshot();
+    const segI = new Map(state.segs.map((s, i) => [s.id, i]));
+    const ops = keepOpenings(state.openings.map((o) => ({ ...o, seg: segI.get(o.seg) })), state.segs.map((s) => ({ a: idx.get(s.a), b: idx.get(s.b) })), plan.nodes, R.nodes);
+    N.forEach((n, i) => { n.x = +R.nodes[i].x.toFixed(3); n.y = +R.nodes[i].y.toFixed(3); });
+    state.openings.forEach((o, i) => { o.t = ops[i].t; o.w = ops[i].w; });
+    markDirty(); draw(); showSide();
+    return R;
+  },
   wallMats() {
     return state.segs.filter(s => !s.virt).map(s => ({ id: s.id, mat: matOf(s), set: s.mat || null, ep: epOf(s) }));
   },

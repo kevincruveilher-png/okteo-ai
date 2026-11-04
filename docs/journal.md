@@ -1,3 +1,25 @@
+## 04/11/2026 — n° 14 : autocorrection des murs (lot A, branche `feat/lot-a-14-murs-equerre`)
+
+- Demande de Kévin : un mur légèrement de travers doit être remis d'équerre (angle en L non droit, rectangle de biais).
+  Avant : `aiToPlan` ne redressait qu'à moins de 4° des axes de la PAGE, la fusion de sommets pouvait remettre un mur de biais,
+  le relevé automatique ne redressait rien.
+- `src/walls/squaring.js` (pur) : `houseAngle` (sens de la maison d'après ses murs, 2 passes, aligné sur la page à ≤ 2°),
+  `squarePlan(plan, {tol 10, tol45 10, maxMove 0,15, hardMove 0,5, collinear 0,05, pageSnap 2})` → sommets recalculés par
+  groupes (murs h → même v, murs v → même u, moyenne pondérée par la longueur), murs dans le prolongement (≤ 5 cm, ≤ 60 cm
+  d'écart) sur la même ligne, murs à 45° remis exacts par leur bout libre, biais au-delà gardés et signalés ; déplacement
+  > maxMove = corrigé mais `verifier`, > hardMove = `refus` (pas corrigé) ; `keepOpenings` (place relative), `squareReleve`,
+  `squareOptions(prefs)`, `squareText`.
+- Branché : `ai-releve.js` `squareStep()` dans `fromText` et `fromPlan` (avant le recalage v77, compte rendu dans la carte),
+  `walls-ui.js` (relevé automatique, ligne `#w-square`), `okteo.squareWalls(opts)` (cœur, un Ctrl+Z, appareils et pièces suivent
+  leurs murs), bouton Relevé → « Murs d'équerre » `#rv-square`, catalogue `walls.square`, `hooks.squareWalls` (compte rendu
+  dans la barre d'aide). Réglages : préférences `equerreTol` 10°, `equerre45` 10°, `equerreMax` 15 cm, Paramètres → Murs
+  (`#ps-murs`, 0 = rien corrigé).
+- Tests : `scripts/squaring.test.mjs` (9) dans `npm run check` (`npm run test:equerre`) ; smoke : maison relevée de travers
+  remise d'équerre par le menu, angles joints, deux Ctrl+Z. Workflow TEMPORAIRE `.github/workflows/verification-lot-a.yml`.
+
+- Fusion dans `main` le 04/11/2026 (lot A, go de Kévin) : `npm run check` vert sur GitHub Actions (run 41890979246) ;
+  workflow temporaire `verification-lot-a.yml` retiré.
+
 ## 04/11/2026 — v77 fusionnée dans `main` (« go » de Kévin pour le lot A)
 
 - Branche `feat/releve-colle-ref-calibre` fusionnée ; workflow temporaire `verification-releve-colle.yml` retiré. Dernière

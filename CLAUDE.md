@@ -523,6 +523,12 @@ garde-fous ≥ 6 murs / 60 % / 1,5 m / 5 %) ; `ai-releve.js` `realign()` après 
 print.js passe contour puis remplissage). Feuille de route du 04/11 (lots A à D) : document du projet claude.ai
 `claude/feuille-de-route-2026-11.md`, résumé dans le journal.
 
+### Murs d'équerre (n° 14, lot A du 04/11/2026)
+`src/walls/squaring.js` (pur : `houseAngle`, `squarePlan`, `keepOpenings`, `squareReleve`, `squareOptions`, `squareText`) ;
+appliqué après chaque relevé (`ai-releve.js` `squareStep`, `walls-ui.js`) et par `okteo.squareWalls(opts)` (Relevé →
+`#rv-square`, catalogue `walls.square`) ; préférences `equerreTol` / `equerre45` / `equerreMax` (Paramètres `#ps-murs`).
+Test `scripts/squaring.test.mjs`.
+
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,
 sessions, budget Claude (D1, `migrations/0001_enterprise.sql`), relais Claude avec réservation atomique.

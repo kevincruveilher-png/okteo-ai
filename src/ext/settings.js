@@ -75,7 +75,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
 
   const SECS = () => [
     ["ps-aff", "Affichage"], ["ps-ia", "Assistant et relevé IA"],
-    ["ps-regles", "Bibliothèque des règles"], ["ps-3d", "Vue 3D"], ["cab-set", "Câblage"], ...CAB_FIELDS.map(([g], i) => ["ps-cab-" + i, g, true]), ["ps-packs", "Packs"],
+    ["ps-regles", "Bibliothèque des règles"], ["ps-murs", "Murs : équerre"], ["ps-3d", "Vue 3D"], ["cab-set", "Câblage"], ...CAB_FIELDS.map(([g], i) => ["ps-cab-" + i, g, true]), ["ps-packs", "Packs"],
   ];
   function prefHTML() {
     const v = getPrefs();
@@ -116,6 +116,11 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
         <p class="mut">Conseil : Claude pour l'analyse du plan (meilleure lecture des images). NVIDIA : Nemotron 3.5 Super VL par défaut (gratuit dans la limite des crédits, voit le plan). Si NVIDIA retire un modèle, Oktéo en choisit un autre tout seul. Un modèle sans « VL » ou « vision » ne lit que la liste des objets, pas l'image.</p>
       </section>
       <section class="pset-sec" id="ps-regles"></section>
+      <section class="pset-sec" id="ps-murs">
+        <h3>Murs : mise d'équerre automatique</h3>
+        <p class="mut">Après chaque relevé (IA, automatique, réponse collée) et avec Relevé → Murs d'équerre, Oktéo remet d'équerre les murs presque droits dans le sens de la maison ; les angles restent joints. Mettre 0 pour ne rien corriger. Préférences de ce PC.</p>
+        ${[["equerreTol", "Angle léger mis d'équerre", "Un mur à moins de ces degrés d'un angle droit est remis à 0° ou 90°", "°", 20], ["equerre45", "Tolérance autour de 45°", "Un mur à moins de ces degrés de 45° est remis à 45° exact", "°", 20], ["equerreMax", "Déplacement signalé au-delà de", "Un mur corrigé dont un bout bouge de plus que ça est signalé « à vérifier »", "cm", 100]].map(([k, l, h, u, mx]) => `<label class="cab-row" title="${esc(h)}"><span>${esc(l)}<small class="mut">${esc(h)} · ${u}</small></span><span class="cab-ctl"><input type="number" min="0" max="${mx}" step="1" data-eq="${k}" data-max="${mx}" value="${getPrefs()[k]}"></span></label>`).join("")}
+      </section>
       <section class="pset-sec" id="ps-3d">
         <h3>Vue 3D : hauteurs de départ</h3>
         <p class="mut">Utilisées par l'onglet 3D quand le dessin ne donne pas la hauteur. Une pièce (hauteur sous plafond) ou une ouverture (allège, linteau) se règle aussi une par une dans Propriétés. Préférences de ce PC, pour tous les chantiers.</p>
@@ -197,6 +202,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
     const gr = el.querySelector("#pref-grille"); if (gr) { gr.value = getPrefs().grilleIA; gr.onchange = () => setPref("grilleIA", gr.value); }
     const pa = el.querySelector("#pref-parallele"); if (pa) { pa.value = getPrefs().tuilesParallele; pa.onchange = () => { const v = Math.max(1, Math.min(10, Math.round(+pa.value || 1))); pa.value = v; setPref("tuilesParallele", v); }; }
     const zo = el.querySelector("#pref-zooms"); if (zo) { zo.value = getPrefs().zoomsIA; zo.onchange = () => { const v = Math.max(0, Math.min(40, Math.round(+zo.value || 0))); zo.value = v; setPref("zoomsIA", v); }; }
+    el.querySelectorAll("[data-eq]").forEach((c) => (c.onchange = () => { const v = Math.max(0, Math.min(+c.dataset.max, Math.round(+c.value || 0))); c.value = v; setPref(c.dataset.eq, v); }));
     const rl = el.querySelector("#pref-relect"); if (rl) rl.onchange = () => { const v = Math.max(0, Math.min(3, Math.round(+rl.value || 0))); rl.value = v; setPref("relectures", v); };
     el.querySelectorAll("[data-pref]").forEach((c) => (c.onchange = () => { setPref(c.dataset.pref, c.checked); c.closest(".cab-row").classList.toggle("chg", c.checked !== PREFS_DEFAULTS[c.dataset.pref]); }));
     const fi = el.querySelector(".pset-find");
