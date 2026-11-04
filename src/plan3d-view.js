@@ -244,7 +244,12 @@ async function main() {
   requestAnimationFrame(loop);
   S.ready = true;
   // page gardée sur le téléphone : se rouvre sans réseau (fichiers de la page seulement ; les données sont dans l'adresse)
-  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./plan3d-sw.js", { scope: "./plan3d" }).then((r) => { S.sw = r.scope; }).catch((e) => { S.swErr = String(e && e.message || e); });
+  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./plan3d-sw.js", { scope: "./plan3d" }).then(async (r) => {
+    S.sw = r.scope;
+    const w = (await navigator.serviceWorker.ready).active;
+    const keep = [location.pathname, ...performance.getEntriesByType("resource").map((x) => x.name).filter((u) => u.startsWith(location.origin) && /\.(js|css|mjs|woff2?)(\?|$)/.test(u))];
+    if (w) w.postMessage({ keep }); S.keep = keep.length;
+  }).catch((e) => { S.swErr = String(e && e.message || e); });
 }
 function inPoly(x, y, P) { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) if ((P[i].y > y) !== (P[j].y > y) && x < (P[j].x - P[i].x) * (y - P[i].y) / (P[j].y - P[i].y) + P[i].x) c = !c; return c; }
 function area(P) { let a = 0; for (let i = 0, j = P.length - 1; i < P.length; j = i++) a += (P[j].x + P[i].x) * (P[j].y - P[i].y); return Math.abs(a / 2); }

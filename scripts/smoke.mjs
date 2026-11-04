@@ -2913,8 +2913,8 @@ try {
     // mémoire hors ligne : le service est installé, la page se rouvre sans réseau
     const sw = await p2.evaluate(async () => { try { const r = await navigator.serviceWorker.ready; return r.scope; } catch (e) { return "erreur " + e; } });
     await p2.reload(); await p2.waitForFunction(() => window.__plan3d && window.__plan3d.ready, null, { timeout: 60000 });
-    await p2.waitForTimeout(500);
-    // la page et chacun de ses scripts sont gardés sur le téléphone
+    // la page et chacun de ses scripts sont gardés sur le téléphone (la page envoie sa liste au service)
+    await p2.waitForFunction(async () => { const urls = [location.pathname, ...performance.getEntriesByType("resource").filter((e) => /\.(js|css)(\?|$)/.test(e.name) && e.name.startsWith(location.origin)).map((e) => e.name)]; for (const u of urls) if (!(await caches.match(u))) return false; return true; }, null, { timeout: 15000, polling: 500 }).catch(() => {});
     const kept = await p2.evaluate(async () => { const urls = [location.pathname, ...performance.getEntriesByType("resource").filter((e) => /\.(js|css)(\?|$)/.test(e.name) && e.name.startsWith(location.origin)).map((e) => e.name)]; const miss = []; for (const u of urls) if (!(await caches.match(u))) miss.push(u.replace(location.origin, "")); return { n: urls.length, miss: miss.slice(0, 5), controlled: !!navigator.serviceWorker.controller }; });
     await p2.context().setOffline(true);
     let offline = false;

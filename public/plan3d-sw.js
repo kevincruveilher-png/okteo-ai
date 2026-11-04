@@ -7,6 +7,13 @@ self.addEventListener("activate", (e) => e.waitUntil((async () => {
   for (const k of await caches.keys()) if (k.startsWith("okteo-plan3d-") && k !== CACHE) await caches.delete(k);
   await self.clients.claim();
 })()));
+// la page envoie la liste de ses fichiers après son ouverture : ils sont gardés d'un coup (rien n'est laissé au hasard
+// du cache du navigateur)
+self.addEventListener("message", (e) => {
+  const list = (e.data && e.data.keep) || [];
+  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(list.filter((u) => new URL(u, location.href).origin === location.origin).map((u) =>
+    fetch(u, { cache: "no-store", credentials: "same-origin" }).then((res) => (res.ok ? c.put(new URL(u, location.href).pathname === "/plan3d" ? "/plan3d" : u, res) : null)).catch(() => null)))));
+});
 self.addEventListener("fetch", (e) => {
   const r = e.request, u = new URL(r.url);
   if (r.method !== "GET" || u.origin !== location.origin) return;
