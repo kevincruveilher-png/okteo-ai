@@ -13,6 +13,9 @@
 - Tests : `scripts/charte.test.mjs` (colonnes, coin libre, plan presque plein, aucune place) ; smoke : légende dans la zone de
   dessin, avec sa mise en page.
 
+- Fusion dans `main` le 04/11/2026 (lot A, go de Kévin) avec le n° 2 (sa branche contient le n° 12) : `npm run check`
+  vert sur GitHub Actions (run 41892789253, smoke 198/198) ; workflow temporaire retiré.
+
 ## 04/11/2026 — n° 12 : cotes des boîtes prises sur le mur extérieur (lot A)
 
 - Demande de Kévin : les cotes de position des boîtes (feuille A3 du BE) doivent être prises sur le mur extérieur, et le trait
@@ -22,6 +25,9 @@
   mur extérieur le plus proche dans chaque axe ; `drawBoxCotes` : trait d'attache côté mur arrêté au mur extérieur, côté boîte
   prolongé jusqu'à la boîte. Choix à confirmer avec Kévin : face côté pièce du mur extérieur (et non face extérieure).
 - Test : `scripts/charte.test.mjs` (cote mesurée sur le mur extérieur et non sur la cloison, y compris à travers une fenêtre).
+
+- Fusion dans `main` le 04/11/2026 (lot A, go de Kévin) avec le n° 2 (sa branche contient le n° 12) : `npm run check`
+  vert sur GitHub Actions (run 41892789253, smoke 198/198) ; workflow temporaire retiré.
 
 ## 04/11/2026 — n° 13 + 8 : appareils contre les murs, dans le sens du mur ; repères lisibles et déplaçables (lot A)
 
