@@ -18,5 +18,6 @@ self.addEventListener("fetch", (e) => {
     return;
   }
   // scripts, styles, polices : la copie gardée d'abord (fichiers à nom haché en ligne)
-  e.respondWith(caches.match(r).then((hit) => hit || fetch(r).then((res) => { if (res.ok) { const cp = res.clone(); caches.open(CACHE).then((c) => c.put(r, cp)); } return res; })));
+  // (demandés sans le cache du navigateur : une réponse « 304 inchangé » ne peut pas être gardée)
+  e.respondWith(caches.match(r).then((hit) => hit || fetch(r.url, { cache: "no-store", credentials: "same-origin" }).then((res) => { if (res.ok) { const cp = res.clone(); e.waitUntil(caches.open(CACHE).then((c) => c.put(r, cp))); } return res; })));
 });
