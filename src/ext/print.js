@@ -2,7 +2,7 @@ import { arrowPoints, hatchLines, wallLook, wavePoints } from "../plan-style.js"
 import { ABREV_DEFAUT, abrevRoom, parseAbrev } from "../print/abrev.js";
 import { drawSymbol, drawText as ftzText } from "../print/ftz-sheet.js";
 import { boxColor, ftzSymbol, plaques, symIndex } from "../print/ftz-symbols.js";
-import { Placer, roomCandidates, spreadSymbols } from "../place.js";
+import { Placer, roomCandidates, spreadSymbols, pushOff, wallBoxes, repCandidates } from "../place.js";
 import { pref } from "../prefs.js";
 import { logoData, LOGO_RATIO } from "./logo.js";
 // Sortie PDF imprimable du plan (vectorielle, à l'échelle exacte) : page 1 = plan + légende + échelle graphique
@@ -50,8 +50,11 @@ export function rotateGeo(geo, deg) {
   g.limits = (geo.limits || []).map((l) => ({ a: R(l.a), b: R(l.b) }));
   g.rooms = (geo.rooms || []).map((r) => ({ ...r, poly: RL(r.poly), label: R(r.label) }));
   g.apps = (geo.apps || []).map((a) => {
-    const w = a.wall ? { ...a.wall, ux: a.wall.ux * c - a.wall.uy * s, uy: a.wall.ux * s + a.wall.uy * c } : null;
-    return { ...R(a), rot: a.rot ? a.rot + d : 0, wall: w };
+    const W0 = a.wall, w = W0 ? { ...W0, ux: W0.ux * c - W0.uy * s, uy: W0.ux * s + W0.uy * c, ...(W0.nx != null ? { ax: W0.ax * c - W0.ay * s, ay: W0.ax * s + W0.ay * c, nx: W0.nx * c - W0.ny * s, ny: W0.nx * s + W0.ny * c } : {}) } : null;
+    // n° 13 : un appareil mural (sauf l'applique, dos au mur) reste lisible : jamais à l'envers après rotation
+    const r = a.rot ? a.rot + d : 0, rot = !r || a.t === "APP" ? r : ((r % 180) + 270) % 180 - 90;
+    const rp = a.rpx != null ? { rpx: a.rpx * c - a.rpy * s, rpy: a.rpx * s + a.rpy * c } : {};
+    return { ...R(a), rot, wall: w, ...rp };
   });
   g.links = (geo.links || []).map((l) => ({ a: R(l.a), b: R(l.b) }));
   g.dims = (geo.dims || []).map((x) => ({ ...x, a: R(x.a), b: R(x.b) }));
@@ -280,8 +283,10 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const boxAt = (cx, cy, w, h) => ({ x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2 });
     const apps = o.appareils ? geo.apps.filter((a) => !o.appIds || o.appIds.has(a.id)) : [];   // v74 : appareils de la page
     // v58 : symboles sans chevauchement sur le papier (décalés le long de leur mur, trait de rappel vers la vraie position)
-    const disp = spreadSymbols(apps.map((a) => ({ id: a.id, x: X(a.x), y: Y(a.y), ...(a.wall ? { ux: a.wall.ux, uy: a.wall.uy } : {}) })), 1.9 * u);
-    const PX = (a) => (disp.get(a.id) || { x: X(a.x) }).x, PY = (a) => (disp.get(a.id) || { y: Y(a.y) }).y;
+    // n° 13 : symbole mural poussé hors du mur (bord contre la face du mur), avant l'écartement entre voisins
+    const base = new Map(apps.map((a) => { const b = a.wall && a.wall.nx != null ? pushOff(a, a.wall, u / f) : a; return [a.id, { x: X(b.x), y: Y(b.y) }]; }));
+    const disp = spreadSymbols(apps.map((a) => ({ id: a.id, ...base.get(a.id), ...(a.wall ? { ux: a.wall.ux, uy: a.wall.uy } : {}) })), 1.9 * u);
+    const PX = (a) => (disp.get(a.id) || base.get(a.id)).x, PY = (a) => (disp.get(a.id) || base.get(a.id)).y;
     apps.forEach((a) => PL.add(boxAt(PX(a), PY(a), 2 * u, 2 * u)));      // les symboles sont des obstacles
     // v74 MAJ 4 : plaques multipostes (appareils groupés sur un mur), décalées côté pièce, et leur boîte PROF 50 (à confirmer BE)
     const plq = !FZ || o.plaques === false ? [] : plaques(apps).map((P) => {
@@ -330,16 +335,26 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     // repères (et hauteur hors standard) : autour du symbole, à la première place libre
     const SR = FZ ? 2.97 * 72 / 25.4 : Math.max(5, pt(u * 0.9));
     const twR = (str, size, bold) => { if (!FZ) return tw(str, size, bold); doc.setFont("courier", "bold"); doc.setFontSize(size); return doc.getTextWidth(String(str)) * 0.95; };
+    // n° 8 : jamais dans un mur (obstacles le long de chaque mur), de préférence côté pièce, plus loin avec un trait de
+    // rappel plutôt que masqué ; position choisie à la main à l'écran (rpx / rpy) reprise telle quelle
+    const WB = new Placer(PL.cell);   // murs : obstacles des repères seulement (les longueurs de murs restent possibles)
+    if (o.reperes && o.murs) (geo.walls || []).forEach((P) => wallBoxes(P.map((p) => ({ x: X(p.x), y: Y(p.y) }))).forEach((b) => WB.add(b)));
     const repLabels = !o.reperes ? [] : apps.map((a) => {
       const str = a.rep || "", hs = [a.h != null && a.h !== a.hDef ? `h ${fr(a.h / 100)}` : "", a.xlink || ""].filter(Boolean).join("  ");
-      const w = Math.max(twR(str, SR, true), hs ? twR(hs, SR) : 0), h = SR * MM * (hs ? 2.1 : 1.05), g = u * 1.05;
+      const w = Math.max(twR(str, SR, true), hs ? twR(hs, SR) : 0), h = SR * MM * (hs ? 2.1 : 1.05), g = u * 0.15;
       const ax = PX(a), ay = PY(a);
-      const pos = [[g, -g - h / 2, "l"], [g, g + h / 2, "l"], [-g, -g - h / 2, "r"], [-g, g + h / 2, "r"], [g, 0, "l"], [-g, 0, "r"], [0, -g - h / 2, "c"], [0, g + h / 2, "c"]];
-      for (const [dx, dy, al] of pos) {
-        const x0 = al === "l" ? ax + dx : al === "r" ? ax + dx - w : ax - w / 2, b = { x0, y0: ay + dy - h / 2, x1: x0 + w, y1: ay + dy + h / 2 };
-        if (PL.free(b)) { PL.add(b); return { str, hs, x: x0, y: b.y0 }; }
+      const boxOf = (x, y, an) => { const x0 = an === "start" ? x : an === "end" ? x - w : x - w / 2; return { x0, y0: y - h / 2, x1: x0 + w, y1: y + h / 2 }; };
+      let b, ring = 0;
+      if (a.rpx != null && a.rpy != null) b = boxOf(X(a.x + a.rpx), Y(a.y + a.rpy), "middle");
+      else {
+        const side = a.wall && a.wall.nx != null ? { x: a.wall.nx, y: a.wall.ny } : null;
+        const C = repCandidates({ x: ax, y: ay }, u, g, h, side).map((k) => ({ ...k, b: boxOf(k.x, k.y, k.an) }));
+        const k = C.find((q) => PL.free(q.b) && WB.free(q.b)) || C.find((q) => WB.free(q.b)) || C[C.length - 12];
+        b = k.b; ring = k.ring;
       }
-      return { str, hs, x: ax + g, y: ay - g - h, hidden: true };
+      PL.add(b);
+      const far = ring > 0 || Math.hypot((b.x0 + b.x1) / 2 - ax, (b.y0 + b.y1) / 2 - ay) > u * 3;
+      return { str, hs, x: b.x0, y: b.y0, ...(far ? { lead: [ax, ay, Math.max(b.x0, Math.min(ax, b.x1)), Math.max(b.y0, Math.min(ay, b.y1))] } : {}) };
     });
     // longueur des murs : seulement là où il reste de la place
     const wallLabels = !o.cotes || !o.murs ? [] : geo.wallDims.filter((d) => d.L >= 0.5).map((d) => {
@@ -445,6 +460,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     doc.setTextColor(200, 70, 40);
     repLabels.forEach((L) => {
       if (L.hidden) return;
+      if (L.lead) { doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.1); doc.line(...L.lead); }
       if (FZ) {   // repères FTZ : Courier gras 2,97 mm, ×0,95, noir
         doc.setTextColor(0, 0, 0); doc.setFont("courier", "bold"); doc.setFontSize(SR); doc.internal.write("95 Tz");
         doc.text(L.str, L.x, L.y, { baseline: "top" }); if (L.hs) doc.text(L.hs, L.x, L.y + SR * MM * 1.05, { baseline: "top" });

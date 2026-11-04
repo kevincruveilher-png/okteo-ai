@@ -232,6 +232,13 @@ export function endPtr() {
     draw();
     return;
   }
+  if (K.repDrag) {
+    const L = K.repDrag;
+    K.repDrag = null;
+    if (L.moved) { markDirty(); draw(); showSide(); }
+    else { setSingle("app", L.id); draw(); showSide(); }
+    return;
+  }
   if (K.labelDrag) {
     const L = K.labelDrag;
     K.labelDrag = null;
@@ -418,6 +425,13 @@ sv.addEventListener("pointerdown", e => {
         }
       }));
       draw();
+      return;
+    }
+    // n° 8 : repère d'appareil (P9…) saisi : on le glisse exactement où on veut (position gardée, « Replacer le repère »
+    // dans Propriétés l'efface) ; un simple clic sélectionne l'appareil
+    const rpl = !hitApp(wx, wy) && layers.appareils.on && K.showReps ? (K.repLabelBoxes || []).find(q => wx >= q.x0 && wx <= q.x1 && wy >= q.y0 && wy <= q.y1) : null;
+    if (rpl && state.app.some(a => a.id === rpl.id)) {
+      K.repDrag = { id: rpl.id, dx: wx - rpl.cx, dy: wy - rpl.cy, moved: false };
       return;
     }
     // v58 : nom de pièce saisi : on le glisse (sa position est gardée ; « Replacer le nom » dans Propriétés l'efface)
@@ -819,6 +833,17 @@ sv.addEventListener("pointermove", e => {
       pts[R.i] = { x: +x.toFixed(2), y: +y.toFixed(2) };
       draw();
       setHint(routeHint(b, R.key, R.i));
+    }
+    return;
+  }
+  if (K.repDrag) {
+    const a = state.app.find(x => x.id === K.repDrag.id);
+    if (a) {
+      if (!K.repDrag.moved) { snapshot(); K.repDrag.moved = true; }
+      a.rpx = +(wx - K.repDrag.dx - a.x).toFixed(3);
+      a.rpy = +(wy - K.repDrag.dy - a.y).toFixed(3);
+      draw();
+      setHint("Repère déplacé (position gardée, aussi à l'impression). Propriétés de l'appareil → « Replacer le repère » pour le remettre à sa place automatique.");
     }
     return;
   }

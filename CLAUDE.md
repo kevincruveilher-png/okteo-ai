@@ -529,6 +529,12 @@ appliqué après chaque relevé (`ai-releve.js` `squareStep`, `walls-ui.js`) et 
 `#rv-square`, catalogue `walls.square`) ; préférences `equerreTol` / `equerre45` / `equerreMax` (Paramètres `#ps-murs`).
 Test `scripts/squaring.test.mjs`.
 
+### Appareils et repères (n° 13 + 8, lot A du 04/11/2026)
+place.js `pushOff`, `wallBoxes`, `lineBoxes`, `repCandidates` ; render `wallU` (axe, normale, ep), `K.dispPos` / `K.dispLead`,
+`appRot` pour tout appareil mural (normalisé, jamais à l'envers), repères `text.rep` + `K.repLabelBoxes`, glisser `K.repDrag` →
+`a.rpx/rpy` (Propriétés `#f_rep0`) ; print.js mêmes règles ; `snapToWall(x, y, t)` côté pièce (`EXTERIEURS`) ; contrôle `mur`,
+`okteo.reattachWalls()` (catalogue `app.reattach`). Test `scripts/placement.test.mjs`.
+
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,
 sessions, budget Claude (D1, `migrations/0001_enterprise.sql`), relais Claude avec réservation atomique.

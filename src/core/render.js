@@ -5,10 +5,10 @@ import {ductPath} from '../cablage/vmc.js';
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
 import { K } from "./k.js";
 import { labelPoint, pointInPoly } from "../walls/rooms.js";
-import { Placer, roomCandidates, spreadSymbols, textBox } from "../place.js";
+import { Placer, roomCandidates, spreadSymbols, textBox, pushOff, wallBoxes, lineBoxes, repCandidates } from "../place.js";
 import { TYPES, VB, batiStyle, dist, epOf, layers, matOf, nodeById, pmNow, segById, segDir, segLen, state, symView } from "./model.js";
 import { V2W, W2V, autoSymCm, ensureReps, pxPerVB, repMap, syncVB, viewTransform, viewWorldBox } from "./view.js";
-import { followWalls, gaineCtrl, linkCtrl, linkRole, openHandles, roomArea, roomPoly } from "./attach.js";
+import { followWalls, gaineCtrl, linkCtrl, linkRole, openHandles, roomArea, roomPoly, wallMounted } from "./attach.js";
 import { pref } from "../prefs.js";
 import { controlIssues, essai, litSet } from "./check.js";
 import { fxDraw } from "./fx.js";
@@ -71,13 +71,20 @@ export function glyph(t) {
 }
 // rotation (degrés) d'une applique : côté plat contre son mur, arrondi vers la pièce
 export function appRot(a) {
-  if (a.t !== "APP" || !a.seg || !a.wa) return 0;
+  if (!a.seg || !a.wa) return 0;
   const seg = segById(a.seg);
   if (!seg) return 0;
   const d = segDir(seg);
   if (!d.a) return 0;
-  const nx = -d.uy * a.wa.s, ny = d.ux * a.wa.s;
-  return +(Math.atan2(nx, -ny) * 180 / Math.PI).toFixed(2);
+  if (a.t === "APP") {
+    const nx = -d.uy * a.wa.s, ny = d.ux * a.wa.s;
+    return +(Math.atan2(nx, -ny) * 180 / Math.PI).toFixed(2);
+  }
+  // n° 13 : tout appareil mural prend le sens de son mur (tableau, panneau rayonnant, CVR…), sans jamais être à l'envers
+  if (!wallMounted(a.t)) return 0;
+  let r = Math.atan2(d.uy, d.ux) * 180 / Math.PI;
+  r = ((r % 180) + 180) % 180; if (r > 90) r -= 180;
+  return +r.toFixed(2);
 }
 
 export function lightsOn(cid) {
@@ -450,7 +457,15 @@ export function draw() {
   }
   // v58 : symboles sans chevauchement : affichage décalé (le long du mur pour un appareil mural), position réelle gardée,
   // trait de rappel vers la position réelle ; K.dispPos sert aussi aux repères, aux halos et à la sélection
-  K.dispPos = layers.appareils.on ? spreadSymbols(state.app.filter(a => !isSani(a.t)).map(a => ({ id: a.id, x: a.x, y: a.y, ...wallU(a) })), 1.9 * symView()) : new Map();
+  // n° 13 : un appareil mural est d'abord poussé hors du mur (le bord du symbole touche la face du mur, à tous les zooms) ;
+  // seul un décalage dû à un voisin trace un trait de rappel (K.dispLead)
+  K.dispPos = new Map(); K.dispLead = new Set();
+  if (layers.appareils.on) {
+    const RS = 1.05 * symView();
+    const items = state.app.filter(a => !isSani(a.t)).map(a => { const w = wallU(a), b = w.nx != null ? pushOff(a, w, RS) : a; return { id: a.id, x: b.x, y: b.y, ux: w.ux, uy: w.uy, pushed: b !== a }; });
+    const spread = spreadSymbols(items, 1.9 * symView());
+    items.forEach(it => { const sp = spread.get(it.id); if (sp) { K.dispPos.set(it.id, sp); K.dispLead.add(it.id); } else if (it.pushed) K.dispPos.set(it.id, { x: it.x, y: it.y }); });
+  }
   // appareils + repères
   if (layers.appareils.on) {
     // mode essai (v45) : lumières allumées (classe lit) et commandes actionnées (classe on)
@@ -473,9 +488,11 @@ export function draw() {
         if (c) { cls += " circ"; col = c.color; } else if (circ.__need(a) && !circ.__direct(a)) { cls += " circ nocirc"; col = "#d33"; }
       }
       // v58 : vue tournée : le symbole reste droit à l'écran (sauf l'applique, tournée dos à son mur)
-      const rot = appRot(a) || -(K.view.rot || 0), D = K.dispPos.get(a.id), X = D ? D.x : a.x, Y = D ? D.y : a.y;
-      if (D) ap += `<g class="leader"><line x1="${a.x}" y1="${a.y}" x2="${X}" y2="${Y}" stroke="var(--mut)" stroke-width="${0.06 * ss}"/><circle cx="${a.x}" cy="${a.y}" r="${0.14 * ss}" fill="var(--mut)"/></g>`;
-      ap += `<g class="${cls}" data-id="${a.id}"${D ? ` data-moved="1"` : ""}${col ? ` style="--c:${col}"` : ""}${circ && circ[a.id] ? ` data-c="${circ[a.id].n}"` : ""} transform="translate(${X} ${Y})${rot ? ` rotate(${rot})` : ""}"><g transform="scale(${ss})">`;
+      const vr = K.view.rot || 0, r0 = appRot(a);
+      // n° 13 : symbole dans le sens de son mur, mais jamais à l'envers à l'écran (vue tournée comprise)
+      const rot = !r0 ? -vr : a.t === "APP" ? r0 : (((r0 + vr) % 180 + 270) % 180 - 90) - vr, D = K.dispPos.get(a.id), X = D ? D.x : a.x, Y = D ? D.y : a.y;
+      if (D && K.dispLead.has(a.id)) ap += `<g class="leader"><line x1="${a.x}" y1="${a.y}" x2="${X}" y2="${Y}" stroke="var(--mut)" stroke-width="${0.06 * ss}"/><circle cx="${a.x}" cy="${a.y}" r="${0.14 * ss}" fill="var(--mut)"/></g>`;
+      ap += `<g class="${cls}" data-id="${a.id}"${D && K.dispLead.has(a.id) ? ` data-moved="1"` : ""}${col ? ` style="--c:${col}"` : ""}${circ && circ[a.id] ? ` data-c="${circ[a.id].n}"` : ""} transform="translate(${X} ${Y})${rot ? ` rotate(${rot})` : ""}"><g transform="scale(${ss})">`;
       if (aSel) ap += `<circle r="1.5" fill="none" stroke="var(--sel)" stroke-width=".12" stroke-dasharray=".3 .25"/>`;
       // v57 : équipement hors plan (ajouté d'après le devis) : carré pointillé violet « à vérifier avec le devis »
       if (a.hp) ap += `<rect class="hp-mark" x="-1.25" y="-1.25" width="2.5" height="2.5" rx=".3" fill="none" stroke="#8a4fd8" stroke-width=".12" stroke-dasharray=".35 .25"><title>Hors plan : à vérifier avec le devis</title></rect>`;
@@ -568,31 +585,50 @@ export function draw() {
       PL.add(textBox(x, y, d.str, F * pm));
       lb += txt(x, y, d.str, F, d.c, "var(--fm)");
     });
-    // 3. repères des appareils : autour du symbole, à la première place libre ; l'appareil sélectionné passe en premier
+    // 3. repères des appareils (n° 8) : jamais dans un mur, autant que possible hors des liaisons et des gaines, de
+    // préférence côté pièce ; plus loin avec un trait de rappel plutôt que masqués ; position choisie à la main gardée
+    // (a.rpx / a.rpy, en m depuis l'appareil) ; l'appareil sélectionné passe en premier
+    K.repLabelBoxes = [];
     if (layers.appareils.on && K.showReps) {
       const rm = repMap(),
-        F = 11;
+        F = 11,
+        hT = F * pm,
+        gap = 3 * pm,
+        SOFT = new Placer(pm * 48),
+        WALLS = new Placer(pm * 48);   // murs : obstacles des repères seulement (les longueurs des murs restent possibles)
+      // obstacles durs : les murs, à leur vraie épaisseur
+      state.segs.forEach(seg => {
+        if (seg.virt) return;
+        const d = segDir(seg); if (!d.a) return;
+        const e2 = epOf(seg) / 2, nx = -d.uy * e2, ny = d.ux * e2;
+        wallBoxes([{ x: d.a.x + nx, y: d.a.y + ny }, { x: d.b.x + nx, y: d.b.y + ny }, { x: d.b.x - nx, y: d.b.y - ny }, { x: d.a.x - nx, y: d.a.y - ny }]).forEach(b => WALLS.add(b));
+      });
+      // obstacles « à éviter si possible » : liaisons et gaines (droites boîte → appareil)
+      const byIdR = Object.fromEntries(state.app.map(a => [a.id, a]));
+      if (layers.liaisons.on) state.lia.forEach(l => { const c = byIdR[l.c], m = byIdR[l.l]; if (c && m) lineBoxes([dp(c), dp(m)], 6 * pm, 2 * pm).forEach(b => SOFT.add(b)); });
+      if (K.showCirc) (K.CAB.boxes || []).filter(b => b.lv == null || b.lv === K.LV.cur).forEach(b => (b.apps || []).forEach(id => { const m = byIdR[id]; if (m) lineBoxes([{ x: b.x, y: b.y }, dp(m)], 6 * pm, 2 * pm).forEach(q => SOFT.add(q)); }));
       const order = state.app.slice().sort((p, q) => (isSel("app", q.id) ? 1 : 0) - (isSel("app", p.id) ? 1 : 0));
       order.forEach(a => {
         const str = rm[a.id];
         if (!str) return;
-        const g = R + 3 * pm,
-          h2 = F * pm * 0.5;
-        const pos = [[g, -g, "start"], [g, g, "start"], [-g, -g, "end"], [-g, g, "end"], [g + 0 * pm, 0, "start"], [-g, 0, "end"], [0, -g - h2, "middle"], [0, g + h2, "middle"]];
-        const p = dp(a);
-        const cands = pos.map(([dx, dy, an]) => ({
-          b: textBox(p.x + dx, p.y + dy, str, F * pm, {
-            anchor: an
-          }),
-          x: p.x + dx,
-          y: p.y + dy,
-          an
-        }));
-        let c = cands.find(c => PL.free(c.b));
-        if (!c && isSel("app", a.id)) c = cands[0];
-        if (!c) return;
+        const p = dp(a), w = wallU(a), side = w.nx != null ? { x: w.nx, y: w.ny } : null;
+        let c;
+        if (a.rpx != null && a.rpy != null) {
+          const x = a.x + a.rpx, y = a.y + a.rpy;
+          c = { x, y, an: "middle", b: textBox(x, y, str, F * pm, { anchor: "middle" }), fixed: true };
+        } else {
+          const cands = repCandidates(p, R, gap, hT, side).map(k => ({ ...k, b: textBox(k.x, k.y, str, F * pm, { anchor: k.an }) }));
+          const ok = k => PL.free(k.b) && WALLS.free(k.b);
+          c = cands.find(k => ok(k) && SOFT.free(k.b)) || cands.find(ok) || cands.find(k => WALLS.free(k.b)) || cands[cands.length - 12];
+        }
         PL.add(c.b);
-        lb += `<text x="${c.x}" y="${c.y}" text-anchor="${c.an}" dominant-baseline="central" fill="var(--accent2)" font-size="${F * pm}" font-weight="600" font-family="var(--fm)">${str}</text>`;
+        const far = !c.fixed && c.ring > 0 || c.fixed && Math.hypot(c.x - p.x, c.y - p.y) > R * 3;
+        if (far) {
+          const bx = Math.max(c.b.x0, Math.min(p.x, c.b.x1)), by = Math.max(c.b.y0, Math.min(p.y, c.b.y1));
+          lb += `<line class="rep-lead" x1="${p.x}" y1="${p.y}" x2="${bx}" y2="${by}" stroke="var(--accent2)" stroke-width="${0.8 * pm}" opacity=".7"/>`;
+        }
+        K.repLabelBoxes.push({ id: a.id, ...c.b, cx: (c.b.x0 + c.b.x1) / 2, cy: (c.b.y0 + c.b.y1) / 2 });
+        lb += `<text class="rep" data-id="${a.id}" x="${c.x}" y="${c.y}" text-anchor="${c.an}" dominant-baseline="central" fill="var(--accent2)" font-size="${F * pm}" font-weight="600" font-family="var(--fm)">${str}</text>`;
       });
     }
     // 3 bis. liaisons vers un autre niveau : « → L3 R+1 » à côté de l'appareil (toujours affiché)
@@ -839,7 +875,11 @@ export function wallU(a) {
   const sg = a.seg ? segById(a.seg) : null;
   if (!sg) return {};
   const d = segDir(sg);
-  return d && d.L ? { ux: d.ux, uy: d.uy } : {};
+  if (!(d && d.L)) return {};
+  // n° 13 : axe, normale côté appareil et épaisseur, pour pousser le symbole hors du mur (écran et impression)
+  let nx = -d.uy, ny = d.ux;
+  if ((a.x - d.a.x) * nx + (a.y - d.a.y) * ny < 0) { nx = -nx; ny = -ny; }
+  return { ux: d.ux, uy: d.uy, ax: d.a.x, ay: d.a.y, nx, ny, ep: epOf(sg) };
 }
 // v59 : courbure des gaines en arc du niveau ({ "boîte|clé": k }), recalculée seulement quand le plan change
 export function levelBows(BX, pm, byId, tab) {

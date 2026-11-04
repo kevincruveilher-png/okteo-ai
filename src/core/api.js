@@ -356,7 +356,7 @@ window.okteo = {
     }
     const ids = list.map(d => {
       if (!TYPES[d.t]) return null;
-      const p = wallMounted(d.t) ? snapToWall(d.x, d.y) || {
+      const p = wallMounted(d.t) ? snapToWall(d.x, d.y, d.t) || {
         x: d.x,
         y: d.y
       } : {
@@ -776,6 +776,16 @@ window.okteo = {
     return batiStyle();
   },
   setBatiStyle,
+  // n° 13 : recolle à leur mur (côté pièce) les appareils muraux du niveau ouvert qui ne sont accrochés à aucun mur
+  // (posés à moins de 60 cm d'un mur) ; un seul Ctrl+Z ; renvoie le nombre d'appareils recollés
+  reattachWalls() {
+    const L = state.app.filter(a => !a.seg && wallMounted(a.t)).map(a => ({ a, p: snapToWall(a.x, a.y, a.t) })).filter(x => x.p);
+    if (!L.length) return 0;
+    snapshot();
+    L.forEach(({ a, p }) => { a.x = p.x; a.y = p.y; a.seg = p.seg; attach(a); });
+    markDirty(); draw(); showSide();
+    return L.length;
+  },
   // n° 14 : met les murs du niveau ouvert d'équerre (sens de la maison ; options de squarePlan) ; un seul Ctrl+Z.
   // Les appareils accrochés et les pièces suivent leurs murs au dessin suivant ; les ouvertures gardent leur place relative.
   squareWalls(opts = {}) {

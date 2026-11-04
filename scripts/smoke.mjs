@@ -1882,6 +1882,43 @@ try {
     if (!(r && r.right && r.joined && /Murs : .*d'équerre/.test(r.hint) && back === before)) throw new Error(JSON.stringify({ r, back, before }));
     return true;
   });
+  await check("n° 13 + 8 : symboles muraux hors du mur et dans le sens de leur mur ; appareil dans un mur signalé puis recollé ; repère glissé à la main (gardé, un Ctrl+Z)", async () => {
+    await ev(() => { okteo.setTab("plan"); okteo.setTool("sel"); okteo.viewPreset("impl"); okteo.fit(); okteoExt.panel?.close?.("assistant"); });
+    const r1 = await ev(() => {
+      const S = okteo.state, N = (id) => S.nodes.find((n) => n.id === id);
+      let worst = 1e9, best = 0, n = 0, rot = null, rotId = null;
+      S.app.filter((a) => a.seg && a.t !== "APP").forEach((a) => {
+        const s = S.segs.find((x) => x.id === a.seg); if (!s) return;
+        const A = N(s.a), B = N(s.b), L = Math.hypot(B.x - A.x, B.y - A.y); if (!L) return;
+        const p = okteo.shownAt(a.id), d = Math.abs((p.x - A.x) * -(B.y - A.y) / L + (p.y - A.y) * (B.x - A.x) / L);
+        const gapW = d - (s.ep ?? S.wallEp) / 2; worst = Math.min(worst, gapW); best = Math.max(best, gapW); n++;
+        if (rot == null && Math.abs(B.x - A.x) / L < 0.1) { const g = document.querySelector(`#sv g.dev[data-id="${a.id}"]`); rot = g ? g.getAttribute("transform") : ""; rotId = a.id; }
+      });
+      return { worst, best, n, rot, rotId, sym: okteo.symCm };
+    });
+    // appareil sorti de son mur à la main et posé dans l'épaisseur du mur : signalé, puis « Recoller les appareils à leur mur »
+    const r2 = await ev(() => {
+      const S = okteo.state, a = S.app.find((x) => x.seg && x.t === "PC16"), s = S.segs.find((x) => x.id === a.seg);
+      const A = S.nodes.find((n) => n.id === s.a), B = S.nodes.find((n) => n.id === s.b), orig = JSON.parse(JSON.stringify(a));
+      delete a.seg; delete a.wa; a.x = (A.x + B.x) / 2; a.y = (A.y + B.y) / 2; window.__okteo.draw();
+      const flagged = okteo.control.some((i) => i.kind === "mur" && i.ids.includes(a.id));
+      const k = okteo.reattachWalls(), seg = a.seg || null;
+      okteo.undo(); const b = S.app.find((x) => x.id === orig.id); Object.assign(b, orig); window.__okteo.draw();
+      return { flagged, k, seg: !!seg, kind: !!okteo.controlKinds.mur };
+    });
+    // repère glissé à la souris : position gardée, Ctrl+Z la retire
+    const lab = await ev(() => { const t = [...document.querySelectorAll("#sv text.rep")].find((e) => { const r = e.getBoundingClientRect(); return r.width > 4 && r.x > 50 && r.y > 120; }); if (!t) return null; const r = t.getBoundingClientRect(); return { id: t.dataset.id, x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+    let r3 = null;
+    if (lab) {
+      await page.mouse.move(lab.x, lab.y); await page.mouse.down(); await page.mouse.move(lab.x + 30, lab.y + 25, { steps: 5 }); await page.mouse.up();
+      const moved = await ev((id) => { const a = okteo.state.app.find((x) => x.id === id); return a && a.rpx != null; }, lab.id);
+      await ev(() => okteo.undo());
+      const back = await ev((id) => { const a = okteo.state.app.find((x) => x.id === id); return a && a.rpx == null; }, lab.id);
+      r3 = { moved, back };
+    }
+    if (!(r1.n > 5 && r1.worst > 0.055 && r1.best > 0.08 && /rotate\(-?90/.test(r1.rot || "") && r2.flagged && r2.k >= 1 && r2.seg && r2.kind && r3 && r3.moved && r3.back)) throw new Error(JSON.stringify({ r1, r2, r3, lab }));
+    return true;
+  });
   await check("v77 : murs dessinés avec un seul contour d'ensemble (pas de trait en travers des angles ni des T)", async () => {
     const r = await ev(() => {
       const out = document.querySelector("#sv g.walls-out"), fill = out && out.nextElementSibling;
