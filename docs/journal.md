@@ -6,6 +6,8 @@
   Kévin le 04/11 : « prend le centre »).
 - Test : `scripts/charte.test.mjs` (valeurs + épaisseur du mur extérieur, fenêtre comprise).
 
+- Fusion dans `main` le 04/11/2026 : `npm run check` vert sur GitHub Actions (smoke 199/199) ; workflow temporaire retiré.
+
 ## 04/11/2026 — n° 9 : sanitaires WC, lavabo, vasque, évier ; tous en gris pointillé et en volume dans la vue 3D (lot A)
 
 - Demande de Kévin : ajouter WC, lavabo, vasque, évier (dessin inspiré des plans de pavillonneurs), tous les sanitaires en
