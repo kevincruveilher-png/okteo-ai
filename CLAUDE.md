@@ -529,6 +529,11 @@ appliqué après chaque relevé (`ai-releve.js` `squareStep`, `walls-ui.js`) et 
 `#rv-square`, catalogue `walls.square`) ; préférences `equerreTol` / `equerre45` / `equerreMax` (Paramètres `#ps-murs`).
 Test `scripts/squaring.test.mjs`.
 
+### Sanitaires (n° 9, lot A du 04/11/2026)
+volumes.js `SANI` + WC / LAVABO / VASQUE / EVIER (`vol` seulement BAIG / RECV / DITAL : `hasVolumes`), `saniShape(a)`
+(dessin commun écran + impression, gris pointillé), `sani3d(a)` (volumes 3D) ; `exportGeometry().sanis` ; scene.js
+`house.sanis`. Toujours tester un sanitaire avec `isSani` (jamais une liste de types codée en dur).
+
 ### Appareils et repères (n° 13 + 8, lot A du 04/11/2026)
 place.js `pushOff`, `wallBoxes`, `lineBoxes`, `repCandidates` ; render `wallU` (axe, normale, ep), `K.dispPos` / `K.dispLead`,
 `appRot` pour tout appareil mural (normalisé, jamais à l'envers), repères `text.rep` + `K.repLabelBoxes`, glisser `K.repDrag` →

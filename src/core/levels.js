@@ -5,7 +5,7 @@ import {ductPath,ductReport} from '../cablage/vmc.js';
 import { K } from "./k.js";
 import * as CHS from "../chantiers.js";
 import { labelPoint } from "../walls/rooms.js";
-import { isSani, roomFor, saniRect, volumesOf } from "../cablage/volumes.js";
+import { hasVolumes, isSani, roomFor, sani3d, saniRect, saniShape, volumesOf } from "../cablage/volumes.js";
 import { CH, LKEYS, TYPES, batiStyle, hDefault, dist, epOf, matOf, nodeById, segById, segDir, state, symScaleOf } from "./model.js";
 import { markDirty, snapshot } from "./persist.js";
 import { fit, repMap } from "./view.js";
@@ -415,7 +415,9 @@ export function okteoGeo() {
   });
   // v74 MAJ 3 : sanitaires (contour réel) et volumes de la salle de bain, pour l'impression
   const roomPolys = state.rooms.map(roomPoly);
-  const volumes = state.app.filter(a => isSani(a.t)).map(a => ({ id: a.id, t: a.t, x: a.x, y: a.y, rect: a.t === "DITAL" ? null : saniRect(a), ...volumesOf(a, roomFor(a, roomPolys)) }));
+  const volumes = state.app.filter(a => hasVolumes(a.t)).map(a => ({ id: a.id, t: a.t, x: a.x, y: a.y, rect: a.t === "DITAL" ? null : saniRect(a), ...volumesOf(a, roomFor(a, roomPolys)) }));
+  // n° 9 : dessin de chaque sanitaire (trait gris pointillé à l'impression) et ses volumes pour la vue 3D
+  const sanis = state.app.filter(a => isSani(a.t)).map(a => ({ id: a.id, t: a.t, x: a.x, y: a.y, shape: saniShape(a), solid: sani3d(a) }));
   const apps = state.app.filter(a => !isSani(a.t)).map(a => ({
     id: a.id,
     t: a.t,
@@ -485,6 +487,7 @@ export function okteoGeo() {
     openings,
     wallThickness,
     volumes,
+    sanis,
     wallMat,
     wallAxis,
     batiStyle: batiStyle(),

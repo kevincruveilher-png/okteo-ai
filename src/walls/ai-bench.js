@@ -5,8 +5,9 @@
 // MÊME échelle (mêmes mètres) : un fond recalibré entre les deux fausserait les positions.
 import { family } from "./ai-tiles.js";
 import { analysesOf } from "./ai-journal.js";
+import { SANI } from "../cablage/volumes.js";
 
-const SANS_REPERE = new Set(["BAIG", "RECV", "DITAL"]);   // sanitaires : pas des appareils électriques
+const SANS_REPERE = new Set(Object.keys(SANI));   // sanitaires : pas des appareils électriques
 
 // appareils d'un fichier → [{ t, x, y, lv }] (tous niveaux) ; état du plan si .okteo
 export function devicesOf(file) {

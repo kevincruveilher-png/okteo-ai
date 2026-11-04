@@ -20,7 +20,7 @@ import { portLayout, portXY } from "../cablage/boites.js";
 import { chooseBows, BOW0, curve, polyCross } from "../cablage/trace.js";
 import { implantationPending } from "../cablage/equipements.js";
 import { APPAREILS, raccOf } from "../cablage/appareils.js";
-import { isSani, roomFor, saniRect, volumesOf } from "../cablage/volumes.js";
+import { isSani, roomFor, saniShape, volumesOf } from "../cablage/volumes.js";
 import { boxColor, ftzSymbol, symIndex } from "../print/ftz-symbols.js";
 import { symbolSVG } from "../print/ftz-draw.js";
 
@@ -231,15 +231,20 @@ export function draw() {
   if (layers.appareils.on && state.app.some(a => isSani(a.t))) {
     const polys = state.rooms.map(roomPoly), pts = P => P.map(p => p.x.toFixed(3) + "," + p.y.toFixed(3)).join(" ");
     let sv = `<defs><pattern id="vol1" width=".1" height=".1" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2=".1" stroke="#555" stroke-width=".008" stroke-dasharray=".02 .02"/></pattern><pattern id="vol2" width=".2" height=".2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2=".2" stroke="#777" stroke-width=".008" stroke-dasharray=".02 .03"/></pattern></defs>`;
-    state.app.filter(a => isSani(a.t)).forEach(a => {
-      const V = volumesOf(a, roomFor(a, polys)), on = isSel("app", a.id) || GH && GH.apps.has(a.id);
+    const sanis = state.app.filter(a => isSani(a.t));
+    sanis.forEach(a => {
+      const V = volumesOf(a, roomFor(a, polys));
+      if (!V) return;
       if (V.v2) sv += `<polygon class="vol v2" points="${pts(V.v2)}" fill="url(#vol2)" stroke="#777" stroke-width=".01" stroke-dasharray=".04 .04"><title>Volume 2 (0,60 m autour du volume 1, jusqu'à 3 m)</title></polygon>`;
       if (V.v1) sv += `<polygon class="vol v1" points="${pts(V.v1)}" fill="url(#vol1)" stroke="#555" stroke-width=".012" stroke-dasharray=".04 .03"><title>Volume 1 (jusqu'à 2,25 m)</title></polygon>`;
-      if (a.t === "DITAL") sv += `<g class="sani" data-id="${a.id}"><circle cx="${a.x}" cy="${a.y}" r=".09" fill="#fff" stroke="${on ? "var(--sel)" : "#222"}" stroke-width="${on ? .03 : .015}"/><circle cx="${a.x}" cy="${a.y}" r=".03" fill="#222"/></g>`;
-      else {
-        const R = saniRect(a), c = { x: a.x, y: a.y }, inner = R.map(p => ({ x: c.x + (p.x - c.x) * 0.86, y: c.y + (p.y - c.y) * 0.8 }));
-        sv += `<g class="sani" data-id="${a.id}"><polygon points="${pts(R)}" fill="#fff" stroke="${on ? "var(--sel)" : "#222"}" stroke-width="${on ? .03 : .015}"/>${a.t === "BAIG" ? `<polygon points="${pts(inner)}" fill="none" stroke="#222" stroke-width=".01" stroke-linejoin="round"/>` : `<line x1="${R[0].x}" y1="${R[0].y}" x2="${R[2].x}" y2="${R[2].y}" stroke="#222" stroke-width=".008"/><line x1="${R[1].x}" y1="${R[1].y}" x2="${R[3].x}" y2="${R[3].y}" stroke="#222" stroke-width=".008"/>`}</g>`;
-      }
+    });
+    sanis.forEach(a => {
+      const on = isSel("app", a.id) || GH && GH.apps.has(a.id);
+      // n° 9 : tous les sanitaires en trait gris fin pointillé (forme commune écran / impression : saniShape)
+      const st = on ? `stroke="var(--sel)" stroke-width=".022"` : `stroke="#8a8f96" stroke-width=".01" stroke-dasharray=".035 .022"`;
+      sv += `<g class="sani" data-id="${a.id}" data-t="${a.t}">` + saniShape(a).map(p => p.k === "line"
+        ? `<polyline points="${pts(p.pts)}" fill="none" ${st} stroke-linecap="round"/>`
+        : `<polygon points="${pts(p.pts)}" fill="${p.k === "out" ? "#fff" : "none"}" ${st} stroke-linejoin="round"/>`).join("") + `</g>`;
     });
     h += `<g class="sdb">${sv}</g>`;
   }
@@ -855,7 +860,7 @@ export function circuitMap() {
   });
   // appareils qui devraient être dans un circuit (pas le tableau, pas les bouches VMC non câblées)
   // (v54 : ni l'équipotentielle locale, raccordée à la terre de sa boîte, ni une hotte dont le raccordement reste à choisir)
-  m.__need = a => !["TAB", "VMC", "VEX", "VREJ", "EQL", "INCONNU", "BAIG", "RECV", "DITAL"].includes(a.t) && !(a.t === "CVR" && (K.CAB.choix || {}).commandeVolet === "connecte") && !(a.t === "HOTTE" && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "a_choisir");
+  m.__need = a => !["TAB", "VMC", "VEX", "VREJ", "EQL", "INCONNU"].includes(a.t) && !isSani(a.t) && !(a.t === "CVR" && (K.CAB.choix || {}).commandeVolet === "connecte") && !(a.t === "HOTTE" && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "a_choisir");
   // partent en ligne directe du tableau (ou du coffret) : pas d'alerte rouge avant la répartition
   m.__direct = a => ["RJ45", "PC20", "SC"].includes(a.t) || (APPAREILS[a.t] && raccOf({ t: a.t, racc: a.racc || (K.CAB.choix || {}).raccordement }) === "direct");
   return m;
