@@ -900,6 +900,20 @@ try {
       || undone.segs !== before.segs || undone.app !== before.app) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("v77 : réponse collée avec « ref » en minuscules et calibre en texte (« 20 A ») acceptée ; 4 murs = pas de recalage sur le PDF (garde-fou affiché)", async () => {
+    const rep = { ref: { w: 1000, h: 1000 }, murs: [{ x1: 200, y1: 200, x2: 800, y2: 200, ep: 20 }, { x1: 800, y1: 200, x2: 800, y2: 700, ep: 20 }, { x1: 800, y1: 700, x2: 200, y2: 700, ep: 20 }, { x1: 200, y1: 700, x2: 200, y2: 200, ep: 20 }],
+      ouvertures: [], pieces: [{ nom: "Essai v77", x: 500, y: 450 }], appareils: [{ t: "LV", x: 300, y: 300, calibre: "20 A" }, { t: "PLAQ", x: 320, y: 300, calibre: "32A" }], liaisons: [] };
+    await ev(() => okteoExt.aiReleve.pastePanel());
+    await page.fill("#ai-paste", JSON.stringify(rep));
+    await page.click("#ai-read");
+    await page.waitForSelector("#ai-ok", { timeout: 15000 });
+    await page.waitForFunction(() => /recalé sur le PDF/.test(document.querySelector(".aicard").textContent), null, { timeout: 15000 }).catch(() => {});
+    const txt = await page.textContent(".aicard");
+    const P = await ev(() => ({ cal: okteoExt.aiReleve.plan.devices.map((d) => d.calibre).join(","), recal: !!okteoExt.aiReleve.recal }));
+    await ev(() => okteoExt.aiReleve.close());
+    if (P.cal !== "20,32" || P.recal || !/Réponse donnée à la main/.test(txt) || !/non recalé sur le PDF/.test(txt)) throw new Error(JSON.stringify({ P, txt: txt.slice(0, 400) }));
+    return true;
+  });
   await check("relevé IA sans clé (v55.1) : « Copier la consigne » (ref, 40 types, hauteurs, CVR) ; réponse avec radiateur, volet + CVR, hauteur lue", async () => {
     await ev(() => okteoExt.aiReleve.pastePanel());
     await page.click("#ai-copy");
@@ -1845,6 +1859,15 @@ try {
     const t1 = items.join(" ");
     const r = { r0, w, back, gris, cotes: pdf.cotes, abrev: t1.includes("CH1"), full: t1.includes("Chambre 1"), cm: pdf.cotes.every((c) => items.includes(String(c))) };
     if (!(r0.thick && r0.thin && w.mat === "doublage" && w.wave > 0 && back === r0.was && gris.st === "gris" && gris.grey > 0 && gris.hatch === 0 && pdf.cotes.length >= 1 && r.abrev && !r.full && r.cm)) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("v77 : murs dessinés avec un seul contour d'ensemble (pas de trait en travers des angles ni des T)", async () => {
+    const r = await ev(() => {
+      const out = document.querySelector("#sv g.walls-out"), fill = out && out.nextElementSibling;
+      return { out: out ? out.querySelectorAll("polygon").length : 0, joints: out ? out.querySelectorAll("rect").length : 0,
+        stroked: fill ? [...fill.querySelectorAll("polygon")].filter((p) => p.getAttribute("stroke") === "#222").length : -1, segs: okteo.state.segs.filter((s) => !s.virt).length };
+    });
+    if (!(r.out >= r.segs && r.segs > 0 && r.joints > 0 && r.stroked === 0)) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("plan du BE (v74 MAJ 4) : symboles FTZ à l'écran (préférence), gaines à la couleur de la boîte, PMR, feuille A3 (repères Courier, plaques)", async () => {

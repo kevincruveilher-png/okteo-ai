@@ -68,7 +68,7 @@ ${types}
   Prends le type le plus précis : une prise marquée « LL » ou « lave-linge » est LL, pas PC20 ; un chauffe-eau est CETH, pas SC ; une commande de volet est CVR, pas SC ni INT. SC seulement si l'usage n'est pas reconnaissable.
   Une prise posée le long du plan de travail de la cuisine (souvent écrite « H:1.10m » ou « PT ») : ajoute "pt": true.
   Plusieurs symboles côte à côte : relève CHAQUE symbole séparément. Un symbole unique marqué « bloc 2 prises » ou « bloc 4 prises » : un objet avec "qty": 2 ou 4 et "inscription" exacte ; si la quantité est illisible, "qty": null. Ne crée pas de centres individuels inventés. Un bloc n'est ni un nombre de repères BE ni un nombre de gaines.
-  Conserve les inscriptions électriques utiles dans "inscription" (notamment ALIM DÉTECTEUR), les regroupements dans "aiGroup" si visibles et les doutes dans "aiNote" avec "aiStatus": "a_identifier" ou "a_confirmer". "aiOrigin": "plan" pour une observation, "interpretation" pour une déduction. Un calibre écrit se conserve dans "calibre" : 32 A reste 32 A (PC32 si usage inconnu, PLAQ seulement si l'usage plaque est établi). Un symbole inconnu reste INCONNU, jamais remplacé par un type voisin.
+  Conserve les inscriptions électriques utiles dans "inscription" (notamment ALIM DÉTECTEUR), les regroupements dans "aiGroup" si visibles et les doutes dans "aiNote" avec "aiStatus": "a_identifier" ou "a_confirmer". "aiOrigin": "plan" pour une observation, "interpretation" pour une déduction. Un calibre écrit se conserve dans "calibre", en nombre d'ampères sans unité (ex. "calibre": 32) : 32 A reste 32 A (PC32 si usage inconnu, PLAQ seulement si l'usage plaque est établi). Un symbole inconnu reste INCONNU, jamais remplacé par un type voisin.
 - Liaisons : [indice de la commande, indice de l'appareil commandé] dans la liste des appareils (indices à partir de 0) :
   INT, VV ou BP vers LUM, APP ou SPOT ; CVR vers VR ou VEL.
   Un allumage commandé de plusieurs endroits : chaque VV (ou BP) est relié à TOUTES les lumières qu'il commande. Une commande qui allume plusieurs lumières : une liaison par lumière.
@@ -102,6 +102,24 @@ ${promptBody(`- Coordonnées en PIXELS de l'image entière de la page ${page} (o
 
 Réponds UNIQUEMENT avec ce JSON (sans texte autour) :
 ${JSON_FORM.replace("{", '{"ref":{"W":0,"H":0},\n ')}`;
+}
+
+// v77 : taille de l'image de référence de la réponse collée. Accepte W/H, w/h, width/height, largeur/hauteur
+// (nombres ou textes). Si la proportion annoncée diffère de moins de 3 % de celle du fond (fondW / fondH, en m),
+// la hauteur est recalculée d'après la largeur : l'IA arrondit souvent la hauteur (1 100 pour 1 109) et le relevé
+// serait étiré verticalement. → {W, H, annonce: {W, H}, ajuste} ou null
+export function refOf(raw, { fondW = 0, fondH = 0 } = {}) {
+  const R = raw && typeof raw.ref === "object" && raw.ref ? raw.ref : null;
+  if (!R) return null;
+  const pick = (...k) => { for (const n of k) { const v = +String(R[n] ?? "").replace(",", ".").replace(/\s*px\s*$/i, ""); if (v > 0) return v; } return 0; };
+  const W = pick("W", "w", "width", "largeur", "l"), H = pick("H", "h", "height", "hauteur");
+  if (!(W > 0) || !(H > 0)) return null;
+  let H2 = H, ajuste = false;
+  if (fondW > 0 && fondH > 0) {
+    const Hf = W * fondH / fondW;
+    if (Math.abs(Hf - H) / H <= 0.03 && Math.abs(Hf - H) >= 0.5) { H2 = Hf; ajuste = true; }
+  }
+  return { W, H: H2, annonce: { W, H }, ajuste };
 }
 
 // la réponse peut contenir des ``` ou du texte autour : on prend le premier objet JSON complet
