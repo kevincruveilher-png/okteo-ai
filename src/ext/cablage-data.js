@@ -9,7 +9,7 @@ import { mesures, noter, noteOf } from "../cablage/qualite.js";
 // appareil à l'extérieur : ni sur lui ni à 12 cm autour, aucune pièce (un appareil intérieur posé contre un mur
 // touche sa pièce ; un appareil sur la façade est de l'autre côté du mur)
 // réglages du câblage + choix du chantier qui changent le calcul (v56 : volets connectés, R-096)
-export function cabS(api) { const cv = ((api.cab || {}).choix || {}).commandeVolet || ""; return { ...getCab(), commandeVolet: cv, voletsConnectes: cv === "connecte" }; }
+export function cabS(api) { const ch = (api.cab || {}).choix || {}, cv = ch.commandeVolet || ""; return { ...getCab(), commandeVolet: cv, voletsConnectes: cv === "connecte", pontage: !!ch.pontage }; }
 export function markExterior(api, items) {
   const geos = new Map(), at = (lv) => { if (!geos.has(lv)) geos.set(lv, (api.exportGeometry(lv).rooms || []).filter((r) => r.poly && r.poly.length > 2)); return geos.get(lv); };
   const D = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
@@ -29,7 +29,7 @@ export function wiringNow(api) {
   // v56 : le plan suit le découpage des gaines (une gaine coupée en deux par R-073 = deux points d'accroche)
   if (api.setGaineGroups) {
     const m = {};
-    W.boxes.forEach((b) => { const g = (m[b.id] = {}); b.gaines.forEach((x) => (x.appIds || []).forEach((id) => (g[id] = x.appIds[0]))); });
+    W.boxes.forEach((b) => { const g = (m[b.id] = {}); b.gaines.forEach((x) => { (x.appIds || []).forEach((id) => (g[id] = x.appIds[0])); if (x.ponts) (g.__ponts = g.__ponts || []).push(...x.ponts.map((p) => [p.from, p.ids])); }); });
     api.setGaineGroups(m);
   }
   return W;

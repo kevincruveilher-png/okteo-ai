@@ -529,6 +529,12 @@ appliqué après chaque relevé (`ai-releve.js` `squareStep`, `walls-ui.js`) et 
 `#rv-square`, catalogue `walls.square`) ; préférences `equerreTol` / `equerre45` / `equerreMax` (Paramètres `#ps-murs`).
 Test `scripts/squaring.test.mjs`.
 
+### Association et pontage (n° 6, lot B du 04/11/2026)
+gaines.js : association `memeEndroit` (jamais courant faible + autre) ; pontage si `S.pontage` (choix du chantier
+`cab.choix.pontage`, `#bx-pont`, passé par `cabS` / `plan-wiring.js`), `S.pontageMax` ; gaine `ponts` [{de, vers, from, to, ids,
+length}] + `pontLen` (comptés dans cuivre / longueur / totaux). Plan : `__ponts` dans `setGaineGroups`, `boxLayout` `d.head` /
+`d.ponts`, `path.pont` ; geo `deps[].ponts`. Test `scripts/pontage.test.mjs`.
+
 ### Sanitaires (n° 9, lot A du 04/11/2026)
 volumes.js `SANI` + WC / LAVABO / VASQUE / EVIER (`vol` seulement BAIG / RECV / DITAL : `hasVolumes`), `saniShape(a)`
 (dessin commun écran + impression, gris pointillé), `sani3d(a)` (volumes 3D) ; `exportGeometry().sanis` ; scene.js

@@ -1,3 +1,31 @@
+## 04/11/2026 — n° 6 : association et pontage dans le moteur de câblage (lot B, go de Kévin)
+
+- Décisions de Kévin (04/11) : association toujours active ; jamais un courant faible avec une prise ou une commande ;
+  commandes associables dans un même boîtier ; pontage = option du chantier, prises et lumières, 5 à la suite au plus
+  (réglable), même section, **d'une pièce à l'autre permis**.
+- Association : existait (`memeEndroit` 0,30 m : une gaine, fils communs une fois) ; `gaines.js` interdit maintenant de
+  grouper un appareil de courant faible (`isFaible`) avec un autre. Libellé du réglage : « Association : … ».
+- Pontage (`gaines.js`, avant la ronde R-072 pour que les couleurs tiennent compte de la gaine commune) : endroits
+  « pontables » = même niveau, mêmes fils (prises PC16 d'un même circuit, ou lumières d'un même allumage : même retour),
+  ni extérieur (câble), ni courant faible, ni circuit spécialisé ; chaîne depuis l'endroit le plus proche de la boîte, puis
+  le plus proche du dernier tant qu'il est plus près de lui que de la boîte, au plus `S.pontageMax` endroits. La gaine de la
+  boîte va au 1er endroit (`g.length`, face et point d'accroche d'après lui) ; tronçons `g.ponts` [{de, vers, from, to, ids,
+  length}] (longueur : à plat + descentes des deux côtés + surlongueur d'appareil aux deux bouts), `g.pontLen` ; libellé
+  « P1 → P2 → P3 (pontage) » ; cuivre, longueur de la boîte et total de gaine comptent les tronçons.
+- Choix du chantier `cab.choix.pontage` (case `#bx-pont` dans le panneau Câblage, sous les modes) → `cabS(api)` et
+  `plan-wiring.js` ; réglage `pontageMax` (5, Paramètres → Gaines et câbles).
+- Plan : `setGaineGroups` reçoit `__ponts` par boîte ; `boxLayout` regroupe d'après le calcul quand il est connu,
+  `d.head` (appareils reliés à la boîte) et `d.ponts` ; gaines dessinées vers `d.head`, tronçons `path.pont` en trait mixte
+  de la même couleur ; courbures, croisements et `hitRoute` ignorent les appareils pontés. Impression : `deps[].ponts`
+  (levels.js, tourné par `rotateGeo`), trait mixte. Pieuvre → Boîtes : « + pontage … m » ; bande (écran `.bd-ponts` et PDF) :
+  ligne « Pontages ». Le QR de la bande ne contient pas encore les tronçons. Le placement des boîtes compte encore un départ
+  par endroit (le pontage est appliqué au calcul des gaines) : à revoir avec le n° 7 si besoin.
+- Catalogue `help.pontage`. Tests : `scripts/pontage.test.mjs` (7, dans check) ; smoke (case cochée → moins de départs,
+  tronçons sur le plan, un Ctrl+Z).
+
+- Fusion dans `main` le 04/11/2026 (go de Kévin « go et fusionne B ») : `npm run check` vert sur GitHub Actions
+  (smoke 200/200) ; workflow temporaire retiré.
+
 ## 04/11/2026 — n° 12 : cotes des boîtes depuis la face EXTÉRIEURE du mur extérieur (réponse de Kévin)
 
 - Kévin : « extérieur de la boîte est extérieure du mur » → la cote part de la face extérieure du mur extérieur (et plus de

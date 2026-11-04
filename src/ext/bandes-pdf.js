@@ -87,6 +87,9 @@ export async function buildBandsPdf(pages, { chantier = "", numero = "" } = {}) 
     if (bg.length) { doc.text(win("Bagues sur l'alimentation (accolades) : " + bg.join(" · ")), M + 20, y); y += 5; }
     const bgA = [...new Set(box.gaines.filter((g) => g.kind !== "alim").flatMap((g) => g.wires.map((w) => w.bague)).filter(Boolean))];
     if (bgA.length) { doc.text(win("Bagues d'allumage (couleur réutilisée) : " + bgA.join(" · ")), M + 20, y); y += 5; }
+    // n° 6 : pontages (gaines d'un appareil au suivant, mêmes fils que la gaine de la boîte)
+    const pg = box.gaines.filter((g) => g.ponts).flatMap((g) => g.ponts.map((p) => `${g.no} : ${p.de} -> ${p.vers} ${fr(p.length, 2)} m`));
+    if (pg.length) { const t = doc.splitTextToSize(win("Pontages : " + pg.join(" · ")), W - 2 * M - 22); doc.text(t, M + 20, y); y += t.length * 4.2 + 1; }
     const fl = fils ? fils.wires.map((w) => `${w.n} x ${fr(w.section, 1)} ${w.color}`).join(" · ") + (fils.cables.length ? " · câbles : " + fils.cables.map((c) => `${c.n} x ${c.cable}`).join(", ") : "") : "";
     if (fl) { doc.setFont("helvetica", "bold"); doc.text("Fils", M, y); doc.setFont("helvetica", "normal"); const t = doc.splitTextToSize(win(fl), W - 2 * M - 22); doc.text(t, M + 20, y); y += t.length * 4.2 + 1.5; }
     doc.setFontSize(8.5); doc.setTextColor(70);

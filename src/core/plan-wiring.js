@@ -10,7 +10,7 @@ export function planWiring() {
   const reps=repMap();
   const items=[...appIndex()].map(([id,v])=>({...v.a,id,lv:v.lv,rep:v.lv===K.LV.cur ? reps[id] : (v.a.rf || '')+(v.a.n || '')}));
   const cv=K.CAB.choix?.commandeVolet || '';
-  const data={items,links:allLinks(),circuits:K.CAB.circuits || [],boxes:K.CAB.boxes || [],levels:CH.levels.map(l=>l.id),S:{...getCab(),commandeVolet:cv,voletsConnectes:cv==='connecte'}};
+  const data={items,links:allLinks(),circuits:K.CAB.circuits || [],boxes:K.CAB.boxes || [],levels:CH.levels.map(l=>l.id),S:{...getCab(),commandeVolet:cv,voletsConnectes:cv==='connecte',pontage:!!K.CAB.choix?.pontage}};
   const key=JSON.stringify(data);
   // v72.1 : le plan ne doit jamais planter à cause d'un calcul de câblage incomplet (appareil sans circuit pendant
   // l'édition…) : sans résultat, pas de flèches ; les erreurs restent signalées par le contrôle et l'étude.
