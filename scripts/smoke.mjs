@@ -2434,7 +2434,7 @@ try {
     await page.click('#etude .et-step[data-n="2"]');
     const alt = await ev(() => [...document.querySelectorAll("#et-alternatives tr")].slice(1).map((tr) => tr.textContent));
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/etude.png" });
-    if (!(r.steps.length === 9 && /1\. Lecture du plan/.test(r.steps[0]) && /9\. Contrôle/.test(r.steps[8]) && /Précontrôle — ✓ les \d+ règles utiles/.test(r.pc) && /supposées/.test(r.pc) && r.where > 0 && alt.length === 4 && alt.some((t) => /retenu/.test(t)) && !alt.some((t) => /retenu/.test(t) && /✗/.test(t)))) throw new Error(JSON.stringify({ r, alt }));
+    if (!(r.steps.length === 9 && /1\. Lecture du plan/.test(r.steps[0]) && /9\. Contrôle/.test(r.steps[8]) && /Précontrôle — ✓ les \d+ règles utiles/.test(r.pc) && /supposées/.test(r.pc) && r.where > 0 && alt.length === 5 && alt.some((t) => /Bureau d.études/.test(t)) && alt.some((t) => /retenu/.test(t)) && !alt.some((t) => /retenu/.test(t) && /✗/.test(t)))) throw new Error(JSON.stringify({ r, alt }));
     return true;
   });
   await check("« Câbler le chantier » : boîtes et circuits recalculés, étude enregistrée dans le chantier, statistiques ; un seul Ctrl+Z", async () => {
