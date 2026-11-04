@@ -1887,6 +1887,7 @@ try {
   });
   await check("n° 13 + 8 : symboles muraux hors du mur et dans le sens de leur mur ; appareil dans un mur signalé puis recollé ; repère glissé à la main (gardé, un Ctrl+Z)", async () => {
     await ev(() => document.querySelectorAll(".pal-back").forEach((e) => { e.dataset.hid = e.style.display || "-"; e.style.display = "none"; }));
+    const keepView = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits }));
     await ev(() => { okteo.setTab("plan"); okteo.setTool("sel"); okteo.viewPreset("impl"); okteo.fit(); okteoExt.panel?.close?.("assistant"); });
     const r1 = await ev(() => {
       const S = okteo.state, N = (id) => S.nodes.find((n) => n.id === id);
@@ -1921,6 +1922,7 @@ try {
       r3 = { moved, back };
     }
     await ev(() => document.querySelectorAll(".pal-back").forEach((e) => { if (e.dataset.hid) { e.style.display = e.dataset.hid === "-" ? "" : e.dataset.hid; delete e.dataset.hid; } }));
+    await ev((V) => { Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; }, keepView);
     if (!(r1.n > 5 && r1.worst > 0.055 && r1.best > 0.08 && /rotate\(-?90/.test(r1.rot || "") && r2.flagged && r2.k >= 1 && r2.seg && r2.kind && r3 && r3.moved && r3.back)) throw new Error(JSON.stringify({ r1, r2, r3, lab }));
     return true;
   });
@@ -1935,13 +1937,16 @@ try {
   });
   await check("plan du BE (v74 MAJ 4) : symboles FTZ à l'écran (préférence), gaines à la couleur de la boîte, PMR, feuille A3 (repères Courier, plaques)", async () => {
     await page.waitForFunction(() => document.querySelectorAll("#sv g.dev g.ftz").length > 0, null, { timeout: 15000 });
+    const cnt = await ev(() => ({ ftz: document.querySelectorAll("#sv g.dev g.ftz").length, dev: document.querySelectorAll("#sv g.dev").length }));
+    await ev(() => { okteo.showCircuits = true; });
+    await page.waitForFunction(() => document.querySelector("#sv path.gaine:not(.alim)"), null, { timeout: 15000 });
     const scr = await ev(() => {
-      const ftz = document.querySelectorAll("#sv g.dev g.ftz").length, dev = document.querySelectorAll("#sv g.dev").length;
-      okteo.showCircuits = true;
+      const ftz = 0, dev = 0;
       const g = document.querySelector("#sv path.gaine:not(.alim)"), b = g && okteo.cab.boxes.find((x) => x.id === g.dataset.b);
       const col = g && g.getAttribute("stroke"), n = b && b.n;
       return { ftz, dev, col, n };
     });
+    Object.assign(scr, cnt);
     await ev(async () => { const m = await import("/src/prefs.js"); m.setPref("charteBE", false); });
     const off = await ev(() => ({ ftz: document.querySelectorAll("#sv g.dev g.ftz").length, col: document.querySelector("#sv path.gaine:not(.alim)")?.getAttribute("stroke") }));
     await ev(async () => { const m = await import("/src/prefs.js"); m.setPref("charteBE", true); okteo.showCircuits = false; });
