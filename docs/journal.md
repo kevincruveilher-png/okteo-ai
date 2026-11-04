@@ -17,6 +17,14 @@ Reprise de la feuille de route 3D (manques relevés le 04/11, Kévin : « c'est 
   verso ≤ 1 444 ; MAILLARD recto 2 493. Tous sous 2 900 sans rien retirer. EVRARD : pas de câblage dans le dépôt.
 - Tests : v3d (face, empreinte, stamp, n° de gaine ; 4 chantiers FTZ) + smoke (face, recherche, Plan 2D, hors ligne,
   alerte d'impression) + test:web. Workflow TEMPORAIRE `verification-3d.yml` remis sur la branche (à retirer à la fusion).
+- Hors ligne : la page envoie la liste de ses fichiers au service (`postMessage({keep})`), gardés d'un coup ; copie servie
+  avec `ignoreVary` (les modules ont un en-tête Origin). Vérifié : page rouverte réseau coupé.
+- 3D-5 (manque) : longueurs comparées aux bandes du BE sur MAILLARD. `docs/chantiers/MAILLARD_longueurs_BE.json` (lu par
+  pdftotext -bbox : n° de gaine, longueur, repères ; aucun nom) ; `maillard.test.mjs` compare par repère commun après
+  recâblage (mode Équilibrée) : 44 repères communs sur 67 ; écart médian −1,00 m ; 18 à ±1 m, 29 à ±2 m ; total Oktéo
+  191,2 m contre 252,6 m au BE (−24 %). Les boîtes ne sont pas au même endroit, mais l'écart est systématique : à voir
+  avec Kévin (surlongueurs, descentes, tracé) AVANT de fabriquer sur nos longueurs.
+- Validation : run 41872767278 vert (smoke 194/194, maillard 15/15, v3d, build:web, test:web).
 
 ## 04/11/2026 — Q-111 « distance depuis l'angle » à trancher avec Thibaut ; QR de la bande sans nom dans `main`
 
