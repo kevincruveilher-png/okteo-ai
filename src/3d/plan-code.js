@@ -11,7 +11,9 @@ const cm = (m) => Math.round(m * 100);
 
 // S = { data {nodes, segs [{id,a,b,ep,top?}], openings [{seg,t,w,kind,hinge,swing,allege?,linteau? (m)}]},
 //       rooms [{name, poly}], apps [{id,t,x,y,h (cm|null),seg,rep}], boxes [{id,n,x,y}],
-//       gaines [{box (id), apps [ids] | ["tab"], route [{x,y}], sol}], direct [{app (id), label}], H (m), date "AAAA-MM-JJ", level }
+//       gaines [{box (id), apps [ids] | ["tab"], route [{x,y}], sol, no ("04")}], direct [{app (id), label}], H (m),
+//       date "AAAA-MM-JJ", level, face {i, n, label} (face i sur n de l'impression), plan (empreinte du chantier, sans nom),
+//       stamp (moment de l'impression : le même sur toutes les faces d'une impression) }
 export function packPlan(S) {
   const nodes = S.data.nodes || [], ni = new Map(nodes.map((n, i) => [n.id, i]));
   const segs = (S.data.segs || []).filter((s) => !s.virt && ni.has(s.a) && ni.has(s.b)), si = new Map(segs.map((s, i) => [s.id, i]));
@@ -24,6 +26,7 @@ export function packPlan(S) {
   const bi = new Map((S.boxes || []).map((b, i) => [b.id, i]));
   return {
     v: PLAN3D_V, d: S.date || "", l: S.level || "",
+    f: S.face ? [S.face.i || 1, S.face.n || 1, S.face.label || ""] : null, k: S.plan || "", t: S.stamp || "",
     o: [ox, oy],
     H: [S.H.plafond, S.H.allege, S.H.linteau, S.H.porte, S.H.baie, S.H.garage].map(cm),
     N: delta(nodes),
@@ -33,7 +36,7 @@ export function packPlan(S) {
     // appareils : différences successives de position, hauteur (cm, -1 = hauteur de départ), mur (-1 = posé), repère
     A: (() => { const out = []; let px = 0, py = 0; for (const a of apps) { const x = X(a.x), y = Y(a.y); out.push(a.t, x - px, y - py, Number.isFinite(a.h) ? Math.round(a.h) : -1, a.seg && si.has(a.seg) ? si.get(a.seg) : -1, a.rep || ""); px = x; py = y; } return out; })(),
     B: (S.boxes || []).flatMap((b) => [b.n || "", X(b.x), Y(b.y)]),
-    G: (S.gaines || []).filter((g) => bi.has(g.box)).map((g) => [bi.get(g.box), (g.apps || []).map((id) => (id === "tab" ? -1 : ai.has(id) ? ai.get(id) : -2)).filter((k) => k !== -2), g.sol ? 1 : 0, delta(g.route || [])]).filter((g) => g[1].length),
+    G: (S.gaines || []).filter((g) => bi.has(g.box)).map((g) => [bi.get(g.box), (g.apps || []).map((id) => (id === "tab" ? -1 : ai.has(id) ? ai.get(id) : -2)).filter((k) => k !== -2), g.sol ? 1 : 0, delta(g.route || []), g.no || ""]).filter((g) => g[1].length),
     L: (S.direct || []).filter((d) => ai.has(d.app)).flatMap((d) => [ai.get(d.app), d.label || ""]),
   };
 }
@@ -49,10 +52,13 @@ export function unpackPlan(P) {
   const rooms = P.R.map(([name, d, hsp], i) => ({ id: "r" + i, name, poly: undelta(d), hsp: hsp ? m(hsp) : null }));
   const apps = []; { let x = 0, y = 0; for (let i = 0; i < P.A.length; i += 6) { const [t, dx, dy, h, s, rep] = P.A.slice(i, i + 6); x += dx; y += dy; apps.push({ id: "a" + apps.length, t, x: m(x + ox), y: m(y + oy), h: h >= 0 ? h : null, seg: s >= 0 ? "s" + s : null, rep }); } }
   const boxes = []; for (let i = 0; i < P.B.length; i += 3) boxes.push({ id: "b" + boxes.length, n: P.B[i], x: m(P.B[i + 1] + ox), y: m(P.B[i + 2] + oy) });
-  const gaines = P.G.map(([b, list, sol, d], i) => ({ id: "g" + i, box: "b" + b, apps: list.map((k) => (k < 0 ? "tab" : "a" + k)), sol: !!sol, route: undelta(d) }));
+  const gaines = P.G.map(([b, list, sol, d, no], i) => ({ id: "g" + i, box: "b" + b, apps: list.map((k) => (k < 0 ? "tab" : "a" + k)), sol: !!sol, route: undelta(d), no: no || "" }));
   const direct = []; for (let i = 0; i < P.L.length; i += 2) direct.push({ app: "a" + P.L[i], label: P.L[i + 1] });
-  return { data: { nodes, segs, openings }, rooms, apps, boxes, gaines, direct, H: { plafond: H[0], allege: H[1], linteau: H[2], porte: H[3], baie: H[4], garage: H[5], combles: Math.max(H[0], ...segs.map((s) => s.top || 0)) + 0.35 }, date: P.d, level: P.l };
+  return { data: { nodes, segs, openings }, rooms, apps, boxes, gaines, direct, H: { plafond: H[0], allege: H[1], linteau: H[2], porte: H[3], baie: H[4], garage: H[5], combles: Math.max(H[0], ...segs.map((s) => s.top || 0)) + 0.35 }, date: P.d, level: P.l, face: P.f ? { i: P.f[0], n: P.f[1], label: P.f[2] } : null, plan: P.k || "", stamp: P.t || "" };
 }
+
+// empreinte courte d'un texte (FNV-1a 32 bits) : reconnaît un même chantier sur deux faces sans y mettre son nom
+export function fingerprint(txt) { let h = 0x811c9dc5; for (const c of String(txt)) { h ^= c.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(36); }
 
 export const QR_MAX = 2900;
 export const plan3dUrl = (data, base = PUBLIC_BASE) => base.replace(/\/?$/, "/") + "plan3d.html#p=" + data;

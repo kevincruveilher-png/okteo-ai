@@ -26,3 +26,9 @@ button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);colo
 .joy i{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:var(--accent);opacity:.9}
 .hint{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 66px);background:color-mix(in srgb,var(--bg) 85%,transparent);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:13px;color:var(--mut);max-width:calc(100% - 20px);text-align:center}
 [hidden]{display:none!important}
+.top .ttl small.face{color:var(--accent);white-space:normal}
+.warn{position:absolute;left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));top:calc(env(safe-area-inset-top,0px) + 76px);margin:0;background:#5a2a12;color:#ffe9dc;border:1px solid var(--accent);border-radius:12px;padding:10px 12px;font-size:13.5px;z-index:3}
+.warn button{margin-top:6px;display:block}
+.find{display:flex;gap:6px;margin-top:4px}.find input{flex:1;min-width:0;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:40px}
+.fmsg{margin:0;color:var(--accent);font-size:13px}
+.card .gl{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.card .gl button{min-width:44px;font-family:ui-monospace,monospace}

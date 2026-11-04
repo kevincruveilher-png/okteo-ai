@@ -26,7 +26,7 @@ test('encrypted local recovery: ciphertext at rest, restore and account isolatio
 });
 test('budget denied at zero and user mismatch rejected',async()=>{const f=fixture(),c=await f.admin();const r=await f.call('/api/session',undefined,c,{'x-okteo-user':'other-user'});assert.equal(r.status,401);const session=await (await f.call('/api/session',undefined,c)).json();await f.call('/api/admin/users/'+session.user.id,{ai_enabled:false},c);assert.equal((await f.call('/ai/anthropic',{messages:[],max_tokens:1},c)).status,403);});
 test('v72.1 : page bande du QR publique, rien d’autre sans session',async()=>{const f=fixture();
- for(const p of ['/bande.html','/bande','/plan3d.html','/plan3d','/assets/bande-Ab12_cD3.js','/assets/index-Zz9yXw8v.css'])assert.equal((await f.call(p)).status,200,p);
+ for(const p of ['/bande.html','/bande','/plan3d.html','/plan3d','/plan3d-sw.js','/assets/bande-Ab12_cD3.js','/assets/index-Zz9yXw8v.css'])assert.equal((await f.call(p)).status,200,p);
  const b=await f.call('/bande.html');assert.match(b.headers.get('content-security-policy')||'',/frame-ancestors 'none'/);
  for(const p of ['/','/index.html','/assets/fond-evrard-04949.jpg','/assets/kiteohm-logo.png','/version.json','/sw.js'])assert.equal((await f.call(p)).status,302,p);
  for(const p of ['/api/session','/ai/status'])assert.equal((await f.call(p)).status,401,p);

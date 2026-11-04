@@ -29,8 +29,10 @@ export async function handle(request,env,ctx={waitUntil(){}}) {
  // (jamais envoyé au serveur). Seuls bande.html et les fichiers compilés à nom haché (js/css) sont servis sans session :
  // aucun plan, fond (dossier public/assets) ni API n'est exposé par cette exception.
  // 3D-8 : la maquette 3D d'une face du plan (plan3d.html, QR de la face) suit la même règle.
- if(['GET','HEAD'].includes(request.method)&&(p==='/bande.html'||p==='/bande'||p==='/plan3d.html'||p==='/plan3d'||PUBLIC_ASSET.test(p))){
-  const r=PUBLIC_ASSET.test(p)?await env.ASSETS.fetch(request):await assetPage(env,url,p.startsWith('/plan3d')?'/plan3d.html':'/bande.html'),h=new Headers(r.headers);
+ if(['GET','HEAD'].includes(request.method)&&(p==='/bande.html'||p==='/bande'||p==='/plan3d.html'||p==='/plan3d'||p==='/plan3d-sw.js'||PUBLIC_ASSET.test(p))){
+  // plan3d-sw.js : mémoire hors ligne de la page maquette (portée /plan3d seulement), servi tel quel, jamais en cache
+  const sw=p==='/plan3d-sw.js',r=PUBLIC_ASSET.test(p)||sw?await env.ASSETS.fetch(request):await assetPage(env,url,p.startsWith('/plan3d')?'/plan3d.html':'/bande.html'),h=new Headers(r.headers);
+  if(sw){h.set('cache-control','no-cache');h.set('content-type','text/javascript; charset=utf-8');h.set('x-content-type-options','nosniff');return new Response(r.body,{status:r.status,headers:h});}
   h.set('x-content-type-options','nosniff');h.set('referrer-policy','no-referrer');h.set('x-frame-options','DENY');
   if(!PUBLIC_ASSET.test(p)){h.set('cache-control','no-store');h.set('content-security-policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");}
   return new Response(r.body,{status:r.status,headers:h});

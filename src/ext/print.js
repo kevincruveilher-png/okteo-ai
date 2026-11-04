@@ -541,6 +541,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const inBox = new Map(); (geo.boxes || []).forEach((b) => b.deps.forEach((d) => d.ends.forEach((e) => { if (e.key !== "tab") inBox.set(e.key, b.id); })));
     const direct = new Set((geo.direct || []).map((d) => d.appId).filter(Boolean));
     const pages = F.pages && F.pages.length ? F.pages : [{ boxes: "all", direct: false, autres: true, legend: false }, { boxes: [], direct: true, autres: false, legend: true }];
+    const qrStamp = new Date().toISOString().slice(0, 16);   // 3D-8 : même moment sur toutes les faces de cette impression
     const used = [], legends = [], cotes = [], plq = [], qrs = [], fields = { echelle: `1 / ${scale}`, ...F.fields };
     const pageApps = pages.map((pg) => {
       const ids = pg.boxes === "all" ? null : new Set(pg.boxes || []);
@@ -577,7 +578,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       // 3D-8 : QR « maquette 3D » de ce qui est imprimé sur cette face (coin libre, hors légende)
       if (F.qr3d) {
         try {
-          const q = await F.qr3d({ apps: pageApps[i], boxes: boxIds || null, direct: !!pg.direct, page: i + 1 });
+          const q = await F.qr3d({ apps: pageApps[i], boxes: boxIds || null, direct: !!pg.direct, page: i + 1, pages: pages.length, label: pg.name || (pg.direct ? "Lignes directes" : "Boîtes"), stamp: qrStamp });
           if (q && !q.tooBig) {
             const Q = await qrMatrix(q.url), size = 48, cap = 4, ms = size / Q.n, leg = legends.find((l) => l.page === i + 1);
             const corners = [[area.x + area.w - size - 2, area.y + area.h - size - cap - 2], [area.x + 2, area.y + area.h - size - cap - 2], [area.x + area.w - size - 2, area.y + 2], [area.x + 2, area.y + 2]];
@@ -587,7 +588,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
             doc.setFillColor(255, 255, 255); doc.rect(qx - 1.5, qy - 1.5, size + 3, size + cap + 3, "F");
             doc.setFillColor(0);
             Q.rows.forEach((row, r) => { let c = 0; while (c < Q.n) { if (!row[c]) { c++; continue; } let e = c; while (e < Q.n && row[e]) e++; doc.rect(qx + c * ms, qy + r * ms, (e - c) * ms + 0.01, ms + 0.01, "F"); c = e; } });
-            doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(60); doc.text("Maquette 3D de cette face (telephone)", qx + size / 2, qy + size + 3, { align: "center" }); doc.setTextColor(0);
+            doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(60); doc.text(`Maquette 3D de cette face${pages.length > 1 ? ` (${i + 1}/${pages.length})` : ""} - telephone`, qx + size / 2, qy + size + 3, { align: "center" }); doc.setTextColor(0);
             qrs.push({ page: i + 1, url: q.url, size: q.size, light: q.light, x: qx, y: qy, mm: size, version: Q.version });
           } else if (q) qrs.push({ page: i + 1, tooBig: true, size: q.size });
         } catch (e) { qrs.push({ page: i + 1, error: String(e && e.message || e) }); }

@@ -1,3 +1,23 @@
+## 04/11/2026 — 3D-8 compléments : page téléphone (branche `feat/3d-complements`)
+
+Reprise de la feuille de route 3D (manques relevés le 04/11, Kévin : « c'est parfait », on finit avant l'essai).
+- QR : `packPlan` porte aussi la face (`f` = [n°, nombre, libellé]), l'empreinte du chantier (`k` = `fingerprint(CH.id)`,
+  FNV-1a, sans nom), le moment de l'impression (`t`, le même sur toutes les faces d'une impression, `qrStamp` dans
+  `buildFtz`) et le n° de chaque gaine (« 04 ») ; anciens QR toujours lisibles. Légende imprimée « … (1/2) ».
+- `plan3d.html` :
+  - « Face 1/2 · Recto — boîtes — l'autre face du plan a son propre QR code » sous le titre ;
+  - recherche (menu ☰) d'un n° de gaine « LI01.04 » (ou « 04 » s'il n'y a qu'une boîte), d'un repère « P12 », d'une
+    boîte ou d'une ligne directe → caméra sur l'élément et sa fiche ; fiche de boîte = boutons des n° de ses gaines ;
+  - « Plan 2D » : vue de dessus sans perspective (caméra orthogonale, un doigt = déplacer, deux = zoomer) ;
+  - alerte si ce téléphone a déjà ouvert une autre impression du même chantier (localStorage `okteo.plan3d.vus`) ;
+  - mémoire hors ligne : `public/plan3d-sw.js` (portée `/plan3d` seulement, réseau d'abord pour la page, copie gardée
+    pour les fichiers) ; Worker : `/plan3d-sw.js` public, sans cache ; `test:web`.
+- Taille du QR mesurée sur les 4 chantiers FTZ (appareils, boîtes et lignes directes réels, positions schématiques,
+  sur la coque de MAILLARD : les plans FTZ sont scannés, sans murs dans le dépôt) : recto 1 932 à 2 561 caractères,
+  verso ≤ 1 444 ; MAILLARD recto 2 493. Tous sous 2 900 sans rien retirer. EVRARD : pas de câblage dans le dépôt.
+- Tests : v3d (face, empreinte, stamp, n° de gaine ; 4 chantiers FTZ) + smoke (face, recherche, Plan 2D, hors ligne,
+  alerte d'impression) + test:web. Workflow TEMPORAIRE `verification-3d.yml` remis sur la branche (à retirer à la fusion).
+
 ## 04/11/2026 — Q-111 « distance depuis l'angle » à trancher avec Thibaut ; QR de la bande sans nom dans `main`
 
 - Décision de Kévin (00:19) : la règle actuelle de distance « depuis l'angle » (`a.wa`, demi-épaisseur la plus grosse du

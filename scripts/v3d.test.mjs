@@ -8,7 +8,8 @@ import { computeCircuits } from "../src/cablage/circuits.js";
 import { CAB_DEFAULTS } from "../src/cablage/settings.js";
 import { parseAiJson, aiToPlan } from "../src/walls/ai-plan.js";
 import { poseIssues } from "../src/3d/pose.js";
-import { packPlan, unpackPlan, planUrl, decodePlan, QR_MAX } from "../src/3d/plan-code.js";
+import { packPlan, unpackPlan, planUrl, decodePlan, QR_MAX, fingerprint } from "../src/3d/plan-code.js";
+import { CHANTIERS_FTZ, buildChantier } from "./fixtures/chantiers-ftz.mjs";
 import { wallElevation, roomFaces, elevationDraw, elevationSVG } from "../src/3d/elevation.js";
 
 let ok = 0; const fails = [];
@@ -183,6 +184,19 @@ console.log("Vue 3D-8 : maquette d'une face du plan dans un QR code");
   const big = { ...recto, apps: Array.from({ length: 600 }, (_, i) => ({ id: "x" + i, t: "PC16", x: (i * 7.31) % 30, y: (i * 3.17) % 20, h: 30, rep: "P" + i })) };
   const r3 = await planUrl(big);
   check("plan trop gros : allégé (repères puis sols) ou signalé trop gros, jamais une adresse tronquée", r3.light > 0 && (r3.tooBig || r3.size <= QR_MAX));
+  // face, empreinte et n° de gaine relus ; l'empreinte ne contient pas le nom
+  const F = await decodePlan((await planUrl({ ...recto, gaines: G.map((g, i) => ({ ...g, no: String(i + 1).padStart(2, "0") })), face: { i: 1, n: 2, label: "Recto — boîtes" }, plan: fingerprint("maillard-af544567"), stamp: "2026-11-04T10:00" })).url.split("#p=")[1]);
+  check("face 1/2, empreinte du chantier (sans nom), moment de l'impression et n° de gaine relus", F.face.i === 1 && F.face.n === 2 && F.face.label === "Recto — boîtes" && F.plan === fingerprint("maillard-af544567") && !/maillard/i.test(F.plan) && F.stamp === "2026-11-04T10:00" && F.gaines[3].no === "04");
+  // les 4 chantiers FTZ (appareils, boîtes et lignes directes réels, positions schématiques) sur la coque de MAILLARD
+  for (const name of Object.keys(CHANTIERS_FTZ)) {
+    const C = buildChantier(name), lig = new Set((C.lignes || []).map((l) => `${name}:${l[0]}`)), it = C.items.filter((a) => a.ftz), dir = C.items.filter((a) => lig.has(a.id));
+    const bn = [...new Set(it.map((a) => a.ftz))], bx = bn.map((n, i) => { const L = it.filter((a) => a.ftz === n); return { id: "b" + i, n, x: L.reduce((s, a) => s + a.x, 0) / L.length, y: L.reduce((s, a) => s + a.y, 0) / L.length }; });
+    const spots = new Map(); it.forEach((a) => { const k = a.ftz + "|" + Math.round(a.x * 10) + "|" + Math.round(a.y * 10); if (!spots.has(k)) spots.set(k, []); spots.get(k).push(a.id); });
+    const gg = [...spots].map(([k, ids], i) => ({ box: bx.find((b) => b.n === k.split("|")[0]).id, apps: ids, route: [], no: String(i % 20 + 1).padStart(2, "0") })).concat(bx.map((b) => ({ box: b.id, apps: ["tab"], route: [] })));
+    const a1 = await planUrl({ ...base, apps: [...it, C.tab], boxes: bx, gaines: gg, direct: [], face: { i: 1, n: 2, label: "Recto" }, plan: "abc123", stamp: "2026-11-04T10:00" });
+    const a2 = await planUrl({ ...base, apps: [...dir, C.tab], boxes: [], gaines: [], direct: dir.map((a) => ({ app: a.id, label: a.rep })), face: { i: 2, n: 2, label: "Verso" }, plan: "abc123", stamp: "2026-11-04T10:00" });
+    check(`${name} : recto ${it.length} appareils, ${bx.length} boîtes, ${gg.length} gaines = ${a1.size} car. ; verso ${dir.length} lignes directes = ${a2.size} car. (coque de MAILLARD)`, !a1.tooBig && !a2.tooBig && a1.light === 0 && a2.light === 0);
+  }
   let bad = false; try { unpackPlan({ v: 99 }); } catch { bad = true; }
   check("version inconnue refusée avec un message", bad);
 }

@@ -3,11 +3,11 @@
 // ses lignes directes. Aucun nom de client ni de chantier : la page plan3d.html n'en affiche pas.
 import { planData } from "./vue3d.js";
 import { wiringNow, gaineKeys } from "./cablage-data.js";
-import { planUrl } from "../3d/plan-code.js";
+import { planUrl, fingerprint } from "../3d/plan-code.js";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-// face { apps: Set d'ids | null (tous), boxes: Set d'ids | null (toutes) | vide, direct: bool }
+// face { apps: Set d'ids | null (tous), boxes: Set d'ids | null (toutes) | vide, direct: bool, page, pages, label, stamp }
 export function faceData(api, face = {}) {
   const P = planData(api), geo = api.exportGeometry();
   const showApp = (id) => !face.apps || face.apps.has(id);
@@ -20,7 +20,7 @@ export function faceData(api, face = {}) {
       for (const g of b.gaines) {
         const keys = g.kind === "alim" ? (g.id === "alim:0" ? ["tab"] : []) : gaineKeys(g);
         if (!keys.length) continue;
-        gaines.push({ box: src.id, apps: keys, sol: !!g.sol, route: (src.routes || {})[keys[0]] || [] });
+        gaines.push({ box: src.id, apps: keys, sol: !!g.sol, route: (src.routes || {})[keys[0]] || [], no: String(g.no || "").split(".").pop() });
       }
     }
   }
@@ -31,7 +31,8 @@ export function faceData(api, face = {}) {
   const here = new Set(apps.map((a) => a.id)), hasTab = apps.some((a) => a.t === "TAB");
   const drawable = gaines.filter((g) => g.apps.length && (g.apps[0] === "tab" ? hasTab : here.has(g.apps[0])));
   gaines.length = 0; gaines.push(...drawable);
-  return { data: P.data, rooms: P.rooms, apps, boxes: boxesLv.map((b) => ({ id: b.id, n: b.n, x: b.x, y: b.y })), gaines, direct, H: P.H, date: today(), level: api.level.name || "" };
+  return { data: P.data, rooms: P.rooms, apps, boxes: boxesLv.map((b) => ({ id: b.id, n: b.n, x: b.x, y: b.y })), gaines, direct, H: P.H, date: today(), level: api.level.name || "",
+    face: face.page ? { i: face.page, n: face.pages || 1, label: face.label || "" } : null, plan: fingerprint((api.ch && api.ch.id) || ""), stamp: face.stamp || "" };
 }
 
 export async function faceUrl(api, face) { return planUrl(faceData(api, face)); }

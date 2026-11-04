@@ -2893,6 +2893,38 @@ try {
     if (!ok) throw new Error(JSON.stringify({ q: { ...q, url: q.url.slice(0, 60) }, r, p0, p1, errs }));
     return true;
   });
+  await check("3D-8 (compléments) : page téléphone : face 1/2 et rappel de l'autre QR, recherche d'un n° de gaine et d'un repère, Plan 2D, alerte si une autre impression a été scannée, page gardée hors ligne", async () => {
+    const u = await ev(async () => {
+      const { faceUrl } = await import("/src/ext/plan3d-qr.js");
+      const f = { apps: null, boxes: null, direct: false, page: 1, pages: 2, label: "Recto — boîtes" };
+      const a = await faceUrl(okteo, { ...f, stamp: "2026-11-04T10:00" }), b = await faceUrl(okteo, { ...f, stamp: "2026-11-05T09:30" });
+      return { a: a.url.slice(a.url.indexOf("#")), b: b.url.slice(b.url.indexOf("#")) };
+    });
+    const p2 = await browser.newPage({ viewport: { width: 390, height: 844 } }), errs = [];
+    p2.on("pageerror", (e) => errs.push(String(e)));
+    const open = async (h) => { await p2.goto("about:blank"); await p2.goto(`http://localhost:${APP_PORT}/plan3d.html` + h); await p2.waitForFunction(() => window.__plan3d && window.__plan3d.ready, null, { timeout: 60000 }); };
+    await open(u.a);
+    const r1 = await p2.evaluate(() => { const S = window.__plan3d, g = S.gl.find((x) => x.no), d = S.devs.find((x) => x.rep && x.t !== "TAB"); return { face: (document.querySelector(".top .face") || {}).textContent || "", warn: !!document.querySelector(".warn"), no: g && g.no, rep: d && d.rep, fg: g ? !!S.find(g.no) : false, fd: d ? !!S.find(d.rep) : false, none: S.find("ZZ99") }; });
+    // recherche par le formulaire : la fiche de la gaine s'ouvre
+    await p2.click('[data-a="lay"]'); await p2.fill(".find input", r1.no || ""); await p2.click('.find button[type="submit"]'); await p2.waitForTimeout(300);
+    const card = await p2.evaluate(() => !document.querySelector(".card").hidden && document.querySelector(".card .k").textContent);
+    await p2.click('[data-v="plan"]'); await p2.waitForTimeout(200);
+    const flat = await p2.evaluate(() => window.__plan3d.cam.isOrthographicCamera === true && window.__plan3d.mode === "plan");
+    // mémoire hors ligne : le service est installé, la page se rouvre sans réseau
+    const sw = await p2.evaluate(async () => { try { const r = await navigator.serviceWorker.ready; return r.scope; } catch (e) { return "erreur " + e; } });
+    await p2.reload(); await p2.waitForFunction(() => window.__plan3d && window.__plan3d.ready, null, { timeout: 60000 });
+    await p2.context().setOffline(true);
+    let offline = false;
+    try { await p2.reload(); await p2.waitForFunction(() => window.__plan3d && window.__plan3d.ready, null, { timeout: 20000 }); offline = true; } catch (e) { offline = String(e).slice(0, 120); }
+    await p2.context().setOffline(false);
+    // une autre impression du même chantier : alerte
+    await open(u.b);
+    const warn = await p2.evaluate(() => (document.querySelector(".warn") || {}).textContent || "");
+    await p2.close();
+    const ok = /Face 1\/2/.test(r1.face) && /autre face/.test(r1.face) && !r1.warn && r1.no && r1.fg && r1.fd && r1.none === null && card && card.includes(r1.no) && flat && /plan3d/.test(sw) && offline === true && /autre impression/.test(warn) && !errs.length;
+    if (!ok) throw new Error(JSON.stringify({ r1, card, flat, sw, offline, warn, errs }));
+    return true;
+  });
   await check("3D-2 : jonction oubliée et mur en double signalés dans la vue 3D, un clic montre l'endroit sur le plan", async () => {
     await ev(() => okteo.addWalls([{ a: { x: 20, y: 0 }, b: { x: 24, y: 0 }, ep: 0.25 }, { a: { x: 22, y: 0.35 }, b: { x: 22, y: 3 }, ep: 0.1 }]));
     await ev(() => okteo.setTab("vue3d"));
