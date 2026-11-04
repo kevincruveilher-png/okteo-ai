@@ -1,3 +1,9 @@
+## 04/11/2026 — v77 fusionnée dans `main` (« go » de Kévin pour le lot A)
+
+- Branche `feat/releve-colle-ref-calibre` fusionnée ; workflow temporaire `verification-releve-colle.yml` retiré. Dernière
+  vérification : run 41872805290 vert (smoke 195/195). Feuille de route du 04/11 (16 mises à jour, lots A à D) : document du
+  projet claude.ai « claude/feuille-de-route-2026-11.md » ; lot A lancé (n° 14, 13 + 8, 12, 2, 9).
+
 ## 04/11/2026 — v77 : réponse IA collée — « ref » tolérant, calibre en texte, recalage sur les murs du PDF (branche `feat/releve-colle-ref-calibre`)
 
 - Constat (relevé collé par Kévin sur un plan client) : 1) « Cette réponse n'indique pas la taille de l'image de
