@@ -12,6 +12,9 @@
 - Le relevé IA ne propose ni meubles ni zones d'exclusion (`AI_TYPES` les écarte).
 - Tests : `scripts/mobilier.test.mjs` (4, dans check) ; smoke (bouton, 10 meubles, canapé + table, 3D, Ctrl+Z).
 
+- Fusion dans `main` le 04/11/2026 (go de Kévin « go bloc C et fusionne ») : `npm run check` vert sur GitHub Actions
+  (run 41904201702, smoke 202/202) ; workflow temporaire retiré. **Lot C terminé** (n° 10, 11).
+
 ## 04/11/2026 — n° 10 : zones d'exclusion (lot C, go de Kévin)
 
 - Décision de Kévin : une zone d'exclusion exclut tout (boîtes, gaines, appareils, lignes directes) ; hachurée en 2D, bloc
