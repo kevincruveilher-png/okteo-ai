@@ -25,7 +25,7 @@
   contour gris 32 trait 0,1 mm, puis remplissage, hachures et ondulations). Smoke : contour unique vérifié.
 - Tests : `scripts/ai-align.test.mjs` (8, maison synthétique, aucun plan client) dans `npm run check` (`npm run
   test:recalage`) ; smoke : réponse collée avec « ref » minuscule et calibres texte. Vérification : workflow TEMPORAIRE
-  `.github/workflows/verification-releve-colle.yml` (à retirer avant fusion) : run 41871291592 vert (smoke 194/194, ai-align 8).
+  `.github/workflows/verification-releve-colle.yml` (à retirer avant fusion) : run 41871291592 vert (smoke 194/194, ai-align 8) ; avec les angles : run 41872805290 vert (smoke 195/195).
 
 ## 04/11/2026 — Q-111 « distance depuis l'angle » à trancher avec Thibaut ; QR de la bande sans nom dans `main`
 
