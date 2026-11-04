@@ -6,6 +6,7 @@ import { K } from "./k.js";
 import * as CHS from "../chantiers.js";
 import { labelPoint } from "../walls/rooms.js";
 import { hasVolumes, isSani, roomFor, sani3d, saniRect, saniShape, volumesOf } from "../cablage/volumes.js";
+import { isZone, zonePoly, detour, detourVia } from "../cablage/exclusion.js";
 import { CH, LKEYS, TYPES, batiStyle, hDefault, dist, epOf, matOf, nodeById, segById, segDir, state, symScaleOf } from "./model.js";
 import { markDirty, snapshot } from "./persist.js";
 import { fit, repMap } from "./view.js";
@@ -417,7 +418,7 @@ export function okteoGeo() {
   const roomPolys = state.rooms.map(roomPoly);
   const volumes = state.app.filter(a => hasVolumes(a.t)).map(a => ({ id: a.id, t: a.t, x: a.x, y: a.y, rect: a.t === "DITAL" ? null : saniRect(a), ...volumesOf(a, roomFor(a, roomPolys)) }));
   // n° 9 : dessin de chaque sanitaire (trait gris pointillé à l'impression) et ses volumes pour la vue 3D
-  const sanis = state.app.filter(a => isSani(a.t)).map(a => ({ id: a.id, t: a.t, x: a.x, y: a.y, shape: saniShape(a), solid: sani3d(a) }));
+  const sanis = state.app.filter(a => isSani(a.t)).map(a => ({ id: a.id, t: a.t, x: a.x, y: a.y, shape: saniShape(a), solid: sani3d(a), ...(isZone(a.t) ? { zone: true } : {}) }));
   const apps = state.app.filter(a => !isSani(a.t)).map(a => ({
     id: a.id,
     t: a.t,
@@ -460,6 +461,7 @@ export function okteoGeo() {
   // couleur du circuit) ; la taille sur le papier est choisie à l'impression, comme celle des symboles
   const wiring = planWiring();
   const tabA = state.app.find(a => a.t === "TAB");
+  const ZC = state.app.filter(a => isZone(a.t)).map(zonePoly).filter(P => P && P.length > 2);   // n° 10
   const boxes = (K.CAB.boxes || []).filter(b => b.lv === K.LV.cur).map(b => {
     const LY = boxLayout(b, 1), R = b.routes || {};
     return {
@@ -476,7 +478,7 @@ export function okteoGeo() {
         face: d.face,
         slot: d.slot,
         ends: d.tab ? (tabA ? [{ key: "tab", x: tabA.x, y: tabA.y, route: (R.tab || []).map(p => ({ x: p.x, y: p.y })), color: null }] : [])
-          : d.head.map(a => ({ key: a.id, x: a.x, y: a.y, route: (R[a.id] || []).map(p => ({ x: p.x, y: p.y })), color: (cmap[a.id] || {}).color || null })),
+          : d.head.map(a => { const man = (R[a.id] || []).map(p => ({ x: p.x, y: p.y })), auto = ZC.length ? (man.length ? detourVia(b, man, a, ZC) : detour(b, a, ZC)) : []; return { key: a.id, x: a.x, y: a.y, route: auto.length ? auto : man, auto: auto.length > man.length, color: (cmap[a.id] || {}).color || null }; }),
         // n° 6 : tronçons de pontage (d'un appareil au suivant)
         ponts: d.tab ? [] : (d.ponts || []).flatMap(p => p.to.map(t => ({ a: { x: p.from.x, y: p.from.y }, b: { x: t.x, y: t.y }, key: t.id, color: (cmap[t.id] || {}).color || null })))
       }))
@@ -493,7 +495,7 @@ export function okteoGeo() {
     wallMat,
     wallAxis,
     batiStyle: batiStyle(),
-    direct: wiring.direct.filter(g => g.lv === K.LV.cur).map(g => { const a = byId[g.appId]; const tab = tabA || [...appIndex().values()].find(v => v.a.t === "TAB")?.a; return a && {appId:g.appId,a:{x:a.x,y:a.y},b:tab ? {x:tab.x,y:tab.y}:null,label:g.etiquette || g.no,faible:g.faible}; }).filter(Boolean),
+    direct: wiring.direct.filter(g => g.lv === K.LV.cur).map(g => { const a = byId[g.appId]; const tab = tabA || [...appIndex().values()].find(v => v.a.t === "TAB")?.a; return a && {appId:g.appId,a:{x:a.x,y:a.y},b:tab ? {x:tab.x,y:tab.y}:null,label:g.etiquette || g.no,faible:g.faible,via:(g.via || []).map(p => ({x:p.x,y:p.y}))}; }).filter(Boolean),
     wallDims,
     limits,
     rooms,
