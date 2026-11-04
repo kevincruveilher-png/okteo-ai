@@ -16,6 +16,9 @@
   description du mode BE ; catalogue `help.modes`. Les pièces sont transmises au placement (`autoBoxes`).
 - Tests : `scripts/mode-be.test.mjs` (8, maison synthétique de 10 pièces) ; smoke : comparatif à 5 modes.
 
+- Fusion dans `main` le 04/11/2026 (go de Kévin « go et fusionne B ») : `npm run check` vert sur GitHub Actions
+  (run 41900550854, smoke 200/200) ; workflow temporaire retiré. **Lot B terminé** (n° 6, 7).
+
 ## 04/11/2026 — n° 6 : association et pontage dans le moteur de câblage (lot B, go de Kévin)
 
 - Décisions de Kévin (04/11) : association toujours active ; jamais un courant faible avec une prise ou une commande ;
