@@ -21,6 +21,7 @@ import { chooseBows, BOW0, curve, polyCross } from "../cablage/trace.js";
 import { implantationPending } from "../cablage/equipements.js";
 import { APPAREILS, raccOf } from "../cablage/appareils.js";
 import { isSani, roomFor, saniShape, volumesOf } from "../cablage/volumes.js";
+import { isZone, zonePoly, detour, detourVia } from "../cablage/exclusion.js";
 import { boxColor, ftzSymbol, symIndex } from "../print/ftz-symbols.js";
 import { symbolSVG } from "../print/ftz-draw.js";
 
@@ -230,7 +231,7 @@ export function draw() {
   // v74 MAJ 3 : sanitaires à leur vraie taille et volumes de la salle de bain (hachures en pointillés, comme les plans du BE)
   if (layers.appareils.on && state.app.some(a => isSani(a.t))) {
     const polys = state.rooms.map(roomPoly), pts = P => P.map(p => p.x.toFixed(3) + "," + p.y.toFixed(3)).join(" ");
-    let sv = `<defs><pattern id="vol1" width=".1" height=".1" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2=".1" stroke="#555" stroke-width=".008" stroke-dasharray=".02 .02"/></pattern><pattern id="vol2" width=".2" height=".2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2=".2" stroke="#777" stroke-width=".008" stroke-dasharray=".02 .03"/></pattern></defs>`;
+    let sv = `<defs><pattern id="zhatch" width=".12" height=".12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".12" height=".12" fill="#d33" fill-opacity=".08"/><line x1="0" y1="0" x2="0" y2=".12" stroke="#d33" stroke-width=".02"/></pattern><pattern id="vol1" width=".1" height=".1" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2=".1" stroke="#555" stroke-width=".008" stroke-dasharray=".02 .02"/></pattern><pattern id="vol2" width=".2" height=".2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2=".2" stroke="#777" stroke-width=".008" stroke-dasharray=".02 .03"/></pattern></defs>`;
     const sanis = state.app.filter(a => isSani(a.t));
     sanis.forEach(a => {
       const V = volumesOf(a, roomFor(a, polys));
@@ -240,6 +241,12 @@ export function draw() {
     });
     sanis.forEach(a => {
       const on = isSel("app", a.id) || GH && GH.apps.has(a.id);
+      // n° 10 : zone d'exclusion : hachures rouges, contour rouge plein
+      if (isZone(a.t)) {
+        const P = saniShape(a)[0].pts;
+        sv += `<g class="sani zone" data-id="${a.id}" data-t="${a.t}"><polygon points="${pts(P)}" fill="url(#zhatch)" fill-opacity=".9" stroke="${on ? "var(--sel)" : "#d33"}" stroke-width="${on ? .03 : .018}"><title>Zone d'exclusion : ni boîte, ni gaine, ni appareil, ni ligne directe</title></polygon></g>`;
+        return;
+      }
       // n° 9 : tous les sanitaires en trait gris fin pointillé (forme commune écran / impression : saniShape)
       const st = on ? `stroke="var(--sel)" stroke-width=".022"` : `stroke="#8a8f96" stroke-width=".01" stroke-dasharray=".035 .022"`;
       sv += `<g class="sani" data-id="${a.id}" data-t="${a.t}">` + saniShape(a).map(p => p.k === "line"
@@ -383,6 +390,7 @@ export function draw() {
     let bl = "", bx = "";
     let wp = "";
     const BX = K.CAB.boxes.filter(b => b.lv === K.LV.cur);
+    const ZC = state.app.filter(a => isZone(a.t)).map(zonePoly).filter(P => P && P.length > 2);
     // v59 : courbure de chaque gaine choisie pour qu'aucune ne croise une autre (tous les boîtes du niveau)
     K.gaineBows = levelBows(BX, pm, byId, tab);
     BX.forEach(b => {
@@ -393,6 +401,8 @@ export function draw() {
       // gaine : arc du point d'accroche à l'appareil (comme sur les plans KiTéOHM) ; tracée à la main : ligne brisée
       const gpath = (key, P, t) => {
         const pts = R[key];
+        // n° 10 : contournement des zones d'exclusion (points de passage compris)
+        if (ZC.length) { const v = pts && pts.length ? detourVia(P, pts, t, ZC) : detour(P, t, ZC); if (v.length) return "M" + [P, ...v, t].map(p => p.x + " " + p.y).join(" L "); }
         if (pts && pts.length) return "M" + [P, ...pts, t].map(p => p.x + " " + p.y).join(" L ");
         const q = gaineCtrl(P, t, bowOf(b.id, key));
         return `M${P.x} ${P.y} Q ${q.x} ${q.y} ${t.x} ${t.y}`;
@@ -410,8 +420,8 @@ export function draw() {
           });
           // n° 6 : pontage : d'un appareil au suivant, trait mixte de la même couleur
           d.ponts.forEach(p => p.to.forEach(t => {
-            const c = cm[t.id], q = gaineCtrl(p.from, t, 0.12);
-            bl += `<path class="pont" data-b="${b.id}" data-k="${t.id}" d="M${p.from.x} ${p.from.y} Q ${q.x} ${q.y} ${t.x} ${t.y}" fill="none" stroke="${pref("charteBE") !== false ? boxColor(b.n) : c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" stroke-dasharray="${7 * pm} ${2.5 * pm} ${1.5 * pm} ${2.5 * pm}" opacity="${on ? 0.9 : 0.6}"><title>Pontage</title></path>`;
+            const c = cm[t.id], q = gaineCtrl(p.from, t, 0.12), v = ZC.length ? detour(p.from, t, ZC) : [];
+            bl += `<path class="pont" data-b="${b.id}" data-k="${t.id}" d="${v.length ? "M" + [p.from, ...v, t].map(z => z.x + " " + z.y).join(" L ") : `M${p.from.x} ${p.from.y} Q ${q.x} ${q.y} ${t.x} ${t.y}`}" fill="none" stroke="${pref("charteBE") !== false ? boxColor(b.n) : c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" stroke-dasharray="${7 * pm} ${2.5 * pm} ${1.5 * pm} ${2.5 * pm}" opacity="${on ? 0.9 : 0.6}"><title>Pontage</title></path>`;
           }));
         });
         for (const [key, pts] of Object.entries(R)) if (key !== "tab" || pref("parcours")) pts.forEach(p => {
@@ -460,7 +470,9 @@ export function draw() {
       const a = index.get(g.appId)?.a, tab = [...index.values()].find(v => v.a.t === "TAB" && v.lv === g.lv)?.a || [...index.values()].find(v => v.a.t === "TAB")?.a;
       if (!a) return "";
       const color = g.faible ? "#356747" : "#9b2440";
-      if (pref("parcours") && tab) return `<path class="direct-route" d="M${a.x} ${a.y}L${tab.x} ${tab.y}" fill="none" stroke="${color}" stroke-width="${pmNow()}"/>`;
+      if (pref("parcours") && tab) return `<path class="direct-route" d="M${[a, ...(g.via || []).slice().reverse(), tab].map(p => p.x + " " + p.y).join("L")}" fill="none" stroke="${color}" stroke-width="${pmNow()}"/>`;
+      // n° 10 : une ligne directe qui contourne une zone d'exclusion est tracée (du tableau à l'appareil), les autres restent des flèches
+      if (g.via && g.via.length && tab) return `<path class="direct-route detour" d="M${[tab, ...g.via, a].map(p => p.x + " " + p.y).join("L")}" fill="none" stroke="${color}" stroke-width="${1.2 * pmNow()}" stroke-dasharray="${6 * pmNow()} ${3 * pmNow()}"><title>Ligne directe ${g.etiquette || g.no} : contourne une zone d'exclusion</title></path>` + arrowSvg(a, g.via[g.via.length - 1], g.etiquette || g.no, color);
       return arrowSvg(a, tab || {x:a.x-.5,y:a.y+.5}, g.etiquette || g.no, color);
     }).join("");
     h += `<g class="direct-lines">${lines}</g>`;

@@ -39,7 +39,7 @@ export function rotateGeo(geo, deg) {
   const R = (p) => (p ? { ...p, x: p.x * c - p.y * s, y: p.x * s + p.y * c } : p), V = (v) => (v ? { ...v, x: v.x * c - v.y * s, y: v.x * s + v.y * c } : v);
   const RL = (L) => (L || []).map(R);
   const g = { ...geo, rot: d };
-  g.direct = (geo.direct || []).map(l => ({...l, a:R(l.a), b:R(l.b)}));
+  g.direct = (geo.direct || []).map(l => ({...l, a:R(l.a), b:R(l.b), via: RL(l.via)}));
   g.wallThickness = geo.wallThickness;
   g.walls = (geo.walls || []).map(RL);
   g.wallAxis = (geo.wallAxis || []).map(RL);
@@ -248,7 +248,10 @@ export async function buildPlanPdf(geoIn, opts = {}) {
         [[V.v2, 0.2, 110], [V.v1, 0.1, 70]].forEach(([P, st, g]) => { if (!P) return; doc.setDrawColor(g); doc.setLineWidth(0.1); doc.setLineDashPattern([0.5, 0.5], 0); hatchLines(P, st).forEach(([a, b]) => line(a, b)); dashPoly(P); });
       });
       doc.setDrawColor(130); doc.setLineWidth(0.12); doc.setLineDashPattern([0.7, 0.45], 0); doc.setFillColor(255);
-      (geo.sanis || []).forEach((V) => (V.shape || []).forEach((p) => {
+      // n° 10 : zones d'exclusion : hachures et contour rouges
+      (geo.sanis || []).filter((V) => V.zone).forEach((V) => { const Q = (V.shape[0] || {}).pts; if (!Q) return; doc.setLineDashPattern([], 0); doc.setDrawColor(221, 51, 51); doc.setLineWidth(0.1); hatchLines(Q, 0.12).forEach(([a, b]) => line(a, b)); doc.setLineWidth(0.25); dashPoly(Q); });
+      doc.setDrawColor(130); doc.setLineWidth(0.12); doc.setLineDashPattern([0.7, 0.45], 0);
+      (geo.sanis || []).filter((V) => !V.zone).forEach((V) => (V.shape || []).forEach((p) => {
         if (p.k === "line") { for (let k = 1; k < p.pts.length; k++) line(p.pts[k - 1], p.pts[k]); }
         else if (p.k === "out") { doc.setLineDashPattern([], 0); poly(p.pts, "F"); doc.setLineDashPattern([0.7, 0.45], 0); dashPoly(p.pts); }
         else dashPoly(p.pts);
@@ -420,7 +423,9 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     };
     const repOfApp = new Map(geo.apps.map((a) => [a.id, a.rep]));
     if (o.gaines && o.directOn !== false) (geo.direct || []).forEach(d => {
-      if (o.parcours && d.b) { doc.setDrawColor(...(d.faible ? [53,103,71] : [155,36,64])); doc.setLineWidth(.18); line(d.a,d.b); }
+      if (o.parcours && d.b) { doc.setDrawColor(...(d.faible ? [53,103,71] : [155,36,64])); doc.setLineWidth(.18); const L = [d.b, ...(d.via || []), d.a]; for (let i = 1; i < L.length; i++) line(L[i - 1], L[i]); }
+      // n° 10 : ligne directe qui contourne une zone d'exclusion : son tracé (tableau → appareil), en tirets
+      else if (d.via && d.via.length && d.b) { doc.setDrawColor(...(d.faible ? [53,103,71] : [155,36,64])); doc.setLineWidth(.18); doc.setLineDashPattern([1.4, 0.7], 0); const L = [d.b, ...d.via, d.a]; for (let i = 1; i < L.length; i++) line(L[i - 1], L[i]); doc.setLineDashPattern([], 0); arrowPdf(d.a, d.via[d.via.length - 1], d.label, [60,60,60], repOfApp.get(d.appId)); }
       else arrowPdf(d.a,d.b || {x:d.a.x-.5,y:d.a.y+.5},d.label, [60,60,60], repOfApp.get(d.appId));
     });
     if (o.gaines) boxes.forEach((b) => b.deps.forEach((d) => {
@@ -435,7 +440,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
         if (d.tab) doc.setLineDashPattern([1.5, 1], 0);
         for (let i = 1; i < pts.length; i++) line(pts[i - 1], pts[i]);
         doc.setLineDashPattern([], 0);
-        if (e.route && e.route.length) { doc.setFillColor(255, 255, 255); e.route.forEach((p) => doc.circle(X(p.x), Y(p.y), 0.45, "FD")); }
+        if (e.route && e.route.length && !e.auto) { doc.setFillColor(255, 255, 255); e.route.forEach((p) => doc.circle(X(p.x), Y(p.y), 0.45, "FD")); }
       });
       // n° 6 : pontage d'un appareil au suivant : trait mixte, même couleur que la gaine
       (d.ponts || []).forEach((p) => {

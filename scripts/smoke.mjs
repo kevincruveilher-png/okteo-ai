@@ -2518,7 +2518,7 @@ try {
     await page.click('#tools .more-pop [data-tool="RAD"]');
     const r = await ev(() => ({ tool: okteo.tool, open: !!document.querySelector("#tools .more-pop"), on: document.querySelector('#tools [data-tool="__more"]').classList.contains("on"), txt: document.querySelector('#tools [data-tool="__more"] text')?.textContent }));
     await ev(() => okteo.setTool("sel"));
-    if (!(groups.length === 7 && /Volets roulants/.test(groups.join()) && groups.includes("Sanitaires") && r.tool === "RAD" && !r.open && r.on && r.txt === "RAD")) throw new Error(JSON.stringify({ groups, r }));
+    if (!(groups.length === 8 && /Zones d'exclusion/.test(groups.join()) && /Volets roulants/.test(groups.join()) && groups.includes("Sanitaires") && r.tool === "RAD" && !r.open && r.on && r.txt === "RAD")) throw new Error(JSON.stringify({ groups, r }));
     return true;
   });
   await check("nouveaux appareils : radiateur, TV, hotte (choix du raccordement dans Propriétés), volet + CVR reliés, équipotentielle locale", async () => {
@@ -2586,6 +2586,31 @@ try {
     await ev((V) => { Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; okteo.setTab(V.tab); }, keepV);
     const back = await probe();
     if (!(!before.on && before.ponts === 0 && before.assoc > 0 && after.on && after.ponts > 0 && after.deps < before.deps && drawn > 0 && !back.on && back.deps === before.deps)) throw new Error(JSON.stringify({ before, after, drawn, back }));
+    return true;
+  });
+  await check("n° 10 : zone d'exclusion posée entre une boîte et un appareil → gaine qui la contourne (plus longue, tracé brisé), zone hachurée, bloc rouge en 3D ; un Ctrl+Z", async () => {
+    const keepV = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits }));
+    const r = await ev(async () => {
+      okteo.setTab("plan"); okteoExt.panel.close("assistant"); okteo.showCircuits = true; okteo.toggleView("gaines", true); okteo.toggleView("appareils", true);
+      const m = await import("/src/ext/cablage-data.js"), W0 = m.wiringNow(okteo), lv = okteo.level.id, by = new Map(okteo.state.app.map((a) => [a.id, a]));
+      let pick = null;
+      for (const b of W0.boxes) { const B = okteo.cab.boxes.find((x) => x.id === b.id); if (!B || B.lv !== lv) continue; for (const g of b.gaines) { const a = g.kind === "app" && by.get(g.appIds[0]); if (a && !g.routed && !g.ponts && Math.hypot(a.x - B.x, a.y - B.y) > 3) { pick = { B, a, g }; break; } } if (pick) break; }
+      if (!pick) return { none: true };
+      const mx = (pick.B.x + pick.a.x) / 2, my = (pick.B.y + pick.a.y) / 2, n0 = okteo.state.app.length;
+      const res = okteo.importDevices([{ t: "ZONE", x: mx, y: my }], [], { stay: true });
+      const z = okteo.state.app.find((a) => a.id === (res.ids || [])[0]); z.sw = 0.8; z.sd = 0.8; window.__okteo.draw();
+      const W1 = m.wiringNow(okteo), g1 = W1.boxes.find((b) => b.id === pick.B.id).gaines.find((g) => (g.appIds || []).includes(pick.a.id));
+      window.__okteo.draw();
+      const path = document.querySelector(`#sv path.gaine[data-b="${pick.B.id}"][data-k="${pick.a.id}"]`);
+      return { zid: z.id, added: okteo.state.app.length - n0, hatch: !!document.querySelector(`#sv g.sani.zone[data-id="${z.id}"]`), via: (g1.via || []).length, longer: g1.length > pick.g.length, L0: pick.g.length, L1: g1.length, poly: path ? / L /.test(path.getAttribute("d")) : null };
+    });
+    if (r.none) return true;   // aucune gaine assez longue sur ce niveau
+    await page.keyboard.press("Alt+4");
+    await page.waitForFunction((id) => { const S3 = okteoExt.pages.vue3d?.ui?.state; return S3 && S3.house && S3.house.sanis && S3.house.sanis.children.some((o) => o.userData.zone === id); }, r.zid, { timeout: 60000 });
+    await ev(() => { okteo.setTab("plan"); okteo.undo(); });
+    const back = await ev((id) => !okteo.state.app.some((a) => a.id === id), r.zid);
+    await ev((V) => { Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; }, keepV);
+    if (!(r.added === 1 && r.hatch && r.via >= 1 && r.longer && r.poly && back)) throw new Error(JSON.stringify(r));
     return true;
   });
 

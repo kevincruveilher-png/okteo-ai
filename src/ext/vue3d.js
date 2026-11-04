@@ -189,7 +189,7 @@ export function mountVue3d(el, { api }) {
           const keys = gaineKeys(g), key = keys[0];
           const end = g.kind === "alim" ? (key === "tab" ? tabDev : null) : byDev.get(key);
           if (!end) continue;
-          const route = (src.routes || {})[key] || [];
+          const route = (src.routes || {})[key] && (src.routes || {})[key].length ? (g.via || src.routes[key]) : g.via || [];   // n° 10 : contournement des zones
           const { pts, L } = gainePath({ box: src, route, end: { x: end.x, y: end.y, h: end.t === "TAB" ? Math.max(end.h, (P.H.plafond || 2.5) - 0.7) : end.h, axis: end.axis, mount: end.mount }, sol: !!g.sol, H: P.H, wall });
           S3.gList.push({ id: b.id + "|" + g.id, boxId: b.id, box: b.n, no: g.no, label: g.label, length: g.length, diam: g.diam, sol: !!g.sol, keys, pts, L3: L, color: col });
         }

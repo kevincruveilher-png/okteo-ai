@@ -18,6 +18,9 @@ export const SANI = {
   LAVABO: { n: "Lavabo", w: 0.6, d: 0.45 },
   VASQUE: { n: "Meuble vasque", w: 0.8, d: 0.5 },
   EVIER: { n: "Évier", w: 1.2, d: 0.6 },
+  // n° 10 : zones d'exclusion (rien dedans : ni boîte, ni gaine, ni appareil, ni ligne directe) ; exclusion.js
+  ZONE: { n: "Zone d'exclusion (rectangle)", w: 1.2, d: 0.8, zone: true },
+  ZONEC: { n: "Zone d'exclusion (cercle)", w: 1, d: 1, zone: true },
 };
 export const isSani = (t) => !!SANI[t];
 export const hasVolumes = (t) => !!(SANI[t] && SANI[t].vol);
@@ -60,6 +63,8 @@ export function saniShape(a) {
       for (const c of cs) out.push(P("in", ell(F, c, 0.03, ru, d * 0.28)), P("in", ell(F, c, v0 + 0.06, 0.02, 0.02, 10)));
       return out;
     }
+    case "ZONE": return [P("out", rrect(F, u0, v0, u1, v1))];
+    case "ZONEC": return [P("out", ell(F, 0, 0, w / 2, d / 2, 24))];
     case "EVIER": {
       const b1 = Math.min(u0 + 0.08 + 0.45, u1 - 0.2), out = [P("out", rrect(F, u0, v0, u1, v1)), P("in", rrect(F, u0 + 0.08, v0 + 0.1, b1, v1 - 0.08, 0.04)), P("in", ell(F, (u0 + 0.08 + b1) / 2, v0 + 0.05, 0.02, 0.02, 10))];
       const e0 = b1 + 0.06, e1 = u1 - 0.06, n = Math.max(2, Math.round((e1 - e0) / 0.07));
@@ -81,6 +86,9 @@ export function sani3d(a) {
     case "LAVABO": return [R(-w / 2, -d / 2, w / 2, d / 2, 0.7, 0.85, Math.min(0.12, d / 3)), R(-0.08, -d / 2, 0.08, -d / 2 + 0.16, 0, 0.7)];
     case "VASQUE": return [R(-w / 2, -d / 2, w / 2, d / 2, 0.15, 0.85)];
     case "EVIER": return [R(-w / 2, -d / 2, w / 2, d / 2, 0, 0.9)];
+    // n° 10 : bloc rouge transparent sur toute la hauteur (hauteur réelle : plafond de la vue 3D)
+    case "ZONE": return [{ ...R(-w / 2, -d / 2, w / 2, d / 2, 0, 2.5), zone: true }];
+    case "ZONEC": return [{ pts: ell(F, 0, 0, w / 2, d / 2, 24), z0: 0, z1: 2.5, zone: true }];
   }
   return [];
 }

@@ -36,6 +36,7 @@ import { gaineFor, packAlim } from "./gaine.js";
 import { FACES, portLayout } from "./boites.js";
 import { permanentDetector, manuallyControlledLights } from "./detecteur.js";
 import { APPAREILS, lignesOf, parseFils, gaineLabel, raccOf, isFaible, sansCvr } from "./appareils.js";
+import { zonesByLevel, detour, detourVia } from "./exclusion.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
 const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -116,6 +117,9 @@ const down = (h, S) => S.traversee + (h == null ? 0 : Math.max(0, S.hsp - h / 10
 export function computeWiring({ items: items0, links, circuits, boxes, levels = [], S }) {
   const items = sansCvr(items0, S);
   const byId = new Map(items.map((a) => [a.id, a]));
+  // n° 10 : zones d'exclusion par niveau ; chaque gaine (et ligne directe) les contourne : g.via = points du contournement
+  const ZL = zonesByLevel(items0), zonesOf = (lv) => ZL[lv] || [];
+  const pathOf = (A, route, B, lv) => { const Z = zonesOf(lv); if (!Z.length) return { pts: route || [], auto: false }; const pts = route ? detourVia(A, route, B, Z) : detour(A, B, Z); return { pts, auto: pts.length > (route || []).length }; };
   const manualLights = manuallyControlledLights(items, links);
   const circOf = new Map(); circuits.forEach((c) => c.apps.forEach((id) => circOf.set(id, c)));
   const lvIdx = (lv) => Math.max(0, levels.indexOf(lv));
@@ -358,15 +362,16 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
       const sol = H.some((m) => (b.sol || {})[m.id]);
       const downOf = (L) => Math.max(...L.map((m) => down(m.h, S)));
       const downMax = sol ? S.traversee + S.hsp + Math.max(...H.map((m) => (m.h == null ? S.hsp : m.h / 100))) : downOf(H);
-      const len = gaineLength({ horiz: viaLen(b, route, a), downA: downMax, levels: Math.abs(lvIdx(a.lv) - lvB) }, S);
+      const PA = lvIdx(a.lv) === lvB ? pathOf(b, route, a, b.lv) : { pts: route || [], auto: false };
+      const len = gaineLength({ horiz: viaLen(b, PA.pts, a), downA: downMax, levels: Math.abs(lvIdx(a.lv) - lvB) }, S);
       const repsOf = (L) => L.map((m) => m.rep || NAMES[m.t] || m.t).join(" + ");
       // tronçons de pontage : d'un endroit au suivant (montée dans le mur, combles, descente), surlongueur d'appareil aux deux bouts
-      const ponts = PT.slice(1).map((L, i) => { const F = PT[i]; return { de: repsOf(F), vers: repsOf(L), from: F[0].id, to: L[0].id, ids: L.map((m) => m.id), length: gaineLength({ horiz: d2(F[0], L[0]), downA: downOf(F), downB: downOf(L) }, { ...S, margeBoite: S.margeApp }) }; });
+      const ponts = PT.slice(1).map((L, i) => { const F = PT[i], pp = pathOf(F[0], null, L[0], a.lv); return { de: repsOf(F), vers: repsOf(L), from: F[0].id, to: L[0].id, ids: L.map((m) => m.id), ...(pp.auto ? { via: pp.pts } : {}), length: gaineLength({ horiz: viaLen(F[0], pp.pts, L[0]), downA: downOf(F), downB: downOf(L) }, { ...S, margeBoite: S.margeApp }) }; });
       const pontLen = +ponts.reduce((s2, p) => s2 + p.length, 0).toFixed(2);
       const label = PT.length > 1 ? `${PT.map(repsOf).join(" → ")} (pontage)` : G.length === 1 ? `${NAMES[a.t] || (APPAREILS[a.t] || {}).n || a.t} ${a.rep || ""}`.trim() : repsOf(G);
       const cn = [...new Set(G.map((m) => (circOf.get(m.id) || {}).n).filter(Boolean))];
       // la face est celle par où la gaine sort : vers son 1er point de passage s'il y en a un
-      deps.push({ sol, id: a.id, kind: "app", p: route ? route[0] : a, pts: route ? [route[0]] : H.map((m) => ({ x: m.x, y: m.y })), app: a, appIds: G.map((m) => m.id), reps: G.map((m) => m.rep || NAMES[m.t] || m.t), routed: !!route, label, room: a.room, circuit: cn.join(", "), wires, length: len, cable, ext: !!cable, bouchon: !!cable,
+      deps.push({ sol, id: a.id, kind: "app", p: PA.pts.length ? PA.pts[0] : a, pts: PA.pts.length ? [PA.pts[0]] : H.map((m) => ({ x: m.x, y: m.y })), ...(PA.auto ? { via: PA.pts, detour: true } : {}), app: a, appIds: G.map((m) => m.id), reps: G.map((m) => m.rep || NAMES[m.t] || m.t), routed: !!route, label, room: a.room, circuit: cn.join(", "), wires, length: len, cable, ext: !!cable, bouchon: !!cable,
         ...(ponts.length ? { ponts, pontLen } : {}),
         rules: { length: "R-011", diam: "R-074", wires: G.length > 1 ? "R-073" : null, ronde: wires.some((w) => /^(retour|nav1|nav2|cmdTL|cmdV1|cmdV2)$/.test(w.fn)) ? "R-072" : null, volet: G.some((m) => m.t === "VR" || m.t === "VEL" || m.t === "CVR") ? "R-096" : null, eq: G.some((m) => m.t === "EQL") ? "R-080" : null, cable: cable ? "R-014" : null, bouchon: cable ? "R-095" : null } });
     }
@@ -387,9 +392,10 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
       if (gi === 0) wires.push({ fn: "terre", color: S.cTerre, section: Math.max(...circs.map((c) => c.section || 1.5), ...apps.filter((a) => a.t === "EQL").map(() => APPAREILS.EQL.terre || 2.5)), net: "T" });
       const route = (b.routes || {}).tab || null;
       const solA = !!(b.sol || {}).tab;
-      const len = tab ? gaineLength({ horiz: viaLen(b, route, tab), downA: solA ? S.traversee + S.hsp + hTab : S.traversee + Math.max(0, S.hsp - hTab), levels: Math.abs(lvIdx(tab.lv) - lvB) }, S) : null;
+      const PT0 = tab && tab.lv === b.lv ? pathOf(b, route, tab, b.lv) : { pts: route || [], auto: false };
+      const len = tab ? gaineLength({ horiz: viaLen(b, PT0.pts, tab), downA: solA ? S.traversee + S.hsp + hTab : S.traversee + Math.max(0, S.hsp - hTab), levels: Math.abs(lvIdx(tab.lv) - lvB) }, S) : null;
       const names = G.map((c) => c.n);
-      deps.push({ sol: solA, id: "alim:" + gi, kind: "alim", p: route ? route[0] : tab || { x: b.x, y: b.y - 1 }, routed: !!route,
+      deps.push({ sol: solA, id: "alim:" + gi, kind: "alim", p: PT0.pts.length ? PT0.pts[0] : tab || { x: b.x, y: b.y - 1 }, routed: !!route, ...(PT0.auto ? { via: PT0.pts, detour: true } : {}),
         label: `Alimentation ${names.join(" + ")} (tableau)${alimG.length > 1 ? ` — gaine ${gi + 1}/${alimG.length}` : ""}`, circuit: names.join(", "), circuits: names, wires, length: len,
         rules: { length: "R-011", diam: "R-074", wires: "R-075" } });
     });
@@ -446,7 +452,8 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
   for (const c of circuits.filter((x) => x.direct || x.kind === "comm")) {
     for (const id of c.apps) {
       const a = byId.get(id); if (!a) continue;
-      const len = tab ? gaineLength({ horiz: d2(tab, a), downA: S.traversee + Math.max(0, S.hsp - hTab), downB: down(a.h, S), levels: Math.abs(lvIdx(tab.lv) - lvIdx(a.lv)) }, S) : null;
+      const DP = tab && tab.lv === a.lv ? pathOf(tab, null, a, a.lv) : { pts: [], auto: false };
+      const len = tab ? gaineLength({ horiz: viaLen(tab, DP.pts, a), downA: S.traversee + Math.max(0, S.hsp - hTab), downB: down(a.h, S), levels: Math.abs(lvIdx(tab.lv) - lvIdx(a.lv)) }, S) : null;
       const L = APPAREILS[a.t] || a.t === "RJ45" ? lignesOf(a) : legacy(a, c);
       (L || []).forEach((ln, li) => {
         const wires = ln.fils ? parseFils(ln.fils).map((f) => ({ fn: /V\/J/.test(f.lettre) ? "terre" : "fil", color: f.color, section: f.section, lettre: f.lettre, n: null })) : [];
@@ -454,7 +461,7 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
         const diam = ln.gaine === "V20" ? 20 : ln.gaine === 40 ? 40 : ln.gaine == null && ln.auto ? gaineFor(wires.map((w) => w.section), S) : ln.gaine;
         const rep = etiq(a), lab = li ? `${rep} ${ln.label || li + 1}`.trim() : rep;
         direct.push({ no: lab, etiquette: lab, circuit: c.n, appId: a.id, label: `${(APPAREILS[a.t] || {}).n || NAMES[a.t] || a.t} ${rep}${ln.label ? " (" + ln.label + ")" : ""}`.trim(),
-          room: a.room, lv: a.lv, length: len, wires, cable: ln.cable || null, fil: ln.cable ? ln.cable : ln.fils || "—", gaine: ln.gaine === undefined ? null : ln.gaine, gaineTxt: ln.auto ? gaineLabel(diam) : gaineLabel(ln.gaine), diam, faible: isFaible(a.t), aboutissant: rep });
+          room: a.room, lv: a.lv, length: len, wires, ...(DP.auto ? { via: DP.pts, detour: true } : {}), cable: ln.cable || null, fil: ln.cable ? ln.cable : ln.fils || "—", gaine: ln.gaine === undefined ? null : ln.gaine, gaineTxt: ln.auto ? gaineLabel(diam) : gaineLabel(ln.gaine), diam, faible: isFaible(a.t), aboutissant: rep });
         if (diam == null && ln.gaine !== null && !ln.cable && sum) doubt("R-074", `Ligne directe ${rep} : ${String(sum).replace(".", ",")} mm² de fils, au-delà de l'ICTA 20 : diamètre à confirmer`, null, false);
       });
     }
