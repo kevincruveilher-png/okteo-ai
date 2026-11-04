@@ -28,6 +28,11 @@ export const APPAREILS = {
   BAIG: { n: "Baignoire", r: "SANI", h: 0, lab: "BAIG", groupe: "Sanitaires", racc: "aucun", lignes: [], sani: true },
   RECV: { n: "Receveur de douche", r: "SANI", h: 0, lab: "DCH", groupe: "Sanitaires", racc: "aucun", lignes: [], sani: true },
   DITAL: { n: "Douche à l'italienne (pomme fixe)", r: "SANI", h: 0, lab: "ITAL", groupe: "Sanitaires", racc: "aucun", lignes: [], sani: true },
+  // n° 9 : sanitaires sans volume de salle de bain (repères pour l'implantation et la 3D)
+  WC: { n: "WC (cuvette et réservoir)", r: "SANI", h: 0, lab: "WC", groupe: "Sanitaires", racc: "aucun", lignes: [], sani: true },
+  LAVABO: { n: "Lavabo", r: "SANI", h: 0, lab: "LAV", groupe: "Sanitaires", racc: "aucun", lignes: [], sani: true },
+  VASQUE: { n: "Meuble vasque (simple ou double)", r: "SANI", h: 0, lab: "VASQ", groupe: "Sanitaires", racc: "aucun", lignes: [], sani: true },
+  EVIER: { n: "Évier (bac et égouttoir)", r: "SANI", h: 0, lab: "EV", groupe: "Sanitaires", racc: "aucun", lignes: [], sani: true },
   VEX: { n: "Bouche extraction VMC", r: "EX", h: null, lab: "EX", groupe: "Chauffage et ventilation", racc: "aucun", lignes: [] },
   VREJ: { n: "Rejet VMC toiture", r: "REJ", h: null, lab: "REJ", groupe: "Chauffage et ventilation", racc: "aucun", lignes: [] },
   VMCG: { n: "Caisson VMC", r: "VMC", h: null, lab: "VMC", groupe: "Chauffage et ventilation", racc: "direct", lignes: [{ fils: "1,5 R+B+V/J", gaine: 16 }], circuit: { section: 1.5, prot: 2 } },

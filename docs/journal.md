@@ -1,3 +1,27 @@
+## 04/11/2026 — n° 9 : sanitaires WC, lavabo, vasque, évier ; tous en gris pointillé et en volume dans la vue 3D (lot A)
+
+- Demande de Kévin : ajouter WC, lavabo, vasque, évier (dessin inspiré des plans de pavillonneurs), tous les sanitaires en
+  trait gris fin pointillé, visibles en 3D.
+- `src/cablage/volumes.js` : `SANI` + `WC` (0,38 × 0,68 : réservoir + cuvette), `LAVABO` (0,60 × 0,45 : bassin ovale,
+  robinet), `VASQUE` (0,80 × 0,50 ; double à partir de 1,20 m), `EVIER` (1,20 × 0,60 : bac + égouttoir) ; `vol: true`
+  seulement pour BAIG / RECV / DITAL (`hasVolumes` : volumes et contrôle de la salle de bain inchangés).
+  `saniShape(a)` = dessin commun écran / impression ([{k out|in|line, pts}], repère local tourné par `a.srot`, dos côté
+  v = -d/2) ; `sani3d(a)` = volumes 3D ([{pts, z0, z1}] : WC cuvette 40 cm + réservoir 80 cm, lavabo suspendu 70–85 cm,
+  vasque sur meuble 15–85 cm, évier 90 cm, baignoire 55 cm, receveur 6 cm, pomme de douche fixe à 2 m).
+- `appareils.js` : 4 types du groupe « Sanitaires » (bouton « Autres »), sans circuit ni repère (famille SANI) ; listes
+  codées en dur remplacées par `isSani` (circuits.js, render.js `__need`, ai-bench.js). L'IA connaît les nouveaux types
+  (`AI_TYPES` suit `APPAREILS`).
+- Écran (render.js) : volumes dessinés d'abord, puis chaque sanitaire en gris `#8a8f96`, 1 cm, pointillé ; sélection en
+  couleur de sélection. `exportGeometry().sanis` [{id, t, x, y, shape, solid}] (tourné par `rotateGeo`) ; print.js même
+  dessin (gris 130, pointillé 0,7/0,45 mm, contour blanc). 3D (scene.js `buildHouse`, `house.sanis`) : volumes blancs à
+  arêtes grises, sur tous les niveaux affichés ; la signature de reconstruction de la vue 3D inclut les sanitaires (poser
+  ou déplacer un sanitaire met la 3D à jour). Propriétés : texte d'aide propre aux sanitaires sans volume. Catalogue
+  `help.sani`.
+- Tests : `scripts/charte.test.mjs` (formes, rotation, vasque double, pas de volume ni de contrôle, volumes 3D) ; smoke
+  (4 sanitaires posés : pointillés, sans repère ni circuit, PDF, 3D, un Ctrl+Z).
+- Fusion dans `main` le 04/11/2026 (lot A, go de Kévin) : `npm run check` vert sur GitHub Actions (run 41893797352,
+  smoke 199/199) ; workflow temporaire retiré. **Lot A terminé** (n° 1, 14, 13 + 8, 12, 2, 9).
+
 ## 04/11/2026 — n° 2 : la légende de la feuille A3 s'adapte et ne passe plus sur le plan (lot A)
 
 - Constat de Kévin : à l'impression, la légende se superposait au plan. Cause : `freeCorner` essayait 4 coins du rectangle

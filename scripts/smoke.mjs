@@ -2810,6 +2810,28 @@ try {
     await ev(() => okteo.setTab("plan"));
     return true;
   });
+  await check("n° 9 : WC, lavabo, vasque, évier posés : trait gris pointillé, sans repère ni circuit, imprimés, en volume dans la vue 3D, un Ctrl+Z", async () => {
+    const r = await ev(async () => {
+      okteo.setTab("plan"); okteoExt.panel.close("assistant");
+      const S = okteo.state, X = Math.max(0, ...S.nodes.map((n) => n.x)) + 2, Y = Math.min(0, ...S.nodes.map((n) => n.y)) + 1, n0 = S.app.length;
+      const res = okteo.importDevices(["WC", "LAVABO", "VASQUE", "EVIER"].map((t, i) => ({ t, x: X + i * 1.5, y: Y })), [], { stay: true });
+      window.__okteo.draw();
+      const g = [...document.querySelectorAll("#sv g.sani")].filter((e) => ["WC", "LAVABO", "VASQUE", "EVIER"].includes(e.dataset.t));
+      const dashed = g.length === 4 && g.every((e) => [...e.querySelectorAll("polygon, polyline")].every((p) => p.getAttribute("stroke-dasharray") && p.getAttribute("stroke") === "#8a8f96"));
+      const geo = okteo.exportGeometry(), ids = new Set((res && res.ids) || []);
+      const inGeo = geo.sanis.filter((s) => ids.has(s.id)).length, asApp = geo.apps.filter((a) => ids.has(a.id)).length, vol = geo.volumes.filter((v) => ids.has(v.id)).length;
+      const reps = [...document.querySelectorAll("#sv text.rep")].filter((e) => ids.has(e.dataset.id)).length;
+      const m = await import("/src/ext/print.js"); const pdf = await m.buildPlanPdf(geo, { nomenclature: false });
+      return { added: S.app.length - n0, dashed, inGeo, asApp, vol, reps, pdf: !!pdf, ids: [...ids] };
+    });
+    await page.keyboard.press("Alt+4");
+    await page.waitForFunction((ids) => { const S3 = okteoExt.pages.vue3d?.ui?.state; return S3 && S3.house && S3.house.sanis && ids.every((id) => S3.house.sanis.children.some((o) => o.userData.sani === id)); }, r.ids, { timeout: 60000 });
+    const z = await ev(() => { const S3 = okteoExt.pages.vue3d.ui.state; return new S3.T.Box3().setFromObject(S3.house.sanis).max.y; });
+    await ev(() => { okteo.setTab("plan"); okteo.undo(); });
+    const back = await ev((ids) => okteo.state.app.filter((a) => ids.includes(a.id)).length, r.ids);
+    if (!(r.added === 4 && r.dashed && r.inGeo === 4 && r.asApp === 0 && r.vol === 0 && r.reps === 0 && r.pdf && z > 0.79 && back === 0)) throw new Error(JSON.stringify({ r, z, back }));
+    return true;
+  });
   await check("3D-3 : hauteurs de départ dans Paramètres → Vue 3D, allège / linteau d'une fenêtre et hauteur sous plafond d'une pièce dans Propriétés → la 3D suit", async () => {
     await ev(() => okteo.setTab("params"));
     await page.waitForSelector("#ps-3d [data-h3d=\"h3dPlafond\"]");

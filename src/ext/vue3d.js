@@ -39,7 +39,7 @@ export function planData(api) {
   // boîtes au-dessus du plus haut plafond
   H.combles = Math.max(H.plafond, ...[...top.values()]) + 0.35;
   const boxes = (geo.boxes || []).map((b) => ({ id: b.id, n: b.n, x: b.x, y: b.y, color: boxColor(b.n) }));
-  return { data, apps, rooms, boxes, level: geo.level, H, volumes: geo.volumes || [] };
+  return { data, apps, rooms, boxes, level: geo.level, H, volumes: geo.volumes || [], sanis: geo.sanis || [] };
 }
 
 export function mountVue3d(el, { api }) {
@@ -115,7 +115,7 @@ export function mountVue3d(el, { api }) {
     if (gen !== S3.gen) return;
     const { T, scene } = S3;
     const P = planData(api);
-    const sig = JSON.stringify([P.level, P.data, P.apps.map((a) => [a.id, a.x, a.y, a.h, a.color, a.rep, a.hsp]), P.boxes, P.rooms.map((r) => [r.name, r.poly, r.hsp]), P.H, S3.contrast, (api.cab.boxes || []).map((b) => [b.id, b.x, b.y, b.routes, b.sol, b.apps]), (api.cab.circuits || []).length, S3.levels, api.levels.map((l) => l.id)]);
+    const sig = JSON.stringify([P.level, P.data, P.apps.map((a) => [a.id, a.x, a.y, a.h, a.color, a.rep, a.hsp]), P.boxes, P.rooms.map((r) => [r.name, r.poly, r.hsp]), P.H, S3.contrast, (api.cab.boxes || []).map((b) => [b.id, b.x, b.y, b.routes, b.sol, b.apps]), (api.cab.circuits || []).length, S3.levels, api.levels.map((l) => l.id), (P.sanis || []).map((s) => [s.id, s.solid])]);
     if (!force && sig === S3.sig && S3.house) return;
     const sameLevel = S3.level === P.level && S3.house;
     S3.sig = sig; S3.level = P.level;
@@ -136,7 +136,7 @@ export function mountVue3d(el, { api }) {
     });
     const topMax = Math.max(P.H.plafond, ...plan.walls.map((w) => w.top || 0));
     { const c = $(".v3d-cut"); c.max = String(+topMax.toFixed(2)); if (!S3.cutSet || S3.cut > topMax) { S3.cut = topMax; c.value = String(topMax); $(".v3d-cutv").textContent = fr(topMax) + " m"; } }
-    const house = buildHouse(T, { plan, rooms, devices: devs, boxes: P.boxes }, { cut: S3.cut, contrast: S3.contrast, H: P.H });
+    const house = buildHouse(T, { plan, rooms, devices: devs, boxes: P.boxes, sanis: P.sanis }, { cut: S3.cut, contrast: S3.contrast, H: P.H });
 
     house.devices.visible = $('[data-l="devices"]').checked; house.boxes.visible = $('[data-l="boxes"]').checked;
     scene.add(house.group);
@@ -156,7 +156,7 @@ export function mountVue3d(el, { api }) {
       built.forEach((b, i) => {
         b.y = off[i] - off[curI];
         if (i === curI || !b.plan.walls.length) return;
-        const h2 = buildHouse(T, { plan: b.plan, rooms: b.P.rooms, devices: b.devs, boxes: [] }, { cut: Infinity, contrast: S3.contrast, H: b.P.H });
+        const h2 = buildHouse(T, { plan: b.plan, rooms: b.P.rooms, devices: b.devs, boxes: [], sanis: b.P.sanis }, { cut: Infinity, contrast: S3.contrast, H: b.P.H });
         h2.group.position.y = b.y; h2.devices.visible = house.devices.visible;
         scene.add(h2.group);
         S3.others.push({ id: b.id, name: b.name, y: b.y, house: h2, devs: b.devs });

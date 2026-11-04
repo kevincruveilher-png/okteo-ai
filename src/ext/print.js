@@ -44,6 +44,7 @@ export function rotateGeo(geo, deg) {
   g.walls = (geo.walls || []).map(RL);
   g.wallAxis = (geo.wallAxis || []).map(RL);
   g.volumes = (geo.volumes || []).map((v) => ({ ...R(v), rect: v.rect ? RL(v.rect) : null, v0: v.v0 ? RL(v.v0) : null, v1: v.v1 ? RL(v.v1) : null, v2: v.v2 ? RL(v.v2) : null }));
+  g.sanis = (geo.sanis || []).map((v) => ({ ...R(v), shape: (v.shape || []).map((p) => ({ k: p.k, pts: RL(p.pts) })), solid: v.solid }));
   g.joints = RL(geo.joints);
   g.openings = (geo.openings || []).map((o) => ({ ...o, j1: R(o.j1), j2: R(o.j2), n: V(o.n), ...(o.hinge ? { hinge: R(o.hinge), leaf: R(o.leaf), arc: RL(o.arc) } : {}) }));
   g.wallDims = (geo.wallDims || []).map((w) => ({ ...R(w), ang: w.ang + t }));
@@ -239,16 +240,20 @@ export async function buildPlanPdf(geoIn, opts = {}) {
         if (L.hatch) { doc.setDrawColor(32); doc.setLineWidth(.12); hatchLines(P,.14).forEach(([a,b]) => line(a,b)); }
       });
     }
-    // v74 MAJ 3 : volumes de la salle de bain (hachures en pointillés) et sanitaires à leur vraie taille
-    if (o.appareils && (geo.volumes || []).length) {
+    // v74 MAJ 3 : volumes de la salle de bain (hachures en pointillés) ; n° 9 : sanitaires (forme commune saniShape) en
+    // trait gris fin pointillé, contour rempli de blanc
+    if (o.appareils && ((geo.volumes || []).length || (geo.sanis || []).length)) {
       const dashPoly = (P) => { for (let k = 0; k < P.length; k++) line(P[k], P[(k + 1) % P.length]); };
-      geo.volumes.forEach((V) => {
+      (geo.volumes || []).forEach((V) => {
         [[V.v2, 0.2, 110], [V.v1, 0.1, 70]].forEach(([P, st, g]) => { if (!P) return; doc.setDrawColor(g); doc.setLineWidth(0.1); doc.setLineDashPattern([0.5, 0.5], 0); hatchLines(P, st).forEach(([a, b]) => line(a, b)); dashPoly(P); });
-        doc.setLineDashPattern([], 0); doc.setDrawColor(32); doc.setFillColor(255);
-        if (V.rect) { doc.setLineWidth(0.18); poly(V.rect, "FD"); if (V.t === "BAIG") { const c = { x: V.x, y: V.y }; doc.setLineWidth(0.1); dashPoly(V.rect.map((p) => ({ x: c.x + (p.x - c.x) * 0.86, y: c.y + (p.y - c.y) * 0.8 }))); } else { doc.setLineWidth(0.08); line(V.rect[0], V.rect[2]); line(V.rect[1], V.rect[3]); } }
-        else { doc.setLineWidth(0.15); doc.circle(X(V.x), Y(V.y), 0.09 * f, "FD"); doc.setFillColor(32); doc.circle(X(V.x), Y(V.y), 0.03 * f, "F"); }
       });
-      doc.setFillColor(255);
+      doc.setDrawColor(130); doc.setLineWidth(0.12); doc.setLineDashPattern([0.7, 0.45], 0); doc.setFillColor(255);
+      (geo.sanis || []).forEach((V) => (V.shape || []).forEach((p) => {
+        if (p.k === "line") { for (let k = 1; k < p.pts.length; k++) line(p.pts[k - 1], p.pts[k]); }
+        else if (p.k === "out") { doc.setLineDashPattern([], 0); poly(p.pts, "F"); doc.setLineDashPattern([0.7, 0.45], 0); dashPoly(p.pts); }
+        else dashPoly(p.pts);
+      }));
+      doc.setLineDashPattern([], 0); doc.setDrawColor(32); doc.setFillColor(255);
     }
     // limites de pièce (sans mur) : trait fin en pointillés
     if (o.pieces && geo.limits && geo.limits.length) {

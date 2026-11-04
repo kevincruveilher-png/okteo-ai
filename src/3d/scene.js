@@ -151,10 +151,23 @@ export function buildHouse(T, data3d, { cut = Infinity, contrast = true, H = H3D
     const lb = textMesh(T, b.n || "Boîte", "boîte de dérivation"); lb.scale.setScalar(0.55); lb.position.set(b.x, H.combles + 0.32, b.y); lb.userData.billboard = true; boxG.add(lb);
   }
 
+  // n° 9 : sanitaires (baignoire, receveur, WC, lavabo, vasque, évier) en volume blanc, contours gris ; pas cliquables
+  const saniG = new T.Group(); saniG.name = "sanitaires";
+  const saniM = new T.MeshStandardMaterial({ color: "#F4F6F8", roughness: 0.35 }), saniE = new T.LineBasicMaterial({ color: "#8A8F96" });
+  for (const s of data3d.sanis || []) for (const p of s.solid || []) {
+    if (!p.pts || p.pts.length < 3 || !(p.z1 > p.z0)) continue;
+    const sh = new T.Shape(); p.pts.forEach((q, i) => (i ? sh.lineTo(q.x, -q.y) : sh.moveTo(q.x, -q.y)));
+    const g = new T.ExtrudeGeometry(sh, { depth: p.z1 - p.z0, bevelEnabled: false, curveSegments: 4 });
+    const m = new T.Mesh(g, saniM); m.rotation.x = -Math.PI / 2; m.position.y = p.z0; m.castShadow = true; m.receiveShadow = true; m.userData.sani = s.id;
+    const e = new T.LineSegments(new T.EdgesGeometry(g, 30), saniE); e.rotation.x = -Math.PI / 2; e.position.y = p.z0;
+    saniG.add(m, e);
+  }
+  root.add(saniG);
+
   return {
-    group: root, walls: wallG, floors: floorG, devices: devG, boxes: boxG, ceilings: ceilG, pick, M,
+    group: root, walls: wallG, floors: floorG, devices: devG, boxes: boxG, ceilings: ceilG, sanis: saniG, pick, M,
     setCut(h) { buildWalls(h); },
-    dispose() { [wallG, floorG, devG, boxG, ceilG].forEach(disposeGroup); Object.values(M).forEach((m) => m.dispose()); },
+    dispose() { [wallG, floorG, devG, boxG, ceilG, saniG].forEach(disposeGroup); Object.values(M).forEach((m) => m.dispose()); saniM.dispose(); saniE.dispose(); },
   };
 }
 

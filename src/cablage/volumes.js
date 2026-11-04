@@ -7,12 +7,20 @@
 // Volume 0 = l'intérieur de la baignoire / du receveur. Volume 1 = la même emprise jusqu'à 2,25 m de haut ; douche sans
 // receveur : 1,20 m autour de la pomme fixe. Volume 2 = 0,60 m autour du volume 1, jusqu'à 3 m. Les volumes
 // s'arrêtent aux murs : chacun est découpé par le contour intérieur de la pièce.
+// n° 9 (lot A, 04/11/2026) : WC, lavabo, meuble vasque et évier en plus (dessin inspiré des symboles des plans de
+// pavillonneurs), sans volume de salle de bain. Tous les sanitaires sont dessinés en trait gris fin pointillé (saniShape,
+// écran et impression) et en volume dans la vue 3D (sani3d). Le dos (côté mur) est le grand côté du haut (v = -d/2).
 export const SANI = {
-  BAIG: { n: "Baignoire", w: 1.7, d: 0.75 },
-  RECV: { n: "Receveur de douche", w: 0.9, d: 0.9 },
-  DITAL: { n: "Douche à l'italienne (pomme fixe)", w: 1.2, d: 1.2 },
+  BAIG: { n: "Baignoire", w: 1.7, d: 0.75, vol: true },
+  RECV: { n: "Receveur de douche", w: 0.9, d: 0.9, vol: true },
+  DITAL: { n: "Douche à l'italienne (pomme fixe)", w: 1.2, d: 1.2, vol: true },
+  WC: { n: "WC", w: 0.38, d: 0.68 },
+  LAVABO: { n: "Lavabo", w: 0.6, d: 0.45 },
+  VASQUE: { n: "Meuble vasque", w: 0.8, d: 0.5 },
+  EVIER: { n: "Évier", w: 1.2, d: 0.6 },
 };
 export const isSani = (t) => !!SANI[t];
+export const hasVolumes = (t) => !!(SANI[t] && SANI[t].vol);
 export const V1_H = 2.25, V2_H = 3, V2_W = 0.6, ITAL_R = 1.2;
 
 const dims = (a) => ({ w: a.sw > 0 ? a.sw : SANI[a.t].w, d: a.sd > 0 ? a.sd : SANI[a.t].d });
@@ -20,6 +28,61 @@ const dims = (a) => ({ w: a.sw > 0 ? a.sw : SANI[a.t].w, d: a.sd > 0 ? a.sd : SA
 export function saniRect(a) {
   const { w, d } = dims(a), t = ((a.srot || 0) * Math.PI) / 180, c = Math.cos(t), s = Math.sin(t);
   return [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([x, y]) => ({ x: a.x + x * c - y * s, y: a.y + x * s + y * c }));
+}
+// repère local du sanitaire (u le long de la largeur, v vers l'avant) → plan
+function frame(a) {
+  const t = ((a.srot || 0) * Math.PI) / 180, c = Math.cos(t), s = Math.sin(t);
+  return (u, v) => ({ x: a.x + u * c - v * s, y: a.y + u * s + v * c });
+}
+const ell = (F, cu, cv, ru, rv, n = 28) => Array.from({ length: n }, (_, i) => F(cu + ru * Math.cos((2 * Math.PI * i) / n), cv + rv * Math.sin((2 * Math.PI * i) / n)));
+const rrect = (F, u0, v0, u1, v1, r = 0, n = 5) => {
+  r = Math.max(0, Math.min(r, (u1 - u0) / 2, (v1 - v0) / 2));
+  if (!r) return [F(u0, v0), F(u1, v0), F(u1, v1), F(u0, v1)];
+  const out = [], C = [[u1 - r, v0 + r, -90], [u1 - r, v1 - r, 0], [u0 + r, v1 - r, 90], [u0 + r, v0 + r, 180]];
+  for (const [cu, cv, a0] of C) for (let k = 0; k <= n; k++) { const t = ((a0 + (90 * k) / n) * Math.PI) / 180; out.push(F(cu + r * Math.cos(t), cv + r * Math.sin(t))); }
+  return out;
+};
+// dessin d'un sanitaire, en mètres : [{k: "out" (contour, rempli de blanc) | "in" (trait) | "line" (trait ouvert), pts}]
+export function saniShape(a) {
+  if (!isSani(a.t)) return [];
+  const F = frame(a), { w, d } = dims(a), u0 = -w / 2, u1 = w / 2, v0 = -d / 2, v1 = d / 2, P = (k, pts) => ({ k, pts });
+  switch (a.t) {
+    case "DITAL": return [P("out", ell(F, 0, 0, 0.09, 0.09, 24)), P("in", ell(F, 0, 0, 0.03, 0.03, 12))];
+    case "BAIG": return [P("out", rrect(F, u0, v0, u1, v1)), P("in", rrect(F, u0 + 0.07, v0 + 0.07, u1 - 0.07, v1 - 0.07, Math.min(0.2, d / 3))), P("in", ell(F, u0 + 0.2, 0, 0.025, 0.025, 10))];
+    case "RECV": return [P("out", rrect(F, u0, v0, u1, v1)), P("line", [F(u0, v0), F(u1, v1)]), P("line", [F(u1, v0), F(u0, v1)]), P("in", ell(F, 0, 0, 0.035, 0.035, 12))];
+    case "WC": {
+      const tk = Math.min(0.18, d * 0.3), cv = (v0 + tk + v1) / 2, rv = (v1 - v0 - tk) / 2;
+      return [P("out", rrect(F, u0, v0, u1, v0 + tk, 0.03)), P("out", ell(F, 0, cv, w / 2 * 0.92, rv)), P("in", ell(F, 0, cv + rv * 0.08, w / 2 * 0.6, rv * 0.68))];
+    }
+    case "LAVABO": return [P("out", rrect(F, u0, v0, u1, v1, Math.min(0.12, d / 3))), P("in", ell(F, 0, 0.03, w * 0.34, d * 0.3)), P("in", ell(F, 0, v0 + 0.06, 0.02, 0.02, 10))];
+    case "VASQUE": {
+      const two = w >= 1.2, cs = two ? [-w / 4, w / 4] : [0], ru = Math.min(two ? w * 0.17 : w * 0.3, 0.22), out = [P("out", rrect(F, u0, v0, u1, v1))];
+      for (const c of cs) out.push(P("in", ell(F, c, 0.03, ru, d * 0.28)), P("in", ell(F, c, v0 + 0.06, 0.02, 0.02, 10)));
+      return out;
+    }
+    case "EVIER": {
+      const b1 = Math.min(u0 + 0.08 + 0.45, u1 - 0.2), out = [P("out", rrect(F, u0, v0, u1, v1)), P("in", rrect(F, u0 + 0.08, v0 + 0.1, b1, v1 - 0.08, 0.04)), P("in", ell(F, (u0 + 0.08 + b1) / 2, v0 + 0.05, 0.02, 0.02, 10))];
+      const e0 = b1 + 0.06, e1 = u1 - 0.06, n = Math.max(2, Math.round((e1 - e0) / 0.07));
+      for (let i = 0; i <= n && e1 > e0; i++) { const u = e0 + ((e1 - e0) * i) / n; out.push(P("line", [F(u, v0 + 0.12), F(u, v1 - 0.1)])); }
+      return out;
+    }
+  }
+  return [P("out", saniRect(a))];
+}
+// volumes 3D d'un sanitaire (vue 3D) : [{pts (contour au sol), z0, z1}] en mètres
+export function sani3d(a) {
+  if (!isSani(a.t)) return [];
+  const F = frame(a), { w, d } = dims(a), R = (u0, v0, u1, v1, z0, z1, r = 0) => ({ pts: rrect(F, u0, v0, u1, v1, r), z0, z1 });
+  switch (a.t) {
+    case "DITAL": return [{ pts: ell(F, 0, 0, 0.09, 0.09, 20), z0: 1.95, z1: 2 }, { pts: ell(F, 0, -0.0, 0.015, 0.015, 8), z0: 0, z1: 1.95 }];
+    case "BAIG": return [R(-w / 2, -d / 2, w / 2, d / 2, 0, 0.55)];
+    case "RECV": return [R(-w / 2, -d / 2, w / 2, d / 2, 0, 0.06)];
+    case "WC": { const tk = Math.min(0.18, d * 0.3), cv = (-d / 2 + tk + d / 2) / 2; return [R(-w / 2, -d / 2, w / 2, -d / 2 + tk, 0, 0.8, 0.03), { pts: ell(F, 0, cv, w / 2 * 0.92, (d - tk) / 2, 20), z0: 0, z1: 0.4 }]; }
+    case "LAVABO": return [R(-w / 2, -d / 2, w / 2, d / 2, 0.7, 0.85, Math.min(0.12, d / 3)), R(-0.08, -d / 2, 0.08, -d / 2 + 0.16, 0, 0.7)];
+    case "VASQUE": return [R(-w / 2, -d / 2, w / 2, d / 2, 0.15, 0.85)];
+    case "EVIER": return [R(-w / 2, -d / 2, w / 2, d / 2, 0, 0.9)];
+  }
+  return [];
 }
 const area2 = (P) => P.reduce((s, p, i) => { const q = P[(i + 1) % P.length]; return s + p.x * q.y - q.x * p.y; }, 0);
 const ccw = (P) => (area2(P) < 0 ? P.slice().reverse() : P);
@@ -66,7 +129,7 @@ export function pointIn(x, y, P) {
 }
 // volumes d'un sanitaire dans sa pièce : {v0, v1, v2} (polygones ou null) ; room = contour intérieur de la pièce
 export function volumesOf(a, room) {
-  if (!isSani(a.t)) return null;
+  if (!hasVolumes(a.t)) return null;
   const R = room && room.length >= 3 ? room : null;
   const cl = (shape) => (R ? clipConvex(R, shape) : ccw(shape));
   if (a.t === "DITAL") return { v0: null, v1: cl(circle(a, ITAL_R)), v2: cl(circle(a, ITAL_R + V2_W, 64)) };
@@ -104,7 +167,7 @@ export function volumeRule(t, v) {
 }
 // contrôle d'un niveau : sanis + appareils + contours des pièces → [{id, sani, v, bloquant, text}]
 export function checkVolumes(apps, rooms) {
-  const out = [], vols = apps.filter((a) => isSani(a.t)).map((s) => ({ s, V: volumesOf(s, roomFor(s, rooms)) }));
+  const out = [], vols = apps.filter((a) => hasVolumes(a.t)).map((s) => ({ s, V: volumesOf(s, roomFor(s, rooms)) }));
   if (!vols.length) return out;
   for (const a of apps) {
     if (isSani(a.t)) continue;

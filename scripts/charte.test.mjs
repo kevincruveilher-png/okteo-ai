@@ -114,6 +114,27 @@ check("contrôle : prise et interrupteur en volume 1 ou 2 interdits, luminaire e
   const I = VOL.checkVolumes(apps, [room]), by = Object.fromEntries(I.map((x) => [x.id, x]));
   if (!(by.p1 && by.p1.v === 1 && by.p1.bloquant && by.i1 && by.i1.v === 2 && by.i1.bloquant && by.l1 && !by.l1.bloquant && !by.p2 && !by.l2 && I.length === 3)) throw new Error(JSON.stringify(I));
 });
+console.log("Sanitaires (n° 9)");
+check("WC, lavabo, vasque, évier : sanitaires sans volume de salle de bain ni contrôle ; dessin tourné avec la rotation", () => {
+  const room = [{ x: 0, y: 0 }, { x: 3, y: 0 }, { x: 3, y: 2.5 }, { x: 0, y: 2.5 }];
+  const S = ["WC", "LAVABO", "VASQUE", "EVIER"].map((t, i) => ({ id: "s" + i, t, x: 0.6 + i * 0.6, y: 0.4 }));
+  const noVol = S.every((a) => VOL.isSani(a.t) && !VOL.hasVolumes(a.t) && VOL.volumesOf(a, room) === null);
+  const I = VOL.checkVolumes([...S, { id: "p", t: "PC16", x: 0.6, y: 0.1, h: 110 }], [room]);
+  const sh = Object.fromEntries(S.map((a) => [a.t, VOL.saniShape(a)]));
+  const okShape = S.every((a) => sh[a.t].length >= 2 && sh[a.t][0].k === "out" && sh[a.t].every((p) => p.pts.length >= 2 && p.pts.every((q) => Number.isFinite(q.x) && Number.isFinite(q.y))));
+  // contour dans son rectangle (largeur × profondeur)
+  const inBox = S.every((a) => { const { w, d } = VOL.SANI[a.t]; return sh[a.t].every((p) => p.pts.every((q) => Math.abs(q.x - a.x) <= w / 2 + 1e-9 && Math.abs(q.y - a.y) <= d / 2 + 1e-9)); });
+  // tourné de 90° : la largeur devient verticale
+  const r = VOL.saniShape({ t: "EVIER", x: 0, y: 0, srot: 90 })[0].pts, H = Math.max(...r.map((q) => q.y)) - Math.min(...r.map((q) => q.y));
+  const dbl = VOL.saniShape({ t: "VASQUE", x: 0, y: 0, sw: 1.4 }).filter((p) => p.k === "in").length === 4 && VOL.saniShape({ t: "VASQUE", x: 0, y: 0 }).filter((p) => p.k === "in").length === 2;
+  return noVol && I.length === 0 && okShape && inBox && Math.abs(H - 1.2) < 1e-9 && dbl;
+});
+check("sanitaires en 3D : volumes au sol (WC = cuvette + réservoir plus haut, lavabo suspendu, évier sur meuble), douche à l'italienne = pomme en hauteur", () => {
+  const z = (t, o = {}) => VOL.sani3d({ t, x: 1, y: 1, ...o });
+  const wc = z("WC"), lav = z("LAVABO"), ev = z("EVIER"), it = z("DITAL"), b = z("BAIG");
+  return wc.length === 2 && Math.max(...wc.map((p) => p.z1)) === 0.8 && lav.some((p) => p.z0 === 0.7 && p.z1 === 0.85) && ev[0].z1 === 0.9 && it.some((p) => p.z0 > 1.9) && b[0].z1 === 0.55 && z("PC16").length === 0
+    && [wc, lav, ev, b].every((L) => L.every((p) => p.pts.length >= 3 && p.z1 > p.z0));
+});
 console.log("Plan pieuvre et équipements du BE (v74 MAJ 4)");
 const FS = await import("../src/print/ftz-symbols.js");
 const SH = await import("../src/print/ftz-sheet.js");
