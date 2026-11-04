@@ -22,7 +22,7 @@ t("4 modes, points 1 à 4, textes validés, cycles : réglage pour le mode 1, 3 
   assert.equal(modeOf(1).hook, "Le mode rapide pour les plans propres.");
   assert.match(modeOf(4).desc, /devis, le plan cuisine/);
   assert.equal(modeOf(1).cycles, null);
-  assert.deepEqual(MODES_IA.slice(1).map((m) => m.cycles), [3, 3, 3]);
+  assert.deepEqual(MODES_IA.slice(1).map((m) => m.cycles), [3, 3, 5]);
   assert.match(MODES_PAGE.foot, /ne garantit pas une détection complète/);
   assert.equal(modeOf(9), null);
 });
@@ -65,7 +65,7 @@ t("journal : relevé + relectures regroupés par analyse (durée, tokens, coût,
 
 t("cycles de relecture : mode 1 = réglage de l'opérateur (0 à 3), modes 2 à 4 = 3", () => {
   assert.equal(cyclesFor(1, 2), 2); assert.equal(cyclesFor(1, 0), 0); assert.equal(cyclesFor(1, 9), 3);
-  assert.deepEqual([2, 3, 4].map((m) => cyclesFor(m, 0)), [3, 3, 3]);
+  assert.deepEqual([2, 3, 4].map((m) => cyclesFor(m, 0)), [3, 3, 5]);
 });
 t("cache : entrée totale et coût (écriture 1,25 ×, lecture 0,05 ×)", () => {
   const u = { in: 1000, out: 200, cw: 600, cr: 400 };

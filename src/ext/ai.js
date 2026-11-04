@@ -135,14 +135,15 @@ export const modelFor = (provider, purpose = "chat", s = settings.get()) => {
   if (purpose === "analyse" && P.analyseModel) return P.analyseLocked ? P.analyseModel : s.models[provider + "Analyse"] || P.analyseModel;
   return s.models[provider] || P.defaultModel;
 };
-export async function chat({ system, messages, maxTokens = 1800, provider, model, think = false, purpose = "chat" }) {
+export async function chat({ system, messages, maxTokens = 1800, provider, model, think = false, purpose = "chat", tools = null }) {
   const s = settings.get();
   provider = window.okteoSession ? "anthropic" : provider || settings.activeProvider();
   if (!provider) throw new AIError("Aucune clé IA : ajoutez une clé Claude ou NVIDIA dans l'onglet Paramètres.", 0);
   model = model || modelFor(provider, purpose, s);
   const key = s.keys[provider] || "";
   const t0 = performance.now();
-  let text, switched = "", usage = null;
+  let text, switched = "", usage = null, content = null, stop = null;
+  if (tools && provider !== "anthropic") throw new AIError("Les outils de l'IA demandent Claude (Paramètres : clé Claude).", 0);
 
   if (provider === "anthropic") {
     // v76 : `m.blocks` = blocs déjà au format de l'API (images de tuiles, zooms, marques cache_control), passés tels quels
@@ -156,7 +157,9 @@ export async function chat({ system, messages, maxTokens = 1800, provider, model
         : m.text,
     }));
     // en ligne, le serveur choisit le modèle de chaque usage (réglé par l'administrateur) : on lui dit seulement l'usage
-    const body = await anthropicCall(key, { model, max_tokens: maxTokens, system, messages: msgs, ...(window.okteoSession ? { purpose } : {}) });
+    // n° 3 : outils définis par Oktéo (calculés dans le navigateur) ; la réponse garde ses blocs (tool_use) et sa raison d'arrêt
+    const body = await anthropicCall(key, { model, max_tokens: maxTokens, system, messages: msgs, ...(tools ? { tools } : {}), ...(window.okteoSession ? { purpose } : {}) });
+    content = body.content || []; stop = body.stop_reason || null;
     if(window.okteoSession){ model=body.okteo?.model||body.model||model;document.dispatchEvent(new CustomEvent("okteo:ai-cost")); }
     text = (body.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
     // v76 : en ligne, le Worker renvoie le coût calculé au tarif configuré (USD) ; gardé pour le journal d'analyse
@@ -184,7 +187,7 @@ export async function chat({ system, messages, maxTokens = 1800, provider, model
     if (body.usage) usage = { in: body.usage.prompt_tokens || 0, out: body.usage.completion_tokens || 0 };
   }
   text = stripThink(text);
-  return { text: text || "(réponse vide)", provider, model, ms: Math.round(performance.now() - t0), sawImage: PROVIDERS[provider].vision(model), switched, usage };
+  return { text: text || (content && content.some((c) => c.type === "tool_use") ? "" : "(réponse vide)"), provider, model, ms: Math.round(performance.now() - t0), sawImage: PROVIDERS[provider].vision(model), switched, usage, content, stop };
 }
 
 // Test de connexion depuis les Paramètres

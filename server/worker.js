@@ -174,15 +174,25 @@ async function relay(request,env,u,ctx){
  // v75 : conversation de l'assistant = modèle de base (Sonnet) ; analyse du plan, relevé et relectures = modèle d'analyse (Opus)
  const P=pricing(c,b.purpose);
  const payload={model:P.model,max_tokens:output,system:systemOf(b.system),messages:b.messages};
- // Strict content schema: no tools, remote URL sources or arbitrary provider options. v76 : cache de prompt autorisé
+ // n° 3 (04/11/2026) : outils de l'IA définis par Oktéo seulement (calculés dans le navigateur sur le plan) : 12 au plus,
+ // {name, description, input_schema} sans « type » (aucun outil serveur : ni recherche web, ni exécution de code, ni
+ // adresse externe) ; blocs tool_use (réponse de l'IA rejouée) et tool_result (texte ou image en base64) contrôlés.
+ if(b.tools!==undefined){
+  if(!Array.isArray(b.tools)||b.tools.length>12)fail(400,'Outils invalides.');
+  for(const t of b.tools){if(!t||typeof t!=='object'||Object.keys(t).some(k=>!['name','description','input_schema'].includes(k))||!/^[a-z_]{1,40}$/.test(t.name||'')||typeof t.description!=='string'||t.description.length>2000||!t.input_schema||t.input_schema.type!=='object'||JSON.stringify(t.input_schema).length>4000)fail(400,'Outil non autorisé.');}
+  payload.tools=b.tools;
+ }
+ const toolNames=new Set((payload.tools||[]).map(t=>t.name));
+ const resultOk=x=>typeof x.content==='string'?x.content.length<=60000:Array.isArray(x.content)&&x.content.every(y=>(y.type==='text'&&typeof y.text==='string'&&Object.keys(y).every(k=>['type','text'].includes(k)))||(y.type==='image'&&y.source?.type==='base64'&&/^image\/(jpeg|png|webp|gif)$/.test(y.source.media_type)&&typeof y.source.data==='string'&&Object.keys(y).every(k=>['type','source'].includes(k))));
+ // Strict content schema: no server tools, remote URL sources or arbitrary provider options. v76 : cache de prompt autorisé
  // (décision de Kévin du 03/11/2026) : cache_control {type:'ephemeral'} seul (5 min, pas de durée d'1 h plus chère), 4 marques au plus.
  let marks=0;const cacheOk=x=>{if(!('cache_control' in x))return true;const c=x.cache_control;if(!c||c.type!=='ephemeral'||Object.keys(c).some(k=>k!=='type'))return false;marks++;return true;};
  for(const x of Array.isArray(payload.system)?payload.system:[])if(!cacheOk(x))fail(400,'Option de cache non autorisée.');
- for(const m of payload.messages){if(!['user','assistant'].includes(m.role))fail(400,'Rôle de message invalide.');if(typeof m.content==='string')continue;if(!Array.isArray(m.content))fail(400,'Contenu invalide.');for(const x of m.content){if(x.type==='text'&&typeof x.text==='string'){if(Object.keys(x).some(k=>!['type','text','cache_control'].includes(k))||!cacheOk(x))fail(400,'Option non autorisée.');continue;}if(x.type==='image'&&x.source?.type==='base64'&&/^image\/(jpeg|png|webp|gif)$/.test(x.source.media_type)&&typeof x.source.data==='string'&&Object.keys(x).every(k=>['type','source','cache_control'].includes(k))&&cacheOk(x))continue;fail(400,'Contenu IA non autorisé.');}}
+ for(const m of payload.messages){if(!['user','assistant'].includes(m.role))fail(400,'Rôle de message invalide.');if(typeof m.content==='string')continue;if(!Array.isArray(m.content))fail(400,'Contenu invalide.');for(const x of m.content){if(x.type==='tool_use'&&m.role==='assistant'&&typeof x.id==='string'&&toolNames.has(x.name)&&x.input&&typeof x.input==='object'&&Object.keys(x).every(k=>['type','id','name','input'].includes(k)))continue;if(x.type==='tool_result'&&m.role==='user'&&typeof x.tool_use_id==='string'&&Object.keys(x).every(k=>['type','tool_use_id','content','is_error'].includes(k))&&resultOk(x))continue;if(x.type==='text'&&typeof x.text==='string'){if(Object.keys(x).some(k=>!['type','text','cache_control'].includes(k))||!cacheOk(x))fail(400,'Option non autorisée.');continue;}if(x.type==='image'&&x.source?.type==='base64'&&/^image\/(jpeg|png|webp|gif)$/.test(x.source.media_type)&&typeof x.source.data==='string'&&Object.keys(x).every(k=>['type','source','cache_control'].includes(k))&&cacheOk(x))continue;fail(400,'Contenu IA non autorisé.');}}
  if(marks>4)fail(400,'Quatre marques de cache au plus.');
  // Count with provider before reserving; max output + 10% input margin, no speculative token heuristic.
  const headers={'content-type':'application/json','anthropic-version':'2023-06-01','x-api-key':env.ANTHROPIC_API_KEY};
- const countRes=await fetch('https://api.anthropic.com/v1/messages/count_tokens',{method:'POST',headers,body:JSON.stringify({model:payload.model,system:payload.system,messages:payload.messages}),signal:AbortSignal.timeout(30000)});
+ const countRes=await fetch('https://api.anthropic.com/v1/messages/count_tokens',{method:'POST',headers,body:JSON.stringify({model:payload.model,system:payload.system,messages:payload.messages,...(payload.tools?{tools:payload.tools}:{})}),signal:AbortSignal.timeout(30000)});
  if(!countRes.ok)fail(503,'Comptage Claude indisponible : appel annulé pour protéger le budget.');
  const counted=await countRes.json();if(!Number.isSafeInteger(counted.input_tokens)||counted.input_tokens<0||counted.input_tokens>180000)fail(413,'Analyse trop volumineuse (180 000 tokens maximum).');
  const reserved=Math.ceil(counted.input_tokens*1.1*P.input_price+output*P.output_price),id=crypto.randomUUID(),m=month();

@@ -120,7 +120,16 @@ export function createModeRunner({ api, aiReleve }) {
       // 1. lecture globale (celle du mode 1)
       st.step = "lecture globale du plan…"; progress(st);
       const G = await aiReleve.fondImage({});
-      const g = await call(log, "globale", { system: AI_SYSTEM, messages: [{ role: "user", text: aiPrompt({ W: G.W, H: G.H, cmPerPx: G.map.sx * 100 }), image: { type: "image/jpeg", data: G.url.split(",")[1] } }], maxTokens: 12000, think: true });
+      let g;
+      if (mode >= 4) {
+        // n° 3 : mode 4 : lecture globale avec les outils d'Oktéo (légende et mémoire des symboles, symboles, textes et murs du
+        // PDF, zoom, vérification du relevé avant la réponse)
+        st.step = "lecture globale avec les outils d'Oktéo…"; progress(st);
+        const agent = await import("./ai-agent.js"), tctx = await agent.toolContext(api, G, S);
+        const first = [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: G.url.split(",")[1] } }, { type: "text", text: aiPrompt({ W: G.W, H: G.H, cmPerPx: G.map.sx * 100 }) }];
+        const R = await agent.readWithTools({ call: (a) => call(log, "outils", a), system: AI_SYSTEM, first, ctx: tctx, maxRounds: Math.max(2, Math.min(12, +pref("toursOutils") || 8)), onTool: (n) => { st.step = `lecture globale : outil « ${n} »…`; progress(st); } });
+        log.outils = R.uses; g = { text: R.text };
+      } else g = await call(log, "globale", { system: AI_SYSTEM, messages: [{ role: "user", text: aiPrompt({ W: G.W, H: G.H, cmPerPx: G.map.sx * 100 }), image: { type: "image/jpeg", data: G.url.split(",")[1] } }], maxTokens: 12000, think: true });
       const P0 = aiToPlan(parseAiJson(g.text), G.map, { defEp: api.state.wallEp });
       if (stopped) throw new Error("arrêtée");
       // 2. tuiles : la première seule (écrit la consigne en cache), les autres en parallèle
@@ -155,11 +164,11 @@ export function createModeRunner({ api, aiReleve }) {
         docEcarts = await ext4.crossCheck({ api, devices: M.devices, rooms: P0.pieces, docs: opts.docs || [], call: (phase, a, x) => call(log, phase, a, x) });
       }
       const usage = addUsage(log.usages), ms = Math.round(performance.now() - t0), n = ecartsCount(M.ecarts);
-      const info = `Claude · Opus 5.5 · mode ${mode} · ${fmtMs(ms)} · ${log.appels.length} appels · ${S.kind === "vector" ? "PDF vectoriel rendu en haute définition" : "pixels du plan (scan ou image)"} · ${grid.cols} × ${grid.rows} tuiles${st.ko ? ` (${st.ko} en échec)` : ""} · ${log.zooms} zooms`;
+      const info = `Claude · Opus 5.5 · mode ${mode} · ${fmtMs(ms)} · ${log.appels.length} appels${log.outils ? ` · ${log.outils.length} outil${log.outils.length > 1 ? "s" : ""} d'Oktéo utilisé${log.outils.length > 1 ? "s" : ""}` : ""} · ${S.kind === "vector" ? "PDF vectoriel rendu en haute définition" : "pixels du plan (scan ou image)"} · ${grid.cols} × ${grid.rows} tuiles${st.ko ? ` (${st.ko} en échec)` : ""} · ${log.zooms} zooms`;
       const plan = { ...P0, devices: M.devices, links: M.links, ecarts: M.ecarts, docEcarts,
         journal: { info: `${tiles.length - st.ko} tuiles lues sur ${tiles.length}${st.ko ? ` — ${st.ko} tuile(s) non lue(s) : ces zones n'ont eu que la lecture globale` : ""}${log.nettoyees ? ` · ${log.nettoyees} tuile(s) nettoyée(s) (image d'origine gardée)${ctxRef && ctxRef.raster && ctxRef.raster.angle ? `, plan redressé de ${ctxRef.raster.angle.toFixed(1).replace(".", ",")}°` : ""}` : ""}${log.ocrMots ? ` · ${log.ocrMots} textes lus (${ctxRef && ctxRef.pdfTexts ? "texte du PDF" : "OCR"})` : ""}${log.rasterErr && log.rasterErr.length ? ` · ⚠ ${log.rasterErr.join(" ; ")}` : ""}${second ? " · seconde lecture complète faite" : ""}.`,
           zones: tiles.length - st.ko, zooms: log.zooms, tuilesKo: st.ko, grille: `${grid.cols}x${grid.rows}`, source: S.kind, ocrMots: log.ocrMots, nettoyees: log.nettoyees, ecartsN: M.ecarts.length, secondeLecture: !!second,
-          docs: docEcarts ? (docEcarts.off ? "désactivé" : docEcarts.sources) : null, appels: log.appels } };
+          docs: docEcarts ? (docEcarts.off ? "désactivé" : docEcarts.sources) : null, appels: log.appels, ...(log.outils ? { outils: log.outils.length, outilsListe: log.outils } : {}) } };
       last = { mode, ms, usage, ecarts: n, tiles: tiles.length, ko: st.ko, zooms: log.zooms, zoomList: log.zoomList, appels: log.appels.length };
       aiReleve.fromPlan(plan, { info, text: [g.text, ...reads.filter(Boolean).map((r) => r.text)].join("\n\n"), usage, ms, mode });
       okEnd = true;

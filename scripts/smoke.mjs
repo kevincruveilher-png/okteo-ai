@@ -25,15 +25,22 @@ const mock = http.createServer((req, res) => {
     const last = msgs[msgs.length - 1] || {};
     const lastText = typeof last.content === "string" ? last.content : (last.content || []).map((c) => c.text || "").join(" ");
     const hasImage = Array.isArray(last.content) && last.content.some((c) => c.type === "image" || c.type === "image_url");
-    let text = "OK";
+    let text = "OK", toolResp = null;
+    // n° 3 : outils d'Oktéo : 1er tour = trois appels d'outils ; tour suivant (résultats reçus) = relevé comme ci-dessous
+    const toolTurn = Array.isArray(j.tools) && j.tools.length, gotResults = Array.isArray(last.content) && last.content.some((c) => c.type === "tool_result");
+    const firstText = (msgs[0] && Array.isArray(msgs[0].content) ? msgs[0].content : []).map((c) => c.text || "").join(" ");
+    if (toolTurn && !gotResults) {
+      const [, W, H] = (firstText.match(/image de (\d+) × (\d+) pixels/) || [0, 1000, 700]).map(Number);
+      toolResp = { content: [{ type: "text", text: "Je lis la légende." }, { type: "tool_use", id: "tu1", name: "legende", input: {} }, { type: "tool_use", id: "tu2", name: "symboles", input: { x: 0, y: 0, w: W, h: H } }, { type: "tool_use", id: "tu3", name: "verifier", input: { appareils: [{ t: "LUM", x: 10, y: 10 }], liaisons: [] } }], stop_reason: "tool_use" };
+    }
     if (/nemotron-test/.test(lastText)) text = "<think>brouillon secret</think>Réponse Nemotron.";
     if (/outil pi[eè]ce/i.test(lastText)) text = 'Je lance l\'outil Pièce : glissez un rectangle.\n```okteo\n{"actions":[{"do":"cmd","id":"tool.piece"}]}\n```';
     else if (/Règle R-002 : je veux la modifier/.test(lastText)) {
       text = 'Je propose de confirmer R-002.\n```okteo\n{"actions":[{"do":"rule","op":"modifier","id":"R-002","patch":{"certitude":"confirmee","statut":"active"},"motif":"Confirmée par Kévin"},{"do":"rule","op":"modifier","id":"R-004","patch":{"couleur":"x"},"motif":"essai"}]}\n```';
     }
-    else if (/Relève ce plan/.test(lastText)) {
+    else if (/Relève ce plan/.test(lastText) || (toolTurn && gotResults && /Relève ce plan/.test(firstText))) {
       // relevé par l'IA : une maison rectangulaire coupée en deux pièces, en pixels de l'image envoyée
-      const [, W, H] = (lastText.match(/image de (\d+) × (\d+) pixels/) || [0, 1000, 700]).map(Number);
+      const [, W, H] = ((toolTurn ? firstText : lastText).match(/image de (\d+) × (\d+) pixels/) || [0, 1000, 700]).map(Number);
       const X = (f) => Math.round(f * W), Y = (f) => Math.round(f * H);
       text = "Voici le relevé :\n```json\n" + JSON.stringify({
         murs: [{ x1: X(0.1), y1: Y(0.1), x2: X(0.9), y2: Y(0.1), ep: 25 }, { x1: X(0.9), y1: Y(0.1), x2: X(0.9), y2: Y(0.9), ep: 25 },
@@ -76,6 +83,7 @@ const mock = http.createServer((req, res) => {
       if (req.headers["x-api-key"] !== "sk-test") { res.statusCode = 401; return res.end(JSON.stringify({ error: { message: "invalid x-api-key" } })); }
       // v76 : une requête avec marque de cache rend des tokens écrits / lus en cache (comme l'API)
       const marked = JSON.stringify(j).includes('"cache_control"');
+      if (toolResp) return res.end(JSON.stringify({ ...toolResp, usage: { input_tokens: 1000, output_tokens: 200 } }));
       return res.end(JSON.stringify({ content: [{ type: "text", text }], usage: { input_tokens: 1000, output_tokens: 200, ...(marked ? { cache_creation_input_tokens: 600, cache_read_input_tokens: 400 } : {}) } }));
     }
     if (req.url === "/v1/chat/completions") {
@@ -734,7 +742,7 @@ try {
     return true;
   });
   await check("v76 : « Analyse IA » ouvre l'écran des 4 modes (maquette page 8) : référence du dossier, Lancer grisé sans choix, carte choisie (aria-pressed), documents à recouper pour le mode 4, Échap ferme", async () => {
-    await ev(() => okteoExt.settings.set({ provider: "anthropic" }));
+    await ev(async () => { okteoExt.settings.set({ provider: "anthropic" }); (await import("/src/prefs.js")).setPref("modesIA", "tous"); });   // n° 3 : les 4 modes pour ces essais
     const n0 = seen.length;
     await page.click("#btn-relev"); await page.click("#rv-ai");
     await page.waitForSelector("#ai-modes:not([hidden]) .am-card", { timeout: 5000 });
@@ -881,8 +889,43 @@ try {
     const second = req.filter((r) => /SECONDE LECTURE INDÉPENDANTE/.test(txt(r))), cross = req.filter((r) => /Contrôle croisé pour le bureau/.test(txt(r)));
     const P = await ev(() => { const p = okteoExt.aiReleve.plan, c = document.querySelector(".aicard"); return { ec2: p.ecarts.filter((e) => e.kind === "2e").length, doc: p.docEcarts, docs: !!c.querySelector(".ai-docs"), text: c.textContent }; });
     await page.click("#ai-no");
-    const r = { chip, second: second.length, cross: cross.length, crossSrc: cross[0] ? /EVRARD_04949_plan\.pdf, page 1/.test(txt(cross[0])) : false, P: { ...P, text: P.text.slice(0, 300) } };
-    if (!(chip && r.second === 1 && r.cross === 1 && r.crossSrc && P.ec2 >= 1 && P.doc && !P.doc.off && P.doc.list.length === 1 && P.doc.list[0].t === "LV" && P.docs && /Lave-vaisselle/.test(P.text))) throw new Error(JSON.stringify(r));
+    // n° 3 : lecture globale avec les outils d'Oktéo : outils proposés, résultats renvoyés (légende, symboles, vérification)
+    const withTools = req.filter((x) => Array.isArray(x.body.tools) && x.body.tools.length), back = withTools.find((x) => JSON.stringify(x.body.messages).includes('"tool_result"'));
+    const T = { asked: withTools.length, names: (withTools[0]?.body.tools || []).map((t) => t.name).join(), results: back ? (back.body.messages.at(-1).content || []).map((c) => (typeof c.content === "string" ? c.content : JSON.stringify(c.content)).slice(0, 40)) : [], verif: back ? /Décompte : LUM 1/.test(JSON.stringify(back.body.messages)) : false };
+    const outils = await ev(() => (okteoExt.aiRunner.last || {}).appels);
+    const r = { chip, T, outils, second: second.length, cross: cross.length, crossSrc: cross[0] ? /EVRARD_04949_plan\.pdf, page 1/.test(txt(cross[0])) : false, P: { ...P, text: P.text.slice(0, 300) } };
+    if (!(T.asked >= 2 && /legende,symboles,textes,murs,zoom,verifier/.test(T.names) && T.results.length === 3 && T.verif && /outils? d'Oktéo/.test(P.text) && chip && r.second === 1 && r.cross === 1 && r.crossSrc && P.ec2 >= 1 && P.doc && !P.doc.off && P.doc.list.length === 1 && P.doc.list[0].t === "LV" && P.docs && /Lave-vaisselle/.test(P.text))) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("n° 3 : « Analyse IA » n'affiche que le mode 4 (choisi d'office) ; « Afficher aussi les modes 1 à 3 » ; échelle non réglée = analyse bloquée", async () => {
+    await ev(async () => (await import("/src/prefs.js")).setPref("modesIA", "4"));
+    await ev(() => okteoExt.aiModes.open());
+    await page.waitForSelector("#ai-modes:not([hidden]) .am-card");
+    const one = await ev(() => { const el = document.getElementById("ai-modes"); return { n: el.querySelectorAll(".am-card").length, m: el.querySelector(".am-card").dataset.mode, on: el.querySelector(".am-card").getAttribute("aria-pressed"), all: !!el.querySelector("#am-all") }; });
+    await page.click("#am-all");
+    const four = await ev(() => document.querySelectorAll("#ai-modes .am-card").length);
+    await page.keyboard.press("Escape");
+    const f = await ev(() => { const was = okteo.ch.fond.calibre; okteo.ch.fond.calibre = false; return was; });
+    await ev(() => okteoExt.aiModes.open());
+    await page.waitForSelector("#ai-modes .am-scale", { timeout: 10000 });
+    await page.click('#ai-modes .am-card[data-mode="4"]'); await page.click("#am-go");
+    const blocked = await ev(() => okteoExt.aiModes.visible && okteoExt.aiModes.launched == null);
+    await page.keyboard.press("Escape");
+    await ev((was) => { okteo.ch.fond.calibre = was; }, f);
+    if (!(one.n === 1 && one.m === "4" && one.on === "true" && one.all && four === 4 && blocked)) throw new Error(JSON.stringify({ one, four, blocked }));
+    return true;
+  });
+  await check("n° 16 : « Mémoriser ce symbole » (appareil relevé par l'IA) → mémoire du pavillonneur, lue par l'outil « legende » de l'IA", async () => {
+    await ev(() => okteoExt.panel.close("assistant"));
+    const id = await ev(() => { const a = okteo.importDevices([{ t: "RJ45", x: 1, y: 1 }]).ids[0]; const o = okteo.state.app.find((x) => x.id === a); o.aiOrigin = "plan"; o.aiType = "RJ45"; return a; });
+    await ev((i) => { okteo.select([i]); okteoExt.panel.show("props"); }, id);
+    await page.waitForSelector("#f_memo", { timeout: 10000 });
+    const done = ev(() => new Promise((ok) => document.addEventListener("okteo:symbol-memorized", (e) => ok(e.detail), { once: true })));
+    await page.click("#f_memo");
+    const r = await done;
+    const t = await ev(async () => { const m = await import("/src/ext/symbol-memory.js"), T = await import("/src/walls/ai-tools.js"); return (await T.runTool("legende", {}, { W: 100, H: 100, memory: m.symbolMemory(okteo.ch.client), pav: okteo.ch.client })).text; });
+    await ev(() => { okteo.undo(); okteo.clearSel(); });
+    if (!(r && r.type === "RJ45" && /RJ45 : /.test(t))) throw new Error(JSON.stringify({ r: r && { ...r, image: !!r.image }, t: t.slice(0, 300) }));
     return true;
   });
   await check("v64.1 : consigne du relevé avec méthode imposée (200 dpi, légende, quarts, décompte) ; image de moins de 3 000 px signalée au collage", async () => {
