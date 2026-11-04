@@ -115,7 +115,7 @@ export function mountVue3d(el, { api }) {
     if (gen !== S3.gen) return;
     const { T, scene } = S3;
     const P = planData(api);
-    const sig = JSON.stringify([P.level, P.data, P.apps.map((a) => [a.id, a.x, a.y, a.h, a.color, a.rep, a.hsp]), P.boxes, P.rooms.map((r) => [r.name, r.poly, r.hsp]), P.H, S3.contrast, (api.cab.boxes || []).map((b) => [b.id, b.x, b.y, b.routes, b.sol, b.apps]), (api.cab.circuits || []).length, S3.levels, api.levels.map((l) => l.id)]);
+    const sig = JSON.stringify([P.level, P.data, P.apps.map((a) => [a.id, a.x, a.y, a.h, a.color, a.rep, a.hsp]), P.boxes, P.rooms.map((r) => [r.name, r.poly, r.hsp]), P.H, S3.contrast, (api.cab.boxes || []).map((b) => [b.id, b.x, b.y, b.routes, b.sol, b.apps]), (api.cab.circuits || []).length, S3.levels, api.levels.map((l) => l.id), (P.sanis || []).map((s) => [s.id, s.solid])]);
     if (!force && sig === S3.sig && S3.house) return;
     const sameLevel = S3.level === P.level && S3.house;
     S3.sig = sig; S3.level = P.level;

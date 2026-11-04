@@ -14,7 +14,8 @@
 - Écran (render.js) : volumes dessinés d'abord, puis chaque sanitaire en gris `#8a8f96`, 1 cm, pointillé ; sélection en
   couleur de sélection. `exportGeometry().sanis` [{id, t, x, y, shape, solid}] (tourné par `rotateGeo`) ; print.js même
   dessin (gris 130, pointillé 0,7/0,45 mm, contour blanc). 3D (scene.js `buildHouse`, `house.sanis`) : volumes blancs à
-  arêtes grises, sur tous les niveaux affichés. Propriétés : texte d'aide propre aux sanitaires sans volume. Catalogue
+  arêtes grises, sur tous les niveaux affichés ; la signature de reconstruction de la vue 3D inclut les sanitaires (poser
+  ou déplacer un sanitaire met la 3D à jour). Propriétés : texte d'aide propre aux sanitaires sans volume. Catalogue
   `help.sani`.
 - Tests : `scripts/charte.test.mjs` (formes, rotation, vasque double, pas de volume ni de contrôle, volumes 3D) ; smoke
   (4 sanitaires posés : pointillés, sans repère ni circuit, PDF, 3D, un Ctrl+Z).
