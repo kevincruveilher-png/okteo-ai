@@ -17,6 +17,9 @@
 - Tests : `scripts/squaring.test.mjs` (9) dans `npm run check` (`npm run test:equerre`) ; smoke : maison relevée de travers
   remise d'équerre par le menu, angles joints, deux Ctrl+Z. Workflow TEMPORAIRE `.github/workflows/verification-lot-a.yml`.
 
+- Fusion dans `main` le 04/11/2026 (lot A, go de Kévin) : `npm run check` vert sur GitHub Actions (run 41890979246) ;
+  workflow temporaire `verification-lot-a.yml` retiré.
+
 ## 04/11/2026 — v77 fusionnée dans `main` (« go » de Kévin pour le lot A)
 
 - Branche `feat/releve-colle-ref-calibre` fusionnée ; workflow temporaire `verification-releve-colle.yml` retiré. Dernière
