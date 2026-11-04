@@ -19,6 +19,10 @@
 - `ai-releve.js` : `realign()` après `fromText` (réponse collée ET relevé avec clé, mode 1 ; les modes 2 à 4 ne changent
   pas) ; case « Recaler sur les murs du PDF » `#ai-recal` (cochée, décochable avant l'ajout) ; `okteoExt.aiReleve.recal`.
   Essai sur la réponse réelle (axes mesurés sur l'image) : 33 murs collés, écart moyen 9 → 4 cm, x × 0,989.
+- Angles des murs (remarque de Kévin : « deux rectangles pas joints » aux angles extérieurs) : chaque mur avait son propre
+  contour. Écran (`render.js`) : couche `g.walls-out` (toutes les formes en #222, trait .024) puis formes remplies sans
+  trait (murs puis carrés de jonction) ; mur sélectionné en `g.walls-sel`. Impression (`print.js`) : même principe (passe
+  contour gris 32 trait 0,1 mm, puis remplissage, hachures et ondulations). Smoke : contour unique vérifié.
 - Tests : `scripts/ai-align.test.mjs` (8, maison synthétique, aucun plan client) dans `npm run check` (`npm run
   test:recalage`) ; smoke : réponse collée avec « ref » minuscule et calibres texte. Vérification : workflow TEMPORAIRE
   `.github/workflows/verification-releve-colle.yml` (à retirer avant fusion) : run 41871291592 vert (smoke 194/194, ai-align 8).

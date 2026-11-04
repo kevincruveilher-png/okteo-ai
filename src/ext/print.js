@@ -218,17 +218,24 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const fillHex = (hx) => { const v = parseInt(hx.slice(1), 16); doc.setFillColor((v >> 16) & 255, (v >> 8) & 255, v & 255); };
     const jointMat = (j) => j.mat || (j.e >= .16 ? "maconnerie" : "cloison");
     const jointP = (j) => [{x:j.x-j.e/2,y:j.y-j.e/2},{x:j.x+j.e/2,y:j.y-j.e/2},{x:j.x+j.e/2,y:j.y+j.e/2},{x:j.x-j.e/2,y:j.y+j.e/2}];
-    if (o.murs) geo.joints.filter((j) => wallLook(jointMat(j), ST).fill === "#FFFFFF").forEach(j => {
-      const P = jointP(j), L = wallLook(jointMat(j), ST);
-      doc.setFillColor(255); poly(P,"F"); if (L.hatch) { doc.setDrawColor(32); doc.setLineWidth(.12); hatchLines(P,.14).forEach(([a,b]) => line(a,b)); }
-    });
-    if (o.murs) geo.walls.forEach((P, i) => {
-      const L = wallLook(matAt(i), ST), white = L.fill === "#FFFFFF";
-      fillHex(L.fill); doc.setDrawColor(32); doc.setLineWidth(0.05); poly(P, white || L.fill !== "#202020" ? "FD" : "F");
-      if (L.hatch) { doc.setLineWidth(.12); hatchLines(P,.14).forEach(([a,b]) => line(a,b)); }
-      if (L.wave && geo.wallAxis?.[i]) { doc.setLineWidth(.1); const W = wavePoints(geo.wallAxis[i][0], geo.wallAxis[i][1], geo.wallThickness[i]); for (let k = 1; k < W.length; k++) line(W[k - 1], W[k]); }
-    });
-    if (o.murs) geo.joints.filter((j) => wallLook(jointMat(j), ST).fill !== "#FFFFFF").forEach((j) => { fillHex(wallLook(jointMat(j), ST).fill); doc.rect(X(j.x - j.e / 2), Y(j.y - j.e / 2), j.e * f, j.e * f, "F"); });
+    // v77 : contour d'ensemble (comme à l'écran) : toutes les formes d'abord en gris foncé avec un trait double, puis
+    // remplies sans trait par-dessus ; il ne reste que le contour extérieur, sans trait en travers des angles ni des T.
+    if (o.murs) {
+      doc.setDrawColor(32); doc.setFillColor(32); doc.setLineWidth(0.1);
+      geo.walls.forEach((P) => poly(P, "FD"));
+      geo.joints.forEach((j) => poly(jointP(j), "FD"));
+      geo.walls.forEach((P, i) => {
+        const L = wallLook(matAt(i), ST);
+        fillHex(L.fill); poly(P, "F");
+        if (L.hatch) { doc.setDrawColor(32); doc.setLineWidth(.12); hatchLines(P,.14).forEach(([a,b]) => line(a,b)); }
+        if (L.wave && geo.wallAxis?.[i]) { doc.setDrawColor(32); doc.setLineWidth(.1); const W = wavePoints(geo.wallAxis[i][0], geo.wallAxis[i][1], geo.wallThickness[i]); for (let k = 1; k < W.length; k++) line(W[k - 1], W[k]); }
+      });
+      geo.joints.forEach((j) => {
+        const P = jointP(j), L = wallLook(jointMat(j), ST);
+        fillHex(L.fill); poly(P, "F");
+        if (L.hatch) { doc.setDrawColor(32); doc.setLineWidth(.12); hatchLines(P,.14).forEach(([a,b]) => line(a,b)); }
+      });
+    }
     // v74 MAJ 3 : volumes de la salle de bain (hachures en pointillés) et sanitaires à leur vraie taille
     if (o.appareils && (geo.volumes || []).length) {
       const dashPoly = (P) => { for (let k = 0; k < P.length; k++) line(P[k], P[(k + 1) % P.length]); };

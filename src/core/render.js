@@ -173,8 +173,14 @@ export function draw() {
   h += `<defs><pattern id="wall-hatch" width="0.14" height="0.14" patternUnits="userSpaceOnUse"><rect width="0.14" height="0.14" fill="white"/><path d="M0 .14L.14 0" stroke="#222" stroke-width=".012"/></pattern></defs>`;
   // murs (intervalles pleins) + jonctions
   if (layers.murs.on) {
+    // v77 : contour d'ensemble. Chaque mur était un rectangle avec son propre contour : aux angles et aux jonctions en T,
+    // on voyait deux rectangles posés l'un sur l'autre. On trace d'abord toutes les formes en noir avec un trait épais
+    // (couche « out »), puis les mêmes formes remplies sans trait par-dessus : seul le contour extérieur de l'ensemble reste.
     let mp = "",
-      jn = "";
+      jn = "",
+      out = "",
+      sel = "";
+    const OUT = ` fill="#222" stroke="#222" stroke-width=".024" stroke-linejoin="miter"`;
     state.segs.forEach(seg => {
       const d = segDir(seg);
       if (!d.a) return;
@@ -193,7 +199,10 @@ export function draw() {
           ay = d.a.y + d.uy * s0,
           bxp = d.a.x + d.ux * s1,
           byp = d.a.y + d.uy * s1;
-        mp += `<polygon points="${ax + nx},${ay + ny} ${bxp + nx},${byp + ny} ${bxp - nx},${byp - ny} ${ax - nx},${ay - ny}" fill="${col}" stroke="${on ? "var(--sel)" : "#222"}" stroke-width=".012"/>`;
+        const pts = `${ax + nx},${ay + ny} ${bxp + nx},${byp + ny} ${bxp - nx},${byp - ny} ${ax - nx},${ay - ny}`;
+        out += `<polygon points="${pts}"${OUT}/>`;
+        mp += `<polygon points="${pts}" fill="${col}"/>`;
+        if (on) sel += `<polygon points="${pts}" fill="none" stroke="var(--sel)" stroke-width=".024"/>`;
         if (look.wave && !on) mp += `<polyline class="wave" points="${wavePoints({ x: ax, y: ay }, { x: bxp, y: byp }, e2 * 2).map((p) => p.x.toFixed(3) + "," + p.y.toFixed(3)).join(" ")}" fill="none" stroke="#222" stroke-width=".01"/>`;
       });
     });
@@ -203,9 +212,13 @@ export function draw() {
         if ((s.a === n.id || s.b === n.id) && epOf(s) > e) { e = epOf(s); top = s; }
       });
       const lk = top && wallLook(matOf(top), batiStyle());
-      if (e > 0) jn += `<rect x="${n.x - e / 2}" y="${n.y - e / 2}" width="${e}" height="${e}" fill="${lk.hatch ? "url(#wall-hatch)" : lk.fill}"/>`;
+      if (e > 0) {
+        const r = `x="${n.x - e / 2}" y="${n.y - e / 2}" width="${e}" height="${e}"`;
+        out += `<rect ${r}${OUT}/>`;
+        jn += `<rect ${r} fill="${lk.hatch ? "url(#wall-hatch)" : lk.fill}"/>`;
+      }
     });
-    h += `<g>${jn}${mp}</g>`;
+    h += `<g class="walls-out">${out}</g><g>${mp}${jn}</g>${sel ? `<g class="walls-sel">${sel}</g>` : ""}`;
   }
   // v74 MAJ 3 : sanitaires à leur vraie taille et volumes de la salle de bain (hachures en pointillés, comme les plans du BE)
   if (layers.appareils.on && state.app.some(a => isSani(a.t))) {

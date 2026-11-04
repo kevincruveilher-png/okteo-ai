@@ -1861,6 +1861,15 @@ try {
     if (!(r0.thick && r0.thin && w.mat === "doublage" && w.wave > 0 && back === r0.was && gris.st === "gris" && gris.grey > 0 && gris.hatch === 0 && pdf.cotes.length >= 1 && r.abrev && !r.full && r.cm)) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("v77 : murs dessinés avec un seul contour d'ensemble (pas de trait en travers des angles ni des T)", async () => {
+    const r = await ev(() => {
+      const out = document.querySelector("#sv g.walls-out"), fill = out && out.nextElementSibling;
+      return { out: out ? out.querySelectorAll("polygon").length : 0, joints: out ? out.querySelectorAll("rect").length : 0,
+        stroked: fill ? [...fill.querySelectorAll("polygon")].filter((p) => p.getAttribute("stroke") === "#222").length : -1, segs: okteo.state.segs.filter((s) => !s.virt).length };
+    });
+    if (!(r.out >= r.segs && r.segs > 0 && r.joints > 0 && r.stroked === 0)) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("plan du BE (v74 MAJ 4) : symboles FTZ à l'écran (préférence), gaines à la couleur de la boîte, PMR, feuille A3 (repères Courier, plaques)", async () => {
     await page.waitForFunction(() => document.querySelectorAll("#sv g.dev g.ftz").length > 0, null, { timeout: 15000 });
     const scr = await ev(() => {
