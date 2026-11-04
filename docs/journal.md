@@ -1,3 +1,28 @@
+## 04/11/2026 — n° 10 : zones d'exclusion (lot C, go de Kévin)
+
+- Décision de Kévin : une zone d'exclusion exclut tout (boîtes, gaines, appareils, lignes directes) ; hachurée en 2D, bloc
+  rouge transparent en 3D ; contournement automatique, longueurs recalculées ; sur le plan, seules les lignes directes qui
+  contournent un obstacle sont tracées.
+- Une zone est un « appareil » sans électricité ni repère, posé comme un sanitaire : types `ZONE` (rectangle) et `ZONEC`
+  (cercle / ellipse) dans `volumes.js` (`zone: true`, `saniShape`, `sani3d` sur toute la hauteur) et `appareils.js` (groupe
+  « Zones d'exclusion » du bouton « Autres ») ; Propriétés : longueur, largeur, rotation, aide propre.
+- `src/cablage/exclusion.js` (pur) : `isZone`, `zonePoly`, `zonesByLevel`, `segHits`, `detour(A, B, polys)` (plus court
+  chemin par les sommets des zones agrandies de 15 cm, graphe de visibilité ; une zone qui contient un bout est ignorée),
+  `detourVia` (avec les points tracés à la main), `pushOut` (boîte repoussée hors de la zone + 15 cm), `insideAny`.
+- Moteur : `gaines.js` : gaines d'appareil, d'alimentation, tronçons de pontage et lignes directes contournent les zones de
+  leur niveau (`g.via`, `g.detour`, longueur par le contournement) ; `boites.js` `placeBoxes` repousse les boîtes placées.
+  Contrôle `zone` (check.js) : appareil électrique posé dans une zone.
+- Plan : zone hachurée rouge (`g.sani.zone`, motif `#zhatch`) ; gaines et pontages en tracé brisé autour des zones ; ligne
+  directe qui contourne = tracé en tirets du tableau à l'appareil (`path.direct-route.detour`) + flèche. Impression : mêmes
+  tracés (`ends[].auto` sans ronds de points de passage, `direct[].via`), zone hachurée rouge. 3D : bloc rouge transparent
+  (`userData.zone`), gaines 3D par les points du contournement.
+- Limite : un appareil n'est pas déplacé automatiquement hors d'une zone (signalé par le contrôle) ; une boîte glissée à la
+  main dans une zone n'est pas signalée.
+- Tests : `scripts/zones.test.mjs` (7, dans check) ; smoke : zone posée entre une boîte et un appareil, groupes « Autres » à 8.
+
+- Fusion dans `main` le 04/11/2026 (go de Kévin « go bloc C et fusionne ») : `npm run check` vert sur GitHub Actions
+  (smoke 201/201) ; workflow temporaire retiré.
+
 ## 04/11/2026 — n° 7 : mode de pieuvre « Bureau d'études » (lot B)
 
 - Demande de Kévin : séjour seul ou + garage ; cuisine seule ou + PC du séjour ou + cellier proche ; chambre 1 + 2 ;

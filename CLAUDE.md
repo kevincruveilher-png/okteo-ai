@@ -540,6 +540,11 @@ boites.js `MODES.be`, `beKindOf`, `BE_COUPLES`, `placeLevelBE` (pièces voisines
 petites pièces ; séjour trop chargé → prises vers la cuisine ; boîte dans ses pièces) ; volets toujours à part en mode BE ;
 `autoBoxes` passe les pièces. Test `scripts/mode-be.test.mjs`.
 
+### Zones d'exclusion (n° 10, lot C du 04/11/2026)
+Types `ZONE` / `ZONEC` (volumes.js `zone: true`, groupe « Zones d'exclusion ») ; `src/cablage/exclusion.js` (`zonesByLevel`,
+`detour`, `detourVia`, `pushOut`) ; gaines / pontages / alimentations / lignes directes `via` + `detour` (gaines.js) ;
+`placeBoxes` repousse les boîtes ; contrôle `zone` ; render / print / 3D suivent `via`.
+
 ### Sanitaires (n° 9, lot A du 04/11/2026)
 volumes.js `SANI` + WC / LAVABO / VASQUE / EVIER (`vol` seulement BAIG / RECV / DITAL : `hasVolumes`), `saniShape(a)`
 (dessin commun écran + impression, gris pointillé), `sani3d(a)` (volumes 3D) ; `exportGeometry().sanis` ; scene.js

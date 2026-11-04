@@ -154,12 +154,15 @@ export function buildHouse(T, data3d, { cut = Infinity, contrast = true, H = H3D
   // n° 9 : sanitaires (baignoire, receveur, WC, lavabo, vasque, évier) en volume blanc, contours gris ; pas cliquables
   const saniG = new T.Group(); saniG.name = "sanitaires";
   const saniM = new T.MeshStandardMaterial({ color: "#F4F6F8", roughness: 0.35 }), saniE = new T.LineBasicMaterial({ color: "#8A8F96" });
+  // n° 10 : zone d'exclusion = bloc rouge transparent (on voit à travers, on comprend qu'il faut l'éviter)
+  const zoneM = new T.MeshBasicMaterial({ color: "#E5484D", transparent: true, opacity: 0.22, depthWrite: false, side: T.DoubleSide }), zoneE = new T.LineBasicMaterial({ color: "#C0262D" });
   for (const s of data3d.sanis || []) for (const p of s.solid || []) {
     if (!p.pts || p.pts.length < 3 || !(p.z1 > p.z0)) continue;
     const sh = new T.Shape(); p.pts.forEach((q, i) => (i ? sh.lineTo(q.x, -q.y) : sh.moveTo(q.x, -q.y)));
-    const g = new T.ExtrudeGeometry(sh, { depth: p.z1 - p.z0, bevelEnabled: false, curveSegments: 4 });
-    const m = new T.Mesh(g, saniM); m.rotation.x = -Math.PI / 2; m.position.y = p.z0; m.castShadow = true; m.receiveShadow = true; m.userData.sani = s.id;
-    const e = new T.LineSegments(new T.EdgesGeometry(g, 30), saniE); e.rotation.x = -Math.PI / 2; e.position.y = p.z0;
+    const z1 = p.zone ? Math.max(p.z1, H.plafond || 2.5) : p.z1;
+    const g = new T.ExtrudeGeometry(sh, { depth: z1 - p.z0, bevelEnabled: false, curveSegments: 4 });
+    const m = new T.Mesh(g, p.zone ? zoneM : saniM); m.rotation.x = -Math.PI / 2; m.position.y = p.z0; m.castShadow = !p.zone; m.receiveShadow = !p.zone; m.userData.sani = s.id; if (p.zone) { m.userData.zone = s.id; m.renderOrder = 5; }
+    const e = new T.LineSegments(new T.EdgesGeometry(g, 30), p.zone ? zoneE : saniE); e.rotation.x = -Math.PI / 2; e.position.y = p.z0;
     saniG.add(m, e);
   }
   root.add(saniG);
@@ -167,7 +170,7 @@ export function buildHouse(T, data3d, { cut = Infinity, contrast = true, H = H3D
   return {
     group: root, walls: wallG, floors: floorG, devices: devG, boxes: boxG, ceilings: ceilG, sanis: saniG, pick, M,
     setCut(h) { buildWalls(h); },
-    dispose() { [wallG, floorG, devG, boxG, ceilG, saniG].forEach(disposeGroup); Object.values(M).forEach((m) => m.dispose()); saniM.dispose(); saniE.dispose(); },
+    dispose() { [wallG, floorG, devG, boxG, ceilG, saniG].forEach(disposeGroup); Object.values(M).forEach((m) => m.dispose()); saniM.dispose(); saniE.dispose(); zoneM.dispose(); zoneE.dispose(); },
   };
 }
 

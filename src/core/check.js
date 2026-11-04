@@ -13,7 +13,8 @@ import { TYPES } from "./model.js";
 import { appIndex, allLinks } from "./levels.js";
 import { linkRole, roomPoly, wallMounted, EXTERIEURS } from "./attach.js";
 import { epOf, segDir } from "./model.js";
-import { checkVolumes } from "../cablage/volumes.js";
+import { checkVolumes, isSani } from "../cablage/volumes.js";
+import { zonesByLevel, insideAny } from "../cablage/exclusion.js";
 import { state } from "./model.js";
 import { circuitMap } from "./render.js";
 import { poseIssues, POSE_KINDS } from "../3d/pose.js";
@@ -24,6 +25,7 @@ import { hDefault, isPmr } from "./model.js";
 export const CHECK_KINDS = {
   sdb: "Appareil dans un volume de salle de bain",
   mur: "Appareil dans l'épaisseur d'un mur",
+  zone: "Appareil dans une zone d'exclusion",
   ...POSE_KINDS,
   vmc: "Parcours VMC à vérifier",
   implantation: "Emplacement à préciser",
@@ -62,7 +64,10 @@ export function linkTables(idx = appIndex()) {
 
 export function controlIssues() {
   const idx = appIndex(), { lights, cmds } = linkTables(idx), out = [];
+  // n° 10 : zones d'exclusion par niveau : aucun appareil électrique dedans (les boîtes placées en sont repoussées)
+  const ZL = zonesByLevel([...idx].map(([id, v]) => ({ ...v.a, id, lv: v.lv })));
   for (const [id, { lv, a }] of idx) {
+    if (!isSani(a.t) && insideAny(a, ZL[lv])) out.push({ kind: "zone", ids: [id], lv });
     // n° 13 : appareil mural (d'intérieur) posé dans l'épaisseur d'un mur sans y être accroché (niveau ouvert)
     if (lv === K.LV.cur && !a.seg && wallMounted(a.t) && !EXTERIEURS.has(a.t) && state.segs.some(sg => {
       if (sg.virt) return false;
