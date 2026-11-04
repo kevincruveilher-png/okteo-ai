@@ -50,6 +50,7 @@ export const CAB_DEFAULTS = {
   couleursCommande: "orange, violet, noir, marron, ivoire",
   bagues: true,            // bague numérotée sur chaque circuit de la gaine d'alimentation (n° du circuit, T1… télérupteur)
   memeEndroit: 0.3,        // appareils à moins de … m l'un de l'autre = même endroit = une seule gaine (repiquage)
+  pontageMax: 5,           // n° 6 : pontage (choix du chantier) : endroits au plus à la suite sur une même gaine
   cableExt: true,          // appareil à l'extérieur : câble dans la gaine
   cablesStock: "3G1,5, 3G2,5, 3x1,5, 4G1,5, 4G2,5, 5G1,5, 5G2,5",
   cableBleuLibre: false,   // câble sans neutre : le bleu peut servir de phase ou de retour (sinon : câble plus gros, fil isolé)
@@ -104,7 +105,8 @@ export const CAB_FIELDS = [
     ["gaineLongue", "Note « belle pieuvre » : une gaine d'appareil est longue au-delà de", "m", "num"]],
     "Capacité d'une boîte et connecteurs utilisés pour les raccordements."],
   ["Gaines et câbles", [["icta16", "ICTA 16 : somme des sections des fils au plus", "mm²", "num"], ["icta20", "ICTA 20 : somme des sections des fils au plus (au-delà : doute)", "mm²", "num"],
-    ["memeEndroit", "Appareils au même endroit (une seule gaine) : distance maximum", "m", "num"],
+    ["memeEndroit", "Association : appareils au même endroit (même plaque, une seule gaine) : distance maximum", "m", "num"],
+    ["pontageMax", "Pontage (si coché pour le chantier dans l'onglet Câblage) : prises ou lumières au plus à la suite sur une même gaine", "endroits", "int"],
     ["cableExt", "Appareil à l'extérieur : câble dans la gaine", "", "bool"], ["cablesStock", "Câbles en stock (le plus petit qui convient est choisi)", "", "txt"],
     ["cableBleuLibre", "Câble sans neutre : le bleu peut servir de phase ou de retour (sinon câble plus gros, fil en trop isolé)", "", "bool"]],
     "Diamètre des gaines par la somme des sections (R-074), gaines partagées et câbles pour l'extérieur."],

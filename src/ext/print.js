@@ -59,7 +59,7 @@ export function rotateGeo(geo, deg) {
   });
   g.links = (geo.links || []).map((l) => ({ a: R(l.a), b: R(l.b) }));
   g.dims = (geo.dims || []).map((x) => ({ ...x, a: R(x.a), b: R(x.b) }));
-  g.boxes = (geo.boxes || []).map((b) => ({ ...R(b), rot: d, deps: b.deps.map((dp) => ({ ...dp, ends: dp.ends.map((e) => ({ ...R(e), route: RL(e.route) })) })) }));
+  g.boxes = (geo.boxes || []).map((b) => ({ ...R(b), rot: d, deps: b.deps.map((dp) => ({ ...dp, ends: dp.ends.map((e) => ({ ...R(e), route: RL(e.route) })), ponts: (dp.ponts || []).map((p) => ({ ...p, a: R(p.a), b: R(p.b) })) })) }));
   if (geo.fond) {
     const F = geo.fond, P = [{ x: F.x, y: F.y }, { x: F.x + F.w, y: F.y }, { x: F.x, y: F.y + F.h }, { x: F.x + F.w, y: F.y + F.h }].map(R);
     const x0 = Math.min(...P.map((p) => p.x)), y0 = Math.min(...P.map((p) => p.y));
@@ -436,6 +436,14 @@ export async function buildPlanPdf(geoIn, opts = {}) {
         for (let i = 1; i < pts.length; i++) line(pts[i - 1], pts[i]);
         doc.setLineDashPattern([], 0);
         if (e.route && e.route.length) { doc.setFillColor(255, 255, 255); e.route.forEach((p) => doc.circle(X(p.x), Y(p.y), 0.45, "FD")); }
+      });
+      // n° 6 : pontage d'un appareil au suivant : trait mixte, même couleur que la gaine
+      (d.ponts || []).forEach((p) => {
+        const c = FZ ? rgb(boxColor(b.n)) : rgb(p.color) || [130, 130, 130], q = gaineCtrl(p.a, p.b, 0.12);
+        doc.setDrawColor(...c); doc.setLineWidth(0.15); doc.setLineDashPattern([1.6, 0.6, 0.35, 0.6], 0);
+        const pts = Array.from({ length: 13 }, (_, i) => { const t = i / 12, v = 1 - t; return { x: v * v * p.a.x + 2 * v * t * q.x + t * t * p.b.x, y: v * v * p.a.y + 2 * v * t * q.y + t * t * p.b.y }; });
+        for (let i = 1; i < pts.length; i++) line(pts[i - 1], pts[i]);
+        doc.setLineDashPattern([], 0);
       });
     }));
     apps.forEach((a) => {

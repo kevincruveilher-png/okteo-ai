@@ -476,7 +476,9 @@ export function okteoGeo() {
         face: d.face,
         slot: d.slot,
         ends: d.tab ? (tabA ? [{ key: "tab", x: tabA.x, y: tabA.y, route: (R.tab || []).map(p => ({ x: p.x, y: p.y })), color: null }] : [])
-          : d.apps.map(a => ({ key: a.id, x: a.x, y: a.y, route: (R[a.id] || []).map(p => ({ x: p.x, y: p.y })), color: (cmap[a.id] || {}).color || null }))
+          : d.head.map(a => ({ key: a.id, x: a.x, y: a.y, route: (R[a.id] || []).map(p => ({ x: p.x, y: p.y })), color: (cmap[a.id] || {}).color || null })),
+        // n° 6 : tronçons de pontage (d'un appareil au suivant)
+        ponts: d.tab ? [] : (d.ponts || []).flatMap(p => p.to.map(t => ({ a: { x: p.from.x, y: p.from.y }, b: { x: t.x, y: t.y }, key: t.id, color: (cmap[t.id] || {}).color || null })))
       }))
     };
   });

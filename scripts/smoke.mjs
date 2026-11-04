@@ -2572,6 +2572,22 @@ try {
     if (!(before.n > 0 && before.d && before.inC && after.c === "connecte" && !after.d && !after.inC)) throw new Error(JSON.stringify({ before, after }));
     return true;
   });
+  await check("n° 6 : pontage coché dans le panneau Câblage → prises / lumières reliées de proche en proche (moins de départs), tronçons sur le plan ; association toujours active ; un Ctrl+Z", async () => {
+    await ev(() => okteoExt.panel.show("cablage")); await page.waitForTimeout(150);
+    await page.waitForSelector("#bx-pont");
+    const probe = () => ev(async () => { const m = await import("/src/ext/cablage-data.js"), W = m.wiringNow(okteo), G = W.boxes.flatMap((b) => b.gaines.filter((g) => g.kind === "app"));
+      return { on: !!(okteo.cab.choix || {}).pontage, deps: G.length, ponts: G.filter((g) => g.ponts).length, assoc: G.filter((g) => g.appIds.length > 1 && !g.ponts).length, cu: W.totals.cuivre }; });
+    const before = await probe();
+    await page.check("#bx-pont");
+    const after = await probe();
+    const keepV = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits, tab: okteo.tab }));
+    const drawn = await ev(async () => { okteo.setTab("plan"); okteo.showCircuits = true; okteo.toggleView("gaines", true); (await import("/src/ext/cablage-data.js")).wiringNow(okteo); window.__okteo.draw(); return document.querySelectorAll("#sv path.pont").length; });
+    await ev(() => okteo.undo());
+    await ev((V) => { Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; okteo.setTab(V.tab); }, keepV);
+    const back = await probe();
+    if (!(!before.on && before.ponts === 0 && before.assoc > 0 && after.on && after.ponts > 0 && after.deps < before.deps && drawn > 0 && !back.on && back.deps === before.deps)) throw new Error(JSON.stringify({ before, after, drawn, back }));
+    return true;
+  });
 
   console.log("Plan lisible (v58)");
   await check("taille des symboles d'après le dessin (12 à 26 cm, « Auto ») ; le curseur la règle à la main, « Auto » la recalcule", async () => {

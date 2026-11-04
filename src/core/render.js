@@ -404,10 +404,15 @@ export function draw() {
             bl += `<path class="gaine alim" data-b="${b.id}" data-k="tab" d="${gpath("tab", d.P, tab)}" fill="none" stroke="var(--fg)" stroke-width="${1.2 * pm}" stroke-dasharray="${6 * pm} ${4 * pm}" opacity="0.45"/>`;
             return;
           }
-          d.apps.forEach(a => {
+          d.head.forEach(a => {
             const c = cm[a.id];
             bl += `<path class="gaine" data-b="${b.id}" data-k="${a.id}" d="${gpath(a.id, d.P, a)}" fill="none" stroke="${pref("charteBE") !== false ? boxColor(b.n) : c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" opacity="${on ? 0.9 : 0.55}"/>`;
           });
+          // n° 6 : pontage : d'un appareil au suivant, trait mixte de la même couleur
+          d.ponts.forEach(p => p.to.forEach(t => {
+            const c = cm[t.id], q = gaineCtrl(p.from, t, 0.12);
+            bl += `<path class="pont" data-b="${b.id}" data-k="${t.id}" d="M${p.from.x} ${p.from.y} Q ${q.x} ${q.y} ${t.x} ${t.y}" fill="none" stroke="${pref("charteBE") !== false ? boxColor(b.n) : c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" stroke-dasharray="${7 * pm} ${2.5 * pm} ${1.5 * pm} ${2.5 * pm}" opacity="${on ? 0.9 : 0.6}"><title>Pontage</title></path>`;
+          }));
         });
         for (const [key, pts] of Object.entries(R)) if (key !== "tab" || pref("parcours")) pts.forEach(p => {
           wp += `<circle class="wp" cx="${p.x}" cy="${p.y}" r="${(on ? 4 : 3) * pm}" fill="var(--panel)" stroke="${on ? "var(--sel)" : "var(--fg)"}" stroke-width="${1.4 * pm}"/>`;
@@ -898,7 +903,7 @@ export function levelBows(BX, pm, byId, tab) {
     LY.deps.forEach(d => {
       if (!d.face || d.slot == null) return;
       const P = d.P;   // point d'accroche affiché (sa position ne change avec le zoom que si la boîte atteint sa taille mini)
-      const ends = d.tab ? (tab ? [["tab", tab]] : []) : d.apps.map(a => [a.id, a]);
+      const ends = d.tab ? (tab ? [["tab", tab]] : []) : d.head.map(a => [a.id, a]);
       ends.forEach(([key, t]) => { const r = R[key]; if (r && r.length) fixed.push([P, ...r, t]); else list.push({ key: b.id + "|" + key, P, T: { x: t.x, y: t.y } }); });
     });
     const sig = JSON.stringify([r3(b.x), r3(b.y), list.map(g => [g.key, r3(g.P.x), r3(g.P.y), r3(g.T.x), r3(g.T.y)]), fixed.map(L => L.map(p => [r3(p.x), r3(p.y)]))]);
@@ -915,7 +920,7 @@ export function gaineCrossings() {
   const BX = (K.CAB.boxes || []).filter(b => b.lv === K.LV.cur), byId = Object.fromEntries(state.app.map(a => [a.id, a])), tab = state.app.find(a => a.t === "TAB");
   if (!BX.length) return { n: 0, intra: 0, boxes: [] };
   const bows = levelBows(BX, pmNow(), byId, tab), list = [];
-  BX.forEach(b => boxLayout(b).deps.forEach(d => { if (d.face && !d.tab) d.apps.forEach(a => { if (!(b.routes || {})[a.id]) list.push({ box: b.n, key: b.id + "|" + a.id, P: d.P, T: a, k: bows.get(b.id + "|" + a.id) ?? BOW0 }); }); }));
+  BX.forEach(b => boxLayout(b).deps.forEach(d => { if (d.face && !d.tab) d.head.forEach(a => { if (!(b.routes || {})[a.id]) list.push({ box: b.n, key: b.id + "|" + a.id, P: d.P, T: a, k: bows.get(b.id + "|" + a.id) ?? BOW0 }); }); }));
   const C = list.map(g => curve(g.P, g.T, g.k)), out = { n: 0, intra: 0, boxes: new Set() };
   for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
     const x = polyCross(C[i], C[j]);
@@ -940,10 +945,17 @@ export function boxLayout(b, pm = pmNow()) {
     // v56 : même découpage que le calcul des gaines (R-073 : une gaine qui passerait en ICTA 25 est coupée en deux) ;
     // K.gaineGroups[box] = { appId: 1er appareil de sa gaine }, transmis par l'onglet Câblage (okteo.setGaineGroups)
     const gk = (K.gaineGroups || {})[b.id];
-    const sp = spots.find(g => g.some(o => dist(o.x, o.y, a.x, a.y) <= near + 1e-9) && (!gk || !gk[a.id] || !gk[g[0].id] || gk[a.id] === gk[g[0].id]));
+    // n° 6 : quand le calcul a donné le découpage, il fait foi (pontage : appareils éloignés sur une même gaine)
+    const sp = gk && gk[a.id] ? spots.find(g => gk[g[0].id] === gk[a.id]) : spots.find(g => g.some(o => dist(o.x, o.y, a.x, a.y) <= near + 1e-9) && (!gk || !gk[g[0].id]));
     if (sp) sp.push(a); else spots.push([a]);
   });
-  const deps = spots.map(G => { const r = (G.map(a => R[a.id]).find(r => r && r.length) || [])[0]; return { id: G[0].id, keys: G.map(a => a.id), apps: G, t: G[0], p: r || G[0], pts: r ? [r] : G.map(a => ({ x: a.x, y: a.y })) }; });
+  // n° 6 : tronçons de pontage [de (appareil), vers (appareils)] ; la gaine de la boîte ne va qu'au 1er endroit (head)
+  const PT = ((K.gaineGroups || {})[b.id] || {}).__ponts || [], tgt = new Set(PT.flatMap(([, ids]) => ids));
+  const deps = spots.map(G => {
+    const head = G.filter(a => !tgt.has(a.id)), H = head.length ? head : G, r = (H.map(a => R[a.id]).find(r => r && r.length) || [])[0];
+    const ponts = PT.filter(([f]) => G.some(a => a.id === f)).map(([f, ids]) => ({ from: byId[f], to: ids.map(id => byId[id]).filter(Boolean) })).filter(p => p.from && p.to.length);
+    return { id: G[0].id, keys: G.map(a => a.id), apps: G, head: H, ponts, t: H[0], p: r || H[0], pts: r ? [r] : H.map(a => ({ x: a.x, y: a.y })) };
+  });
   if (tab) deps.push({ id: "tab", keys: ["tab"], apps: [], t: tab, p: (R.tab || [])[0] || tab, tab: true });
   const L = portLayout(b, deps, N, b.ports || {});
   deps.forEach(d => { const q = L.get(d.id) || {}; d.face = q.face || null; d.slot = q.slot ?? null; d.P = portXY(b, S, N, d.face, d.slot); });
@@ -996,7 +1008,9 @@ export function hitRoute(wx, wy) {
   for (const b of (K.CAB.boxes || []).filter(x => x.lv === K.LV.cur)) {
     const R = b.routes || {}, LY = boxLayout(b, pm), start = {};
     LY.deps.forEach(d => d.keys.forEach(k => (start[k] = d.P)));
-    const keys = [...b.apps.filter(id => byId[id]), ...(tab ? ["tab"] : [])];
+    // n° 6 : un appareil desservi par pontage n'a pas de gaine depuis la boîte
+    const pt = new Set(LY.deps.flatMap(d => (d.ponts || []).flatMap(p => p.to.map(t => t.id))));
+    const keys = [...b.apps.filter(id => byId[id] && !pt.has(id)), ...(tab ? ["tab"] : [])];
     for (const key of keys) {
       if (key === "tab" && !pref("parcours")) continue;
       const P0 = start[key] || b, pts = [P0, ...(R[key] || []), key === "tab" ? tab : byId[key]];
