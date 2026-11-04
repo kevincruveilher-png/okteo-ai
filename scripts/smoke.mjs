@@ -1885,6 +1885,7 @@ try {
     return true;
   });
   await check("n° 13 + 8 : symboles muraux hors du mur et dans le sens de leur mur ; appareil dans un mur signalé puis recollé ; repère glissé à la main (gardé, un Ctrl+Z)", async () => {
+    for (let i = 0; i < 3 && (await page.isVisible(".pal-back")); i++) await page.keyboard.press("Escape");
     await ev(() => { okteo.setTab("plan"); okteo.setTool("sel"); okteo.viewPreset("impl"); okteo.fit(); okteoExt.panel?.close?.("assistant"); });
     const r1 = await ev(() => {
       const S = okteo.state, N = (id) => S.nodes.find((n) => n.id === id);
