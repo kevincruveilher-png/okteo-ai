@@ -1,3 +1,11 @@
+## 04/11/2026 — n° 12 : cotes des boîtes depuis la face EXTÉRIEURE du mur extérieur (réponse de Kévin)
+
+- Kévin : « extérieur de la boîte est extérieure du mur » → la cote part de la face extérieure du mur extérieur (et plus de
+  la face côté pièce, choix provisoire du lot A). `ftz-sheet.js` `extHit` : dernière face rencontrée par le rayon ; le trait
+  d'attache côté mur s'arrêtait déjà sur la face extérieure (`drawBoxCotes`). Côté boîte : centre de la boîte (Oktéo ne
+  connaît pas encore les dimensions réelles de la boîte) — question posée à Kévin (centre ou bord ?).
+- Test : `scripts/charte.test.mjs` (valeurs + épaisseur du mur extérieur, fenêtre comprise).
+
 ## 04/11/2026 — n° 9 : sanitaires WC, lavabo, vasque, évier ; tous en gris pointillé et en volume dans la vue 3D (lot A)
 
 - Demande de Kévin : ajouter WC, lavabo, vasque, évier (dessin inspiré des plans de pavillonneurs), tous les sanitaires en

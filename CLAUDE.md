@@ -463,7 +463,7 @@ après 2 s seulement (`okteoExt.aiReleve.attente`). Planches source : artefact �
 `src/ext/prep-ui.js` (`okteoExt.prep`, `meta.impression`, images `img:<chantier>:<id>`). Décisions : `docs/charte-plan-ftz.md`.
 MAJ 2 : `matOf(seg)` / `seg.mat` (maconnerie | cloison | doublage), `batiStyle()` / `meta.bati` (hachures | gris),
 `wallLook` / `wavePoints` (plan-style.js, écran + papier), `src/print/abrev.js` (préférence `abrev`), `boxCotes` /
-`drawBoxCotes` (ftz-sheet.js).
+`drawBoxCotes` (ftz-sheet.js) ; n° 12 : cote depuis la face EXTÉRIEURE du mur extérieur (`extHit`).
 MAJ 3 : `src/cablage/volumes.js` (sanitaires BAIG / RECV / DITAL = appareils sans circuit ni repère, `a.sw/sd/srot` ;
 `volumesOf`, `checkVolumes` → contrôle `sdb` ; `exportGeometry().volumes`).
 MAJ 4-5 : `src/print/ftz-symbols.js` (`boxColor`, `ftzSymbol`, `plaques`), préférence `charteBE` (symboles FTZ à l'écran

@@ -298,20 +298,20 @@ function rayHits(walls, x, y, dx, dy) {
   } });
   return out.sort((p, q) => p.d - q.d);
 }
-// distance de la boîte à la face côté pièce du MUR EXTÉRIEUR dans une direction : le dernier mur rencontré par le rayon
-// (au-delà, plus rien : c'est l'enveloppe). Un rayon qui passe par une fenêtre ne voit pas le mur extérieur : on essaie des
+// distance de la boîte à la FACE EXTÉRIEURE du MUR EXTÉRIEUR dans une direction (Kévin, 04/11 : « extérieur du mur ») :
+// la dernière face rencontrée par le rayon (au-delà, plus rien : c'est l'enveloppe). Un rayon qui passe par une fenêtre ne voit pas le mur extérieur : on essaie des
 // rayons décalés jusqu'à 1,5 m de part et d'autre et on garde le mur le plus lointain trouvé.
 function extHit(walls, x, y, dx, dy) {
   let best = null;
   for (const o of [0, 0.5, -0.5, 1, -1, 1.5, -1.5]) {
     const H = rayHits(walls, x + (dy ? o : 0), y + (dx ? o : 0), dx, dy);
     if (!H.length) continue;
-    const far = H[H.length - 1], inner = H.find((h) => h.i === far.i);
-    if (!best || far.d > best.far + 0.05) best = { far: far.d, d: inner.d };
+    const far = H[H.length - 1];
+    if (!best || far.d > best.far + 0.05) best = { far: far.d, d: far.d };
   }
   return best ? best.d : Infinity;
 }
-// cotes de position d'une boîte (n° 12, Kévin 04/11) : prises sur le MUR EXTÉRIEUR (face côté pièce), dans chaque axe du
+// cotes de position d'une boîte (n° 12, Kévin 04/11) : prises sur la FACE EXTÉRIEURE du MUR EXTÉRIEUR, dans chaque axe du
 // côté du mur extérieur le plus proche ; plus jamais sur une cloison
 export function boxCotes(boxes, walls, max = 12) {
   const out = [];

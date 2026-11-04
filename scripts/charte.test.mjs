@@ -58,16 +58,16 @@ check("noms abrégés : Pièce de vie → SEJOUR, Chambre 2 → CH2, Salle de ba
   if (got.join() !== want.join()) throw new Error(got.join(", "));
   return abrevRoom("Chambre 1", parseAbrev("Chambre = CHB")) === "CHB1" && abrevRoom("Placard", parseAbrev("Pla = X")) === "PLACARD";
 });
-check("cotes de boîte (n° 12) : prises sur le mur extérieur le plus proche (jamais une cloison), même à travers une fenêtre, en cm", () => {
+check("cotes de boîte (n° 12) : prises sur la face extérieure du mur extérieur le plus proche (jamais une cloison), même à travers une fenêtre, en cm", () => {
   const R = (x0, y0, x1, y1) => [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }];
   const walls = [R(0, 0, 10, 0.2), R(0, 7.8, 10, 8), R(0, 0, 0.2, 8), R(9.8, 0, 10, 8), R(4, 0, 4.07, 8)];   // pièce 10 × 8 + cloison en x = 4
   const c = boxCotes([{ id: "b1", n: "LI01", x: 2.6, y: 1.7 }, { id: "b2", n: "LI02", x: 7, y: 6 }], walls);
   const f = (id, ax) => c.find((k) => k.box === id && k.axis === ax);
-  if (!(f("b1", "x").cm === 240 && f("b1", "y").cm === 150 && f("b2", "x").cm === 280 && f("b2", "y").cm === 180 && Math.abs(f("b2", "x").a - 9.8) < 1e-9)) throw new Error(JSON.stringify(c));
+  if (!(f("b1", "x").cm === 260 && f("b1", "y").cm === 170 && f("b2", "x").cm === 300 && f("b2", "y").cm === 200 && Math.abs(f("b2", "x").a - 10) < 1e-9)) throw new Error(JSON.stringify(c));
   // mur du haut coupé par une fenêtre de 1,20 m au droit de la boîte, cloison horizontale à y = 3 : la cote vise le mur extérieur
   const w2 = [R(0, 0, 2, 0.2), R(3.2, 0, 10, 0.2), R(0, 7.8, 10, 8), R(0, 0, 0.2, 8), R(9.8, 0, 10, 8), R(0.2, 3, 4, 3.07)];
   const c2 = boxCotes([{ id: "b3", n: "LI03", x: 2.6, y: 1.7 }], w2), up = c2.find((k) => k.axis === "y");
-  if (!(up && up.cm === 150)) throw new Error(JSON.stringify(c2));
+  if (!(up && up.cm === 170)) throw new Error(JSON.stringify(c2));
 });
 check("dessin des murs : maçonnerie hachurée ou gris plein, cloison pleine, doublage ondulé", () => {
   return wallLook("maconnerie").hatch && wallLook("maconnerie", "gris").fill === "#9A9A9A" && !wallLook("maconnerie", "gris").hatch && wallLook("cloison").fill === "#202020" && wallLook("doublage").wave && wavePoints({ x: 0, y: 0 }, { x: 1, y: 0 }, 0.1).length > 20;
