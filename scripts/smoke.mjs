@@ -1845,6 +1845,12 @@ try {
     if (!(bg.pages === 2 && bg.legends.join() === "2" && bg.boxes > 0 && n === 1 && r.w === 1191 && r.h === 842 && r.pages === 2 && r.t1 && !r.t2 && saved.aff === "AF12345" && saved.items === 1 && closed)) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("n° 2 : légende de la feuille A3 placée sans chevaucher le plan (place libre, colonnes, réduction, plan décalé ou page à part)", async () => {
+    const r = await ev(async () => { const R = await okteoExt.prep.build(true); return { L: R.legends.map((l) => ({ page: l.page, where: l.where, cols: l.cols, k: l.k, x: l.x, y: l.y, w: l.w, h: l.h })), pages: R.pages, area: R.area }; });
+    const inArea = r.L.every((l) => l.x >= r.area.x - 0.5 && l.y >= r.area.y - 0.5 && l.x + l.w <= r.area.x + r.area.w + 0.5 && l.y + l.h <= r.area.y + r.area.h + 0.5);
+    if (!(r.L.length >= 1 && r.L.every((l) => l.where && l.cols >= 1 && l.k > 0.6) && inArea)) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("bâti du BE (v74 MAJ 2) : type de mur, style gris, noms abrégés bleus, cotes des boîtes sur la feuille A3", async () => {
     const r0 = await ev(() => { const M = okteo.wallMats(), thick = M.find((m) => m.mat === "maconnerie"); return { n: M.length, thin: M[M.length - 1].id, was: M[M.length - 1].mat, thick: !!thick }; });
     const w = await ev((id) => { okteo.setWallMat(id, "doublage"); return { wave: document.querySelectorAll("#sv polyline.wave").length, mat: okteo.wallMats().find((m) => m.id === id).mat }; }, r0.thin);
