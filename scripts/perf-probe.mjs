@@ -26,11 +26,35 @@ const info = await ev(() => {
   const T = ["PC16", "PC16", "PC16", "LUM", "INT", "VV", "RJ45", "APP"], list = [], links = [];
   let seed = 7; const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   for (let i = 0; i < 120; i++) list.push({ t: T[i % T.length], x: x0 + 0.3 + r() * (x1 - x0 - 0.6), y: y0 + 0.3 + r() * (y1 - y0 - 0.6) });
-  for (let i = 0; i < 120; i += 8) { links.push([i + 4, i + 3]); links.push([i + 5, i + 3]); }
+  for (let i = 0; i < 120; i += 8) { links.push({ c: i + 4, l: i + 3 }); links.push({ c: i + 5, l: i + 3 }); }
   okteo.importDevices(list, links, {});
   return { apps: S.app.length, segs: S.segs.length, lia: S.lia.length, rooms: S.rooms.length };
 });
 console.log("plan :", JSON.stringify(info));
+// fond comme un vrai plan (JPEG ~4500 px) + tous les appareils « à confirmer » (halos qui clignotent)
+await ev(async () => {
+  const { K } = await import("/src/core/k.js");
+  const c = document.createElement("canvas"); c.width = 4500; c.height = 3180; const g = c.getContext("2d");
+  g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.strokeStyle = "#999";
+  for (let i = 0; i < 4000; i++) { g.beginPath(); g.moveTo(Math.random() * 4500, Math.random() * 3180); g.lineTo(Math.random() * 4500, Math.random() * 3180); g.stroke(); }
+  const bl = await new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.85));
+  K.FOND = URL.createObjectURL(bl); K.BG = { x: -1, y: -1, w: 20, h: 14.13 }; K.bgLevel = 0.6;
+  okteo.state.app.forEach((a) => { a.aiStatus = "a_confirmer"; a.aiOrigin = "plan"; });
+  window.__okteo.draw();
+});
+await page.waitForTimeout(1500);
+const issues = await ev(() => okteo.control.length);
+console.log("points signalés (halos) :", issues);
+// fluidité au repos (halos animés) : images par seconde sur 2 s
+const fps = async () => ev(() => new Promise((ok) => { let n = 0; const t0 = performance.now(); const f = () => { n++; if (performance.now() - t0 < 2000) requestAnimationFrame(f); else ok(+(n / 2).toFixed(1)); }; requestAnimationFrame(f); }));
+console.log("images/s au repos :", await fps());
+// molette : 40 crans rapides au-dessus du plan, temps jusqu'au retour au calme
+const box = await page.locator("#sv").boundingBox();
+await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+const t0 = Date.now();
+for (let i = 0; i < 40; i++) await page.mouse.wheel(0, i < 20 ? -120 : 120);
+await ev(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok))));
+console.log("molette 40 crans :", Date.now() - t0, "ms");
 const timeDraw = (n) => ev((n) => { const t = []; for (let i = 0; i < n; i++) { const a = performance.now(); window.__okteo.draw(); t.push(performance.now() - a); } t.sort((p, q) => p - q); return { med: +t[n >> 1].toFixed(1), max: +t[n - 1].toFixed(1), pm: okteo.view ? JSON.stringify(okteo.view) : "" }; }, n);
 await ev(() => { okteo.setTab("plan"); okteo.fit(); });
 for (const [lab, prep] of [["vue entière", () => okteo.fit()], ["zoom ×4", () => { okteo.fit(); okteo.zoom(4); }], ["zoom ×12", () => { okteo.fit(); okteo.zoom(12); }], ["zoom max", () => { okteo.fit(); okteo.zoom(1000); }]]) {
