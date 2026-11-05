@@ -998,6 +998,8 @@ try {
     await page.waitForSelector(".whyb:not([hidden]) .why-pt");
     const c1 = await ev(() => ({ t: document.querySelector(".whyb").textContent, q: !!document.querySelector(".whyb [data-q]") }));
     await page.click(".whyb [data-q]");
+    await page.click(".whyb .why-qadd");   // lot 1 : la question s'affiche d'abord (modifiable), puis « Ajouter au rapport »
+    await page.waitForFunction(() => /Question ajoutée au rapport/.test(document.querySelector(".whyb").textContent), null, { timeout: 5000 });
     const q = await ev(() => (okteo.cab.questions || []).map((x) => x.text));
     await ev((i) => okteo.select([i]), ids[1]);
     await page.click('#hud [data-h="why"]');
