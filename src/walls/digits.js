@@ -15,10 +15,43 @@ export function solveDigits(texts, segs, k, { tol = 0.02 } = {}) {
   const lines = segs.filter((s) => s.stroke && dist(s.x1, s.y1, s.x2, s.y2) * k >= 0.1);
   const res = new Map();
   for (const [font, list] of fonts) {
-    const sol = solveFont(list, lines, k, tol);
+    let sol = solveFont(list, lines, k, tol);
+    // lot 1 (05/11/2026) : police lisible (vrais chiffres) : les valeurs se lisent directement, l'échelle est le rapport
+    // le plus fréquent « valeur écrite / longueur du trait » (cotes en m « 1.80 » ou en cm entiers « 180 », « 1840 »)
+    const r = solveReadable(list, lines, k, tol);
+    if (r && (!sol || r.checked > sol.checked)) sol = r;
     if (sol) res.set(font, sol);
   }
   return res;   // police → { map: Map(code → "0".."9"), checked, total, scale (facteur d'échelle vu par les cotes) }
+}
+
+// valeur (m) d'une cote écrite en vrais chiffres : « 1.80 » / « 1,80 » (m), « 180 » / « 1840 » / « 1 840 » (cm) ; sinon null
+export function cotValue(str) {
+  const t = String(str || "").trim();
+  let m = /^(\d{1,2})[.,](\d{2})$/.exec(t);
+  if (m) return +(m[1] + "." + m[2]);
+  m = /^(\d{1,2}) ?(\d{3})$/.exec(t);
+  if (m) return +(m[1] + m[2]) / 100;
+  m = /^\d{2,3}$/.exec(t);
+  return m ? +t / 100 : null;
+}
+function solveReadable(list, lines, k, tol) {
+  const short = list.filter((t) => { const n = [...String(t.str).trim()].length; return n >= 2 && n <= 5; });
+  const items = [];
+  for (const t of short) { const v = cotValue(t.str); if (v == null || v < 0.1) continue; const c = candidatesFor(t, lines, k); if (c.length) items.push({ v, c }); }
+  if (items.length < 5 || items.length < short.length * 0.5) return null;
+  // rapports possibles (0,25 à 4) ; on garde celui que le plus de cotes confirment à « tol » près
+  const ratios = [];
+  items.forEach((it) => it.c.forEach((c) => { const r = it.v / c; if (r > 0.25 && r < 4) ratios.push(r); }));
+  let best = null;
+  for (const r of ratios) {
+    const hits = items.filter((it) => it.c.some((c) => Math.abs(c * r / it.v - 1) <= tol));
+    if (!best || hits.length > best.hits.length) best = { r, hits };
+  }
+  if (!best || best.hits.length < 5 || best.hits.length < items.length * 0.6) return null;
+  const rs = best.hits.map((it) => { const c = it.c.reduce((m, x) => (Math.abs(x * best.r / it.v - 1) < Math.abs(m * best.r / it.v - 1) ? x : m)); return it.v / c; }).sort((a, b) => a - b);
+  const map = new Map([..."0123456789"].map((d) => [d, d]));
+  return { map, checked: best.hits.length, total: items.length, scale: rs[rs.length >> 1], sep: ".", readable: true };
 }
 
 function candidatesFor(t, lines, k) {
@@ -42,13 +75,17 @@ function writings(v, tol) {
     if (cm >= 100) out.add((cm / 100).toFixed(2));
     if (cm >= 10 && cm < 1000) out.add(String(cm));
   }
+  // lot 1 (05/11/2026) : cotes en cm entiers à 4 chiffres (« 1840 ») : toutes les valeurs de la tolérance (±1 % = ±18 cm)
+  const lo = Math.round(v * (1 - tol) * 100), hi = Math.round(v * (1 + tol) * 100);
+  if (hi >= 1000 && lo < 10000) for (let cm = Math.max(1000, lo); cm <= Math.min(9999, hi); cm++) out.add(String(cm));
   return [...out];
 }
 
 function solveFont(list, lines, k, tol) {
   const base = [];
   for (const t of list) {
-    const s = [...t.str];
+    // lot 1 : « 1 840 » (cm avec espace des milliers, police lisible) se lit comme « 1840 »
+    const s = [.../^\d{1,2} \d{3}$/.test(t.str) ? t.str.replace(" ", "") : t.str];
     if (s.length < 2 || s.length > 5) continue;
     const cands = candidatesFor(t, lines, k);
     if (cands.length) base.push({ s, cands });
@@ -118,7 +155,7 @@ function tryScale(base, f, tol) {
 export function readDigits(t, sols) {
   const sol = sols && sols.get(t.font);
   return [...t.str].map((c) => {
-    if (!sol) return /[0-9]/.test(c) ? c : c === "." || c === "," ? "." : c === " " ? " " : "?";
+    if (!sol || sol.readable) return /[0-9]/.test(c) ? c : c === "." || c === "," ? "." : c === " " ? " " : "?";
     if (sol.map.has(c)) return sol.map.get(c);
     if (c === sol.sep) return ".";
     return "?";

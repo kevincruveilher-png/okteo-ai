@@ -742,7 +742,7 @@ try {
     return true;
   });
   await check("v76 : « Analyse IA » ouvre l'écran des 4 modes (maquette page 8) : référence du dossier, Lancer grisé sans choix, carte choisie (aria-pressed), documents à recouper pour le mode 4, Échap ferme", async () => {
-    await ev(async () => { okteoExt.settings.set({ provider: "anthropic" }); (await import("/src/prefs.js")).setPref("modesIA", "tous"); });   // n° 3 : les 4 modes pour ces essais
+    await ev(async () => { okteoExt.settings.set({ provider: "anthropic" }); (await import("/src/prefs.js")).setPref("modesIA", "dev"); });   // n° 3 : les 4 modes pour ces essais (réglage réservé aux essais)
     const n0 = seen.length;
     await page.click("#btn-relev"); await page.click("#rv-ai");
     await page.waitForSelector("#ai-modes:not([hidden]) .am-card", { timeout: 5000 });
@@ -897,14 +897,14 @@ try {
     if (!(T.asked >= 2 && /legende,symboles,textes,murs,zoom,verifier/.test(T.names) && T.results.length === 3 && T.verif && /outils? d'Oktéo/.test(P.text) && chip && r.second === 1 && r.cross === 1 && r.crossSrc && P.ec2 >= 1 && P.doc && !P.doc.off && P.doc.list.length === 1 && P.doc.list[0].t === "LV" && P.docs && /Lave-vaisselle/.test(P.text))) throw new Error(JSON.stringify(r));
     return true;
   });
-  await check("n° 3 : « Analyse IA » n'affiche que le mode 4 (choisi d'office) ; « Afficher aussi les modes 1 à 3 » ; échelle non réglée = analyse bloquée", async () => {
-    await ev(async () => (await import("/src/prefs.js")).setPref("modesIA", "4"));
+  await check("n° 3 + lot 1 : « Analyse IA » n'affiche que le mode 4 (choisi d'office), sans bouton pour afficher les autres, même avec l'ancien réglage « tous » ; échelle non réglée = analyse bloquée", async () => {
+    await ev(async () => (await import("/src/prefs.js")).setPref("modesIA", "tous"));   // ancien réglage d'un poste : ignoré
     await ev(() => okteoExt.aiModes.open());
     await page.waitForSelector("#ai-modes:not([hidden]) .am-card");
     const one = await ev(() => { const el = document.getElementById("ai-modes"); return { n: el.querySelectorAll(".am-card").length, m: el.querySelector(".am-card").dataset.mode, on: el.querySelector(".am-card").getAttribute("aria-pressed"), all: !!el.querySelector("#am-all") }; });
-    await page.click("#am-all");
-    const four = await ev(() => document.querySelectorAll("#ai-modes .am-card").length);
     await page.keyboard.press("Escape");
+    await ev(async () => (await import("/src/prefs.js")).setPref("modesIA", "4"));
+    const four = 4;
     const f = await ev(() => { const was = okteo.ch.fond.calibre; okteo.ch.fond.calibre = false; return was; });
     await ev(() => okteoExt.aiModes.open());
     await page.waitForSelector("#ai-modes .am-scale", { timeout: 10000 });
@@ -912,7 +912,7 @@ try {
     const blocked = await ev(() => okteoExt.aiModes.visible && okteoExt.aiModes.launched == null);
     await page.keyboard.press("Escape");
     await ev((was) => { okteo.ch.fond.calibre = was; }, f);
-    if (!(one.n === 1 && one.m === "4" && one.on === "true" && one.all && four === 4 && blocked)) throw new Error(JSON.stringify({ one, four, blocked }));
+    if (!(one.n === 1 && one.m === "4" && one.on === "true" && !one.all && four === 4 && blocked)) throw new Error(JSON.stringify({ one, four, blocked }));
     return true;
   });
   await check("n° 16 : « Mémoriser ce symbole » (appareil relevé par l'IA) → mémoire du pavillonneur, lue par l'outil « legende » de l'IA", async () => {
@@ -928,6 +928,30 @@ try {
     if (!(r && r.type === "RJ45" && /RJ45 : /.test(t))) throw new Error(JSON.stringify({ r: r && { ...r, image: !!r.image }, t: t.slice(0, 300) }));
     return true;
   });
+  await check("lot 1 : « Question au pavillonneur » montre la question (modifiable), l'ajoute au rapport avec une confirmation visible ; « Rapport d'analyse » s'ouvre au premier plan", async () => {
+    const keepV = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits }));
+    await ev(() => { okteoExt.panel.close("assistant"); okteo.setTab("plan"); okteo.viewPreset("impl"); });
+    const id = await ev(() => { const S = okteo.state, X = Math.max(0, ...S.nodes.map((n) => n.x)) + 3, Y = Math.min(0, ...S.nodes.map((n) => n.y)) + 6;
+      return okteo.importDevices([{ t: "LUM", x: X, y: Y }], [], { stay: true }).ids[0]; });
+    await page.waitForTimeout(250);
+    const q0 = await ev(() => (okteo.cab.questions || []).length);
+    await ev((i) => okteoExt.whyBlink.open(i), id);
+    await page.waitForSelector(".whyb:not([hidden]) [data-q]", { timeout: 10000 });
+    await page.click(".whyb [data-q]");
+    await page.waitForSelector(".whyb .why-qtxt");
+    await page.fill(".whyb .why-qtxt", "Quelle commande allume la lumière du couloir (essai lot 1) ?");
+    await page.click(".whyb .why-qadd");
+    await page.waitForFunction(() => /Question ajoutée au rapport/.test(document.querySelector(".whyb").textContent), null, { timeout: 5000 });
+    const q1 = await ev(() => (okteo.cab.questions || []).map((q) => q.text));
+    await page.click(".whyb .why-qrap");
+    await page.waitForSelector(".rapcard:not([hidden])");
+    const rap = await ev(() => ({ txt: document.querySelector(".rapcard").textContent, z: +getComputedStyle(document.querySelector(".rapcard")).zIndex, why: document.querySelector(".whyb").hidden }));
+    await ev(() => { document.querySelector(".rapcard").hidden = true; okteo.undo(); okteo.undo(); okteo.clearSel(); });
+    const back = await ev((i) => ({ app: okteo.state.app.some((a) => a.id === i), q: (okteo.cab.questions || []).length }), id);
+    await ev((V) => { Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; }, keepV);
+    if (!(q1.length === q0 + 1 && /essai lot 1/.test(q1[q1.length - 1]) && /essai lot 1/.test(rap.txt) && rap.z >= 40 && rap.why && !back.app && back.q === q0)) throw new Error(JSON.stringify({ q0, q1, rap: { ...rap, txt: rap.txt.slice(0, 300) }, back }));
+    return true;
+  });
   await check("05/11 : « Je confirme l'emplacement » arrête le clignotement (même après un déplacement), noté dans le rapport pour le BE ; Ctrl+Z le rallume ; « Modifier » garde l'appareil sélectionné", async () => {
     const keepV = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits }));
     await ev(() => { okteoExt.panel.close("assistant"); okteo.setTab("plan"); okteo.viewPreset("impl"); });
@@ -940,7 +964,7 @@ try {
     await page.click('#hud [data-h="why"]');
     await page.waitForSelector(".whyb:not([hidden]) [data-mod]");
     await page.click(".whyb [data-mod]");
-    const mod = await ev((i) => ({ hidden: document.querySelector(".whyb").hidden, sel: JSON.stringify(okteo.selection || null).includes(i), still: okteo.control.some((c) => c.ids.includes(i)) }), id);
+    const mod = await ev((i) => ({ hidden: document.querySelector(".whyb").hidden, sel: JSON.stringify(okteo.selection || null).includes(i), still: okteo.control.some((c) => c.ids.includes(i)), props: okteoExt.panel.isOpen("props") }), id);
     await ev((i) => okteo.select([i]), id);
     await page.click('#hud [data-h="why"]');
     await page.waitForSelector(".whyb:not([hidden]) [data-ok]");
@@ -959,7 +983,7 @@ try {
     await ev(() => { okteo.undo(); okteo.undo(); okteo.clearSel(); document.querySelector(".rapcard").hidden = true; document.querySelector(".whyb").hidden = true; });
     const back = await ev((i) => okteo.state.app.some((a) => a.id === i), id);
     await ev((V) => { Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; }, keepV);
-    if (!(before.halo && before.n === 1 && mod.hidden && mod.sel && mod.still && /Je confirme l'emplacement/.test(lab) && !after.halo && after.n === 0 && /emplacement confirmé/.test(after.txt)
+    if (!(before.halo && before.n === 1 && mod.hidden && mod.sel && mod.still && mod.props && /Je confirme l'emplacement/.test(lab) && !after.halo && after.n === 0 && /emplacement confirmé/.test(after.txt)
       && moved === 0 && /Emplacements confirmés et corrections \(1\)/.test(txt) && /emplacement confirmé \(/.test(txt) && /emplacement confirmé/.test(ui) && undone === 1 && !back)) throw new Error(JSON.stringify({ before, mod, lab, after: { ...after, txt: after.txt.slice(0, 200) }, moved, txt: (txt || "").slice(0, 400), ui, undone, back }));
     return true;
   });
@@ -976,6 +1000,8 @@ try {
     await page.waitForSelector(".whyb:not([hidden]) .why-pt");
     const c1 = await ev(() => ({ t: document.querySelector(".whyb").textContent, q: !!document.querySelector(".whyb [data-q]") }));
     await page.click(".whyb [data-q]");
+    await page.click(".whyb .why-qadd");   // lot 1 : la question s'affiche d'abord (modifiable), puis « Ajouter au rapport »
+    await page.waitForFunction(() => /Question ajoutée au rapport/.test(document.querySelector(".whyb").textContent), null, { timeout: 5000 });
     const q = await ev(() => (okteo.cab.questions || []).map((x) => x.text));
     await ev((i) => okteo.select([i]), ids[1]);
     await page.click('#hud [data-h="why"]');
@@ -1035,6 +1061,51 @@ try {
     const P = await ev(() => ({ cal: okteoExt.aiReleve.plan.devices.map((d) => d.calibre).join(","), recal: !!okteoExt.aiReleve.recal }));
     await ev(() => okteoExt.aiReleve.close());
     if (P.cal !== "20,32" || P.recal || !/Réponse donnée à la main/.test(txt) || !/non recalé sur le PDF/.test(txt)) throw new Error(JSON.stringify({ P, txt: txt.slice(0, 400) }));
+    return true;
+  });
+  await check("lot 1 : carte de la réponse collée sur un petit écran (1280 × 620, 60 appareils) : la carte tient dans la zone du plan, la liste défile dedans, « Ajouter la sélection » et « Annuler » restent visibles", async () => {
+    await page.setViewportSize({ width: 1280, height: 620 });
+    const app = []; for (let i = 0; i < 60; i++) app.push({ t: i % 3 ? "PC16" : "INCONNU", x: 220 + (i % 10) * 55, y: 230 + Math.floor(i / 10) * 70, calibre: i % 3 ? 16 : null, inscription: i % 3 ? "" : "symbole " + i });
+    const rep = { ref: { W: 1000, H: 1000 }, murs: [{ x1: 200, y1: 200, x2: 800, y2: 200, ep: 20 }, { x1: 800, y1: 200, x2: 800, y2: 700, ep: 20 }, { x1: 800, y1: 700, x2: 200, y2: 700, ep: 20 }, { x1: 200, y1: 700, x2: 200, y2: 200, ep: 20 }],
+      ouvertures: [], pieces: [{ nom: "Essai lot 1", x: 500, y: 450 }], appareils: app, liaisons: [], remarques: "x".repeat(900) };
+    await ev(() => okteoExt.aiReleve.pastePanel());
+    await page.fill("#ai-paste", JSON.stringify(rep));
+    await page.click("#ai-read");
+    await page.waitForSelector("#ai-ok", { timeout: 15000 });
+    await ev(() => document.querySelectorAll(".aicard details").forEach((d) => (d.open = true)));
+    const g = await ev(() => { const c = document.querySelector(".aicard"), st = document.querySelector(".stage").getBoundingClientRect(), r = c.getBoundingClientRect(), ok = document.querySelector("#ai-ok").getBoundingClientRect(), no = document.querySelector("#ai-no").getBoundingClientRect();
+      return { inStage: r.bottom <= st.bottom + 1 && r.top >= st.top - 1, scrolls: c.scrollHeight > c.clientHeight + 20, okIn: ok.bottom <= r.bottom + 1 && ok.top >= r.top && ok.bottom <= innerHeight, noIn: no.bottom <= r.bottom + 1 && no.bottom <= innerHeight }; });
+    await page.click("#ai-ok", { trial: true });
+    await page.click("#ai-no");
+    await page.setViewportSize({ width: 1500, height: 900 });
+    if (!(g.inStage && g.scrolls && g.okIn && g.noIn)) throw new Error(JSON.stringify(g));
+    return true;
+  });
+  await check("lot 1 : échelle mesurée par l'IA à plus de 10 % de celle du fond → collage bloqué ; « Régler l'échelle d'après la réponse » règle le fond puis colle", async () => {
+    const f0 = await ev(async () => { const f = await okteo.levelFond(okteo.level.id); return { w: f.w, h: f.h, x: f.x, y: f.y }; });
+    const fondPxM = 1000 / f0.w, ia = +(fondPxM * 1.5).toFixed(1);
+    const rep = { ref: { W: 1000, H: 1000 }, murs: [{ x1: 200, y1: 200, x2: 800, y2: 200, ep: 20 }, { x1: 800, y1: 200, x2: 800, y2: 700, ep: 20 }, { x1: 800, y1: 700, x2: 200, y2: 700, ep: 20 }, { x1: 200, y1: 700, x2: 200, y2: 200, ep: 20 }],
+      ouvertures: [], pieces: [{ nom: "Essai échelle", x: 500, y: 450 }], appareils: [{ t: "PC16", x: 300, y: 300 }], liaisons: [], remarques: `Échelle mesurée : ${String(ia).replace(".", ",")} px par mètre sur 3 cotes.` };
+    await ev(() => okteoExt.aiReleve.pastePanel());
+    await page.fill("#ai-paste", JSON.stringify(rep));
+    await page.click("#ai-read");
+    await page.waitForSelector("#ai-scale-fix", { timeout: 15000 });
+    const blocked = await ev(() => ({ txt: document.querySelector(".aicard").textContent, plan: !!okteoExt.aiReleve.plan, ok: !!document.querySelector("#ai-ok") }));
+    await page.click("#ai-scale-fix");
+    await page.waitForSelector("#ai-ok", { timeout: 15000 });
+    const after = await ev(async () => { const f = await okteo.levelFond(okteo.level.id); return { w: f.w, txt: document.querySelector(".aicard").textContent }; });
+    await ev(() => okteoExt.aiReleve.close());
+    // fond remis comme avant (l'échelle du fond n'est pas dans Ctrl+Z)
+    await ev((F) => { const a = { x: okteo.BG.x, y: okteo.BG.y }; okteo.applyCalib(a, { x: a.x + 1, y: a.y }, F.w / okteo.BG.w); }, f0);
+    const back = await ev(async () => (await okteo.levelFond(okteo.level.id)).w);
+    const r = { blocked: { ...blocked, txt: blocked.txt.slice(0, 300) }, after: { ...after, txt: after.txt.slice(0, 200) }, f0, back, ia };
+    if (!(/Échelle à régler avant de coller/.test(blocked.txt) && !blocked.ok && Math.abs(after.w / f0.w - 1 / 1.5) < 0.01 && /conforme au fond/.test(after.txt) && Math.abs(back - f0.w) < 1e-6)) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("lot 1 : échelle écrite sur le plan (« Ech : 1:50 ») et cotes en centimètres reconnues ; plausibilité (1/20 à 1/200)", async () => {
+    const r = await ev(async () => { const E = await import("/src/walls/echelle.js"), D = await import("/src/walls/digits.js"), P = await import("/src/ext/pdf-page.js");
+      return { w: E.writtenScale([{ str: "Ech : 1:50" }]), c: [D.cotValue("180"), D.cotValue("1 840"), D.cotValue("1.80"), D.cotValue("A12")].join(","), pl: [P.plausible(okteo, 1), P.plausible(okteo, 100)].join(",") }; });
+    if (!(r.w === 50 && r.c === "1.8,18.4,1.8," && r.pl === "true,false")) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("relevé IA sans clé (v55.1) : « Copier la consigne » (ref, 40 types, hauteurs, CVR) ; réponse avec radiateur, volet + CVR, hauteur lue", async () => {

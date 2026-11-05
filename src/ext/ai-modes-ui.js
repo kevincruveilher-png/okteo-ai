@@ -10,7 +10,7 @@ import { LOGO } from "./attente.js";
 import { otherPages } from "./ai-cross.js";
 import { recommendFor } from "./ai-reco.js";
 import { esc as esc_ } from "./util.js";
-import { pref, setPref } from "../prefs.js";
+import { pref } from "../prefs.js";
 import { chantierScaleCheck } from "./pdf-page.js";
 
 export function createAiModes({ api, aiReleve, runner = null }) {
@@ -50,12 +50,10 @@ export function createAiModes({ api, aiReleve, runner = null }) {
       ${only4() ? "" : bannerHTML()}
       ${scaleHTML()}
       <div class="am-grid${only4() ? " one" : ""}" role="group" aria-label="Modes d'analyse">${(only4() ? MODES_IA.filter((m) => m.n === 4) : MODES_IA).map(card).join("")}</div>
-      ${only4() ? `<p class="am-all"><button type="button" id="am-all" title="Les modes 1 à 3 restent des étapes du mode 4 ; vous pouvez les afficher pour comparer">Afficher aussi les modes 1 à 3</button></p>` : ""}
       ${sel === 4 ? docsHTML() : ""}
       <div class="am-foot"><p>${esc_(MODES_PAGE.foot)}</p>
         <button type="button" class="am-cta" id="am-go" aria-disabled="${!L.ok}" title="${esc_(L.why)}">${esc_(L.label)}</button></div>
     </div>`;
-    const all = el.querySelector("#am-all"); if (all) all.onclick = () => { setPref("modesIA", "tous"); render(); };
     el.querySelectorAll("[data-scale]").forEach((b) => (b.onclick = () => { close(); if (b.dataset.scale === "calib") api.startCalib(); else document.dispatchEvent(new CustomEvent("okteo:walls")); }));
     el.querySelectorAll(".am-card").forEach((b) => {
       b.onclick = () => select(+b.dataset.mode, true);
@@ -91,8 +89,10 @@ export function createAiModes({ api, aiReleve, runner = null }) {
         ${docs.map((d, i) => `<span class="am-chip">${esc_(d.name)}<button type="button" data-rmdoc="${i}" aria-label="Retirer ${esc_(d.name)}" title="Retirer">✕</button></span>`).join("")}</div>
     </div>`;
   }
-  // n° 3 : seul le mode 4 à l'écran (préférence « modesIA ») ; échelle bloquante si elle n'est pas confirmée
-  function only4() { return pref("modesIA") !== "tous" && !esc; }
+  // n° 3 + lot 1 du 05/11/2026 : un seul mode d'analyse, le mode 4 (modes 1 à 3 = étapes internes). Les 4 cartes ne
+  // s'affichent plus que pour les essais du code (préférence « modesIA » = « dev », jamais proposée à l'écran).
+  // Échelle bloquante si elle n'est pas confirmée.
+  function only4() { return pref("modesIA") !== "dev"; }
   function scaleHTML() {
     if (scale == null || scale.ok) return "";
     return `<div class="am-scale warnbox" role="alert"><p><b>Échelle du plan non confirmée</b> — ${esc_(scale.why)} L'analyse est bloquée tant que l'échelle n'est pas juste (sinon tout le relevé serait décalé).</p>

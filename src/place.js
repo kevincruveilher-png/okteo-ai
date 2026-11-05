@@ -4,20 +4,32 @@
 // indispensable, comme le nom d'une pièce).
 
 export class Placer {
-  constructor(cell = 1) { this.cell = cell; this.grid = new Map(); this.n = 0; }
+  constructor(cell = 1) { this.cell = cell; this.grid = new Map(); this.n = 0; this.big = []; }
+  // lot 1 (05/11/2026) : une boîte qui couvre plus de BIG cases (mur très épais, échelle fausse) n'est pas découpée en
+  // cases (des centaines de milliers de clés figeaient le plan) : elle est rangée à part et testée directement
+  _span(b) { const c = this.cell; return (Math.floor(b.x1 / c) - Math.floor(b.x0 / c) + 1) * (Math.floor(b.y1 / c) - Math.floor(b.y0 / c) + 1); }
   _keys(b) {
     const c = this.cell, out = [];
     for (let X = Math.floor(b.x0 / c); X <= Math.floor(b.x1 / c); X++) for (let Y = Math.floor(b.y0 / c); Y <= Math.floor(b.y1 / c); Y++) out.push(X + "," + Y);
     return out;
   }
   free(b) {
-    for (const k of this._keys(b)) for (const o of this.grid.get(k) || []) if (b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0) return false;
+    const hit = (o) => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0;
+    for (const o of this.big) if (hit(o)) return false;
+    if (!(this._span(b) <= Placer.BIG)) { for (const L of this.grid.values()) for (const o of L) if (hit(o)) return false; return true; }
+    for (const k of this._keys(b)) for (const o of this.grid.get(k) || []) if (hit(o)) return false;
     return true;
   }
-  add(b) { this.n++; for (const k of this._keys(b)) { if (!this.grid.has(k)) this.grid.set(k, []); this.grid.get(k).push(b); } return b; }
+  add(b) {
+    this.n++;
+    if (!(this._span(b) <= Placer.BIG)) { this.big.push(b); return b; }
+    for (const k of this._keys(b)) { if (!this.grid.has(k)) this.grid.set(k, []); this.grid.get(k).push(b); }
+    return b;
+  }
   // essaie les positions dans l'ordre ; renvoie la première libre (et la réserve), sinon null
   first(cands) { for (const b of cands) if (this.free(b)) return this.add(b); return null; }
 }
+Placer.BIG = 1024;
 
 // boîte d'un texte (approximative) : largeur ≈ nb de caractères × chasse × taille
 export function textBox(x, y, str, size, { anchor = "middle", base = "middle", wide = 0.6, pad = 0.12 } = {}) {
@@ -116,12 +128,33 @@ export function glueToWall(p, w, R) {
 
 // n° 8 (lot A) : boîtes d'obstacle le long d'un mur (pour que les repères ne tombent pas dedans) : un rectangle de mur
 // (4 sommets dans l'ordre) découpé en carrés de la taille de son épaisseur, le long de son grand côté
-export function wallBoxes(P, pad = 0) {
+// Lot 1 (05/11/2026) : segment [a, b] rogné à la boîte clip {x0, y0, x1, y1} (Liang-Barsky) ; null s'il est dehors
+export function clipSeg(a, b, clip) {
+  if (!clip) return [a, b];
+  let t0 = 0, t1 = 1;
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const edges = [[-dx, a.x - clip.x0], [dx, clip.x1 - a.x], [-dy, a.y - clip.y0], [dy, clip.y1 - a.y]];
+  for (const [p, q] of edges) {
+    if (p === 0) { if (q < 0) return null; continue; }
+    const r = q / p;
+    if (p < 0) { if (r > t1) return null; if (r > t0) t0 = r; }
+    else { if (r < t0) return null; if (r < t1) t1 = r; }
+  }
+  return [{ x: a.x + dx * t0, y: a.y + dy * t0 }, { x: a.x + dx * t1, y: a.y + dy * t1 }];
+}
+// Lot 1 : nombre de boîtes borné par trait (max) et limité à la zone visible (clip) : une échelle fausse (murs ou liaisons
+// de centaines de mètres) ne doit jamais figer le placement des étiquettes au zoom
+export const MAX_BOXES = 600;
+
+export function wallBoxes(P, pad = 0, clip = null, max = MAX_BOXES) {
   if (!P || P.length < 4) return [];
   const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }), len = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
   const l01 = len(P[0], P[1]), l12 = len(P[1], P[2]);
-  const [A, B, ep] = l01 >= l12 ? [mid(P[0], P[3]), mid(P[1], P[2]), l12] : [mid(P[0], P[1]), mid(P[3], P[2]), l01];
-  const L = len(A, B), step = Math.max(ep, 1e-6), n = Math.max(1, Math.ceil(L / step)), h = ep / 2 + pad, out = [];
+  const [A0, B0, ep] = l01 >= l12 ? [mid(P[0], P[3]), mid(P[1], P[2]), l12] : [mid(P[0], P[1]), mid(P[3], P[2]), l01];
+  const h = ep / 2 + pad;
+  const cs = clipSeg(A0, B0, clip && { x0: clip.x0 - h, y0: clip.y0 - h, x1: clip.x1 + h, y1: clip.y1 + h });
+  if (!cs) return [];
+  const [A, B] = cs, L = len(A, B), step = Math.max(ep, 1e-6), n = Math.min(max, Math.max(1, Math.ceil(L / step))), out = [];
   for (let i = 0; i <= n; i++) {
     const t = Math.min(1, i / n), x = A.x + (B.x - A.x) * t, y = A.y + (B.y - A.y) * t;
     out.push({ x0: x - h, y0: y - h, x1: x + h, y1: y + h });
@@ -130,10 +163,13 @@ export function wallBoxes(P, pad = 0) {
 }
 
 // boîtes d'obstacle le long d'un trait (liaison, gaine) : petits carrés tous les `step`
-export function lineBoxes(pts, step, half) {
+export function lineBoxes(pts, step, half, clip = null, max = MAX_BOXES) {
   const out = [];
+  const C = clip && { x0: clip.x0 - half, y0: clip.y0 - half, x1: clip.x1 + half, y1: clip.y1 + half };
   for (let k = 1; k < pts.length; k++) {
-    const a = pts[k - 1], b = pts[k], L = Math.hypot(b.x - a.x, b.y - a.y), n = Math.max(1, Math.ceil(L / step));
+    const cs = clipSeg(pts[k - 1], pts[k], C);
+    if (!cs) continue;
+    const [a, b] = cs, L = Math.hypot(b.x - a.x, b.y - a.y), n = Math.min(max, Math.max(1, Math.ceil(L / step)));
     for (let i = 0; i <= n; i++) { const x = a.x + (b.x - a.x) * i / n, y = a.y + (b.y - a.y) * i / n; out.push({ x0: x - half, y0: y - half, x1: x + half, y1: y + half }); }
   }
   return out;

@@ -1301,3 +1301,12 @@ body.am-on{overflow:hidden}
 .why-act .why-ok{background:var(--accent,#0b8a7a);color:#fff;border-color:transparent;font-weight:600}
 .rap-val li{margin:2px 0 6px}
 .hud-why{color:#d33a2c;font-weight:600}.rap-fam ul{margin:4px 0 8px 16px;padding:0}.rap-fam li{margin:2px 0}
+
+/* Lot 1 (05/11/2026) : une carte de travail ne dépasse jamais la zone du plan ; son contenu défile à l'intérieur et les
+   boutons d'action (« Ajouter la sélection », « Annuler »…) restent toujours visibles en bas */
+.wcard{max-height:calc(100% - 20px);overflow-y:auto;overscroll-behavior:contain}
+.wcard>.wcard-h{position:sticky;top:-10px;margin-top:-10px;padding-top:10px;background:var(--panel);z-index:2}
+.wcard .ai-act{position:sticky;bottom:-10px;margin-bottom:-10px;padding:8px 0 10px;background:var(--panel);border-top:1px solid var(--line);z-index:2}
+.whyb,.rapcard{z-index:40;max-height:calc(100% - 20px)}
+.wcard>*{flex-shrink:0}
+.why-qbox{margin:6px 0;padding:6px 8px;border:1px solid var(--line);border-radius:8px}.why-qtxt{width:100%;margin-top:4px;font:inherit}
