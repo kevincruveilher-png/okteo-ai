@@ -1,3 +1,13 @@
+## 05/11/2026 — MAJ « affichage » : bandeau 1 fixe sur une ligne, bandeau 2 selon la vue (go de Kévin, 13:54)
+
+- Bandeau 1 (`.top`, du logo à « Fonctions ») : visible sur toutes les vues (accueil, Paramètres et Symboles compris),
+  sur une ligne (`flex-wrap: nowrap`, nom du chantier et niveaux qui se réduisent) ; plus de jauge d'avancement (elle
+  reste dans le panneau Étapes, `.sg-big`) ; « Imprimer » et « Fonctions » en icônes seules ; voyant `#web-dot`
+  « Connecté » / « Hors ligne » / « Session expirée » à la place de la phrase du bandeau en ligne (détail en infobulle,
+  clic = accueil) ; « À vérifier » gardé.
+- Bandeau 2 (`.top2`) : seulement sur le plan et la 3D (`body[data-tab]`) ; `.app` en colonne flexible.
+- Le glissement « classeur » des pages est gardé.
+
 ## 05/11/2026 — MAJ « mémoire des symboles » : un symbole appris n'est plus réappris (go de Kévin, 13:54)
 
 - Constat : l'IA ne recevait la mémoire qu'en texte (mode 4 avec clé) et pas du tout dans la consigne copiée.

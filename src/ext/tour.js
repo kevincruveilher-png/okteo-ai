@@ -138,7 +138,8 @@ export function createTour({ api, panel, hooks }) {
   gauge.className = "st-gauge"; gauge.id = "st-gauge";
   gauge.innerHTML = `<span class="sg-bar"><span class="sg-fill"></span></span><span class="sg-txt"></span>`;
   gauge.onclick = () => panel.show("steps");
-  { const badge = document.querySelector(".top .badge"); if (badge) badge.after(gauge); else document.querySelector(".top")?.appendChild(gauge); }
+  // MAJ affichage (05/11/2026) : la jauge n'est plus dans le bandeau 1 (il doit tenir sur une ligne) ; elle reste en tête
+  // du panneau Étapes (barre .sg-big). L'élément est gardé hors de la page pour le texte d'aide.
   function paintGauge() {
     const P = progress();
     gauge.querySelector(".sg-fill").style.width = P.pct + "%";

@@ -1325,7 +1325,7 @@ body.am-on{overflow:hidden}
 .top .brand[role=button]:hover,.top .brand[role=button]:focus-visible{background:color-mix(in srgb,var(--accent) 14%,transparent);outline:none}
 body.page-full .app{display:flex;flex-direction:column}
 body.page-full .main{flex:1;min-height:0}
-body.page-full .top,body.page-full .top2,body.page-full .side,body.page-full #iapane{display:none!important}
+body.page-full .top2,body.page-full .side,body.page-full #iapane{display:none!important}
 body.page-full .main>.params:not([hidden]){position:relative;padding-right:46px}
 .home-head{display:flex;align-items:center;gap:16px;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line2,var(--line));flex-wrap:wrap}
 .home-head[hidden]{display:none}
@@ -1379,3 +1379,16 @@ body.page-full #params .pset-find{font-size:14px;padding:9px 12px}
 #bibliotheque .sy-large{border:1px solid #c9d1d9;border-radius:8px;padding:6px}
 #bibliotheque .sy-var figcaption .mut{color:#5b6672}
 #bibliotheque .sy-nvar{color:#0b6e99}
+/* MAJ affichage (05/11/2026) : bandeau 1 fixe et sur une seule ligne ; bandeau 2 seulement sur le plan et la 3D */
+.app{display:flex;flex-direction:column}
+.app>.main{flex:1;min-height:0}
+.top{flex-wrap:nowrap;overflow:hidden;flex:none}
+.top .badge{min-width:0;max-width:22vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto}
+.top .levels{min-width:0;flex:0 1 auto;overflow-x:auto;scrollbar-width:none}
+.top>*{flex-shrink:0}.top>.badge,.top>.levels,.top>.grow{flex-shrink:1}
+.top .chip{white-space:nowrap}
+body[data-tab]:not([data-tab="plan"]):not([data-tab="vue3d"]) .top2{display:none!important}
+.web-dot{background:transparent;border:0;cursor:pointer;padding:0 4px;min-height:0!important}
+.web-dot .dot{background:var(--ok,#2e9e5b)}
+.web-dot.off .dot{background:#d9822b}.web-dot.bad .dot{background:#d33}
+.web-dot[hidden]{display:none!important}

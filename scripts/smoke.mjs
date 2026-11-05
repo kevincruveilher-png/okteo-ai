@@ -990,7 +990,7 @@ try {
     if (!(ui0.prev && ui0.next && ui0.idk && ui0.set && v.n >= 1 && v.last && v.last.type === "LUM" && v.t === "LUM" && v.dec && nav.idk && nav.open && t2 === "PC16" && lib.white && lib.vars >= 1 && /variante/.test(lib.tag) && lib.svg > 20 && gone === v.n - 1 && back === 0)) throw new Error(JSON.stringify(r));
     return true;
   });
-  await check("lot 3 : logo Oktéo = accueil (plus d'onglet Chantiers) ; accueil, Paramètres et Bibliothèque en pages entières sans bandeau du haut ni panneau de droite ; flèches « classeur » = retour au plan ; bandeau de la version en ligne rangé à l'accueil, avertissement signalé sur le plan", async () => {
+  await check("lot 3 : logo Oktéo = accueil (plus d'onglet Chantiers) ; accueil, Paramètres et Bibliothèque en pages entières (MAJ affichage : bandeau 1 gardé, sans bandeau 2 ni panneau de droite) ; flèches « classeur » = retour au plan ; bandeau de la version en ligne rangé à l'accueil, avertissement signalé sur le plan", async () => {
     await ev(() => okteo.setTab("plan"));
     const tabs = await ev(() => [...document.querySelectorAll("#tabs button")].map((b) => b.dataset.tab));
     await page.click(".top .brand");
@@ -1016,24 +1016,41 @@ try {
     const viaWarn = await ev(() => okteo.tab);
     await ev(() => { document.querySelector("#home-head .enterprise-bar").remove(); document.querySelector("#web-warn").hidden = true; okteo.setTab("plan"); });
     const r = { tabs, home, plan, par, bib, bar, w, viaWarn };
-    if (!(!tabs.includes("chantiers") && tabs.includes("plan") && home.tab === "chantiers" && home.head && home.top === "none" && home.top2 === "none" && home.side === "none" && home.fold && home.tabsVis !== "none"
-      && plan.tab === "plan" && plan.top !== "none" && plan.head && par.full && par.top === "none" && par.fold && par.head && bib && bar.inHead && bar.warn && !w.hidden && /Secours impossible/.test(w.txt) && viaWarn === "chantiers")) throw new Error(JSON.stringify(r));
+    if (!(!tabs.includes("chantiers") && tabs.includes("plan") && home.tab === "chantiers" && home.head && home.top !== "none" && home.top2 === "none" && home.side === "none" && home.fold && home.tabsVis !== "none"
+      && plan.tab === "plan" && plan.top !== "none" && plan.head && par.full && par.top !== "none" && par.fold && par.head && bib && bar.inHead && bar.warn && !w.hidden && /Secours impossible/.test(w.txt) && viaWarn === "chantiers")) throw new Error(JSON.stringify(r));
     return true;
   });
-  await check("lot 5 : 9 étapes du dossier (surtout des vérifications validées par l'opérateur), jauge d'avancement toujours visible dans le bandeau ; « C'est vérifié » fait avancer la jauge, Ctrl+Z l'annule", async () => {
+  await check("lot 5 : 9 étapes du dossier (surtout des vérifications validées par l'opérateur), jauge d'avancement en tête du panneau Étapes (MAJ affichage : plus dans le bandeau) ; « C'est vérifié » fait avancer la jauge, Ctrl+Z l'annule", async () => {
     await ev(() => okteo.setTab("plan"));
-    const g0 = await ev(() => ({ vis: !!document.querySelector("#st-gauge") && getComputedStyle(document.querySelector("#st-gauge")).display !== "none", txt: document.querySelector("#st-gauge").textContent, P: okteoExt.tour.progress() }));
-    await page.click("#st-gauge");
+    const g0 = await ev(() => ({ vis: !document.querySelector(".top #st-gauge"), txt: "%", P: okteoExt.tour.progress() }));   // MAJ affichage : jauge seulement dans le panneau Étapes
+    await ev(() => okteoExt.panel.show("steps"));
     await page.waitForSelector('.steps li[data-step="murs"]', { timeout: 5000 });
     const L = await ev(() => [...document.querySelectorAll(".steps li[data-step]")].map((li) => li.dataset.step));
     const murs0 = await ev(() => document.querySelector('.steps li[data-step="murs"]').classList.contains("done"));
     await page.click('.steps li[data-step="murs"] button[data-k]');
     await page.waitForFunction(() => document.querySelector('.steps li[data-step="murs"]').classList.contains("done"), null, { timeout: 5000 });
-    const g1 = await ev(() => ({ P: okteoExt.tour.progress(), by: !!document.querySelector('.steps li[data-step="murs"] .ok'), txt: document.querySelector("#st-gauge").textContent }));
+    const g1 = await ev(() => ({ P: okteoExt.tour.progress(), by: !!document.querySelector('.steps li[data-step="murs"] .ok'), txt: document.querySelector(".steps .sg-big").textContent }));
     await ev(() => okteo.undo()); await page.waitForTimeout(250);
     const g2 = await ev(() => okteoExt.tour.progress().n);
     const r = { g0: { ...g0, P: { n: g0.P.n, total: g0.P.total } }, L, murs0, g1: { n: g1.P.n, by: g1.by, txt: g1.txt }, g2 };
     if (!(g0.vis && /%/.test(g0.txt) && g0.P.total === 9 && L.join() === "import,echelle,murs,appareils,boites,verifBoites,cablage,tableau,impression" && !murs0 && g1.P.n === g0.P.n + 1 && g1.by && g2 === g0.P.n)) throw new Error(JSON.stringify(r));
+    return true;
+  });
+  await check("MAJ affichage : bandeau 1 sur une seule ligne, toujours visible (Étude, Pieuvre, Tableau, Symboles, Paramètres, accueil) ; bandeau 2 seulement sur le plan et la 3D ; Imprimer et Fonctions en icônes ; voyant « Connecté »", async () => {
+    const out = {};
+    for (const t of ["plan", "etude", "boites", "tableau", "bibliotheque", "params", "chantiers", "vue3d"]) {
+      await ev((x) => okteo.setTab(x), t); await page.waitForTimeout(120);
+      out[t] = await ev(() => ({ top: getComputedStyle(document.querySelector(".top")).display !== "none" && document.querySelector(".top").offsetHeight, top2: getComputedStyle(document.querySelector(".top2")).display !== "none" }));
+    }
+    await ev(() => okteo.setTab("plan"));
+    const icons = await ev(() => ({ print: document.querySelector("#btn-print").textContent.trim(), pal: document.querySelector("#btn-palette").textContent.trim() }));
+    await ev(() => { const b = document.createElement("div"); b.className = "enterprise-bar"; b.innerHTML = '<span id="web-state">Oktéo entreprise · connecté · ressources hors ligne prêtes</span><span id="web-saved">Secours local prêt</span>'; document.body.prepend(b); });
+    await page.waitForTimeout(80);
+    const dot = await ev(() => ({ vis: !document.querySelector("#web-dot").hidden, txt: document.querySelector("#web-dot").textContent, tip: document.querySelector("#web-dot").title, h: document.querySelector(".top").offsetHeight }));
+    await ev(() => { document.querySelector("#home-head .enterprise-bar").remove(); document.querySelector("#web-dot").hidden = true; });
+    const one = Object.values(out).every((o) => o.top && o.top < 80);
+    const two = out.plan.top2 && out.vue3d.top2 && !out.etude.top2 && !out.boites.top2 && !out.tableau.top2 && !out.bibliotheque.top2 && !out.params.top2 && !out.chantiers.top2;
+    if (!(one && two && icons.print === "" && icons.pal === "" && dot.vis && /Connecté/.test(dot.txt) && /ressources hors ligne/.test(dot.tip) && dot.h < 80)) throw new Error(JSON.stringify({ out, icons, dot }));
     return true;
   });
   await check("05/11 : « Je confirme l'emplacement » arrête le clignotement (même après un déplacement), noté dans le rapport pour le BE ; Ctrl+Z le rallume ; « Modifier » garde l'appareil sélectionné", async () => {

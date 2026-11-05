@@ -3,7 +3,9 @@
 //   version en ligne). Le bandeau « Oktéo entreprise · connecté · ressources hors ligne · Compte / administration » y
 //   est rangé : la vue principale gagne de la hauteur. Un avertissement de ce bandeau (hors ligne, session expirée,
 //   secours en échec, budget IA) reste signalé sur le plan par une pastille qui ramène à l'accueil.
-// - Accueil, Paramètres et Bibliothèque de symboles = pages entières, sans le bandeau du haut ni le panneau de droite,
+// - MAJ affichage (05/11/2026) : le bandeau 1 (logo … Fonctions) reste toujours visible, sur une ligne ; le bandeau 2
+//   (Actions, Vues, Panneaux) n'est montré que sur le plan et la 3D.
+// - Accueil, Paramètres et Bibliothèque de symboles = pages entières, sans le bandeau 2 ni le panneau de droite,
 //   ouvertes « en classeur » : la page arrive par la droite ; les petites flèches à droite la rangent à gauche (dans la
 //   colonne des onglets) et ramènent au plan.
 // Passe par l'API seulement (setTab, tab, ch) et l'événement okteo:tab.
@@ -42,6 +44,13 @@ export function createHomeShell({ api }) {
   warn.onclick = () => api.setTab("chantiers");
   const top = document.querySelector(".top"), chip = top && top.querySelector(".chip");
   if (chip) chip.after(warn); else if (top) top.appendChild(warn);
+  // MAJ affichage (05/11/2026) : voyant « Connecté » (comme « Enregistré ») à la place de la phrase du bandeau en ligne ;
+  // le détail (version entreprise, ressources hors ligne…) est dans l'infobulle, le reste sur la page d'accueil
+  const dot = document.createElement("button");
+  dot.className = "chip web-dot"; dot.id = "web-dot"; dot.hidden = true;
+  dot.innerHTML = `<span class="dot"></span><span class="wd-t">Connecté</span>`;
+  dot.onclick = () => api.setTab("chantiers");
+  if (chip) chip.before(dot); else if (top) top.appendChild(dot);
 
   // bandeau de la version en ligne (créé par src/web/workspace.js) rangé dans l'en-tête de l'accueil
   const WARN = /⚠|expir|Hors ligne|incomplet|indisponible/i;
@@ -54,6 +63,12 @@ export function createHomeShell({ api }) {
   }
   function checkWarn() {
     if (!bar) return;
+    const st = (bar.querySelector("#web-state") || {}).textContent || "";
+    const off = /Hors ligne/i.test(st), gone = /expir/i.test(st);
+    dot.hidden = false;
+    dot.classList.toggle("off", off); dot.classList.toggle("bad", gone);
+    dot.querySelector(".wd-t").textContent = gone ? "Session expirée" : off ? "Hors ligne" : "Connecté";
+    dot.title = [...bar.querySelectorAll("span")].map((x) => x.textContent).filter(Boolean).join(" · ") + " — cliquez pour l'accueil (compte, administration)";
     const t = [...bar.querySelectorAll("span")].map((s) => s.textContent).filter((x) => WARN.test(x)).join(" · ");
     warn.hidden = !t; warn.textContent = t ? "⚠ " + t.replace(/^⚠\s*/, "").slice(0, 60) : "";
   }
