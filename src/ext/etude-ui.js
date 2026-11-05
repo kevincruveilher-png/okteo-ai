@@ -9,7 +9,7 @@ import { getJournal } from "../cablage/regles.js";
 import { computeCircuits, checkCircuits, circuitsByBox } from "../cablage/circuits.js";
 import { STEPS, ETATS, precontrole, contextOf, buildTrace, whyBox, whyGaine, whyWire, statsOf, scoreOf } from "../cablage/etude.js";
 import { MODES } from "../cablage/boites.js";
-import { wiringNow, autoBoxes, compareModes, cabS, setGaineSol, gaineKeys } from "./cablage-data.js";
+import { wiringNow, autoBoxes, compareModes, cabS, setGaineSol, gaineKeys, BOX_MODE } from "./cablage-data.js";
 import { esc, store, storeSet } from "./util.js";
 import { downloadBlob } from "./dossier.js";
 
@@ -21,7 +21,7 @@ const st = (s) => `<span class="et-st ${s}" title="${esc(ETATS[s]?.t || s)}">${E
 export function etudeNow(api, { alternatives = true } = {}) {
   const S = cabS(api), J = getJournal(), items = api.allApps(), links = api.allLinks(), C = api.cab.circuits || [], B = api.cab.boxes || [];
   const W = B.length && C.length ? wiringNow(api) : null;
-  const mode = api.cab.mode || "proximite";
+  const mode = BOX_MODE;   // lot 4 : mode Bureau d'études seulement
   const ctx = contextOf({ items, links, circuits: C, boxes: B, mode, W });
   let alts = [];
   if (alternatives && C.length && items.some((a) => a.t === "TAB")) { try { alts = compareModes(api); } catch (e) { alts = []; } }
@@ -31,7 +31,7 @@ export function etudeNow(api, { alternatives = true } = {}) {
 // « Câbler le chantier » : précontrôle, puis circuits (si aucun), boîtes (les boîtes verrouillées ou déplacées à la main
 // restent), circuits par boîte, trace de l'étude enregistrée dans le chantier — un seul Ctrl+Z. Renvoie un compte rendu.
 export function cabler(api) {
-  const S = cabS(api), J = getJournal(), current = api.allApps(), links = api.allLinks(), mode = api.cab.mode || "proximite";
+  const S = cabS(api), J = getJournal(), current = api.allApps(), links = api.allLinks(), mode = BOX_MODE;
   if (!current.filter((a) => a.t !== "TAB").length) return { ok: false, text: "Je ne peux pas câbler : le plan n'a pas encore d'appareils." };
   const proposal = equipmentProposal(api), patch = new Map(proposal.updates.map(u => [u.id,u]));
   const items = [...current.map(a => ({...a,...(patch.get(a.id)||{})})), ...proposal.adds.map((a,i)=>({...a,id:"proposition-"+i}))];
@@ -91,11 +91,11 @@ export function mountEtudePage(el, { api, askRule }) {
   let cur = 1, tr = null, msg = "";
   function render() {
     tr = etudeNow(api);
-    const J = getJournal(), pc = precontrole(J, contextOf({ items: api.allApps(), links: api.allLinks(), circuits: api.cab.circuits || [], boxes: api.cab.boxes || [], mode: api.cab.mode || "proximite", W: null }));
+    const J = getJournal(), pc = precontrole(J, contextOf({ items: api.allApps(), links: api.allLinks(), circuits: api.cab.circuits || [], boxes: api.cab.boxes || [], mode: BOX_MODE, W: null }));
     const last = api.cab.etude, S = stepOf(cur);
     const stats = allStats();
     el.innerHTML = `<div class="params-in etude">
-      <div class="et-head"><h2>Étude du câblage</h2><span class="mut">${esc(api.ch.nom)} · pieuvre ${esc(MODES[api.cab.mode || "proximite"] || "")}</span><span class="grow"></span>
+      <div class="et-head"><h2>Étude du câblage</h2><span class="mut">${esc(api.ch.nom)} · pieuvre ${esc(MODES[BOX_MODE] || "")}</span><span class="grow"></span>
         <button id="et-equipements" title="Prévoir four, LV, plaques en cuisine, LL/SL au cellier et une antenne si prises TV, sans doublon">Compléter les équipements</button>
         <button class="on" id="et-cabler" title="Précontrôle des règles, puis circuits, boîtes (les boîtes verrouillées restent) et circuits par boîte ; un seul Ctrl+Z pour revenir">⚡ Câbler le chantier</button>
         <button id="et-report" title="Rapport de câblage (PDF) : étapes, modes étudiés, tout ce qui coince avec la question à poser">📄 Rapport de câblage</button></div>
@@ -197,7 +197,7 @@ export function createWhy(api) {
     const S = getCab();
     const g = key ? b.gaines.find((x) => (key === "tab" ? x.id === "alim:0" : (x.appIds || []).includes(key))) : null;
     sel = { id, key };
-    const chain = g ? whyGaine(g, b, S) : whyBox(b, S, api.cab.mode);
+    const chain = g ? whyGaine(g, b, S) : whyBox(b, S, BOX_MODE);
     card.innerHTML = `<h4><span>Pourquoi ${esc(g ? g.no : b.n)} ?</span><span class="grow"></span>${g ? `<button data-k="" title="Revenir à la boîte">${esc(b.n)}</button>` : ""}<button class="mini" data-x title="Fermer">✕</button></h4>
       <div class="mut sm">${g ? esc(g.label) : `${b.gaines.length} gaines · circuits ${esc(b.circuits.join(", "))}`}</div>
       <ol>${chain.map((c) => `<li>${c.rule ? `<b>${c.rule}</b> ` : ""}${esc(c.text)}</li>`).join("")}</ol>

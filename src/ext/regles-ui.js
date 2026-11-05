@@ -41,8 +41,7 @@ export function mountRegles(el, { api, ask }) {
     const cab = api.cab || {}, ch = cab.choix || {};
     return `<div class="rg-choix">
       <h4>Choix du chantier <span class="mut">${esc(api.ch?.nom || "")}</span></h4>
-      <label>Mode de pieuvre <select id="rg-mode">${Object.entries(MODES).map(([k, l]) => `<option value="${k}" ${(cab.mode || "proximite") === k ? "selected" : ""}>${esc(l)}</option>`).join("")}
-        <option value="plug" disabled>Plug de pieuvre — bloqué (R-009 incomplète)</option></select></label>
+      <p class="sm">Mode de pieuvre : <b>Bureau d'études</b> <span class="mut">(lot 4 : seul mode d'implantation des boîtes)</span></p>
       <label>Volets roulants <select id="rg-volets">${Object.entries(VOLETS).map(([k, l]) => `<option value="${k}" ${(ch.volets || "") === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
       <label title="R-096 : choix du bureau d'études pour le chantier ; le plan ne le dit pas">Commande des volets <select id="rg-cvol">${Object.entries(CVOL).map(([k, l]) => `<option value="${k}" ${(ch.commandeVolet || "") === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
       <label>Hotte et appareils à choix <select id="rg-racc">${Object.entries(RACC).map(([k, l]) => `<option value="${k}" ${(ch.raccordement || "a_choisir") === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
@@ -160,7 +159,7 @@ export function mountRegles(el, { api, ask }) {
     if (which === "ecarts") { el.querySelector(".rg-ecarts-box").innerHTML = ecartsHTML(getJournal()); wireEcarts(); }
     if (which === "choix") {
       const cab = (api && api.cab) || {}, ch = cab.choix || {}, set = (id, v) => { const x = el.querySelector(id); if (x && x.value !== v && document.activeElement !== x) x.value = v; };
-      set("#rg-mode", cab.mode || "proximite"); set("#rg-volets", ch.volets || ""); set("#rg-cvol", ch.commandeVolet || ""); set("#rg-racc", ch.raccordement || "a_choisir");
+      set("#rg-volets", ch.volets || ""); set("#rg-cvol", ch.commandeVolet || ""); set("#rg-racc", ch.raccordement || "a_choisir");
     }
   }
   function wireEcarts() { el.querySelectorAll(".rg-ecarts [data-open]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); openRule(a.dataset.open); })); }
@@ -212,8 +211,7 @@ export function mountRegles(el, { api, ask }) {
       catch (err) { msg("✗ " + err.message, true); }
     };
     if (api) {
-      const m = el.querySelector("#rg-mode"), v = el.querySelector("#rg-volets"), r = el.querySelector("#rg-racc");
-      m.onchange = () => api.setCab({ mode: m.value });
+      const v = el.querySelector("#rg-volets"), r = el.querySelector("#rg-racc");
       v.onchange = () => api.setCab({ choix: { ...(api.cab.choix || {}), volets: v.value } });
       r.onchange = () => api.setCab({ choix: { ...(api.cab.choix || {}), raccordement: r.value } });
       const cv = el.querySelector("#rg-cvol"); cv.onchange = () => api.setCab({ choix: { ...(api.cab.choix || {}), commandeVolet: cv.value } });

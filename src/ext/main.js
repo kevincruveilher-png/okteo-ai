@@ -117,7 +117,7 @@ function start() {
   const stage = document.querySelector(".stage");
   const pages = {
     bibliotheque: { el: document.getElementById("bibliotheque"), mount: (el) => mountSymbols(el, { api }), ui: null },
-    params: { el: document.getElementById("params"), mount: (el) => mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, openPacks: () => { api.setTab("plan"); panel.show("packs"); }, api,
+    params: { el: document.getElementById("params"), mount: (el) => mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, openPacks: Object.assign(() => { api.setTab("plan"); panel.show("packs"); }, { mount: (box) => window.okteoExt?.packs?.mountEditor(box) }), api,
       askRule }), ui: null },
     etude: { el: document.getElementById("etude"), mount: (el) => mountEtudePage(el, { api, askRule }), ui: null },
     chantiers: { el: document.getElementById("chantiers"), mount: (el) => mountChantiers(el, { api }), ui: null },

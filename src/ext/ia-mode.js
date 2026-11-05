@@ -90,7 +90,7 @@ export function createIaMode({ api, aiReleve, recheck, ctl, aiModes = null }) {
       ${step(4, "Équipements hors plan", s4, apps.length ? `<p class="sm">${hpMiss.length ? `À poser d'après le devis : ${esc(hpMiss.slice(0, 6).map((it) => it.n + ((+it.q || 1) > 1 ? " ×" + it.q : "")).join(", "))}${hpMiss.length > 6 ? ` <span class="mut">et ${hpMiss.length - 6} autres</span>` : ""}.` : "Rien à poser (liste habituelle déjà sur le plan)."}</p>
         ${hpMiss.length ? `<button class="${s4 === "todo" ? "on" : ""}" id="ia-hp" title="Pose les équipements habituels dans la pièce qui convient, en violet « à vérifier avec le devis » (Ctrl+Z annule). Liste détaillée : Mode BE → Câblage.">Poser (${hpMiss.length})</button>` : ""}` : `<p class="mut sm">Après le relevé.</p>`)}
       ${step(5, "Câbler le chantier", s5, apps.length ? `<p class="sm">${boxes ? `${boxes} boîte${boxes > 1 ? "s" : ""} · ${A.W ? `${A.W.totals.gaines} gaines · ${String(A.W.totals.gaine).replace(".", ",")} m de gaine` : ""}` : "Circuits, boîtes, gaines et fils, d'après les règles du journal."}</p>
-        <div class="ia-row"><select id="ia-mode" title="Type d'implantation des boîtes">${Object.entries(MODES).map(([k, v]) => `<option value="${k}" ${(api.cab.mode || "proximite") === k ? "selected" : ""}>${v}</option>`).join("")}</select>
+        <div class="ia-row"><span class="sm mut" title="Lot 4 : un seul mode d'implantation des boîtes">Boîtes : mode Bureau d'études</span>
         <button class="${s5 === "todo" ? "on" : ""}" id="ia-cab" title="Précontrôle des règles, circuits, boîtes (les boîtes verrouillées restent), circuits par boîte ; un seul Ctrl+Z">⚡ ${boxes ? "Recâbler" : "Câbler"}</button></div>` : `<p class="mut sm">Après le relevé.</p>`)}
       ${step(6, "Alertes", A.list.length ? "todo" : apps.length ? "done" : "wait", A.list.length ? `<p class="sm"><b>${A.list.length}</b> à vérifier. Cliquez une ligne pour y aller.</p>
         <ul class="ia-alerts" id="ia-alerts">${A.list.slice(0, 40).map((a, i) => `<li data-i="${i}" class="g${a.grave}"><span class="k">${esc(a.title)}</span> <b>${esc(a.who)}</b><br><span class="mut sm">${esc(a.what)}</span>
@@ -116,7 +116,6 @@ export function createIaMode({ api, aiReleve, recheck, ctl, aiModes = null }) {
     on("#ia-rk-auto", () => { api.setTab("plan"); recheck.loop(); });
     on("#ia-rk", () => { api.setTab("plan"); recheck.open(); });
     on("#ia-hp", () => { const { list: L } = hpState(api), saved = {}; L.forEach((it) => (saved[it.t] = it.on ? Math.max(1, +it.q || 1) : 0)); poserHorsPlan(api, saved); render(); });
-    const sel = $("#ia-mode"); if (sel) sel.onchange = () => api.setCab({ mode: sel.value });
     on("#ia-cab", () => { const r = cabler(api); msg = r.text || ""; if ((api.cab.boxes || []).length) { api.viewPreset("cab"); api.showCircuits = true; } render(); });
     on("#ia-dossier", async (e) => {
       const b = e.currentTarget; if (busy) return; busy = "dossier"; b.disabled = true; b.textContent = "Préparation…";

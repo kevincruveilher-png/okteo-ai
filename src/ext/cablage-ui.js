@@ -7,7 +7,7 @@
 import { computeCircuits, checkCircuits, circuitsByBox } from "../cablage/circuits.js";
 import { getCab, SECTIONS, PROTS } from "../cablage/settings.js";
 import { esc } from "./util.js";
-import { wiringNow, autoBoxes, removeBoxPlan, fr, cabS } from "./cablage-data.js";
+import { wiringNow, autoBoxes, removeBoxPlan, fr, cabS, BOX_MODE } from "./cablage-data.js";
 import { buildUnits, MODES } from "../cablage/boites.js";
 import { createCompare } from "./pieuvre-compare.js";
 import { controlSection, wireControlSection } from "./controle-ui.js";
@@ -152,13 +152,12 @@ export function createCablagePane({ api, panel, ctl }) {
   // ---------- boîtes ----------
   function boxesHTML() {
     const B = api.cab.boxes || [], hasTab = api.allApps().some((a) => a.t === "TAB");
-    const mode = api.cab.mode || "proximite";
+    const mode = BOX_MODE;
     const head = `<div class="cab-h" style="margin-top:14px"><b>Boîtes</b> <i class="info" tabindex="0" title="${esc(`Au plus ${getCab().departsMax} départs par boîte sans l'alimentation, ${getCab().departsFace} gaines par face (A haut, B droite, C bas, D gauche). Sur le plan : glisser une boîte pour la déplacer ; tirer une gaine pour lui donner un point de passage (Maj : tronçon droit, double-clic sur un point : le supprimer). Une boîte déplacée ou retracée se verrouille toute seule. Détail des gaines et des fils : onglet Pieuvre (Boîtes, Bandes, Lignes directes).`)}">i</i></div>
-      <div class="bx-mode"><label title="Comment les boîtes sont constituées au prochain placement automatique">Pieuvre : <select id="bx-mode">${Object.entries(MODES).map(([k, v]) => `<option value="${k}" ${k === mode ? "selected" : ""}>${v}</option>`).join("")}</select></label>
-        <button id="bx-cmp" title="Calcule les cinq modes (économique, équilibrée, par pièce, par zone, bureau d'études) et les compare : note « belle pieuvre », mini-plans, fil, gaine, boîtes, départs. Puis « Appliquer ».">Comparer les modes</button></div>${voletsHTML()}${pontHTML()}`;
+      <p class="sm mut bx-be">Implantation des boîtes : mode <b>Bureau d'études</b> (couples de pièces du BE, boîte des volets roulants à part).</p>${voletsHTML()}${pontHTML()}`;
     const tabWarn = hasTab ? "" : `<p class="warn sm">⚠ Pas de tableau sur le plan : les boîtes sont placées sans tenir compte de leur alimentation et les longueurs vers le tableau manquent. <button id="bx-tab">Poser le tableau</button></p>`;
-    if (!B.length) return `${head}${tabWarn}<p class="mut sm">Oktéo place les boîtes selon le mode choisi — économique (le moins de cuivre), équilibrée (le moins de boîtes, comme le BE), par pièce ou par zone (jour / nuit / garage) —, une commande et ses lumières toujours dans la même boîte ; vous pouvez ensuite les déplacer à la souris.</p>
-      <button class="on" id="bx-auto">Placer les boîtes automatiquement</button>`;
+    if (!B.length) return `${head}${tabWarn}<p class="mut sm">Oktéo place les boîtes comme le bureau d'études, une commande et ses lumières toujours dans la même boîte ; vous pouvez ensuite les déplacer à la souris.</p>
+      <button class="on" id="bx-auto" title="Place les boîtes (pieuvres) selon le mode Bureau d'études. Ctrl+Z pour annuler.">⚡ Implantation rapide des pieuvres</button>`;
     const W = wiringNow(api), lvName = new Map(api.levels.map((l) => [l.id, l.name]));
     const rows = W.boxes.map((b) => {
       const f = ["A", "B", "C", "D"].map((x) => `${x}${b.gaines.filter((g) => g.face === x).length}`).join(" ");
@@ -179,9 +178,8 @@ export function createCablagePane({ api, panel, ctl }) {
       ${cross}${issues}<div class="cb-list">${rows}</div>
       ${askBox ? `<div class="cb-ask bx-ask"><b>Quelles boîtes recalculer ?</b> <span class="mut sm">Les boîtes décochées gardent leur place, leurs appareils et leurs tracés.</span>
           ${B.map((b) => `<label class="wck"><input type="checkbox" class="bx-redo" value="${b.id}" ${b.locked ? "" : "checked"}> ${esc(b.n)}${b.locked ? ` <span class="mut sm">🔒 verrouillée</span>` : ""}</label>`).join("")}
-          <label class="wck" title="Vide = le logiciel choisit le nombre qui économise le plus de cuivre">Nombre de boîtes en tout : <input id="bx-count" type="number" min="1" max="40" step="1" placeholder="auto" style="width:64px"></label>
           <div><button class="on" id="bx-yes">Recalculer les boîtes cochées</button><button id="bx-no">Annuler</button></div></div>`
-        : `<button id="bx-auto" title="Recalculer l'emplacement des boîtes selon le mode choisi : vous choisissez lesquelles (les verrouillées restent en place). Ctrl+Z pour revenir.">Replacer les boîtes automatiquement…</button>`}`;
+        : `<button id="bx-auto" title="Recalculer l'emplacement des boîtes (mode Bureau d'études) : vous choisissez lesquelles (les verrouillées restent en place). Ctrl+Z pour revenir.">⚡ Implantation rapide des pieuvres…</button>`}`;
   }
   function deleteBox(id) {
     const r = removeBoxPlan(api, id);
@@ -216,10 +214,10 @@ export function createCablagePane({ api, panel, ctl }) {
   document.addEventListener("okteo:gaine-move", (e) => moveGaine(e.detail));
   function placeAuto(keepIds = [], count = 0) {
     if (!(api.cab.circuits || []).length) { api.setHint("Répartissez d'abord les appareils en circuits."); return; }
-    const r = autoBoxes(api, keepIds, count, api.cab.mode || "proximite");
+    const r = autoBoxes(api, keepIds, count, BOX_MODE);   // lot 4 : mode Bureau d'études seulement
     commitBoxes(r.boxes); api.showCircuits = true;
     const kept = keepIds.length ? ` (${keepIds.length} gardée${keepIds.length > 1 ? "s" : ""} telle${keepIds.length > 1 ? "s" : ""} quelle${keepIds.length > 1 ? "s" : ""})` : "";
-    api.setHint(`${r.boxes.length} boîtes${kept}, placées pour économiser le cuivre${r.issues.length ? " — " + r.issues.join(" ; ") : ""}. Glissez une boîte pour la déplacer ; Ctrl+Z pour annuler.`);
+    api.setHint(`${r.boxes.length} boîtes${kept}, placées comme le bureau d'études${r.issues.length ? " — " + r.issues.join(" ; ") : ""}. Glissez une boîte pour la déplacer ; Ctrl+Z pour annuler.`);
   }
   function wireBoxes() {
     const $ = (q) => el.querySelector(q);
@@ -234,8 +232,6 @@ export function createCablagePane({ api, panel, ctl }) {
     const fx = $("#cb-fixsplit"); if (fx) fx.onclick = fixSplits;
     const pt = $("#bx-pont"); if (pt) pt.onchange = () => { api.setCab({ choix: { ...(api.cab.choix || {}), pontage: pt.checked } }); api.setHint(pt.checked ? "Pontage activé : les prises d'un même circuit et les lumières d'un même allumage proches les unes des autres partagent une gaine reliée de proche en proche (moins de départs dans les boîtes)." : "Pontage désactivé : une gaine par endroit depuis la boîte."); };
     const cv = $("#bx-cvol"); if (cv) cv.onchange = () => { api.setCab({ choix: { ...(api.cab.choix || {}), commandeVolet: cv.value } }); api.setHint(cv.value === "connecte" ? "Volets connectés : les commandes de volet ne sont plus câblées (recalculez les circuits et les boîtes : « Câbler le chantier »)." : "Volets en commande filaire : les commandes de volet sont câblées avec leurs volets."); };
-    const md = $("#bx-mode"); if (md) md.onchange = () => { api.setCab({ mode: md.value }); api.setHint(`Pieuvre « ${MODES[md.value]} » : appliquée au prochain placement (« ${(api.cab.boxes || []).length ? "Replacer les boîtes…" : "Placer les boîtes"} »). « Comparer les 4 modes » pour voir avant de choisir.`); };
-    const cp = $("#bx-cmp"); if (cp) cp.onclick = () => compare.open();
     el.querySelectorAll(".bx-row").forEach((r) => {
       const id = r.dataset.b, b = () => api.cab.boxes.find((x) => x.id === id);
       r.querySelector('[data-a="see"]').onclick = () => { const B = b(); if (B.lv !== api.level.id) api.switchLevel(B.lv); api.showCircuits = true; api.boxSel = id; api.zoomToBox(B.x - 3, B.y - 3, B.x + 3, B.y + 3); render(); };
