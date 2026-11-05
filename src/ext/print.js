@@ -295,8 +295,9 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     // v58 : symboles sans chevauchement sur le papier (décalés le long de leur mur, trait de rappel vers la vraie position)
     // n° 13 : symbole mural poussé hors du mur (bord contre la face du mur), avant l'écartement entre voisins
     // 05/11 : interrupteur / va-et-vient mural : rond collé à la face du mur (trait vers la pièce, voir symbol(..., nrm))
-    const wsw = (a) => !FZ && WALL_SWITCH.has(a.t) && a.wall && a.wall.nx != null;
-    const base = new Map(apps.map((a) => { const b = a.wall && a.wall.nx != null ? (wsw(a) ? glueToWall(a, a.wall, SWITCH_R * u / f) : pushOff(a, a.wall, u / f)) : a; return [a.id, { x: X(b.x), y: Y(b.y) }]; }));
+    const wsw = (a) => WALL_SWITCH.has(a.t) && a.wall && a.wall.nx != null;
+    const swR = (a) => { const fs = FZ && ftzSymbol(FZ, a.t, a.h); return fs ? fs.h / 2 / f : SWITCH_R * u / f; };   // symbole FTZ en mm réels
+    const base = new Map(apps.map((a) => { const b = a.wall && a.wall.nx != null ? (wsw(a) ? glueToWall(a, a.wall, swR(a)) : pushOff(a, a.wall, u / f)) : a; return [a.id, { x: X(b.x), y: Y(b.y) }]; }));
     const disp = spreadSymbols(apps.map((a) => ({ id: a.id, ...base.get(a.id), ...(a.wall ? { ux: a.wall.ux, uy: a.wall.uy } : {}) })), 1.9 * u);
     const PX = (a) => (disp.get(a.id) || base.get(a.id)).x, PY = (a) => (disp.get(a.id) || base.get(a.id)).y;
     apps.forEach((a) => PL.add(boxAt(PX(a), PY(a), 2 * u, 2 * u)));      // les symboles sont des obstacles
@@ -459,7 +460,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       if (disp.has(a.id)) { doc.setDrawColor(150, 150, 150); doc.setLineWidth(0.1); doc.line(X(a.x), Y(a.y), PX(a), PY(a)); doc.setFillColor(150, 150, 150); doc.circle(X(a.x), Y(a.y), 0.25, "F"); }
       if (a.implantation?.etat === "a_preciser") { doc.setDrawColor(153,84,220); doc.setLineWidth(.25); doc.circle(PX(a),PY(a),u*1.6,"S"); }
       const fs = FZ && ftzSymbol(FZ, a.t, a.h);
-      if (fs) drawSymbol(doc, fs, PX(a), PY(a), 1, a.rot || 0);
+      if (fs) drawSymbol(doc, fs, PX(a), PY(a), 1, wsw(a) ? Math.atan2(a.wall.nx, -a.wall.ny) * 180 / Math.PI : a.rot || 0);
       else symbol(doc, a.t, PX(a), PY(a), u, a.rot || 0, o.circuits && !FZ ? rgb(a.color) : null, wsw(a) ? Math.atan2(a.wall.ny, a.wall.nx) * 180 / Math.PI : null);
     });
     // v74 MAJ 4 : plaques multipostes + « PROF 50 » (placés avant les repères)

@@ -6,10 +6,12 @@
   `switchParts(t)` (rond centré, axe +x = vers la pièce : un trait avec crochet ; va-et-vient : deux traits en V à ±22°),
   `glueToWall(p, w, R)` (centre du rond posé exactement contre la face du mur côté pièce, même s'il était plus loin).
 - Écran (`render.js`) : `wallSwitch(a)` (INT/VV accroché à un mur), `switchGlyph(t)` ; position affichée collée au mur,
-  rotation = normale du mur côté pièce (comme l'applique) ; sans mur ou avec les symboles FTZ (préférence `charteBE`) :
-  dessin d'avant.
-- Papier (`print.js`) : même collage et `symbol(..., nrm)` (rond + traits tournés vers la pièce).
-- Tests : `scripts/placement.test.mjs` (6) ; smoke (écart rond / face = rayon, trait vers la pièce, 2 ou 4 traits, papier) ;
+  rotation = normale du mur côté pièce (comme l'applique) ; sans mur : dessin d'avant. Avec les symboles FTZ du BE
+  (préférence `charteBE`, active par défaut) : même règle sur le symbole de la charte (rond en bas, trait vers le haut) :
+  bas du rond contre la face (`h/2` × `FTZK`), trait tourné vers la pièce (`atan2(nx, -ny)`).
+- Papier (`print.js`) : même collage et `symbol(..., nrm)` (rond + traits tournés vers la pièce) ; symbole FTZ (mm réels)
+  collé de la même façon et tourné par `drawSymbol`.
+- Tests : `scripts/placement.test.mjs` (6) ; smoke (symboles Oktéo puis FTZ : écart rond / face = rayon, sens vers la pièce, papier) ;
   le contrôle n° 13 (symboles poussés hors du mur) ne compte plus INT / VV.
 
 ## 05/11/2026 — « Je confirme l'emplacement » arrête le clignotement, noté dans le rapport pour le BE

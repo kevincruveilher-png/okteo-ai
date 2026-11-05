@@ -584,7 +584,7 @@ place.js `pushOff`, `wallBoxes`, `lineBoxes`, `repCandidates` ; render `wallU` (
 `a.rpx/rpy` (Propriétés `#f_rep0`) ; print.js mêmes règles ; `snapToWall(x, y, t)` côté pièce (`EXTERIEURS`) ; contrôle `mur`,
 `okteo.reattachWalls()` (catalogue `app.reattach`). Test `scripts/placement.test.mjs`.
 05/11 : INT / VV muraux = rond collé à la face (`glueToWall`), trait perpendiculaire vers la pièce (`switchParts`, place.js) ;
-render `wallSwitch` / `switchGlyph`, print `symbol(..., nrm)` ; pas avec les symboles FTZ.
+render `wallSwitch` / `switchGlyph` / `FTZK`, print `symbol(..., nrm)` ; symboles FTZ : même collage, rotation `atan2(nx, -ny)`.
 
 ### Entreprise Cloudflare v72 / v72.1
 `server/worker.js` (Worker Pages Advanced mode, généré en `dist/_worker.js` par `scripts/build-web.mjs`) : comptes,

@@ -2055,31 +2055,39 @@ try {
     if (!(r1.n > 5 && r1.worst > 0.055 && r1.best > 0.08 && /rotate\(-?90/.test(r1.rot || "") && r2.flagged && r2.k >= 1 && r2.seg && r2.kind && r3 && r3.moved && r3.back)) throw new Error(JSON.stringify({ r1, r2, r3, lab }));
     return true;
   });
-  await check("05/11 : interrupteurs et va-et-vient muraux : rond collé à la face du mur, trait perpendiculaire vers la pièce (écran et papier)", async () => {
+  await check("05/11 : interrupteurs et va-et-vient muraux : rond collé à la face du mur, trait perpendiculaire vers la pièce (symboles Oktéo et symboles FTZ du BE, écran et papier)", async () => {
     const keepView = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits }));
+    const keepFtz = await ev(async () => (await import("/src/prefs.js")).pref("charteBE"));
     await ev(() => { okteo.setTab("plan"); okteo.viewPreset("impl"); okteo.fit(); });
-    const r = await ev(() => {
+    // mesure dans le plan : écart entre le centre affiché et la face du mur, sens du trait (vers la pièce)
+    const measure = (ftz) => ev(async (ftz) => {
+      const P = await import("/src/prefs.js"); P.setPref("charteBE", ftz); window.__okteo.draw();
+      await new Promise((r) => setTimeout(r, 400)); window.__okteo.draw();
+      const FS = await import("/src/print/ftz-symbols.js"), CH = (await import("/src/print/ftz-charte.json")).default, IDX = FS.symIndex(CH);
       const S = okteo.state, N = (id) => S.nodes.find((n) => n.id === id), out = [];
       S.app.filter((a) => a.seg && (a.t === "INT" || a.t === "VV")).forEach((a) => {
         const s = S.segs.find((x) => x.id === a.seg), A = N(s.a), B = N(s.b), L = Math.hypot(B.x - A.x, B.y - A.y);
         const g = document.querySelector(`#sv g.dev[data-id="${a.id}"]`); if (!g || !L) return;
         const m = /translate\(([-\d.e]+) ([-\d.e]+)\)(?: rotate\(([-\d.e]+)\))?/.exec(g.getAttribute("transform")), ss = +/scale\(([-\d.e]+)\)/.exec(g.innerHTML)[1];
-        const X = +m[1], Y = +m[2], rot = (+m[3] || 0) * Math.PI / 180, c = Math.cos(rot), sn = Math.sin(rot);
-        const dist = (x, y) => Math.abs((x - A.x) * -(B.y - A.y) / L + (y - A.y) * (B.x - A.x) / L);
-        const ep = (s.ep ?? S.wallEp) / 2, circ = g.querySelector("circle.gy"), lines = [...g.querySelectorAll("line")];
-        const ends = lines.map((l) => { const x = +l.getAttribute("x2") * ss, y = +l.getAttribute("y2") * ss; return dist(X + x * c - y * sn, Y + x * sn + y * c); });
-        out.push({ t: a.t, gap: dist(X, Y) - ep, r: circ ? +circ.getAttribute("r") * ss : null, far: Math.max(...ends) - dist(X, Y), n: lines.length });
+        const X = +m[1], Y = +m[2], rot = +m[3] || 0;
+        let nx = -(B.y - A.y) / L, ny = (B.x - A.x) / L; const dd = (X - A.x) * nx + (Y - A.y) * ny; if (dd < 0) { nx = -nx; ny = -ny; }
+        const ep = (s.ep ?? S.wallEp) / 2, fs = FS.ftzSymbol(IDX, a.t, a.h), ftzShown = !!g.querySelector("g.ftz");
+        const R = ftzShown ? (fs.h / 2) * (1.6 / 3.88) * ss : 0.55 * ss;
+        const want = (ftzShown ? Math.atan2(nx, -ny) : Math.atan2(ny, nx)) * 180 / Math.PI, dr = ((rot - want) % 360 + 540) % 360 - 180;
+        out.push({ t: a.t, ftz: ftzShown, gap: Math.abs(dd) - ep, R, dr, n: g.querySelectorAll("line").length });
       });
       return out;
-    });
+    }, ftz);
+    const ok = await measure(false), fz = await measure(true);
     // papier : même forme (rond au point, trait vers la direction donnée)
     const p = await ev(async () => { const m = await import("/src/ext/print.js"), calls = [];
       const doc = new Proxy({}, { get: (t, k) => (...a) => { calls.push([k, a]); return doc; } });
       m.symbol(doc, "INT", 100, 50, 2, 0, null, 180); return calls.filter((c) => c[0] === "circle" || c[0] === "line").map((c) => [c[0], ...c[1].slice(0, 4).map((v) => +(+v).toFixed(2))]); });
+    await ev(async (v) => { (await import("/src/prefs.js")).setPref("charteBE", v); }, keepFtz);
     await ev((V) => { Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; }, keepView);
-    const ok = r.length >= 3 && r.every((x) => x.r && Math.abs(x.gap - x.r) < 0.02 * x.r + 1e-4 && x.far > 2.5 * x.r && x.n === (x.t === "VV" ? 4 : 2));
+    const good = (L, ftz) => L.length >= 3 && L.every((x) => x.ftz === ftz && Math.abs(x.gap - x.R) < 0.02 * x.R + 1e-4 && Math.abs(x.dr) < 1 && (ftz || x.n === (x.t === "VV" ? 4 : 2)));
     const circle = p.find((c) => c[0] === "circle"), arm = p.find((c) => c[0] === "line");
-    if (!(ok && circle && circle[1] === 100 && circle[2] === 50 && Math.abs(circle[3] - 1.1) < 0.01 && arm && arm[1] < 100 && arm[3] < arm[1] && Math.abs(arm[2] - 50) < 0.01)) throw new Error(JSON.stringify({ r: r.slice(0, 6), n: r.length, p }));
+    if (!(good(ok, false) && good(fz, true) && circle && circle[1] === 100 && circle[2] === 50 && Math.abs(circle[3] - 1.1) < 0.01 && arm && arm[1] < 100 && arm[3] < arm[1] && Math.abs(arm[2] - 50) < 0.01)) throw new Error(JSON.stringify({ ok: ok.slice(0, 4), fz: fz.slice(0, 4), n: [ok.length, fz.length], p }));
     return true;
   });
   await check("v77 : murs dessinés avec un seul contour d'ensemble (pas de trait en travers des angles ni des T)", async () => {
