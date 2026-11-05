@@ -527,6 +527,8 @@ print.js passe contour puis remplissage). Feuille de route du 04/11 (lots A à D
 `src/cablage/rapport.js` (`FAMILLES`, `familyOf`, `explain`, `buildRapport`, `rapportText`) ; halos `fam-…` (drawFx) ; HUD
 `data-h="why"` → `okteo:why` → `src/ext/why-blink.js` (`.whyb`, `.rapcard`, `cab.decisions`, `cab.questions`,
 `okteoExt.whyBlink`). Test `scripts/rapport.test.mjs`.
+05/11 : « Je confirme l'emplacement » (`[data-ok]`, décision `confirme`) / « Modifier » (`[data-mod]`) ; `silenced(it, decisions)`
+filtre `controlIssues` (sauf famille câblage) ; `buildRapport().validations` → rubrique « Emplacements confirmés et corrections ».
 
 ### Outils de l'IA et mémoire des symboles (n° 3 + 16, bloc D du 04/11/2026)
 Worker : outils définis par Oktéo seulement (pas d'outil serveur), `tool_use` / `tool_result` contrôlés. `chat({tools})` →

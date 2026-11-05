@@ -7,6 +7,7 @@ import {ductReport} from '../cablage/vmc.js';
 //   lampLit(id) dit si une lumière est allumée ; essaiPress(id) actionne une commande (ou la commande d'une lumière).
 // - testAll() : actionne chaque commande et liste celles qui n'allument rien ou qui allument une lumière d'un autre circuit.
 import { implantationPending } from "../cablage/equipements.js";
+import { silenced } from "../cablage/rapport.js";
 import { permanentDetector } from "../cablage/detecteur.js";
 import { K } from "./k.js";
 import { TYPES } from "./model.js";
@@ -125,7 +126,8 @@ export function controlIssues() {
       if (bc && bl && bc !== bl && !done.has(c + "|" + l)) { done.add(c + "|" + l); out.push({ kind: "split", ids: [c, l], lv: idx.get(c).lv, boxes: [bc.n, bl.n] }); }
     }
   }
-  return out;
+  // 05/11/2026 : un point confirmé par l'opérateur (« Je confirme ») ne clignote plus ; il reste dans le rapport pour le BE
+  return out.filter((it) => !silenced(it, K.CAB.decisions));
 }
 
 // 3D-6 : contrôles de pose sur tous les niveaux (hauteurs de départ de Paramètres → Vue 3D, case PMR du chantier)

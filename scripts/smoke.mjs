@@ -928,6 +928,41 @@ try {
     if (!(r && r.type === "RJ45" && /RJ45 : /.test(t))) throw new Error(JSON.stringify({ r: r && { ...r, image: !!r.image }, t: t.slice(0, 300) }));
     return true;
   });
+  await check("05/11 : « Je confirme l'emplacement » arrête le clignotement (même après un déplacement), noté dans le rapport pour le BE ; Ctrl+Z le rallume ; « Modifier » garde l'appareil sélectionné", async () => {
+    const keepV = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits }));
+    await ev(() => { okteoExt.panel.close("assistant"); okteo.setTab("plan"); okteo.viewPreset("impl"); });
+    const id = await ev(() => { const S = okteo.state, X = Math.max(0, ...S.nodes.map((n) => n.x)) + 3, Y = Math.min(0, ...S.nodes.map((n) => n.y)) + 4;
+      return okteo.importDevices([{ t: "PC16", x: X, y: Y, aiStatus: "a_confirmer", aiOrigin: "plan", aiNote: "position estimée" }], [], { stay: true }).ids[0]; });
+    await page.waitForTimeout(250);
+    const before = await ev((i) => ({ halo: !!document.querySelector(`#fx g.fx-halo[data-k="halo:${i}"]`), n: okteo.control.filter((c) => c.ids.includes(i)).length }), id);
+    await ev((i) => okteo.select([i]), id);
+    await page.waitForSelector('#hud [data-h="why"]', { timeout: 10000 });
+    await page.click('#hud [data-h="why"]');
+    await page.waitForSelector(".whyb:not([hidden]) [data-mod]");
+    await page.click(".whyb [data-mod]");
+    const mod = await ev((i) => ({ hidden: document.querySelector(".whyb").hidden, sel: JSON.stringify(okteo.selection || null).includes(i), still: okteo.control.some((c) => c.ids.includes(i)) }), id);
+    await ev((i) => okteo.select([i]), id);
+    await page.click('#hud [data-h="why"]');
+    await page.waitForSelector(".whyb:not([hidden]) [data-ok]");
+    const lab = await ev(() => document.querySelector(".whyb [data-ok]").textContent);
+    await page.click(".whyb [data-ok]");
+    await page.waitForTimeout(250);
+    const after = await ev((i) => ({ halo: !!document.querySelector(`#fx g.fx-halo[data-k="halo:${i}"]`), n: okteo.control.filter((c) => c.ids.includes(i)).length, txt: document.querySelector(".whyb").textContent }), id);
+    await ev((i) => okteo.updateApps([{ id: i, x: okteo.state.app.find((a) => a.id === i).x + 0.5, y: okteo.state.app.find((a) => a.id === i).y }]), id);
+    const moved = await ev((i) => okteo.control.filter((c) => c.ids.includes(i)).length, id);
+    await ev(() => okteoExt.whyBlink.openRapport());
+    await page.click("#rap-copy");
+    const txt = await ev(() => okteoExt.whyBlink.lastText);
+    const ui = await ev(() => document.querySelector(".rapcard .rap-val") ? document.querySelector(".rapcard .rap-val").textContent : "");
+    await ev(() => { okteo.undo(); okteo.undo(); });
+    const undone = await ev((i) => okteo.control.filter((c) => c.ids.includes(i)).length, id);
+    await ev(() => { okteo.undo(); okteo.undo(); okteo.clearSel(); document.querySelector(".rapcard").hidden = true; document.querySelector(".whyb").hidden = true; });
+    const back = await ev((i) => okteo.state.app.some((a) => a.id === i), id);
+    await ev((V) => { Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; }, keepV);
+    if (!(before.halo && before.n === 1 && mod.hidden && mod.sel && mod.still && /Je confirme l'emplacement/.test(lab) && !after.halo && after.n === 0 && /emplacement confirmé/.test(after.txt)
+      && moved === 0 && /Emplacements confirmés et corrections \(1\)/.test(txt) && /emplacement confirmé \(/.test(txt) && /emplacement confirmé/.test(ui) && undone === 1 && !back)) throw new Error(JSON.stringify({ before, mod, lab, after: { ...after, txt: after.txt.slice(0, 200) }, moved, txt: (txt || "").slice(0, 400), ui, undone, back }));
+    return true;
+  });
   await check("n° 5 : halo à la couleur de sa famille ; « Pourquoi ça clignote ? » : explication, preuves, choix (et conséquence), question au pavillonneur ; rapport par famille copié pour le BE", async () => {
     const keepV = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits }));
     await ev(() => { okteoExt.panel.close("assistant"); okteo.setTab("plan"); okteo.viewPreset("impl"); });

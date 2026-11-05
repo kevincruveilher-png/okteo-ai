@@ -1,6 +1,6 @@
 // n° 5 (bloc D, 04/11/2026) : rapport d'analyse clair (familles, explications, choix, décisions, questions au pavillonneur).
 import assert from "node:assert/strict";
-import { FAMILLES, familyOf, candidates, explain, buildRapport, rapportText } from "../src/cablage/rapport.js";
+import { FAMILLES, familyOf, candidates, explain, buildRapport, rapportText, silenced, confirmable } from "../src/cablage/rapport.js";
 
 let n = 0;
 const test = (name, f) => { f(); n++; console.log("  ✓ " + name); };
@@ -29,5 +29,20 @@ test("rapport : points par famille, décisions (qui, quand), questions au pavill
   assert.deepEqual(R.questions, ["Hauteur des prises du garage ?", "Quelle commande allume L2 (Séjour) (aucune commande ne lui est reliée sur le plan) ?"]);
   const t = rapportText(R, { chantier: "ESSAI 99999" });
   assert.match(t, /Rapport d'analyse — ESSAI 99999 : 3 point\(s\), 2 décidé\(s\)/); assert.match(t, /C'est Va-et-vient \(kevin, 2026-11-04\)/); assert.match(t, /P4 : .* → à décider/); assert.match(t, /Questions au pavillonneur\n1\. Hauteur/);
+});
+test("05/11 : un point confirmé ne clignote plus (sauf câblage) et part dans le rapport pour le BE, avec qui et quand", () => {
+  const D = { "lecture:p1": { choix: "confirme", label: "emplacement confirmé", rep: "P4 (Séjour)", alerte: "L'IA n'est pas sûre", by: "kevin", at: "2026-11-05T08:40:00Z" },
+    "nobox:p2": { choix: "confirme", label: "emplacement confirmé" }, "mur:p3": { choix: "modifier", label: "en cours de modification", rep: "P5", by: "kevin", at: "2026-11-05T08:41:00Z" },
+    "lum:l1": { choix: "garde", label: "gardé tel quel", rep: "L1" } };
+  assert.equal(silenced({ kind: "lecture", ids: ["p1"] }, D), true);
+  assert.equal(silenced({ kind: "lum", ids: ["l1"] }, D), true, "ancien « Vu, je garde » = confirmé");
+  assert.equal(silenced({ kind: "nobox", ids: ["p2"] }, D), false, "le câblage ne se confirme pas");
+  assert.equal(silenced({ kind: "mur", ids: ["p3"] }, D), false, "« Modifier » ne fait pas taire le point");
+  assert.equal(confirmable("split"), false); assert.equal(confirmable("battant"), true);
+  // p3 n'est plus signalé (corrigé) ; nobox:p2 reste à régler
+  const R = buildRapport([{ kind: "nobox", ids: ["p2"] }], new Map([["p2", { id: "p2", t: "PC16", rep: "P6" }]]), T, D, []);
+  assert.deepEqual(R.validations.map((v) => [v.rep, v.label]), [["L1", "gardé tel quel"], ["P4 (Séjour)", "emplacement confirmé"], ["P5", "corrigé par l'opérateur"]]);
+  const t = rapportText(R);
+  assert.match(t, /Emplacements confirmés et corrections \(3\)\n- L1 : .*\n- P4 \(Séjour\) : L'IA n'est pas sûre → emplacement confirmé \(kevin, 2026-11-05 08:40\)/);
 });
 console.log(`rapport : ${n} vérifications OK`);

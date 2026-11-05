@@ -1,3 +1,21 @@
+## 05/11/2026 — « Je confirme l'emplacement » arrête le clignotement, noté dans le rapport pour le BE
+
+- Constat de Kévin : dans « Pourquoi ça clignote ? », « Vu, je garde » notait la décision mais l'appareil continuait de
+  clignoter. Demande : soit modifier, soit confirmer l'emplacement, et la confirmation arrête le clignotement ; la
+  validation est notée dans le rapport transmis à Thibaut (technicien BE).
+- `src/cablage/rapport.js` : `keyOf(it)`, `confirmable(kind)` (toutes les familles sauf câblage : boîte, circuit,
+  allumage coupé, VMC se règlent dans le panneau Câblage), `isConfirmed(d)` (choix `confirme`, ou l'ancien `garde`),
+  `silenced(it, decisions)` ; `buildRapport` → `validations` [{rep, kind, alerte, label, by, at}] (confirmés + points
+  « Modifier » qui ne sont plus signalés = « corrigé par l'opérateur ») ; `rapportText` : rubrique « Emplacements
+  confirmés et corrections ».
+- `src/core/check.js` `controlIssues` : les points confirmés sont retirés (plus de halo, compteur, ni bouton du menu
+  flottant), même si l'appareil est déplacé ensuite (clé = sorte + appareils).
+- `src/ext/why-blink.js` : boutons « Je confirme l'emplacement » (« Je confirme, c'est voulu » pour un montage) `[data-ok]`
+  et « Modifier » `[data-mod]` (carte fermée, appareil sélectionné, décision « en cours de modification ») à la place de
+  « Vu, je garde » ; un emplacement « à préciser » (équipements, VMC) passe à `implantation.etat = confirmee` dans le même
+  Ctrl+Z ; décision avec `rep` et `alerte` ; carte du rapport : section `.rap-val`. Catalogue `ai.rapport` mis à jour.
+- Tests : `scripts/rapport.test.mjs` (4) ; smoke (confirmation, déplacement, rapport, Ctrl+Z, Modifier).
+
 ## 04/11/2026 — n° 5 : rapport d'analyse clair (« Pourquoi ça clignote ? », familles de couleur, décisions, questions au pavillonneur) (bloc D)
 
 - Constat du 04/11 : le même halo orange pour les doutes de l'IA, les montages faux, la pose et le câblage ; le clic

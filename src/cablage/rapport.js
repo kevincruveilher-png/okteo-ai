@@ -16,6 +16,13 @@ const FAM = {
   nobox: "cablage", circ: "cablage", split: "cablage", vmc: "cablage",
 };
 export const familyOf = (kind) => FAM[kind] || "cablage";
+// clé d'un point du contrôle (sorte + appareils) : c'est sous cette clé que la décision de l'opérateur est gardée
+export const keyOf = (it) => `${it.kind}:${(it.ids || []).join(",")}`;
+// 05/11/2026 : l'opérateur confirme un point (emplacement ou montage voulu) → il ne clignote plus, même si l'appareil
+// bouge ensuite. Le câblage (boîte, circuit, allumage coupé, VMC) ne se confirme pas : il se règle dans le panneau Câblage.
+export const confirmable = (kind) => familyOf(kind) !== "cablage";
+export const isConfirmed = (d) => !!d && (d.choix === "confirme" || d.choix === "garde");
+export const silenced = (it, decisions) => confirmable(it.kind) && isConfirmed((decisions || {})[keyOf(it)]);
 
 // « INT ou VV ? … » → ["INT", "VV"] (types connus seulement)
 export function candidates(note, types) {
@@ -100,16 +107,26 @@ export function explain(issue, a, types = {}, decision = null) {
 }
 // rapport complet : points par famille, décisions (qui a décidé quoi), questions au pavillonneur ; texte pour le BE
 export function buildRapport(issues, byId, types = {}, decisions = {}, questions = []) {
-  const points = issues.map((it) => explain(it, byId.get((it.ids || [])[0]), types, decisions[`${it.kind}:${(it.ids || []).join(",")}`] || null));
+  const points = issues.map((it) => explain(it, byId.get((it.ids || [])[0]), types, decisions[keyOf(it)] || null));
+  // validations pour le technicien BE : emplacements confirmés, et points corrigés (« Modifier ») qui ne sont plus signalés
+  const open = new Set(issues.map(keyOf));
+  const validations = Object.entries(decisions || {})
+    .filter(([k, d]) => (isConfirmed(d) && confirmable(k.split(":")[0])) || (d.choix === "modifier" && !open.has(k)))
+    .map(([k, d]) => ({ key: k, kind: k.split(":")[0], rep: d.rep || k.split(":")[1], alerte: d.alerte || WHY[k.split(":")[0]] || "", label: d.choix === "modifier" ? "corrigé par l'opérateur" : d.label, by: d.by || "", at: d.at || "" }))
+    .sort((a, b) => String(a.at).localeCompare(String(b.at)));
   const parFamille = Object.keys(FAMILLES).map((f) => ({ fam: f, ...FAMILLES[f], points: points.filter((p) => p.fam === f) })).filter((g) => g.points.length);
   const Q = [...questions.map((q) => q.text), ...points.filter((p) => p.question && p.decision && p.decision.choix === "pavillonneur").map((p) => p.question)];
-  return { points, parFamille, questions: [...new Set(Q)], decided: points.filter((p) => p.decision).length, total: points.length };
+  return { points, parFamille, questions: [...new Set(Q)], validations, decided: points.filter((p) => p.decision).length, total: points.length };
 }
 export function rapportText(R, { chantier = "" } = {}) {
   const L = [`Rapport d'analyse${chantier ? " — " + chantier : ""} : ${R.total} point(s), ${R.decided} décidé(s)`];
   for (const g of R.parFamille) {
     L.push("", `${g.label} (${g.points.length})`);
     for (const p of g.points) L.push(`- ${p.rep} : ${p.pourquoi}${p.decision ? ` → ${p.decision.label}${p.decision.by ? " (" + p.decision.by + (p.decision.at ? ", " + p.decision.at.slice(0, 10) : "") + ")" : ""}` : " → à décider"}`);
+  }
+  if ((R.validations || []).length) {
+    L.push("", `Emplacements confirmés et corrections (${R.validations.length})`);
+    for (const v of R.validations) L.push(`- ${v.rep} : ${v.alerte} → ${v.label}${v.by ? " (" + v.by + (v.at ? ", " + v.at.slice(0, 16).replace("T", " ") : "") + ")" : ""}`);
   }
   if (R.questions.length) { L.push("", "Questions au pavillonneur"); R.questions.forEach((q, i) => L.push(`${i + 1}. ${q}`)); }
   return L.join("\n");
