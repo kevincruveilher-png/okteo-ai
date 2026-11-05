@@ -1358,3 +1358,13 @@ body.page-full #params .pset-sec{padding:20px 24px}
 body.page-full #params .pset-sec h3{font-size:17px}
 body.page-full #params .pset-sec>.mut,body.page-full #params .pset-grp .sm{font-size:13.5px}
 body.page-full #params .pset-find{font-size:14px;padding:9px 12px}
+/* Lot 5 (05/11/2026) : jauge d'avancement du dossier (bandeau du haut et panneau Étapes) */
+.st-gauge{display:flex;align-items:center;gap:8px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--fg);font-size:12px;max-width:300px}
+.st-gauge .sg-bar{width:70px;height:7px;border-radius:99px;background:color-mix(in srgb,var(--line) 70%,transparent);overflow:hidden;flex:none}
+.st-gauge .sg-fill{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .3s}
+.st-gauge.full .sg-fill{background:var(--ok)}
+.st-gauge .sg-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg-big{position:relative;height:18px;border-radius:99px;background:color-mix(in srgb,var(--line) 70%,transparent);overflow:hidden;margin:0 0 12px}
+.sg-big span{display:block;height:100%;background:var(--accent);border-radius:99px}
+.sg-big b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11.5px}
+.steps li.verif .st-ic{border-style:dashed}
