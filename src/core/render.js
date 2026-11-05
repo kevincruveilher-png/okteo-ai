@@ -1105,7 +1105,7 @@ export function ftzIdx() {
   if (K.ftzIdx) return K.ftzIdx;
   if (!K.ftzLoading) {
     K.ftzLoading = true;
-    import("../print/ftz-charte.json").then((m) => { K.ftzIdx = symIndex(m.default); draw(); }).catch(() => { K.ftzLoading = false; });
+    import("../print/ftz-charte.json").then((m) => { K.ftzIdx = symIndex(m.default); draw(); document.dispatchEvent(new CustomEvent("okteo:ftz-ready")); }).catch(() => { K.ftzLoading = false; });
   }
   return null;
 }
