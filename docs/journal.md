@@ -15,6 +15,9 @@
   « Vu, je garde » ; un emplacement « à préciser » (équipements, VMC) passe à `implantation.etat = confirmee` dans le même
   Ctrl+Z ; décision avec `rep` et `alerte` ; carte du rapport : section `.rap-val`. Catalogue `ai.rapport` mis à jour.
 - Tests : `scripts/rapport.test.mjs` (4) ; smoke (confirmation, déplacement, rapport, Ctrl+Z, Modifier).
+- La carte rappelle les points déjà confirmés de l'appareil (« ✓ emplacement confirmé — qui, quand »).
+- Fusion dans `main` le 05/11/2026 (go de Kévin) : `npm run check` vert sur GitHub Actions (run 41990372145, smoke 208/208) ;
+  workflow temporaire retiré.
 
 ## 04/11/2026 — n° 5 : rapport d'analyse clair (« Pourquoi ça clignote ? », familles de couleur, décisions, questions au pavillonneur) (bloc D)
 
