@@ -89,7 +89,7 @@ export function createWhyBlink({ api }) {
       if (!t || !api.TYPES[t]) return;
       api.batch(() => { api.updateApps([{ id: cur.id, t, aiStatus: "lu" }]); if (p) decide(p, { choix: "type", label: `type corrigé : ${api.TYPES[t].n || t}`, type: t }); });
       api.setHint(`Type changé : ${api.TYPES[t].n || t} (noté pour le technicien BE ; Ctrl+Z l'annule).`);
-      open(cur.id).then(() => say(`✓ Type changé : ${api.TYPES[t].n || t}.`));
+      open(cur.id); say(`✓ Type changé : ${api.TYPES[t].n || t}.`);   // la carte est redessinée tout de suite (l'extrait du plan suit)
     };
     const vb = card.querySelector("#why-var");
     if (vb) vb.onclick = async () => {
@@ -103,7 +103,7 @@ export function createWhyBlink({ api }) {
       api.batch(() => { if (a.t !== t || a.aiStatus !== "lu") api.updateApps([{ id: a.id, t, aiStatus: "lu" }]); if (p) decide(p, { choix: "variante", label: `dessin enregistré comme variante de ${api.TYPES[t].n || t}`, type: t }); });
       document.dispatchEvent(new CustomEvent("okteo:symbol-memorized", { detail: r }));
       api.setHint(`Dessin enregistré dans la bibliothèque : variante de ${api.TYPES[t].n || t} pour ${api.ch.client || "ce pavillonneur"}. L'IA s'en servira sur les prochains plans.`);
-      await open(cur.id); say(`✓ Variante enregistrée dans la bibliothèque (${api.TYPES[t].n || t}).`);
+      open(cur.id); say(`✓ Variante enregistrée dans la bibliothèque (${api.TYPES[t].n || t}).`);
       ui.lastVariant = r;
     };
     const idk = card.querySelector("#why-idk");
@@ -133,7 +133,7 @@ export function createWhyBlink({ api }) {
         const qs = [...(api.cab.questions || []).filter((q) => q.key !== p.key && q.text !== text), { text, key: p.key, by: who(), at: new Date().toISOString() }];
         decide(p, { choix: "pavillonneur", label: "question posée au pavillonneur" }, { questions: qs });
         api.setHint(`Question ajoutée au rapport d'analyse (${qs.length} question${qs.length > 1 ? "s" : ""} au pavillonneur).`);
-        open(cur.id).then(() => { const n = card.querySelector(`.why-pt[data-i="${i}"] .why-qbox`); if (n) { n.hidden = false; n.innerHTML = `<p class="ok sm">✓ Question ajoutée au rapport (${qs.length} au total). <button class="lnk why-qrap">Voir le rapport</button></p>`; n.querySelector(".why-qrap").onclick = () => { card.hidden = true; openRapport(); }; } });
+        open(cur.id); (() => { const n = card.querySelector(`.why-pt[data-i="${i}"] .why-qbox`); if (n) { n.hidden = false; n.innerHTML = `<p class="ok sm">✓ Question ajoutée au rapport (${qs.length} au total). <button class="lnk why-qrap">Voir le rapport</button></p>`; n.querySelector(".why-qrap").onclick = () => { card.hidden = true; openRapport(); }; } })();
       };
     }));
     // « Je confirme » : le point ne clignote plus (filtré par le contrôle) ; un emplacement à préciser passe à « confirmé »

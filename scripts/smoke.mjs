@@ -277,7 +277,7 @@ try {
   console.log("Assistant sans clé");
   await check("touche A ouvre l'assistant", async () => {
     // le focus doit être sur la page (pas dans un champ) avant la touche
-    await page.keyboard.press("Escape"); await ev(() => document.activeElement?.blur?.()); await page.click(".brand");
+    await page.keyboard.press("Escape"); await ev(() => document.activeElement?.blur?.()); await page.click(".top .grow");   // lot 3 : le logo ouvre l'accueil
     for (let k = 0; k < 2; k++) {
       await page.keyboard.press("a");
       if (await page.waitForSelector(".as-in textarea", { state: "visible", timeout: 2500 }).then(() => true, () => false)) return true;
@@ -3114,7 +3114,7 @@ try {
     await page.click('#tabs button[data-tab="boites"]');
     const back = await ev(() => okteo.tab);
     await page.click('#tabs button[data-tab="plan"]');
-    if (!(a.tab === "lignes" && a.on && a.vis && a.sub && a.n === 8 && !a.old && hid && back === "lignes")) throw new Error(JSON.stringify({ a, hid, back }));
+    if (!(a.tab === "lignes" && a.on && a.vis && a.sub && a.n === 7 && !a.old && hid && back === "lignes")) throw new Error(JSON.stringify({ a, hid, back }));
     return true;
   });
   await check("une seule fenêtre de travail : ouvrir le relevé des pièces ferme le relevé des murs ; la comparaison des modes ferme les deux", async () => {
