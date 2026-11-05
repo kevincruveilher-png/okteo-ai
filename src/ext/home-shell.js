@@ -53,7 +53,7 @@ export function createHomeShell({ api }) {
   if (chip) chip.before(dot); else if (top) top.appendChild(dot);
 
   // bandeau de la version en ligne (créé par src/web/workspace.js) rangé dans l'en-tête de l'accueil
-  const WARN = /⚠|expir|Hors ligne|incomplet|indisponible/i;
+  const WARN = /⚠|expir|^\s*Hors ligne|incomplet|indisponible/i;
   let bar = null, barObs = null;
   function adopt(b) {
     if (!b || b === bar) return;
@@ -64,7 +64,7 @@ export function createHomeShell({ api }) {
   function checkWarn() {
     if (!bar) return;
     const st = (bar.querySelector("#web-state") || {}).textContent || "";
-    const off = /Hors ligne/i.test(st), gone = /expir/i.test(st);
+    const off = /^\s*Hors ligne/i.test(st), gone = /expir/i.test(st);   // « ressources hors ligne prêtes » = connecté
     dot.hidden = false;
     dot.classList.toggle("off", off); dot.classList.toggle("bad", gone);
     dot.querySelector(".wd-t").textContent = gone ? "Session expirée" : off ? "Hors ligne" : "Connecté";

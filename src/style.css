@@ -1384,8 +1384,7 @@ body.page-full #params .pset-find{font-size:14px;padding:9px 12px}
 .app>.main{flex:1;min-height:0}
 .top{flex-wrap:nowrap;overflow:hidden;flex:none}
 .top .badge{min-width:0;max-width:22vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto}
-.top .levels{min-width:0;flex:0 1 auto;overflow-x:auto;scrollbar-width:none}
-.top>*{flex-shrink:0}.top>.badge,.top>.levels,.top>.grow{flex-shrink:1}
+.top>*{flex-shrink:0}.top>.badge,.top>.grow{flex-shrink:1}
 .top .chip{white-space:nowrap}
 body[data-tab]:not([data-tab="plan"]):not([data-tab="vue3d"]) .top2{display:none!important}
 .web-dot{background:transparent;border:0;cursor:pointer;padding:0 4px;min-height:0!important}
