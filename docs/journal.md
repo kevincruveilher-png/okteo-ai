@@ -1,3 +1,8 @@
+## 05/11/2026 — MAJ pieuvres et MAJ mémoire fusionnées dans `main`
+
+- `npm run check` vert sur GitHub Actions : pieuvres run 42035757271 (smoke 218/218), mémoire run 42035762828 (smoke 219/219,
+  ai-memory 5, web). Essais rendus indépendants de la place des boîtes (gaine tirée loin de la boîte, cadenas dans l'écran,
+  appareil 3D essayé jusqu'à 6 fois, circuits et bagues d'une boîte qui a plus de 8 prises). Workflow temporaire retiré.
 ## 05/11/2026 — MAJ « affichage » : bandeau 1 fixe sur une ligne, bandeau 2 selon la vue (go de Kévin, 13:54)
 
 - Bandeau 1 (`.top`, du logo à « Fonctions ») : visible sur toutes les vues (accueil, Paramètres et Symboles compris),
