@@ -2092,6 +2092,21 @@ try {
     if (!(good(ok, false) && good(fz, true) && circle && circle[1] === 100 && circle[2] === 50 && Math.abs(circle[3] - 1.1) < 0.01 && arm && arm[1] < 100 && arm[3] < arm[1] && Math.abs(arm[2] - 50) < 0.01)) throw new Error(JSON.stringify({ ok: ok.slice(0, 4), fz: fz.slice(0, 4), n: [ok.length, fz.length], p }));
     return true;
   });
+  await check("05/11 : plan fluide : 40 crans de molette = au plus un dessin par image ; le fond n'est pas recréé à chaque dessin", async () => {
+    await ev(() => { okteoExt.panel.close("assistant"); okteo.setTab("plan"); okteo.fit(); });
+    const box = await page.locator("#sv").boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    // compte les dessins pendant la rafale (draw est appelé par drawSoon une fois par image)
+    await ev(() => { const sv = document.getElementById("sv"); window.__mut = 0; window.__mo = new MutationObserver(() => window.__mut++); window.__mo.observe(sv, { childList: true }); });
+    const t0 = Date.now();
+    for (let i = 0; i < 40; i++) await page.mouse.wheel(0, i < 20 ? -120 : 120);
+    await ev(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok))));
+    const ms = Date.now() - t0, muts = await ev(() => { window.__mo.disconnect(); return window.__mut; });
+    const bg = await ev(() => { const a = document.querySelector("#sv image"); window.__okteo.draw(); const b = document.querySelector("#sv image"); return { has: !!a, same: a === b }; });
+    await ev(() => okteo.fit());
+    if (!(muts < 40 && (!bg.has || bg.same))) throw new Error(JSON.stringify({ ms, muts, bg }));
+    return true;
+  });
   await check("v77 : murs dessinés avec un seul contour d'ensemble (pas de trait en travers des angles ni des T)", async () => {
     const r = await ev(() => {
       const out = document.querySelector("#sv g.walls-out"), fill = out && out.nextElementSibling;

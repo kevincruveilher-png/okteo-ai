@@ -124,12 +124,19 @@ export function nameEm(str) {
   return [...String(str)].reduce((n, c) => n + (/[MWmw]/.test(c) ? 0.9 : /[A-ZÀ-ÖØ-Þ0-9]/.test(c) ? 0.68 : /[\s.,;:'’|!ilIjtf()-]/.test(c) ? 0.32 : 0.56), 0);
 }
 
+// 05/11/2026 : dessin regroupé à l'image suivante (molette, glisser) : un seul dessin par image affichée, au lieu d'un
+// dessin par événement (40 crans de molette = 40 dessins complets, d'où le plan figé sur les gros chantiers)
+export function drawSoon() {
+  if (K.rafDraw) return;
+  K.rafDraw = requestAnimationFrame(() => { K.rafDraw = 0; draw(); });
+}
 export function draw() {
+  if (K.rafDraw) { cancelAnimationFrame(K.rafDraw); K.rafDraw = 0; }
   sv.style.background = "#fff";
   sv.style.setProperty("--wall", "#202020");
   sv.style.setProperty("--fg", "#202020");
   sv.style.setProperty("--panel", "#fff");
-  syncVB();
+  syncVB(false);
   followWalls();
   ensureReps();
   if (K.symAuto) K.symCm = autoSymCm();   // v58 : taille des symboles d'après le dessin
@@ -142,7 +149,10 @@ export function draw() {
   .glw{fill:#fff;font:600 .7px var(--fm);text-anchor:middle}.gl3{fill:var(--c,var(--accent));font:700 .52px var(--fm);text-anchor:middle}</style>`;
   // v58 : tout le plan (fond, quadrillage, dessin) dans un même groupe, en coordonnées du dessin : la vue peut tourner
   h += `<g class="world" transform="${viewTransform()}">`;
-  if (K.bgLevel > 0 && layers.fond.on && K.FOND) h += `<image href="${K.FOND}" x="${K.BG.x}" y="${K.BG.y}" width="${K.BG.w}" height="${K.BG.h}" opacity="${K.bgLevel}" preserveAspectRatio="none"/>`;
+  // 05/11/2026 : le fond (image de plusieurs millions de pixels) n'est plus recréé à chaque dessin : la même image est
+  // remise en place (pas de nouveau décodage) ; une place lui est gardée ici
+  const bgOn = K.bgLevel > 0 && layers.fond.on && K.FOND;
+  if (bgOn) h += `<g class="bgslot"></g>`;
   // quadrillage (v37) : trait fin au pas le plus petit lisible (5 cm, 10 cm, 50 cm, 1 m ou 5 m), trait marqué tous les mètres
   if (layers.grille.on) {
     const ppv = pxPerVB(), STEPS = [0.05, 0.1, 0.5, 1, 5, 10], WB = viewWorldBox();
@@ -848,6 +858,16 @@ export function draw() {
   }
   h += `</g>`;
   sv.innerHTML = h;
+  if (bgOn) {
+    let im = K.bgEl;
+    if (!im || im.dataset.src !== K.FOND) {
+      im = document.createElementNS("http://www.w3.org/2000/svg", "image");
+      im.setAttribute("href", K.FOND); im.setAttribute("preserveAspectRatio", "none"); im.dataset.src = K.FOND;
+      K.bgEl = im;
+    }
+    im.setAttribute("x", K.BG.x); im.setAttribute("y", K.BG.y); im.setAttribute("width", K.BG.w); im.setAttribute("height", K.BG.h); im.setAttribute("opacity", K.bgLevel);
+    const slot = sv.querySelector("g.bgslot"); if (slot) slot.replaceWith(im);
+  }
   if (typeof placeHud === "function") placeHud();
   drawFx();
 }

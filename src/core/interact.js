@@ -4,7 +4,7 @@ import { K } from "./k.js";
 import { TYPES, cornerHalf, hDefault, dist, epOf, layers, node, nodeById, segById, segDir, segLen, state, uidA, uidD, uidO, uidR, uidS } from "./model.js";
 import { markDirty, save, snapshot } from "./persist.js";
 import { applyOrtho, evWorld, pxPerVB, repMap, snapWorld, tolM } from "./view.js";
-import { draw, hitBox, hitGaineEnd, hitLock, hitPort, hitRoute, sv } from "./render.js";
+import { draw, drawSoon, hitBox, hitGaineEnd, hitLock, hitPort, hitRoute, sv } from "./render.js";
 import { attach, hitApp, hitLink, linkRole, hitNode, hitOpen, hitOpenHandle, hitSeg, projOnSeg, segDistPt, snapAlign, snapToWall, wallMounted } from "./attach.js";
 import { clampOpenings, clearSel, currentGroup, isSel, marqueeSelect, mk, moveGroup, multi, normalizeSel, roomAt, setSingle, startGroupDrag, toggleMulti } from "./groups.js";
 import { showSide } from "./panel.js";
@@ -798,7 +798,7 @@ sv.addEventListener("pointermove", e => {
     const dx = (e.clientX - K.pan.x) / k / K.view.scale, dy = (e.clientY - K.pan.y) / k / K.view.scale;   // v58 : vue tournée
     K.view.cx = K.pan.cx - (dx * c + dy * s);
     K.view.cy = K.pan.cy - (-dx * s + dy * c);
-    draw();
+    drawSoon();
     return;
   }
   if (K.endDrag) {
@@ -807,7 +807,7 @@ sv.addEventListener("pointermove", e => {
     const P = hitPort(wx, wy), t = P ? P.box : hitBox(wx, wy);
     if (P) { K.endDrag.x = P.x; K.endDrag.y = P.y; }
     setHint(t && t.id !== K.endDrag.from ? `Relâcher pour raccorder la gaine à ${t.n}${P ? `, face ${P.f} point ${P.i + 1}` : ""}.` : P ? `Relâcher : face ${P.f}, point ${P.i + 1}.` : "Relâchez sur un point d'accroche, ou sur une autre boîte (Échap pour annuler).");
-    draw();
+    drawSoon();
     return;
   }
   if (K.routeDrag) {
@@ -839,7 +839,7 @@ sv.addEventListener("pointermove", e => {
         else x = prev.x;
       }
       pts[R.i] = { x: +x.toFixed(2), y: +y.toFixed(2) };
-      draw();
+      drawSoon();
       setHint(routeHint(b, R.key, R.i));
     }
     return;
@@ -850,7 +850,7 @@ sv.addEventListener("pointermove", e => {
       if (!K.repDrag.moved) { snapshot(); K.repDrag.moved = true; }
       a.rpx = +(wx - K.repDrag.dx - a.x).toFixed(3);
       a.rpy = +(wy - K.repDrag.dy - a.y).toFixed(3);
-      draw();
+      drawSoon();
       setHint("Repère déplacé (position gardée, aussi à l'impression). Propriétés de l'appareil → « Replacer le repère » pour le remettre à sa place automatique.");
     }
     return;
@@ -861,7 +861,7 @@ sv.addEventListener("pointermove", e => {
       if (!K.labelDrag.moved) { snapshot(); K.labelDrag.moved = true; }
       r.lx = +(wx - K.labelDrag.dx).toFixed(3);
       r.ly = +(wy - K.labelDrag.dy).toFixed(3);
-      draw();
+      drawSoon();
       setHint(`Nom « ${r.name} » déplacé. Propriétés de la pièce → « Replacer le nom » pour le remettre à sa place automatique.`);
     }
     return;
@@ -873,7 +873,7 @@ sv.addEventListener("pointermove", e => {
       b.y = +(Math.round((wy - K.boxDrag.dy) / 0.05) * 0.05).toFixed(2);
       b.manual = true;
       b.locked = true;
-      draw();
+      drawSoon();
     }
     return;
   }
@@ -886,14 +886,14 @@ sv.addEventListener("pointermove", e => {
     const end = placementFor(src.t, wx, wy, src.id);
     K.seriesPrev = seriesPositions(src, end, K.seriesMode.n);
     showText(K.seriesMode.n + " appareils · pas de " + fmtM(dist(src.x, src.y, end.x, end.y) / (K.seriesMode.n - 1)));
-    draw();
+    drawSoon();
     return;
   }
   if (K.marquee) {
     K.marquee.x1 = wx;
     K.marquee.y1 = wy;
     if (!K.marquee.moved && dist(K.marquee.x0, K.marquee.y0, wx, wy) > tolM() * 0.4) K.marquee.moved = true;
-    draw();
+    drawSoon();
     return;
   }
   if (K.roomDraft) {
@@ -901,7 +901,7 @@ sv.addEventListener("pointermove", e => {
     K.roomDraft.x1 = p.x;
     K.roomDraft.y1 = p.y;
     showReadout2(Math.abs(K.roomDraft.x1 - K.roomDraft.x0), Math.abs(K.roomDraft.y1 - K.roomDraft.y0));
-    draw();
+    drawSoon();
     return;
   }
   if (K.drag) {
@@ -912,27 +912,27 @@ sv.addEventListener("pointermove", e => {
     }
     if (K.drag.kind === "group") {
       moveGroup(wx, wy, e.shiftKey);
-      draw();
+      drawSoon();
       showSide();
     } else if (K.drag.kind === "node") {
       const p = snapWorld(wx, wy, K.drag.n.id);
       K.drag.n.x = p.x;
       K.drag.n.y = p.y;
       clampOpenings();
-      draw();
+      drawSoon();
       showSide();
     } else if (K.drag.kind === "openT") {
       const seg = segById(K.drag.o.seg);
       const pr = projOnSeg(wx, wy, seg);
       K.drag.o.t = +Math.max(K.drag.o.w / 2, Math.min(pr.dir.L - K.drag.o.w / 2, pr.t)).toFixed(3);
-      draw();
+      drawSoon();
       showSide();
     } else if (K.drag.kind === "openW") {
       const seg = segById(K.drag.o.seg);
       const pr = projOnSeg(wx, wy, seg);
       K.drag.o.w = +Math.max(0.2, Math.abs(pr.t - K.drag.o.t) * 2).toFixed(3);
       clampOpenings();
-      draw();
+      drawSoon();
       showSide();
     } else {
       const p = placementFor(K.drag.a.t, wx + K.drag.dx, wy + K.drag.dy, K.drag.a.id);
@@ -948,7 +948,7 @@ sv.addEventListener("pointermove", e => {
         delete K.drag.a.wa;
         hideReadout();
       }
-      draw();
+      drawSoon();
       showSide();
     }
     return;
@@ -960,7 +960,7 @@ sv.addEventListener("pointermove", e => {
       y: by
     };
     showText("Échelle actuelle : " + dist(K.calib.a.x, K.calib.a.y, bx, by).toFixed(2) + " m entre les deux points");
-    draw();
+    drawSoon();
     return;
   }
   if (TYPES[K.tool] && K.tool !== "sel") {
@@ -972,7 +972,7 @@ sv.addEventListener("pointermove", e => {
     } else if (K.typed === "") {
       hideReadout();
     }
-    draw();
+    drawSoon();
     return;
   }
   if (K.tool === "mur") {
@@ -992,7 +992,7 @@ sv.addEventListener("pointermove", e => {
       const f = nodeById(K.draftFrom);
       showReadout(dist(f.x, f.y, p.x, p.y), Math.atan2(-(p.y - f.y), p.x - f.x));
     }
-    draw();
+    drawSoon();
   } else if (K.tool === "cote" && K.dimDraft) {
     const p = snapWorld(wx, wy);
     K.draftPt = {
@@ -1001,7 +1001,7 @@ sv.addEventListener("pointermove", e => {
       snap: p.kind === "nœud"
     };
     showReadout(dist(K.dimDraft.x, K.dimDraft.y, p.x, p.y), 0);
-    draw();
+    drawSoon();
   }
 });
 sv.addEventListener("pointerleave", () => {
@@ -1044,7 +1044,7 @@ sv.addEventListener("wheel", e => {
   const [nx, ny] = evWorld(e);
   K.view.cx += wx - nx;
   K.view.cy += wy - ny;
-  draw();
+  drawSoon();
 }, {
   passive: false
 });
