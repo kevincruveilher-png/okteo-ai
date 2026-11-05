@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { CAB_DEFAULTS } from "../src/cablage/settings.js";
 import { computeCircuits } from "../src/cablage/circuits.js";
-import { placeBoxes, beKindOf, MODES } from "../src/cablage/boites.js";
+import { placeBoxes, beKindOf, MODES, wallRuns, buildUnits } from "../src/cablage/boites.js";
 
 let n = 0;
 const test = (name, f) => { f(); n++; console.log("  ✓ " + name); };
@@ -60,5 +60,42 @@ test("séjour trop chargé : ses prises les plus proches de la cuisine vont dans
   const C2 = computeCircuits(big, links, S), P2 = placeBoxes(big, links, C2, { rdc: items[0] }, { ...S, departsMax: 12 }, { mode: "be", rooms: { rdc: rooms.map(({ name, poly }) => ({ name, poly })) } });
   const cuis = P2.boxes.find((b) => b.apps.some((id) => roomOf.get(id) === "Cuisine"));
   assert.ok(cuis && cuis.apps.some((id) => /^xs/.test(id)), JSON.stringify(P2.boxes.map((b) => b.apps.length)));
+});
+// ---------- MAJ pieuvres (05/11/2026) : pièce entière dans une boîte, coupe par pans de mur, croisements évités ----------
+const segX = (a, b, c, d) => { const o = (p, q, r) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x); return o(a, b, c) * o(a, b, d) < -1e-9 && o(c, d, a) * o(c, d, b) < -1e-9; };
+const crossings = (PB, list) => { const by = new Map(list.map((a) => [a.id, a])); let x = 0; const B = PB.boxes.filter((b) => b.lv === "rdc");
+  for (let i = 0; i < B.length; i++) for (let j = i + 1; j < B.length; j++) for (const p of B[i].apps) for (const q of B[j].apps) { const a = by.get(p), c = by.get(q); if (a && c && segX(B[i], a, B[j], c)) x++; } return x; };
+test("pièce entière : toutes les prises, lumières et commandes d'une pièce dans la même boîte (aucune prise attrapée par une autre boîte)", () => {
+  for (const r of rooms) {
+    const ids = items.filter((a) => a.room === r.name && a.t !== "TAB" && !/^(VR|CVR)$/.test(a.t)).map((a) => a.id);
+    const boxes = new Set(ids.map((id) => P.boxes.findIndex((b) => b.apps.includes(id))).filter((i) => i >= 0));
+    assert.equal(boxes.size, 1, `${r.name} répartie sur ${boxes.size} boîtes`);
+  }
+});
+test("croisements de gaines entre boîtes des pièces : 1 au plus sur la maison type (la boîte des volets, seule par règle, traverse la maison)", () => {
+  const x = crossings({ boxes: P.boxes.filter((b) => !b.apps.some((id) => /^(vr|cvr)/.test(id))) }, items);
+  assert.ok(x <= 1, `${x} croisements`);
+});
+test("pièce trop chargée pour une boîte : deux boîtes, coupées par pan de mur (les prises d'un même mur ensemble)", () => {
+  // chambre de 6 × 4 m, 10 prises sur le mur du bas, 9 sur le mur de droite ; 12 départs au plus par boîte
+  const room = R("Grande chambre", 20, 0, 26, 4), L = [{ id: "t2", t: "TAB", x: 19, y: 2, lv: "rdc", room: "Garage" }], lk = [];
+  const l = { id: "gl", t: "LUM", x: 23, y: 2, lv: "rdc", room: room.name }, i = { id: "gi", t: "INT", x: 20.3, y: 0.1, lv: "rdc", room: room.name, h: 110 };
+  L.push(l, i); lk.push({ c: "gi", l: "gl" });
+  for (let k = 0; k < 10; k++) L.push({ id: "bas" + k, t: "PC16", x: 20.4 + k * 0.58, y: 3.9, lv: "rdc", room: room.name, h: 30 });
+  for (let k = 0; k < 9; k++) L.push({ id: "dro" + k, t: "PC16", x: 25.9, y: 0.4 + k * 0.4, lv: "rdc", room: room.name, h: 30 });
+  const S2 = { ...S, departsMax: 12 }, C2 = computeCircuits(L, lk, S2);
+  const P2 = placeBoxes(L, lk, C2, { rdc: L[0] }, S2, { mode: "be", rooms: { rdc: [{ name: room.name, poly: room.poly }] } });
+  const B = P2.boxes.filter((b) => b.apps.length);
+  assert.equal(B.length, 2, JSON.stringify(B.map((b) => b.apps)));
+  const wallOf = (b, pre) => b.apps.filter((id) => id.startsWith(pre)).length;
+  // chaque mur entier dans une seule boîte
+  assert.ok(B.some((b) => wallOf(b, "bas") === 10) && B.some((b) => wallOf(b, "dro") === 9), JSON.stringify(B.map((b) => b.apps)));
+  assert.ok(B.some((b) => b.apps.includes("gl") && b.apps.includes("gi")), "lumière et commande ensemble");
+});
+test("pans de mur : prises rangées sur le bord le plus proche, dans l'ordre du mur", () => {
+  const poly = R("x", 0, 0, 4, 3).poly, U = [{ x: 3, y: 2.95 }, { x: 1, y: 2.95 }, { x: 3.95, y: 1 }, { x: 2, y: 1.5 }];
+  const W = wallRuns(U, poly);
+  const bas = W.find((w) => w.edge === 2), droite = W.find((w) => w.edge === 1), centre = W.find((w) => w.edge === -1);
+  assert.ok(bas && bas.units.length === 2 && droite && droite.units.length === 1 && centre && centre.units.length === 1, JSON.stringify(W));
 });
 console.log(`mode BE : ${n} vérifications OK`);

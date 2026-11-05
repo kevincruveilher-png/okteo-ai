@@ -1,3 +1,19 @@
+## 05/11/2026 — MAJ « pieuvres » : une pièce entière par boîte, coupe par pans de mur, croisements évités (go de Kévin, 13:54)
+
+- Demande de Kévin : des gaines se croisaient, une prise de chambre pouvait partir dans la boîte du séjour. Règles : une
+  pièce entière dans une boîte (deux pièces voisines possibles) ; pièce trop chargée = deux boîtes, coupées par pan de mur ;
+  couloir / dégagement / entrée avec la voisine la plus logique ; croisements évités aussi entre boîtes (gardés s'il n'y a
+  pas le choix).
+- boites.js (mode BE) : réunion de deux pièces qui ne se touchent pas seulement si la petite n'a aucune voisine qui puisse
+  la prendre ; groupe trop chargé coupé par pièces entières de proche en proche (`splitGroup`), puis pièce seule par pans
+  de mur (`wallRuns`, `wallParts` : centre = lumières et commandes, murs dans l'ordre du contour, un mur entier passe
+  dans la boîte suivante) ; séjour trop chargé : un pan de mur vers la cuisine (et non des prises prises çà et là) ;
+  `settleBoxes` : chaque boîte (et celle des volets) au point de ses pièces qui croise le moins les gaines des autres
+  (droites boîte → endroit, 1 croisement = 4 m), jamais à moins d'1 m d'une autre boîte ; `boxCrossings`.
+- Maison type de mode-be.test.mjs : 19 croisements entre boîtes → 8 (dont 7 de la boîte des volets, seule par règle) ;
+  1 entre les boîtes des pièces. Tests : chaque pièce dans une seule boîte, coupe par pans de mur, `wallRuns`.
+- Bibliothèque de symboles : cartes, dessins et étiquettes sur fond blanc, traits foncés (`#bibliotheque .sy-card…`).
+
 ## 05/11/2026 — Lots 2 à 6 fusionnés dans `main` (grosse mise à jour, go de Kévin)
 
 - Une fusion par lot (2 symboles, 3 navigation, 4 implantation, 5 étapes, 6 relevé). `npm run check` vert sur la pile
