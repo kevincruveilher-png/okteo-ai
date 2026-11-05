@@ -21,7 +21,7 @@ try {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.waitForFunction(() => window.okteo && window.okteoExt);
-  await page.click('#tabs button[data-tab="chantiers"]');
+  await page.evaluate(() => okteo.setTab("chantiers"));   // lot 3 : accueil par le logo (plus d'onglet)
   await Promise.all([page.waitForNavigation(), page.setInputFiles("#ch-import", path.resolve(IN))]);
   await page.waitForFunction(() => window.okteo && window.okteoExt && okteo.state.app.length > 0, null, { timeout: 60000 });
   const out = await page.evaluate(async (recable) => {

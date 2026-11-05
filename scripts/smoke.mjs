@@ -142,7 +142,7 @@ try {
     await page.click("#ti-go");
     const s1 = await page.textContent(".tour-bub .tour-n");
     await page.keyboard.press("ArrowRight");
-    const lit = await ev(() => { const r = document.querySelector(".tour-ring").getBoundingClientRect(), t = document.querySelector('#tabs button[data-tab="chantiers"]').getBoundingClientRect();
+    const lit = await ev(() => { const r = document.querySelector(".tour-ring").getBoundingClientRect(), t = document.querySelector('.top .brand').getBoundingClientRect();
       return !document.querySelector(".tour-ring").hidden && r.left <= t.left && r.right >= t.right && r.top <= t.top && r.bottom >= t.bottom; });
     await page.keyboard.press("ArrowLeft");
     const back = await page.textContent(".tour-bub .tour-n");
@@ -405,7 +405,7 @@ try {
   const nbCh = () => ev(() => JSON.parse(localStorage.getItem("okteo.chantiers.v1")).length);
   const reopened = async () => { await page.waitForFunction(() => window.okteo && window.okteoExt); };
   await check("EVRARD repris comme chantier ouvert (ancienne sauvegarde conservée)", async () => {
-    await page.click('#tabs button[data-tab="chantiers"]');
+    await page.evaluate(() => okteo.setTab("chantiers"));   // lot 3 : accueil par le logo (plus d'onglet)
     return (await page.textContent(".ch-list")).includes("EVRARD") && (await page.textContent(".badge")).includes("EVRARD") && !(await page.isVisible(".stage"));
   });
   const evrardRooms = await ev(() => okteo.state.rooms.length);
@@ -986,6 +986,36 @@ try {
     if (!(ui0.prev && ui0.next && ui0.idk && ui0.set && v.n >= 1 && v.last && v.last.type === "LUM" && v.t === "LUM" && v.dec && nav.idk && nav.open && t2 === "PC16" && lib.vars >= 1 && /variante/.test(lib.tag) && lib.svg > 20 && gone === v.n - 1 && back === 0)) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("lot 3 : logo Oktéo = accueil (plus d'onglet Chantiers) ; accueil, Paramètres et Bibliothèque en pages entières sans bandeau du haut ni panneau de droite ; flèches « classeur » = retour au plan ; bandeau de la version en ligne rangé à l'accueil, avertissement signalé sur le plan", async () => {
+    await ev(() => okteo.setTab("plan"));
+    const tabs = await ev(() => [...document.querySelectorAll("#tabs button")].map((b) => b.dataset.tab));
+    await page.click(".top .brand");
+    const home = await ev(() => ({ tab: okteo.tab, head: !document.querySelector("#home-head").hidden, top: getComputedStyle(document.querySelector(".top")).display, top2: getComputedStyle(document.querySelector(".top2")).display, side: getComputedStyle(document.querySelector(".side")).display, fold: !document.querySelector("#cl-fold").hidden, tabsVis: getComputedStyle(document.querySelector("#tabs")).display }));
+    await page.click("#hh-plan");
+    const plan = await ev(() => ({ tab: okteo.tab, top: getComputedStyle(document.querySelector(".top")).display, head: document.querySelector("#home-head").hidden }));
+    await page.click('#tabs button[data-tab="params"]');
+    const par = await ev(() => ({ full: document.body.classList.contains("page-full"), top: getComputedStyle(document.querySelector(".top")).display, fold: !document.querySelector("#cl-fold").hidden, head: document.querySelector("#home-head").hidden }));
+    await page.click("#cl-fold");
+    await page.waitForFunction(() => okteo.tab === "plan", null, { timeout: 3000 });
+    await page.click('#tabs button[data-tab="bibliotheque"]');
+    const bib = await ev(() => document.body.classList.contains("page-full") && !document.querySelector("#cl-fold").hidden);
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => okteo.tab === "plan", null, { timeout: 3000 });
+    // bandeau de la version en ligne (imité) : rangé dans l'accueil ; un avertissement apparaît en pastille sur le plan
+    await ev(() => { const b = document.createElement("div"); b.className = "enterprise-bar"; b.innerHTML = '<span id="web-state">Oktéo entreprise · connecté</span><span id="web-saved">Secours local prêt</span>'; document.body.prepend(b); });
+    await page.waitForTimeout(50);
+    const bar = await ev(() => ({ inHead: !!document.querySelector("#home-head .enterprise-bar"), warn: document.querySelector("#web-warn").hidden }));
+    await ev(() => { document.querySelector("#home-head #web-saved").textContent = "⚠ Secours impossible"; });
+    await page.waitForTimeout(50);
+    const w = await ev(() => ({ hidden: document.querySelector("#web-warn").hidden, txt: document.querySelector("#web-warn").textContent }));
+    await page.click("#web-warn");
+    const viaWarn = await ev(() => okteo.tab);
+    await ev(() => { document.querySelector("#home-head .enterprise-bar").remove(); document.querySelector("#web-warn").hidden = true; okteo.setTab("plan"); });
+    const r = { tabs, home, plan, par, bib, bar, w, viaWarn };
+    if (!(!tabs.includes("chantiers") && tabs.includes("plan") && home.tab === "chantiers" && home.head && home.top === "none" && home.top2 === "none" && home.side === "none" && home.fold && home.tabsVis !== "none"
+      && plan.tab === "plan" && plan.top !== "none" && plan.head && par.full && par.top === "none" && par.fold && par.head && bib && bar.inHead && bar.warn && !w.hidden && /Secours impossible/.test(w.txt) && viaWarn === "chantiers")) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("05/11 : « Je confirme l'emplacement » arrête le clignotement (même après un déplacement), noté dans le rapport pour le BE ; Ctrl+Z le rallume ; « Modifier » garde l'appareil sélectionné", async () => {
     const keepV = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits }));
     await ev(() => { okteoExt.panel.close("assistant"); okteo.setTab("plan"); okteo.viewPreset("impl"); });
@@ -1437,7 +1467,7 @@ try {
     return r.apps === rdc.apps && r.rooms === rdc.rooms && Math.abs(r.fond - rdc.w) < 1e-6 && u === 2 && after.lv === "R+1" && after.apps === 2;
   });
   await check("fond du R+1 : autre page du même PDF → position et échelle reprises du RDC", async () => {
-    await page.click('#tabs button[data-tab="chantiers"]');
+    await page.evaluate(() => okteo.setTab("chantiers"));   // lot 3 : accueil par le logo (plus d'onglet)
     await page.click("#ch-fond"); await page.setInputFiles("#nf-file", "docs/plans/EVRARD_04949_plan.pdf");
     await page.waitForSelector(".thumb", { timeout: 30000 }); await page.click('.thumb[data-page="3"]');
     await Promise.all([page.waitForNavigation({ timeout: 60000 }), page.click("#nf-ok")]);
@@ -2383,7 +2413,7 @@ try {
     return (await page.textContent(".badge")).includes("EVRARD") && (await ev(() => okteo.state.rooms.length)) === evrardRooms;
   });
   await check("fichier .okteo : enregistrer (dessin + fond + PDF) puis rouvrir", async () => {
-    await page.click('#tabs button[data-tab="chantiers"]');
+    await page.evaluate(() => okteo.setTab("chantiers"));   // lot 3 : accueil par le logo (plus d'onglet)
     const [dl] = await Promise.all([page.waitForEvent("download"), page.click('.ch-list tr:has-text("ESSAI") button[data-act="file"]')]);
     const f = path.join(os.tmpdir(), "okteo-test.okteo"); await dl.saveAs(f);
     const j = JSON.parse(fs.readFileSync(f, "utf8"));
@@ -2398,7 +2428,7 @@ try {
     return true;
   });
   await check("dupliquer puis supprimer un chantier (avec confirmation)", async () => {
-    await page.click('#tabs button[data-tab="chantiers"]');
+    await page.evaluate(() => okteo.setTab("chantiers"));   // lot 3 : accueil par le logo (plus d'onglet)
     const n0 = await nbCh();
     await page.click('.ch-list tr:has-text("EVRARD") button[data-act="dup"]');
     await page.waitForFunction((n) => JSON.parse(localStorage.getItem("okteo.chantiers.v1")).length === n, n0 + 1, { timeout: 5000 }).catch(() => {});
@@ -3374,7 +3404,7 @@ try {
     d.addPage("a4", "portrait"); d.text("DEVIS DESCRIPTIF - Designation, quantite, prix unitaire, montant total HT, TVA, total TTC", 15, 20);
     const buffer = Buffer.from(d.output("arraybuffer"));
     await ev(() => okteo.saveNow());
-    await page.click('#tabs button[data-tab="chantiers"]');
+    await page.evaluate(() => okteo.setTab("chantiers"));   // lot 3 : accueil par le logo (plus d'onglet)
     await page.click("#ch-new"); await page.fill("#nf-nom", "DOSSIER"); await page.fill("#nf-num", "88888");
     await page.setInputFiles("#nf-file", { name: "dossier.pdf", mimeType: "application/pdf", buffer });
     await page.waitForSelector(".pg-role", { timeout: 30000 });

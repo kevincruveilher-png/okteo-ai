@@ -1320,3 +1320,41 @@ body.am-on{overflow:hidden}
 .why-fix{border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));border-radius:10px;padding:8px 10px;margin:6px 0;display:flex;flex-direction:column;gap:6px}
 .why-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.why-row select{max-width:210px}
 .why-foot .grow{flex:1}
+/* Lot 3 (05/11/2026) : accueil par le logo, pages entières « en classeur » (Accueil, Paramètres, Bibliothèque) */
+.top .brand[role=button]{cursor:pointer;border-radius:10px;padding:2px 6px;margin-left:-6px}
+.top .brand[role=button]:hover,.top .brand[role=button]:focus-visible{background:color-mix(in srgb,var(--accent) 14%,transparent);outline:none}
+body.page-full .app{display:flex;flex-direction:column}
+body.page-full .main{flex:1;min-height:0}
+body.page-full .top,body.page-full .top2,body.page-full .side,body.page-full #iapane{display:none!important}
+body.page-full .main>.params:not([hidden]){position:relative;padding-right:46px}
+.home-head{display:flex;align-items:center;gap:16px;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line2,var(--line));flex-wrap:wrap}
+.home-head[hidden]{display:none}
+.home-head .hh-brand{display:flex;align-items:center;gap:10px}.home-head .hh-brand .brand-mark{width:42px;height:42px}
+.home-head .hh-brand .brand-word{font-family:var(--fd);font-weight:600;font-size:28px;letter-spacing:-.02em}
+.home-head h1{margin:0;font-family:var(--fd);font-size:20px}.home-head .hh-txt p{margin:2px 0 0}
+.home-head .grow{flex:1}
+.home-head .hh-bar:empty{display:none}
+.home-head .hh-bar .enterprise-bar{border:1px solid var(--line);border-radius:10px;min-height:0;padding:6px 12px;gap:14px;flex-wrap:wrap;background:var(--bg)}
+.cl-fold{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:20;width:30px;height:96px;padding:0;border-radius:10px 0 0 10px;border:1px solid var(--line);border-right:0;background:var(--panel);color:var(--fg);font-size:18px;box-shadow:-4px 0 14px rgba(0,0,0,.12)}
+.cl-fold:hover{background:color-mix(in srgb,var(--accent) 18%,var(--panel))}
+.cl-fold[hidden]{display:none}
+@keyframes cl-in{from{transform:translateX(60%);opacity:0}to{transform:none;opacity:1}}
+@keyframes cl-out{from{transform:none;opacity:1}to{transform:translateX(-85%) scaleX(.2);opacity:0}}
+.params.cl-in{animation:cl-in .26s cubic-bezier(.2,.8,.2,1)}
+.params.cl-out{animation:cl-out .24s ease-in forwards;transform-origin:left center}
+@media (prefers-reduced-motion:reduce){.params.cl-in,.params.cl-out{animation:none}}
+.web-warn{border:1px solid #d9822b;color:#d9822b;background:transparent;border-radius:999px;padding:2px 10px;font-size:12px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.web-warn[hidden]{display:none}
+/* Paramètres plus aérés en page entière */
+body.page-full #params .params-in,body.page-full #bibliotheque .sy-page{max-width:1180px;margin:0 auto;padding:18px 24px 40px}
+body.page-full #params{font-size:14.5px}
+/* lot 3 : Paramètres aérés (page entière) : sommaire plus large, sections plus espacées, textes plus grands */
+body.page-full #params .params-in.pset{max-width:1320px}
+body.page-full #params .pset-wrap{grid-template-columns:240px minmax(0,1fr);gap:30px}
+body.page-full #params .pset-nav a{font-size:14px;padding:8px 12px}
+body.page-full #params .pset-nav a.sub{font-size:13px}
+body.page-full #params .pset-body{gap:22px}
+body.page-full #params .pset-sec{padding:20px 24px}
+body.page-full #params .pset-sec h3{font-size:17px}
+body.page-full #params .pset-sec>.mut,body.page-full #params .pset-grp .sm{font-size:13.5px}
+body.page-full #params .pset-find{font-size:14px;padding:9px 12px}
