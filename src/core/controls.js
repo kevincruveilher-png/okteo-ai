@@ -246,7 +246,8 @@ export function setHint(s) {
 export function buildTabs() {
   const el = document.getElementById("tabs");
   // v64 : onglets réunis : « Pieuvre » = Boîtes, Bandes et Lignes directes (sous-onglets en haut de la page)
-  const items = [["chantiers", "Chantiers", null], ["plan", "Plan", null], ["vue3d", "3D", null], ["etude", "Étude", null], ["boites", "Pieuvre", null], ["tableau", "Tableau", null], ["bibliotheque", "Symboles", null], ["params", "Paramètres", null]];
+  // lot 3 (05/11/2026) : plus d'onglet « Chantiers » : le logo Oktéo ouvre l'accueil (src/ext/home-shell.js)
+  const items = [["plan", "Plan", null], ["vue3d", "3D", null], ["etude", "Étude", null], ["boites", "Pieuvre", null], ["tableau", "Tableau", null], ["bibliotheque", "Symboles", null], ["params", "Paramètres", null]];
   const on = (k) => K.tab === k || (k === "boites" && PIEUVRE_TABS.includes(K.tab));
   el.innerHTML = items.map(([k, n, s]) => `<button data-tab="${k}" class="${on(k) ? 'on' : ''}${k === "params" ? " tab-params" : ""}" ${s ? 'disabled' : ''}${k === "boites" ? ' title="Boîtes, bandes de câblage et lignes directes du chantier"' : k === "vue3d" ? ' title="Maquette 3D du niveau ouvert, construite depuis le dessin (Alt+4)"' : ""}><span class="lbl">${n}</span>${s ? `<span class="soon">${s}</span>` : ""}</button>`).join("");
   el.querySelectorAll("button").forEach(b => b.onclick = () => {

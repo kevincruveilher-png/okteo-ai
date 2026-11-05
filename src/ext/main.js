@@ -30,6 +30,7 @@ import { createIaMode } from "./ia-mode.js";
 import { createAiModes } from "./ai-modes-ui.js";
 import { createModeRunner } from "./ai-modes-run.js";
 import { createOneCard } from "./one-card.js";
+import { createHomeShell } from "./home-shell.js";
 import { createTemps } from "./temps.js";
 import { ensurePaperW, chantierScaleCheck } from "./pdf-page.js";
 import { mountBandsPage } from "./cablage-bandes.js";
@@ -207,9 +208,10 @@ function start() {
   const temps = createTemps(api);
   const iaMode = createIaMode({ api, aiReleve, recheck, ctl, aiModes });
   const oneCard = createOneCard();   // v64 : une seule fenêtre de travail à la fois
+  const home = createHomeShell({ api });   // lot 3 : logo = accueil, pages entières « en classeur »
   hooks.modeIa = () => iaMode.setMode(iaMode.mode === "ia" ? "be" : "ia");
   hooks.cabler = () => { const r = cabler(api); api.setHint(r.text); if (pages.etude.ui) pages.etude.ui.render(); return r.text; };
-  window.okteoExt = { whyBlink, doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, aiRunner, recheck, iaMode, temps, oneCard, pages, backup: null };
+  window.okteoExt = { home, whyBlink, doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, aiRunner, recheck, iaMode, temps, oneCard, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 
