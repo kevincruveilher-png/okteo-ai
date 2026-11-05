@@ -929,6 +929,7 @@ try {
     return true;
   });
   await check("lot 1 : « Question au pavillonneur » montre la question (modifiable), l'ajoute au rapport avec une confirmation visible ; « Rapport d'analyse » s'ouvre au premier plan", async () => {
+    const keepV = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits }));
     await ev(() => { okteoExt.panel.close("assistant"); okteo.setTab("plan"); okteo.viewPreset("impl"); });
     const id = await ev(() => { const S = okteo.state, X = Math.max(0, ...S.nodes.map((n) => n.x)) + 3, Y = Math.min(0, ...S.nodes.map((n) => n.y)) + 6;
       return okteo.importDevices([{ t: "LUM", x: X, y: Y }], [], { stay: true }).ids[0]; });
@@ -947,6 +948,7 @@ try {
     const rap = await ev(() => ({ txt: document.querySelector(".rapcard").textContent, z: +getComputedStyle(document.querySelector(".rapcard")).zIndex, why: document.querySelector(".whyb").hidden }));
     await ev(() => { document.querySelector(".rapcard").hidden = true; okteo.undo(); okteo.undo(); okteo.clearSel(); });
     const back = await ev((i) => ({ app: okteo.state.app.some((a) => a.id === i), q: (okteo.cab.questions || []).length }), id);
+    await ev((V) => { Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; }, keepV);
     if (!(q1.length === q0 + 1 && /essai lot 1/.test(q1[q1.length - 1]) && /essai lot 1/.test(rap.txt) && rap.z >= 40 && rap.why && !back.app && back.q === q0)) throw new Error(JSON.stringify({ q0, q1, rap: { ...rap, txt: rap.txt.slice(0, 300) }, back }));
     return true;
   });
