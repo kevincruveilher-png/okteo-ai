@@ -1694,7 +1694,7 @@ try {
         const arc = (o, c, t, k = 0.15) => { const qx = (o.x + c.x) / 2 - (c.y - o.y) * k, qy = (o.y + c.y) / 2 + (c.x - o.x) * k, u = 1 - t; return { x: u * u * o.x + 2 * u * t * qx + t * t * c.x, y: u * u * o.y + 2 * u * t * qy + t * t * c.y }; };
         const p = arc(P0(b, id), a, 0.5, R.bowOf(b.id, id));
         if (A.some((o) => Math.hypot(o.x - p.x, o.y - p.y) < 0.6) || okteo.cab.boxes.some((o) => Math.hypot(o.x - p.x, o.y - p.y) < 0.8)) continue;
-        { const sp = okteo.toClient(p.x, p.y); if (sp.y < 160 || sp.y > innerHeight - 220 || sp.x < 220 || sp.x > innerWidth - 420) continue; }   // lot 4 : point bien dans l'écran (le glisser va à +50 px)
+        { const sp = okteo.toClient(p.x, p.y); if (sp.y < 160 || sp.y > innerHeight - 220 || sp.x < 220 || sp.x > innerWidth - 420 || Math.hypot(p.x - b.x, p.y - b.y) < 1.6) continue; }   // loin de la boîte (double-clic)   // lot 4 : point bien dans l'écran (le glisser va à +50 px)
         // pas d'autre gaine tout près de ce point
         const near = okteo.cab.boxes.some((o) => o.apps.some((k) => { if (k === id && o.id === b.id) return false; const c = by[k]; if (!c) return false;
           for (let i = 1; i < 30; i++) { const q = arc(P0(o, k), c, i / 30, R.bowOf(o.id, k)); if (Math.hypot(q.x - p.x, q.y - p.y) < 0.3) return true; } return false; }));
@@ -1757,9 +1757,13 @@ try {
     return true;
   });
   await check("cadenas : clic sur le cadenas du plan ; recalcul : on coche les boîtes, les verrouillées gardent place, appareils et tracés", async () => {
-    const b = await ev(() => { const b = okteo.cab.boxes.find((x) => x.lv === okteo.level.id && !x.locked);
-      const m = document.querySelector(`#sv g.box[data-id="${b.id}"] g.lock`).getAttribute("transform").match(/translate\(([-\d.e]+) ([-\d.e]+)\)/);
-      return { id: b.id, p: okteo.toClient(+m[1], +m[2]) }; });
+    // MAJ pieuvres : une boîte libre dont le cadenas est bien dans l'écran et loin des autres boîtes
+    const b = await ev(() => { const B = okteo.cab.boxes.filter((x) => x.lv === okteo.level.id), L = [];
+      for (const b of B.filter((x) => !x.locked)) { const g = document.querySelector(`#sv g.box[data-id="${b.id}"] g.lock`); if (!g) continue;
+        const m = g.getAttribute("transform").match(/translate\(([-\d.e]+) ([-\d.e]+)\)/), p = okteo.toClient(+m[1], +m[2]);
+        const free = Math.min(99, ...B.filter((o) => o.id !== b.id).map((o) => Math.hypot(o.x - +m[1], o.y - +m[2])));
+        L.push({ id: b.id, p, score: free - (p.x < 200 || p.y < 150 || p.x > innerWidth - 420 || p.y > innerHeight - 150 ? 50 : 0) }); }
+      return L.sort((x, y) => y.score - x.score)[0]; });
     await page.mouse.click(b.p.x, b.p.y);
     const locked = await ev((id) => okteo.cab.boxes.find((x) => x.id === id).locked, b.id);
     const before = await ev(() => JSON.stringify(okteo.cab.boxes.filter((x) => x.locked)));
@@ -1773,7 +1777,7 @@ try {
     const n = await ev(() => ({ boxes: okteo.cab.boxes.length, ids: new Set(okteo.cab.boxes.map((x) => x.id)).size, apps: okteo.cab.boxes.flatMap((x) => x.apps).length, uniq: new Set(okteo.cab.boxes.flatMap((x) => x.apps)).size }));
     await page.keyboard.press("Control+z");
     const ok = locked && unchecked.join() === lockedIds.join() && lockedIds.includes(b.id) && JSON.stringify(JSON.parse(before)) === JSON.stringify(JSON.parse(after)) && n.ids === n.boxes && n.apps === n.uniq;
-    if (!ok) throw new Error(JSON.stringify({ locked, unchecked, lockedIds, same: before === after, n }));
+    if (!ok) throw new Error(JSON.stringify({ locked, unchecked, lockedIds, same: before === after, n, before: before.slice(0, 400), after: after.slice(0, 400) }));
     return true;
   });
   console.log("Boîtes à la main, fenêtre de réglage (v35)");
@@ -1954,7 +1958,9 @@ try {
       const W = wiringNow(okteo), C = okteo.cab.circuits;
       const perBox = okteo.cab.boxes.map((b) => C.filter((c) => c.box === b.id));
       const alim = W.boxes.flatMap((b) => b.gaines.filter((g) => g.kind === "alim").flatMap((g) => g.wires));
-      return { boxed: perBox.every((cs) => cs.filter((c) => c.kind === "prises").length <= 1 && cs.filter((c) => c.kind === "eclairage").length <= 1),
+      // MAJ pieuvres : une pièce entière par boîte = parfois plus de 8 prises ou points : un circuit par tranche de 8
+      const nIn = (b, kind) => C.filter((c) => c.kind === kind).flatMap((c) => c.apps).filter((id) => b.apps.includes(id)).length;
+      return { boxed: okteo.cab.boxes.every((b, i) => perBox[i].filter((c) => c.kind === "prises").length <= Math.max(1, Math.ceil(nIn(b, "prises") / 8)) && perBox[i].filter((c) => c.kind === "eclairage").length <= Math.max(1, Math.ceil(nIn(b, "eclairage") / 8))),
         prises: C.filter((c) => c.kind === "prises").every((c) => c.section === 1.5 && c.apps.length <= 8),
         cols: alim.filter((w) => w.fn === "phase").every((w) => ["gris", "rouge"].includes(w.color)) && alim.some((w) => w.color === "gris"),
         bagues: alim.filter((w) => w.fn === "phase" || w.fn === "neutre").every((w) => w.bague && w.bague === String(w.circuit).replace("C", "")),
@@ -2086,8 +2092,9 @@ try {
   await check("couleurs par circuit et gaines partagées : une gaine « P… + P… » ; deux circuits 1,5 d'une boîte en rouge/bleu et gris/bleu foncé", async () => ev(async () => {
     const m = await import("/src/ext/cablage-data.js"), W = m.wiringNow(okteo), G = W.boxes.flatMap((b) => b.gaines);
     const shared = G.filter((g) => g.appIds && g.appIds.length > 1).length;
-    const alim = W.boxes.map((b) => b.gaines.filter((g) => g.kind === "alim").flatMap((g) => g.wires.filter((w) => w.fn === "phase" && w.section === 1.5).map((w) => w.color)));
-    const ok = shared > 0 && alim.some((c) => c.includes("rouge") && c.includes("gris")) && alim.every((c) => new Set(c).size === c.length);
+    const alim = W.boxes.map((b) => b.gaines.filter((g) => g.kind === "alim").flatMap((g) => g.wires.filter((w) => w.fn === "phase" && w.section === 1.5).map((w) => w.color + "|" + (w.bague || ""))));
+    // deux circuits du même type dans une boîte gardent leur paire (règle v38) et se distinguent par leur bague
+    const ok = shared > 0 && alim.some((c) => c.some((x) => x.startsWith("rouge|")) && c.some((x) => x.startsWith("gris|"))) && alim.every((c) => new Set(c).size === c.length);
     if (!ok) throw new Error(JSON.stringify({ shared, alim }));
     return true;
   }));
@@ -3214,12 +3221,16 @@ try {
     // clic sur un appareil mural
     let card = null;
     if (r.devs) {
-      const pt = await ev(() => { const S3 = okteoExt.pages.vue3d.ui.state; const BX = (okteo.cab.boxes || []).filter((b) => b.lv === okteo.level.id), far = (x) => Math.min(99, ...BX.map((b) => Math.hypot(b.x - x.x, b.y - x.y))); const d = S3.devs.filter((x) => x.mount === "mur").sort((p, q) => far(q) - far(p))[0] || S3.devs[0]; okteoExt.pages.vue3d.ui.view("top", true); S3.ctl.update(); S3.R.render(S3.scene, S3.cam); const v = new S3.T.Vector3(d.x, d.h, d.y).project(S3.cam), b = document.querySelector(".v3d-cv").getBoundingClientRect(); return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height, id: d.id }; });
-      await page.mouse.click(pt.x, pt.y); await page.waitForTimeout(400);
-      card = await ev(() => ({ open: !document.querySelector(".v3d-card").hidden, id: document.querySelector(".v3d-card").dataset.id }));
-      if (card.open) { await page.click('.v3d-card [data-a="plan"]'); await page.waitForTimeout(300); card.after = await ev(() => ({ tab: okteo.tab, sel: okteo.selection })); }
+      // MAJ pieuvres : on essaie jusqu'à 6 appareils muraux (les plus loin des boîtes d'abord) : un clic peut tomber sur une gaine
+      for (let tries = 0; tries < 6; tries++) {
+        const pt = await ev((t) => { const S3 = okteoExt.pages.vue3d.ui.state; const BX = (okteo.cab.boxes || []).filter((b) => b.lv === okteo.level.id), far = (x) => Math.min(99, ...BX.map((b) => Math.hypot(b.x - x.x, b.y - x.y))); const L = S3.devs.filter((x) => x.mount === "mur").sort((p, q) => far(q) - far(p)); const d = L[t] || S3.devs[t] || S3.devs[0]; okteoExt.pages.vue3d.ui.view("top", true); S3.ctl.update(); S3.R.render(S3.scene, S3.cam); const v = new S3.T.Vector3(d.x, d.h, d.y).project(S3.cam), b = document.querySelector(".v3d-cv").getBoundingClientRect(); return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height, id: d.id }; }, tries);
+        await page.mouse.click(pt.x, pt.y); await page.waitForTimeout(400);
+        card = await ev(() => ({ open: !document.querySelector(".v3d-card").hidden, id: document.querySelector(".v3d-card").dataset.id, plan: !!document.querySelector('.v3d-card:not([hidden]) [data-a="plan"]') }));
+        if (card.open && card.plan) break;
+      }
+      if (card.open && card.plan) { await page.click('.v3d-card [data-a="plan"]'); await page.waitForTimeout(300); card.after = await ev(() => ({ tab: okteo.tab, sel: okteo.selection })); }
     }
-    if (!(r.tab === "vue3d" && r.walls >= r.segs && r.prisms > 0 && r.devs === r.apps && r.shown && r.catalog && px > 8 && low <= 1.0001 && (!r.devs || card.open && card.after.tab === "plan"))) throw new Error(JSON.stringify({ before, r, px, low, card }));
+    if (!(r.tab === "vue3d" && r.walls >= r.segs && r.prisms > 0 && r.devs === r.apps && r.shown && r.catalog && px > 8 && low <= 1.0001 && (!r.devs || card.open && card.after && card.after.tab === "plan"))) throw new Error(JSON.stringify({ before, r, px, low, card }));
     await page.keyboard.press("Alt+4");   // revient (ou reste) sur le plan
     await ev(() => okteo.setTab("plan"));
     return true;
