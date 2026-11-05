@@ -1,3 +1,9 @@
+## 05/11/2026 — MAJ pieuvres et MAJ mémoire fusionnées dans `main`
+
+- `npm run check` vert sur GitHub Actions : pieuvres run 42035757271 (smoke 218/218), mémoire run 42035762828 (smoke 219/219,
+  ai-memory 5, web). Essais rendus indépendants de la place des boîtes (gaine tirée loin de la boîte, cadenas dans l'écran,
+  appareil 3D essayé jusqu'à 6 fois, circuits et bagues d'une boîte qui a plus de 8 prises). Workflow temporaire retiré.
+
 ## 05/11/2026 — MAJ « mémoire des symboles » : un symbole appris n'est plus réappris (go de Kévin, 13:54)
 
 - Constat : l'IA ne recevait la mémoire qu'en texte (mode 4 avec clé) et pas du tout dans la consigne copiée.
