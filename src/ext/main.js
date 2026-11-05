@@ -99,7 +99,7 @@ function start() {
     const { remember, cropAround } = await import("./symbol-memory.js");
     const image = await cropAround(api, a).catch(() => "");
     const desc = [api.TYPES[a.t]?.n || a.t, a.inscription ? `inscription « ${a.inscription} »` : "", a.aiType && a.aiType !== a.t ? `lu par l'IA comme ${a.aiType}` : ""].filter(Boolean).join(", ");
-    const r = remember({ pav: api.ch.client || "", type: a.t, desc, chantier: [api.ch.nom, api.ch.numero].filter(Boolean).join(" "), by: (window.okteoSession && window.okteoSession.user && window.okteoSession.user.login) || "", image });
+    const r = remember({ pav: api.ch.client || "", type: a.t, desc, chantier: [api.ch.nom, api.ch.numero].filter(Boolean).join(" "), by: (window.okteoSession && window.okteoSession.user && window.okteoSession.user.login) || "", image, lu: a.aiType || (a.aiOrigin ? a.t : ""), inscription: a.inscription || "" });
     api.setHint(r ? `Symbole mémorisé pour ${api.ch.client || "ce pavillonneur (fiche du chantier sans pavillonneur)"} : ${r.type}. L'IA s'en servira (outil « légende ») sur les prochains plans.` : "Symbole non mémorisé.");
     document.dispatchEvent(new CustomEvent("okteo:symbol-memorized", { detail: r }));
   });

@@ -40,8 +40,10 @@ const desc = (s) => `${s.kind}${s.fill ? " plein" : ""} ${r0(s.w)}×${r0(s.h)} p
 export async function runTool(name, input, ctx) {
   const W = ctx.W, H = ctx.H, I = input || {};
   if (name === "legende") {
-    const mem = (ctx.memory || []).slice(0, 40).map((m) => `- ${m.type} : ${m.desc}${m.pav ? ` (${m.pav}${m.chantier ? ", " + m.chantier : ""})` : ""}`);
-    return { text: `Légende du plan : ${ctx.legendText ? ctx.legendText.slice(0, 3000) : "aucun texte de légende lisible dans le PDF (lis-la sur l'image, zoome si besoin)"}\nMémoire des symboles validés${ctx.pav ? " pour " + ctx.pav : ""} : ${mem.length ? "\n" + mem.join("\n") : "aucun pour l'instant"}\nLa légende du plan fait foi pour ce plan ; en cas de contradiction avec la mémoire, suis la légende et signale-le dans "remarques".` };
+    // MAJ mémoire : « lu comme » (ce que l'IA avait donné) + jusqu'à 6 dessins validés en images, dans l'ordre de la liste
+    const withImg = (ctx.memory || []).filter((m) => /^data:image\/jpeg;base64,/.test(m.image || "")).slice(0, 6);
+    const mem = (ctx.memory || []).slice(0, 40).map((m) => `- ${m.type} : ${m.desc}${m.lu ? ` (dessin lu comme « ${m.lu} »${m.inscription ? `, inscription « ${m.inscription} »` : ""})` : ""}${m.pav ? ` (${m.pav}${m.chantier ? ", " + m.chantier : ""})` : ""}${withImg.includes(m) ? ` [image ${withImg.indexOf(m) + 1}]` : ""}`);
+    return { images: withImg.map((m) => m.image.split(",")[1]), text: `Légende du plan : ${ctx.legendText ? ctx.legendText.slice(0, 3000) : "aucun texte de légende lisible dans le PDF (lis-la sur l'image, zoome si besoin)"}\nMémoire des symboles validés${ctx.pav ? " pour " + ctx.pav : ""} : ${mem.length ? "\n" + mem.join("\n") : "aucun pour l'instant"}\nLa légende du plan fait foi pour ce plan ; en cas de contradiction avec la mémoire, suis la légende et signale-le dans "remarques".` };
   }
   if (name === "symboles") {
     if (!ctx.vector) return { text: "Plan scanné (pixels) : pas de formes vectorielles. Utilise « zoom » sur la zone." };

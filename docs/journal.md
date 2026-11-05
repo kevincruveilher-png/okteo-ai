@@ -1,3 +1,17 @@
+## 05/11/2026 — MAJ « mémoire des symboles » : un symbole appris n'est plus réappris (go de Kévin, 13:54)
+
+- Constat : l'IA ne recevait la mémoire qu'en texte (mode 4 avec clé) et pas du tout dans la consigne copiée.
+- Chaque fiche garde ce que l'IA avait lu : `lu` (type donné, ex. « XYZ » ou « LUM » avec doute) et `inscription`
+  (why-blink « Enregistrer comme variante », Propriétés « Mémoriser ») ; Worker : colonnes `lu`, `inscription` (ajoutées
+  à la table existante, `symbolTable` une fois par instance).
+- `src/walls/ai-memory.js` (pur) : `memoryFixes` (appareil douteux lu de la même façon chez ce pavillonneur → type
+  validé, `aiStatus: "lu"`, note « reconnu par la mémoire », `memoire: true`), `memoryPrompt` ; ai-releve.js
+  `memoryStep` après chaque lecture (réponse collée, mode 4) → « N symbole(s) reconnu(s) par la mémoire » ; consigne
+  copiée avec la liste (`pastePrompt({memory})`) ; outil « legende » : « lu comme » + jusqu'à 6 dessins en images
+  (ai-agent.js : plusieurs images par résultat d'outil).
+- La mémoire est rangée par pavillonneur : le champ « Pavillonneur » du chantier doit être rempli.
+- Tests : `scripts/ai-memory.test.mjs` (5), web.test.mjs (`lu`, `inscription`), smoke (réponse collée reconnue).
+
 ## 05/11/2026 — MAJ « pieuvres » : une pièce entière par boîte, coupe par pans de mur, croisements évités (go de Kévin, 13:54)
 
 - Demande de Kévin : des gaines se croisaient, une prise de chambre pouvait partir dans la boîte du séjour. Règles : une
