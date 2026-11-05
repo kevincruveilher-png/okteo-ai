@@ -1,3 +1,8 @@
+## 05/11/2026 — MAJ affichage fusionnée dans `main`
+
+- `npm run check` vert sur GitHub Actions (run 42038694694). Corrigé avant fusion : « ressources hors ligne prêtes » ne
+  passe plus le voyant en « Hors ligne » ; la barre des niveaux n'est jamais rognée. Workflow temporaire retiré.
+
 ## 05/11/2026 — MAJ pieuvres et MAJ mémoire fusionnées dans `main`
 
 - `npm run check` vert sur GitHub Actions : pieuvres run 42035757271 (smoke 218/218), mémoire run 42035762828 (smoke 219/219,
