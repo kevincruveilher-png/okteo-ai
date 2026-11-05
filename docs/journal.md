@@ -13,6 +13,8 @@
   collé de la même façon et tourné par `drawSymbol`.
 - Tests : `scripts/placement.test.mjs` (6) ; smoke (symboles Oktéo puis FTZ : écart rond / face = rayon, sens vers la pièce, papier) ;
   le contrôle n° 13 (symboles poussés hors du mur) ne compte plus INT / VV.
+- Fusion dans `main` le 05/11/2026 (go de Kévin) : `npm run check` vert sur GitHub Actions (run 41993507221, smoke 209/209) ;
+  workflow temporaire retiré.
 
 ## 05/11/2026 — « Je confirme l'emplacement » arrête le clignotement, noté dans le rapport pour le BE
 
