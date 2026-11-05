@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { aiToPlan, refOf, pastePrompt, aiPrompt, scaleClaim, scaleCheck, parseAiJson } from "../src/walls/ai-plan.js";
 import { readingData, validateReleve, calibreOf } from "../src/walls/ai-data.js";
-import { alignPlan, alignTransform, axisLines } from "../src/walls/ai-align.js";
+import { alignPlan, alignTransform, axisLines, mergeBands } from "../src/walls/ai-align.js";
 
 let n = 0;
 function test(name, f) { f(); n++; console.log("  ✓ " + name); }
@@ -114,5 +114,39 @@ test("n° 4 : échelle annoncée dans les remarques comparée à l'échelle du f
   assert.equal(scaleCheck("rien", { sx: 0.004 }), null);
   const raw = parseAiJson("{\u201cref\u201d:{\u201cW\u201d:4961,\u201dH\u201d:3508},\u201cmurs\u201d:[],\u201cremarques\u201d:\u201d\u00e9chelle : 236 pixels par m\u00e8tre\u201d}");
   assert.equal(raw.ref.H, 3508); assert.equal(scaleClaim(raw.remarques), 236);
+});
+test("lot 6 : maçonnerie + doublage relevés en deux bandes sur le PDF = un seul mur (axe au milieu de l'épaisseur totale) ; le mur de l'IA y est collé", () => {
+  // mur extérieur gauche : maçonnerie 20 cm (axe x = 0,10) + doublage 10 cm collé côté intérieur (axe x = 0,25) ; épaisseur 30 cm, milieu 0,15
+  const B = { nodes: [{ x: 0.1, y: 0 }, { x: 0.1, y: 9 }, { x: 0.25, y: 0.3 }, { x: 0.25, y: 8.7 }, { x: 5, y: 0 }, { x: 5, y: 9 }], walls: [{ a: 0, b: 1, ep: 0.2 }, { a: 2, b: 3, ep: 0.1 }, { a: 4, b: 5, ep: 0.07 }] };
+  const M = mergeBands(axisLines(B)).filter((l) => l.o === "v").sort((p, q) => p.c - q.c);
+  assert.equal(M.length, 2, JSON.stringify(M));
+  assert.ok(Math.abs(M[0].c - 0.15) < 1e-6 && Math.abs(M[0].ep - 0.3) < 1e-6 && M[0].merged === 2, JSON.stringify(M[0]));
+  assert.ok(Math.abs(M[1].c - 5) < 1e-6 && M[1].merged === 1, "cloison isolée inchangée");
+  // deux murs parallèles séparés par une pièce ne sont jamais réunis
+  const far = mergeBands(axisLines({ nodes: [{ x: 0, y: 0 }, { x: 0, y: 5 }, { x: 0.5, y: 0 }, { x: 0.5, y: 5 }], walls: [{ a: 0, b: 1, ep: 0.2 }, { a: 2, b: 3, ep: 0.2 }] }));
+  assert.equal(far.length, 2);
+  // maison 12 × 9 du PDF avec murs extérieurs en deux bandes (20 + 10 cm) ; l'IA donne des murs de 30 cm à l'axe total
+  const R2 = JSON.parse(JSON.stringify(ref));
+  const extra = [[0, 3, "v", 0.15], [1, 2, "v", -0.15], [0, 1, "h", 0.15], [3, 2, "h", -0.15]];
+  for (const [a, b, o, d] of extra) {
+    const A = R2.nodes[a], Bn = R2.nodes[b], k = R2.nodes.length;
+    R2.nodes.push(o === "v" ? { x: A.x + d, y: A.y + 0.3 } : { x: A.x + 0.3, y: A.y + d }, o === "v" ? { x: Bn.x + d, y: Bn.y - 0.3 } : { x: Bn.x - 0.3, y: Bn.y + d });
+    R2.walls.push({ a: k, b: k + 1, ep: 0.1 });
+  }
+  // axe total des murs extérieurs : décalé de 5 cm vers l'intérieur par rapport à la maçonnerie
+  const ai = { nodes: ref.nodes.map((p) => ({ x: p.x + (p.x - TRUE.x0 < 1 ? 0.05 : p.x - TRUE.x0 > 11 ? -0.05 : 0) + 0.12, y: p.y + (p.y - TRUE.y0 < 1 ? 0.05 : p.y - TRUE.y0 > 8 ? -0.05 : 0) - 0.08 })), walls: ref.walls.map((w) => ({ ...w, ep: 0.3 })), openings: [], pieces: [], devices: [] };
+  const r = alignPlan(ai, R2);
+  assert.ok(r.ok, r.raison);
+  const left = Math.min(...r.plan.nodes.map((p) => p.x));
+  assert.ok(Math.abs(left - (TRUE.x0 + 0.05)) < 0.02, `mur gauche à l'axe des deux bandes : ${left}`);
+});
+test("lot 6 : murs qui se croisent en X coupés au croisement (les deux pièces restent séparées)", () => {
+  const rawX = { ref: { W: 1000, H: 1000 }, murs: [{ x1: 100, y1: 100, x2: 900, y2: 100, ep: 20 }, { x1: 900, y1: 100, x2: 900, y2: 900, ep: 20 }, { x1: 900, y1: 900, x2: 100, y2: 900, ep: 20 }, { x1: 100, y1: 900, x2: 100, y2: 100, ep: 20 },
+    { x1: 500, y1: 50, x2: 500, y2: 950, ep: 10 }, { x1: 50, y1: 500, x2: 950, y2: 500, ep: 10 }], ouvertures: [], pieces: [], appareils: [], liaisons: [] };
+  const P = aiToPlan(rawX, { x0: 0, y0: 0, sx: 0.01, sy: 0.01 });
+  assert.ok(P.stats.croisements >= 1, JSON.stringify(P.stats));
+  const c = P.nodes.findIndex((q) => Math.abs(q.x - 5) < 0.02 && Math.abs(q.y - 5) < 0.02);
+  assert.ok(c >= 0, "sommet au croisement");
+  assert.equal(P.walls.filter((w) => w.a === c || w.b === c).length, 4, "4 murs partent du croisement");
 });
 console.log(`ai-align : ${n} vérifications OK`);

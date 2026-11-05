@@ -1,8 +1,84 @@
+## 05/11/2026 — Lots 2 à 6 fusionnés dans `main` (grosse mise à jour, go de Kévin)
+
+- Une fusion par lot (2 symboles, 3 navigation, 4 implantation, 5 étapes, 6 relevé). `npm run check` vert sur la pile
+  complète (GitHub Actions, run 42019579696 : smoke 218/218, web, MAILLARD 14/14, ai-align 12, échelle 17).
+- Essais adaptés : plus d'onglet Chantiers (`okteo.setTab("chantiers")` ou `.top .brand`), 7 onglets, Packs hors du
+  bandeau, 9 étapes, mode BE à l'écran (MAILLARD garde le mode demandé du moteur : `cabler(api, {mode})`), gaine et
+  appareil 3D choisis loin des bords et des boîtes. Workflow temporaire `verification-lots.yml` retiré.
+
 ## 05/11/2026 — Lot 1 fusionné dans `main` (grosse mise à jour, go de Kévin)
 
 - Valider toujours visible, « Pourquoi ça clignote » réparé, mode 4 seul, échelle (cm, échelle écrite, plausibilité,
   blocage du collage à 10 %), boîtes d'obstacles des étiquettes bornées. Détail : entrée « Grosse mise à jour » (lots 1 à 6).
 - `npm run check` vert sur GitHub Actions (run 42016616834, smoke 214/214) ; workflow temporaire `verification-lots.yml` retiré.
+## 05/11/2026 — Grosse mise à jour (lots 1 à 6, go de Kévin pour les 6 lots, 11:49)
+
+Liste et ordre : `docs/feuille-de-route.md`, section « Grosse mise à jour du 05/11/2026 ». Un lot = une branche
+`feat/lotN-…`, vérifiée sur GitHub Actions (workflow temporaire `verification-lots.yml`, retiré à la fusion), puis
+fusionnée dans `main` (un commit de fusion par lot, annulable seul).
+
+**Lot 1 — urgences**
+- Carte de la réponse IA collée : `.wcard` bornée à la zone du plan (`max-height`, défilement interne, en-tête et
+  boutons `.ai-act` collants) : « Ajouter la sélection » / « Annuler » toujours visibles (style.css, ai-releve.js).
+- « Pourquoi ça clignote ? » : Modifier = appareil sélectionné, centré, Propriétés ouvertes ; Question au pavillonneur =
+  question affichée et modifiable (`.why-qbox`), confirmation « Question ajoutée au rapport » + lien vers le rapport ;
+  cartes `.whyb` / `.rapcard` au premier plan (z-index 40). Cause probable du « rien ne se passe » : les actions
+  agissaient sans retour visible.
+- Un seul mode d'analyse : `only4()` toujours vrai (ai-modes-ui.js) ; les 4 cartes seulement avec `modesIA = "dev"`
+  (essais) ; « Refaire » relance le mode 4 ou le collage.
+- Échelle : `src/walls/echelle.js` `writtenScale` (« Ech : 1:50 », « 1/100 »…) ; digits.js : cotes en cm entiers à
+  4 chiffres (« 1840 », « 1 840 »), `cotValue`, `solveReadable` (police lisible : valeurs lues directement, rapport le
+  plus fréquent) ; pdf-page.js `autoScale` : plausibilité 1/18 – 1/220 (`plausible`, `ratioOf`), écart > 10 % entre
+  cotes et échelle écrite = rien n'est appliqué (`why`), échelle écrite en secours.
+- Réponse collée : échelle de l'IA (`scaleCheck` des remarques) à plus de 10 % du fond → collage bloqué (`askScale`),
+  boutons « Régler l'échelle d'après la réponse » (`#ai-scale-fix`), « Régler à la main », « Annuler ».
+- Étiquettes : place.js `clipSeg`, `MAX_BOXES` (600), `wallBoxes` / `lineBoxes` rognées à la zone visible (render.js
+  `CLIP`) ; `Placer` : boîte de plus de 1 024 cases rangée à part (`big`) : une échelle fausse ne fige plus le plan.
+- Tests : `scripts/echelle.test.mjs` (17) + smoke (carte sur petit écran, blocage de l'échelle, échelle écrite,
+  question au pavillonneur).
+
+**Lot 2 — symboles**
+- `api.planSymbolMarkup(type, h)` : le symbole tel que le plan le dessine (FTZ du BE si la charte est active, sinon
+  Oktéo) ; la bibliothèque l'utilise (`okteo:ftz-ready` la redessine).
+- Bibliothèque : « Variantes enregistrées » de chaque symbole (dessins rattachés, par pavillonneur, extrait, chantier,
+  auteur, date, « Oublier »), nombre sur la carte (`.sy-nvar`).
+- Mémoire des symboles COMMUNE (décision de Kévin) : Worker `/api/symbol-memory` (GET, POST sans doublon) et
+  `/api/symbol-memory/delete` (auteur ou administrateur), table `symbol_memory` créée à la première utilisation
+  (`symbolTable`, aussi `migrations/0002_symbol_memory.sql`) ; extrait ≤ 90 Ko, aucun plan entier. Client :
+  symbol-memory.js `variantsOf`, `syncMemory` (au démarrage et à l'ouverture de la bibliothèque), fiches `pending`
+  renvoyées. À terme : mémoire de l'entreprise (type SharePoint) par export / import.
+- « Pourquoi ça clignote ? » : bloc `.why-fix` : « C'est un [type] » + Changer le type, « Enregistrer ce dessin comme
+  variante du symbole choisi » (mémoire + type + décision `variante`), « Je ne sais pas → suivant » (décision
+  `inconnu`, le point reste ouvert), « ‹ Précédent / Suivant › » (`navList`).
+- Tests : web.test.mjs (mémoire commune) + smoke (actions, bibliothèque).
+
+**Lot 3 — navigation**
+- `src/ext/home-shell.js` : plus d'onglet Chantiers ; logo `.brand` = accueil ; en-tête `#home-head` (logo, chantier
+  ouvert, bandeau de la version en ligne rangé dedans, « Ouvrir le plan › ») ; pastille `#web-warn` sur le plan pour
+  un avertissement du bandeau (hors ligne, session expirée, secours, budget).
+- Accueil, Paramètres, Bibliothèque = pages entières (`body.page-full` : sans `.top`, `.top2`, `.side`), arrivée par la
+  droite (`.cl-in`), poignée « ‹‹ » à droite (`#cl-fold`) ou Échap = la page se range à gauche et le plan revient
+  (`.cl-out`). Paramètres plus aérés en page entière. Visite guidée : étape 1 sur le logo.
+
+**Lot 4 — implantation**
+- Packs : plus de bouton dans le bandeau (`panel.register({hidden})`), éditeur dans Paramètres → Packs
+  (`mountEditor`) ; bandeau de la pièce : « ⚡ Implantation rapide » (`okteo:pack-quick`, Maj+P) = pack reconnu d'après
+  le nom posé tout de suite, liste des packs seulement si le nom n'en désigne aucun.
+- Boîtes : `BOX_MODE = "be"` (cablage-data.js) pour le panneau Câblage, le Mode IA et l'Étude ; plus de choix de mode,
+  de comparaison ni de nombre imposé à l'écran (le moteur garde les autres modes) ; bouton « ⚡ Implantation rapide des
+  pieuvres » (`#bx-auto`). Pas de répartition automatique des boîtes après l'analyse IA.
+
+**Lot 5 — étapes**
+- tour.js : 9 étapes (import, échelle confirmée, vérification murs et pièces, vérification appareils = alertes traitées,
+  implantation des boîtes, vérification des boîtes, câblage, vérification du tableau, impression) ; les vérifications
+  se valident (« C'est vérifié », `cab.etapes[k] = {by, at}`, Ctrl+Z) ; jauge `#st-gauge` dans le bandeau (clic =
+  panneau Étapes) et barre `.sg-big` en tête du panneau.
+
+**Lot 6 — relevé**
+- ai-align.js `mergeBands` : bandes collées du PDF (maçonnerie + doublage, écart ≤ 3 cm, recouvrement ≥ 50 %) réunies
+  en un mur d'axe au milieu de l'épaisseur totale avant le recalage.
+- ai-plan.js `aiToPlan` : murs croisés en X coupés au croisement (`stats.croisements`).
+- Vue 3D : rien de modifié ; propositions dans la feuille de route.
 
 ## 05/11/2026 — Grosse mise à jour décidée (notes, pas de code)
 

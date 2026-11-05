@@ -277,7 +277,7 @@ try {
   console.log("Assistant sans clé");
   await check("touche A ouvre l'assistant", async () => {
     // le focus doit être sur la page (pas dans un champ) avant la touche
-    await page.keyboard.press("Escape"); await ev(() => document.activeElement?.blur?.()); await page.click(".brand");
+    await page.keyboard.press("Escape"); await ev(() => document.activeElement?.blur?.()); await page.click(".top .chip");   // lot 3 : le logo ouvre l'accueil
     for (let k = 0; k < 2; k++) {
       await page.keyboard.press("a");
       if (await page.waitForSelector(".as-in textarea", { state: "visible", timeout: 2500 }).then(() => true, () => false)) return true;
@@ -1660,6 +1660,7 @@ try {
         const arc = (o, c, t, k = 0.15) => { const qx = (o.x + c.x) / 2 - (c.y - o.y) * k, qy = (o.y + c.y) / 2 + (c.x - o.x) * k, u = 1 - t; return { x: u * u * o.x + 2 * u * t * qx + t * t * c.x, y: u * u * o.y + 2 * u * t * qy + t * t * c.y }; };
         const p = arc(P0(b, id), a, 0.5, R.bowOf(b.id, id));
         if (A.some((o) => Math.hypot(o.x - p.x, o.y - p.y) < 0.6) || okteo.cab.boxes.some((o) => Math.hypot(o.x - p.x, o.y - p.y) < 0.8)) continue;
+        { const sp = okteo.toClient(p.x, p.y); if (sp.y < 160 || sp.y > innerHeight - 220 || sp.x < 220 || sp.x > innerWidth - 420) continue; }   // lot 4 : point bien dans l'écran (le glisser va à +50 px)
         // pas d'autre gaine tout près de ce point
         const near = okteo.cab.boxes.some((o) => o.apps.some((k) => { if (k === id && o.id === b.id) return false; const c = by[k]; if (!c) return false;
           for (let i = 1; i < 30; i++) { const q = arc(P0(o, k), c, i / 30, R.bowOf(o.id, k)); if (Math.hypot(q.x - p.x, q.y - p.y) < 0.3) return true; } return false; }));
@@ -2320,11 +2321,11 @@ try {
     if (!(r.k0 === 0 && r.v.v1 === 1 && r.v.v2 === 1 && r.v.sani === 1 && r.sdb.includes(r.ids[1]) && r.vols === 1 && !r.inApps && r.back && r.kinds)) throw new Error(JSON.stringify(r));
     return true;
   });
-  await check("onglet Étapes : plan, échelle, murs, pièces, appareils, liaisons, circuits, impression cochés", async () => {
+  await check("onglet Étapes (lot 5) : import, boîtes, câblage, impression cochés tout seuls ; les vérifications attendent l'opérateur", async () => {
     await ev(() => okteoExt.panel.show("steps")); await page.waitForTimeout(250);
-    const r = await ev(() => ({ done: document.querySelectorAll(".steps li.done").length, next: document.querySelector(".steps li.next b")?.textContent || "" }));
+    const r = await ev(() => ({ done: [...document.querySelectorAll(".steps li.done")].map((li) => li.dataset.step), next: document.querySelector(".steps li.next b")?.textContent || "" }));
     await ev(() => okteoExt.panel.show("props"));
-    if (!(r.done >= 8 && r.next === "")) throw new Error(JSON.stringify(r));
+    if (!(r.done.includes("import") && r.done.includes("impression") && !r.done.includes("murs") && !r.done.includes("verifBoites") && r.next === "Échelle confirmée")) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("échelle exacte : la largeur des murs dans le PDF = largeur réelle × 1000 / échelle", async () => {
@@ -3114,7 +3115,7 @@ try {
     await page.click('#tabs button[data-tab="boites"]');
     const back = await ev(() => okteo.tab);
     await page.click('#tabs button[data-tab="plan"]');
-    if (!(a.tab === "lignes" && a.on && a.vis && a.sub && a.n === 8 && !a.old && hid && back === "lignes")) throw new Error(JSON.stringify({ a, hid, back }));
+    if (!(a.tab === "lignes" && a.on && a.vis && a.sub && a.n === 7 && !a.old && hid && back === "lignes")) throw new Error(JSON.stringify({ a, hid, back }));
     return true;
   });
   await check("une seule fenêtre de travail : ouvrir le relevé des pièces ferme le relevé des murs ; la comparaison des modes ferme les deux", async () => {
@@ -3179,7 +3180,7 @@ try {
     // clic sur un appareil mural
     let card = null;
     if (r.devs) {
-      const pt = await ev(() => { const S3 = okteoExt.pages.vue3d.ui.state; const d = S3.devs.find((x) => x.mount === "mur") || S3.devs[0]; okteoExt.pages.vue3d.ui.view("top", true); S3.ctl.update(); S3.R.render(S3.scene, S3.cam); const v = new S3.T.Vector3(d.x, d.h, d.y).project(S3.cam), b = document.querySelector(".v3d-cv").getBoundingClientRect(); return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height, id: d.id }; });
+      const pt = await ev(() => { const S3 = okteoExt.pages.vue3d.ui.state; const BX = (okteo.cab.boxes || []).filter((b) => b.lv === okteo.level.id), far = (x) => Math.min(99, ...BX.map((b) => Math.hypot(b.x - x.x, b.y - x.y))); const d = S3.devs.filter((x) => x.mount === "mur").sort((p, q) => far(q) - far(p))[0] || S3.devs[0]; okteoExt.pages.vue3d.ui.view("top", true); S3.ctl.update(); S3.R.render(S3.scene, S3.cam); const v = new S3.T.Vector3(d.x, d.h, d.y).project(S3.cam), b = document.querySelector(".v3d-cv").getBoundingClientRect(); return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height, id: d.id }; });
       await page.mouse.click(pt.x, pt.y); await page.waitForTimeout(400);
       card = await ev(() => ({ open: !document.querySelector(".v3d-card").hidden, id: document.querySelector(".v3d-card").dataset.id }));
       if (card.open) { await page.click('.v3d-card [data-a="plan"]'); await page.waitForTimeout(300); card.after = await ev(() => ({ tab: okteo.tab, sel: okteo.selection })); }

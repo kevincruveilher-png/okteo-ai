@@ -235,6 +235,27 @@ export function aiToPlan(raw, map, { defEp = 0.2, mergeTol = 0.15, axisTol = 4 }
     }
     if (!cut) break;
   }
+  // 3 bis. lot 6 (05/11/2026) : murs qui se croisent en X (aucun sommet commun, croisement à l'intérieur des deux) :
+  // coupés tous les deux au croisement, sinon deux pièces voisines fusionnent (SdE + séjour sur le plan du 04/11)
+  stats.croisements = 0;
+  for (let pass = 0; pass < 200; pass++) {   // une coupe par passe ; 200 croisements au plus
+    let cut = false;
+    for (let i = 0; i < segs.length && !cut; i++) for (let j = i + 1; j < segs.length && !cut; j++) {
+      const s = segs[i], t = segs[j];
+      if (s.a === t.a || s.a === t.b || s.b === t.a || s.b === t.b) continue;
+      const A = nodes[s.a], B = nodes[s.b], C = nodes[t.a], D = nodes[t.b];
+      const r = { x: B.x - A.x, y: B.y - A.y }, q = { x: D.x - C.x, y: D.y - C.y }, den = r.x * q.y - r.y * q.x;
+      const Ls = Math.hypot(r.x, r.y), Lt = Math.hypot(q.x, q.y);
+      if (Math.abs(den) < 1e-9 * Ls * Lt) continue;   // parallèles
+      const u = ((C.x - A.x) * q.y - (C.y - A.y) * q.x) / den, v = ((C.x - A.x) * r.y - (C.y - A.y) * r.x) / den;
+      if (u * Ls < 0.05 || u * Ls > Ls - 0.05 || v * Lt < 0.05 || v * Lt > Lt - 0.05) continue;
+      const k = nodes.length; nodes.push({ x: A.x + r.x * u, y: A.y + r.y * u, k, c: 1 });
+      segs.splice(j, 1, { a: t.a, b: k, ep: t.ep }, { a: k, b: t.b, ep: t.ep });
+      segs.splice(i, 1, { a: s.a, b: k, ep: s.ep }, { a: k, b: s.b, ep: s.ep });
+      stats.coupes++; stats.croisements++; cut = true;
+    }
+    if (!cut) break;
+  }
   // doublons (même paire de sommets)
   const seen = new Set();
   segs = segs.filter((s) => { const key = Math.min(s.a, s.b) + "-" + Math.max(s.a, s.b); if (seen.has(key)) return false; seen.add(key); return true; });

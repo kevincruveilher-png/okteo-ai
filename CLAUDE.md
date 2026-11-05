@@ -1,4 +1,4 @@
-# À LIRE EN PREMIER — état du projet (mis à jour le 04/11/2026, v77 + vue 3D + lots A (n° 1, 2, 8, 9, 12, 13, 14), B (n° 6, 7), C (n° 10, 11), n° 4 et bloc D (n° 15, 3 + 16, 5) dans `main`)
+# À LIRE EN PREMIER — état du projet (mis à jour le 05/11/2026, v77 + vue 3D + lots A à D du 04/11 + grosse mise à jour du 05/11 (lots 1 à 6) dans `main`)
 
 Ce fichier sert à TOUTES les IA qui travaillent sur le dépôt (Claude, ChatGPT/Codex…) : `AGENTS.md` y renvoie.
 Plusieurs IA se sont succédé (Claude jusqu'à v66, ChatGPT v67 à v72, Claude depuis v72.1) : garder une seule source de
@@ -16,7 +16,7 @@ vérité, celle-ci, et tenir `docs/journal.md` à jour à CHAQUE modification (e
   `public/assets/fond-evrard-04949.jpg`). Décision de Kévin attendue (dépôt privé ou retrait des plans). N'en ajouter aucun.
 - Ne lancer une mise à jour que sur ordre de Kévin ; ne rien pousser sur `main` sans son « go ». Branches de travail :
   `feat/…`, vérification par GitHub Actions sur une branche `verification-…` supprimée après usage.
-- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854 ; lot C : smoke 202/202, run 41904201702 ; bloc D : smoke 207/207, run 41913594686 ; confirmation d'emplacement : smoke 208/208, run 41990372145 ; interrupteurs au mur : smoke 209/209, run 41993507221 ; plan fluide : smoke 210/210, run 42002250587). Sans navigateur en local : faire tourner les
+- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854 ; lot C : smoke 202/202, run 41904201702 ; bloc D : smoke 207/207, run 41913594686 ; confirmation d'emplacement : smoke 208/208, run 41990372145 ; interrupteurs au mur : smoke 209/209, run 41993507221 ; plan fluide : smoke 210/210, run 42002250587 ; grosse mise à jour du 05/11 (lots 1 à 6) : smoke 218/218, run 42019579696). Sans navigateur en local : faire tourner les
   tests sur GitHub Actions (workflow temporaire sur une branche `verification-…`, voir journal v72.1).
 
 # Oktéo AI — consignes pour Claude
@@ -423,6 +423,19 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
 - 05/11/2026 (plan fluide) : événements fréquents (molette, `pointermove`) → `drawSoon()` (un dessin par image), jamais
   `draw()` directement ; `syncVB(false)` dans `draw` (pas de `getBoundingClientRect`) ; le fond est un seul élément
   `<image>` gardé (`K.bgEl`, `g.bgslot`) : ne jamais le remettre dans le texte de `sv.innerHTML`.
+
+### Grosse mise à jour du 05/11/2026 (lots 1 à 6) — détail : journal du 05/11
+- Un seul mode d'analyse IA (mode 4) ; `modesIA = "dev"` réservé aux essais. Réponse collée bloquée si l'échelle de l'IA
+  diffère de plus de 10 % du fond (`askScale`). Échelle : `src/walls/echelle.js`, digits.js `solveReadable` / `cotValue`,
+  pdf-page.js `plausible`. Étiquettes : place.js `clipSeg`, `MAX_BOXES`, `Placer.big`.
+- Mémoire des symboles commune : Worker `/api/symbol-memory` (+ `/delete`), symbol-memory.js `syncMemory` /
+  `variantsOf` ; `api.planSymbolMarkup` ; « Pourquoi ça clignote ? » `.why-fix` (type, variante, je ne sais pas, nav).
+- Navigation : `src/ext/home-shell.js` (logo = accueil, `body.page-full`, `#cl-fold`, bandeau en ligne dans `#home-head`,
+  `#web-warn`) ; plus d'onglet Chantiers (tests : `okteo.setTab("chantiers")` ou `.top .brand`).
+- Packs : panneau caché (`register({hidden})`), éditeur dans Paramètres (`mountEditor`), « ⚡ Implantation rapide »
+  (`okteo:pack-quick`). Boîtes : `BOX_MODE = "be"` seul à l'écran.
+- Étapes : 9 étapes, validations `cab.etapes`, jauge `#st-gauge`. Relevé : ai-align.js `mergeBands`, ai-plan.js
+  croisements en X coupés.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (42 vérifications : relevé des murs, des pièces et des

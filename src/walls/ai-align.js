@@ -14,11 +14,37 @@ export function axisLines(P) {
   W.forEach((w, i) => {
     const A = P.nodes[w.a], B = P.nodes[w.b]; if (!A || !B) return;
     const dx = B.x - A.x, dy = B.y - A.y, L = Math.hypot(dx, dy); if (L < 0.3 || w.virt) return;
-    if (Math.abs(dx) <= ANG * Math.abs(dy)) out.push({ o: "v", c: (A.x + B.x) / 2, s0: Math.min(A.y, B.y), s1: Math.max(A.y, B.y), L, i });
-    else if (Math.abs(dy) <= ANG * Math.abs(dx)) out.push({ o: "h", c: (A.y + B.y) / 2, s0: Math.min(A.x, B.x), s1: Math.max(A.x, B.x), L, i });
+    const ep = w.ep > 0 ? w.ep : 0;
+    if (Math.abs(dx) <= ANG * Math.abs(dy)) out.push({ o: "v", c: (A.x + B.x) / 2, s0: Math.min(A.y, B.y), s1: Math.max(A.y, B.y), L, i, ep });
+    else if (Math.abs(dy) <= ANG * Math.abs(dx)) out.push({ o: "h", c: (A.y + B.y) / 2, s0: Math.min(A.x, B.x), s1: Math.max(A.x, B.x), L, i, ep });
   });
   return out;
 }
+// lot 6 (05/11/2026) : murs du PDF faits de bandes collées (maçonnerie + doublage, chacune relevée à part) réunis en un
+// seul mur, d'axe au milieu de l'épaisseur totale : c'est ainsi que l'IA les donne (un seul mur de 34 cm). Sans cela,
+// le mur de l'IA était collé sur l'axe d'une seule bande (décalage de 6 à 10 cm vu sur le plan du 04/11).
+// Deux bandes sont « collées » si elles sont parallèles, se recouvrent sur la moitié de la plus courte et que l'écart
+// entre leurs faces voisines est d'au plus `gap` (3 cm).
+export function mergeBands(lines, { gap = 0.03 } = {}) {
+  const L = lines.map((l) => ({ ...l, lo: l.c - (l.ep || 0) / 2, hi: l.c + (l.ep || 0) / 2, merged: 1 }));
+  for (let pass = 0; pass < 4; pass++) {
+    let changed = false;
+    for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
+      const p = L[i], q = L[j]; if (!p || !q || p.o !== q.o || !(p.ep > 0) || !(q.ep > 0)) continue;
+      const between = Math.max(p.lo, q.lo) - Math.min(p.hi, q.hi);   // > 0 : vide entre les bandes ; ≤ 0 : elles se touchent
+      if (between > gap || between < -Math.min(p.ep, q.ep) * 0.5) continue;
+      const ov = Math.max(0, Math.min(p.s1, q.s1) - Math.max(p.s0, q.s0));
+      if (ov < 0.5 * Math.min(p.L, q.L)) continue;
+      const lo = Math.min(p.lo, q.lo), hi = Math.max(p.hi, q.hi), keep = p.L >= q.L ? p : q;
+      L[i] = { ...keep, lo, hi, c: (lo + hi) / 2, ep: hi - lo, s0: Math.min(p.s0, q.s0), s1: Math.max(p.s1, q.s1), L: Math.max(p.L, q.L), merged: p.merged + q.merged };
+      L[j] = null; changed = true;
+    }
+    for (let k = L.length - 1; k >= 0; k--) if (!L[k]) L.splice(k, 1);
+    if (!changed) break;
+  }
+  return L.map(({ lo, hi, ...l }) => l);
+}
+const refLines = (ref) => mergeBands(axisLines(ref));
 
 const overlap = (p, q) => Math.max(0, Math.min(p.s1, q.s1) - Math.max(p.s0, q.s0));
 // ligne de l'IA vue à travers la transformation T = {x: {a, b}, y: {a, b}}
@@ -82,7 +108,7 @@ function coarse(lines, refs, o) {
 // Garde-fous : il faut au moins 6 murs droits côté IA (avec 2 murs par axe, n'importe quelle paire de murs du PDF
 // « colle »), au moins 60 % de leur longueur reconnue à la fin, un décalage ≤ 1,5 m et une échelle à ± 5 %.
 export function alignTransform(plan, ref, { minPairs = 2, minWalls = 6, cover = 0.6, maxShift = 1.5, maxScale = 0.05 } = {}) {
-  const lines = axisLines(plan), refs = axisLines(ref);
+  const lines = axisLines(plan), refs = refLines(ref);
   if (lines.length < minWalls) return { ok: false, raison: `trop peu de murs dans la réponse (${lines.length}) pour recaler sans risque` };
   const nV = lines.filter((l) => l.o === "v").length, nH = lines.length - nV;
   if (nV < 2 || nH < 2 || refs.filter((r) => r.o === "v").length < 2 || refs.filter((r) => r.o === "h").length < 2)
@@ -125,7 +151,7 @@ export function alignPlan(plan, ref, opts = {}) {
   const P = JSON.parse(JSON.stringify(plan));
   P.nodes = P.nodes.map((n) => ({ x: tx(n.x), y: ty(n.y) }));
   // chaque mur de l'IA reconnu est collé sur son mur du PDF (abscisse ou ordonnée du nœud)
-  const refs = axisLines(ref), votes = new Map();
+  const refs = refLines(ref), votes = new Map();
   let colles = 0;
   for (const l of axisLines(P)) {
     const m = match(l, refs, SNAP); if (!m) continue;

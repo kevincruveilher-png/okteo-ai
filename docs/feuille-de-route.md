@@ -471,7 +471,7 @@ Décisions (Claude) :
 - Recollage des murs coupés aux portes pour le relevé Opus.
 - Page « Reprendre le projet » : seulement quand Kévin le demandera.
 
-## Grosse mise à jour du 05/11/2026 — alléger et simplifier (liste de Kévin, 11:16, complète)
+## Grosse mise à jour du 05/11/2026 — alléger et simplifier (liste de Kévin, 11:16, complète) — FAITE (lots 1 à 6, 05/11/2026)
 Une mise à jour à la fois, sur « go » de Kévin, testée, notée au journal. Ordre décidé : lots 1 à 6.
 
 **Lot 1 — urgences**
@@ -515,3 +515,16 @@ Une mise à jour à la fois, sur « go » de Kévin, testée, notée au journal.
 par pavillonneur) doit être commune à tous les postes, sur le serveur (base D1 `okteo-accounts`), et plus propre à chaque
 poste. Le jour de la mise en ligne générale, elle devra pouvoir rejoindre une mémoire collective de l'entreprise
 (type SharePoint). Prévoir un format d'export / import simple (JSON) pour ce passage.
+
+**Propositions pour la vue 3D (n° 17, à décider par Kévin, rien n'est modifié)**
+1. Un bouton « Vue de dessus » / « Vue de face » / « Visite » en haut de la 3D, au lieu des réglages éparpillés.
+2. Les appareils qui clignotent sur le plan (alertes) repérés aussi en 3D, avec « Pourquoi ça clignote ? » au clic.
+3. Calque « gaines et boîtes » activable seul, pour montrer le câblage au client ou au câbleur sans les murs pleins.
+4. Hauteurs d'appareils modifiables en 3D (glisser vers le haut / le bas, valeur affichée en cm), reportées sur le plan.
+5. Export d'une image de la 3D (PNG) pour le dossier, à côté du plan imprimé.
+
+**Restes et limites après la grosse mise à jour**
+- Mémoire des symboles commune : en version en ligne seulement (en local, mémoire du poste) ; l'extrait du dessin
+  (1,20 m autour de l'appareil) et le nom du chantier d'origine sont envoyés au serveur.
+- Mode 4 seul : son essai réel attend toujours une clé API.
+- Le moteur garde les modes de boîtes (économique, équilibrée, pièce, zone) pour les essais ; l'écran n'en montre plus.
