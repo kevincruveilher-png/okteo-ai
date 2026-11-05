@@ -80,7 +80,8 @@ export function createWhyBlink({ api }) {
   }
   function wire() {
     card.querySelector(".wx").onclick = () => (card.hidden = true);
-    const say = (t) => { const m = card.querySelector(".why-fixmsg"); if (m) m.textContent = t; };
+    // message de confirmation (la carte peut ne plus avoir de bloc « Que faire » : plus rien à signaler)
+    const say = (t) => { let m = card.querySelector(".why-fixmsg"); if (!m) { m = document.createElement("p"); m.className = "sm ok why-fixmsg"; m.setAttribute("role", "status"); card.querySelector("h3")?.after(m); } m.textContent = t; };
     card.querySelector("#why-prev").onclick = () => go(-1);
     card.querySelector("#why-next").onclick = () => go(1);
     const st = card.querySelector("#why-settype");

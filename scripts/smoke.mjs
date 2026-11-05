@@ -277,7 +277,7 @@ try {
   console.log("Assistant sans clé");
   await check("touche A ouvre l'assistant", async () => {
     // le focus doit être sur la page (pas dans un champ) avant la touche
-    await page.keyboard.press("Escape"); await ev(() => document.activeElement?.blur?.()); await page.click(".top .grow");   // lot 3 : le logo ouvre l'accueil
+    await page.keyboard.press("Escape"); await ev(() => document.activeElement?.blur?.()); await page.click(".top .chip");   // lot 3 : le logo ouvre l'accueil
     for (let k = 0; k < 2; k++) {
       await page.keyboard.press("a");
       if (await page.waitForSelector(".as-in textarea", { state: "visible", timeout: 2500 }).then(() => true, () => false)) return true;
@@ -2320,11 +2320,11 @@ try {
     if (!(r.k0 === 0 && r.v.v1 === 1 && r.v.v2 === 1 && r.v.sani === 1 && r.sdb.includes(r.ids[1]) && r.vols === 1 && !r.inApps && r.back && r.kinds)) throw new Error(JSON.stringify(r));
     return true;
   });
-  await check("onglet Étapes : plan, échelle, murs, pièces, appareils, liaisons, circuits, impression cochés", async () => {
+  await check("onglet Étapes (lot 5) : import, boîtes, câblage, impression cochés tout seuls ; les vérifications attendent l'opérateur", async () => {
     await ev(() => okteoExt.panel.show("steps")); await page.waitForTimeout(250);
-    const r = await ev(() => ({ done: document.querySelectorAll(".steps li.done").length, next: document.querySelector(".steps li.next b")?.textContent || "" }));
+    const r = await ev(() => ({ done: [...document.querySelectorAll(".steps li.done")].map((li) => li.dataset.step), next: document.querySelector(".steps li.next b")?.textContent || "" }));
     await ev(() => okteoExt.panel.show("props"));
-    if (!(r.done >= 8 && r.next === "")) throw new Error(JSON.stringify(r));
+    if (!(r.done.includes("import") && r.done.includes("impression") && !r.done.includes("murs") && !r.done.includes("verifBoites") && r.next === "Échelle confirmée")) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("échelle exacte : la largeur des murs dans le PDF = largeur réelle × 1000 / échelle", async () => {
