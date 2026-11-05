@@ -470,3 +470,48 @@ Décisions (Claude) :
 - Relevé IA en ligne avec une clé (OpenAI Sol / Astra : clé et CORS à vérifier).
 - Recollage des murs coupés aux portes pour le relevé Opus.
 - Page « Reprendre le projet » : seulement quand Kévin le demandera.
+
+## Grosse mise à jour du 05/11/2026 — alléger et simplifier (liste de Kévin, 11:16, complète)
+Une mise à jour à la fois, sur « go » de Kévin, testée, notée au journal. Ordre décidé : lots 1 à 6.
+
+**Lot 1 — urgences**
+1. Fenêtre de la réponse IA collée : hauteur bornée à l'écran, liste qui défile, « Valider » / « Annuler » toujours visibles en bas.
+2. « Pourquoi ça clignote » : réparer les boutons sans effet (Modifier, Question au pavillonneur, Rapport d'analyse).
+3. Un seul mode d'analyse IA : le mode 4 (choix retiré de l'écran, modes 1 à 3 gardés comme étapes internes).
+4. Échelle automatique : cotes en centimètres (entiers), échelle écrite (« Ech : 1:50 »), contrôle de plausibilité.
+5. Réponse collée : blocage si l'échelle de l'IA diffère de plus de 10 % de celle du fond, bouton « Régler l'échelle d'après la réponse ».
+6. Nombre de boîtes d'obstacles des étiquettes borné et limité à la zone visible (`render.js`).
+
+**Lot 2 — symboles**
+7. Bibliothèque : dessins des symboles refaits à l'identique de ceux qu'Oktéo dessine sur le plan (écran et impression BE).
+   Clic sur un symbole : toutes les variantes enregistrées qui lui sont rattachées, par pavillonneur.
+8. « Pourquoi ça clignote » : changer le type de l'appareil ; enregistrer le dessin comme variante d'un symbole existant
+   (alimente la bibliothèque) ; « Je ne sais pas » → suivant ; flèches précédent / suivant.
+
+**Lot 3 — navigation**
+9. Onglet Chantier supprimé ; clic sur le logo Oktéo → page d'accueil des chantiers. Le bandeau du haut (entreprise,
+   connecté, ressources hors ligne, compte, administration) y est déplacé.
+10. Paramètres et bibliothèque en pages dédiées, aérées, sans bandeau du haut ni panneau de droite, ouvertes « en classeur »
+    (glissent depuis la droite, petites flèches pour les ranger sur le bord gauche et revenir au plan).
+
+**Lot 4 — implantation**
+11. Packs dans les paramètres (plus de bouton). Pièce typée → bouton « Implantation rapide » qui pose le pack du type.
+12. Boîtes : seul le mode Bureau d'études reste ; bouton « Implantation rapide des pieuvres » dans le câblage.
+13. Pas de répartition automatique des boîtes par l'IA : à la main, après correction du relevé.
+
+**Lot 5 — suivi du dossier**
+14. Étapes toujours visibles + jauge de pourcentage. Étapes (validées par Kévin) : 1 Import du dossier, 2 Échelle confirmée,
+    3 Vérification murs et pièces, 4 Vérification appareils (alertes traitées), 5 Implantation des boîtes,
+    6 Vérification des boîtes, 7 Câblage, 8 Vérification du tableau, 9 Impression. Plus de saut à l'étape 10 après l'import.
+
+**Lot 6 — finitions du relevé**
+15. Recalage (`ai-align.js`) : maçonnerie + doublage réunis en un seul mur avant de comparer.
+16. Import (`aiToPlan`) : murs croisés en X coupés.
+17. Vue 3D : proposition écrite seulement, aucune modification.
+
+**Pas touché** : l'Étude.
+
+**Décision (05/11/2026) — mémoire des symboles collective.** La mémoire des symboles (variantes validées par un opérateur,
+par pavillonneur) doit être commune à tous les postes, sur le serveur (base D1 `okteo-accounts`), et plus propre à chaque
+poste. Le jour de la mise en ligne générale, elle devra pouvoir rejoindre une mémoire collective de l'entreprise
+(type SharePoint). Prévoir un format d'export / import simple (JSON) pour ce passage.

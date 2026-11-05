@@ -1,3 +1,12 @@
+## 05/11/2026 — Grosse mise à jour décidée (notes, pas de code)
+
+- Liste complète de Kévin (11:16) rangée en 6 lots : `docs/feuille-de-route.md`, section « Grosse mise à jour du 05/11/2026 ».
+- Décisions : un seul mode d'analyse IA (mode 4) ; boîtes en mode Bureau d'études seul ; pas de répartition automatique
+  des boîtes par l'IA ; packs dans les paramètres avec « Implantation rapide » ; étapes de vérification en 9 étapes + jauge ;
+  dessins de la bibliothèque = symboles dessinés par Oktéo sur le plan.
+- **Mémoire des symboles collective** (serveur D1, puis mémoire de l'entreprise type SharePoint à la mise en ligne générale).
+- Rien de codé : chaque lot attend le « go » de Kévin, en commençant par le lot 1.
+
 ## 05/11/2026 — Plan fluide : un dessin par image, fond gardé, plus de mesure forcée de l'écran
 
 - Constat de Kévin (chantier COURIAUT, 119 appareils, fond du PDF) : plan très lent, la page plante au zoom.
