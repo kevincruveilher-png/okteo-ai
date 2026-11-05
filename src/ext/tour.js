@@ -1,10 +1,11 @@
 // « Premiers pas » pour un nouvel utilisateur :
-// 1. onglet « Étapes » du panneau de droite : la liste des étapes d'un chantier (plan, échelle, murs, pièces, appareils,
-//    liaisons, impression, sauvegarde), cochées automatiquement, avec le bouton qui lance l'étape suivante ;
+// 1. onglet « Étapes » du panneau de droite : les 9 étapes du dossier (lot 5 : surtout des vérifications, validées par
+//    l'opérateur) et une jauge d'avancement toujours visible dans le bandeau du haut ;
 // 2. visite guidée : chaque zone de l'écran est éclairée à son tour avec une bulle d'explication
 //    (Suivant / Précédent / Quitter, flèches du clavier, Échap) ;
 // 3. à la première ouverture, une petite invitation (non bloquante) propose la visite.
 import { esc, store, storeSet } from "./util.js";
+import { confirmable } from "../cablage/rapport.js";
 
 const KEY = "okteo.tour.v1";            // { seen: bool, never: bool }
 const PRINTED = "okteo.printed.v1";      // { [chantier:niveau]: date }
@@ -107,44 +108,68 @@ export function createTour({ api, panel, hooks }) {
   // ---------- onglet « Étapes » ----------
   const el = panel.register({ id: "steps", label: "Étapes", icon: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>', tip: "Où en est le chantier : les étapes faites et la suivante" });
   const printedKey = () => api.ch.id + ":" + api.level.id;
+  // lot 5 (05/11/2026) : 9 étapes du dossier, surtout des VÉRIFICATIONS (liste validée par Kévin). Une étape de
+  // vérification n'est faite que lorsque l'opérateur la valide (« C'est vérifié », noté qui / quand dans le chantier,
+  // Ctrl+Z l'annule) : importer le dossier ne coche plus tout d'un coup.
+  const who = () => (window.okteoSession && window.okteoSession.user && window.okteoSession.user.login) || "opérateur";
+  const checked = (k) => ((api.cab.etapes || {})[k]) || null;
+  const validate = (k, on = true) => { const E = { ...(api.cab.etapes || {}) }; if (on) E[k] = { by: who(), at: new Date().toISOString() }; else delete E[k]; api.setCab({ etapes: E }); };
   function items() {
-    const S = api.state, ch = api.ch, f = ch.fond, pdf = !!(f && f.src === "idb" && f.page);
-    const hasCmd = S.app.some((a) => ["INT", "VV", "BP"].includes(a.t)), lights = S.app.some((a) => ["LUM", "SPOT", "APP"].includes(a.t));
-    const printed = !!store(PRINTED, {})[printedKey()], bk = window.okteoExt && window.okteoExt.backup && window.okteoExt.backup.status();
+    const S = api.state, ch = api.ch, f = ch.fond, apps = api.allApps ? api.allApps() : S.app;
+    const printed = !!store(PRINTED, {})[printedKey()];
+    const devAlerts = (api.control || []).filter((it) => confirmable(it.kind)).length;
+    const boxes = (api.cab.boxes || []).length, circuits = (api.cab.circuits || []).length, tab = apps.some((a) => a.t === "TAB");
+    const V = (k, title, how, ready, act, run) => ({ k, verif: true, done: !!checked(k), by: checked(k), title, how, off: !ready, act, run });
     return [
-      { done: !!f, title: "Plan du pavillonneur en fond", how: "Page Chantiers → « Ajouter un fond… » (PDF : cliquer la page du plan).", act: "Ouvrir Chantiers", run: () => api.setTab("chantiers") },
-      { done: !!(f && f.calibre), title: "Échelle du plan", how: "Deux points d'une cote connue + sa longueur. Les cotes du plan la vérifient ensuite.", act: "Régler l'échelle", run: () => api.startCalib(), off: !f },
-      { done: S.segs.length >= 4, title: "Murs", how: pdf ? "Relevés automatiquement sur le PDF, puis corrigés à la main si besoin." : "Outil Pièce (E) ou Mur (B).", act: pdf ? "Relever les murs" : "Dessiner un mur", run: () => (pdf ? hooks.detectWalls() : api.setTool("mur")), off: !(f && f.calibre) && pdf },
-      { done: S.rooms.length > 0, title: "Pièces (noms et surfaces)", how: "Détectées entre les murs, noms lus sur le plan.", act: "Détecter les pièces", run: () => hooks.detectRooms(), off: S.segs.length < 3 },
-      { done: S.app.length > 0, title: "Appareils", how: pdf ? "Relevés sur les symboles du PDF ; à compléter avec la barre des appareils." : "Barre des appareils (2e ligne d'outils).", act: pdf ? "Relever les appareils" : "Poser une prise", run: () => (pdf ? hooks.detectDevices() : api.setTool("PC16")), off: pdf && !(f && f.calibre) },
-      { done: S.lia.length > 0 || (S.app.length > 0 && !(hasCmd && lights)), title: "Liaisons commande → lumière", how: "Outil Liaison : l'interrupteur, puis ses lumières. « Essai » pour vérifier.", act: "Outil Liaison", run: () => api.setTool("lien"), off: !S.app.length },
-      { done: (api.cab.circuits || []).length > 0, title: "Circuits (câblage)", how: "Répartition automatique NF C 15-100, puis ajustements : onglet Câblage.", act: "Répartir en circuits", run: () => hooks.circuitsAuto(), off: !S.app.length },
-      { done: (api.cab.boxes || []).length > 0, title: "Boîtes et gaines", how: "Placement automatique économe en cuivre, boîtes déplaçables ; détail des gaines dans l'onglet Pieuvre.", act: "Placer les boîtes", run: () => hooks.boxesAuto(), off: !(api.cab.circuits || []).length },
-      { done: printed, title: "Plan imprimé (PDF)", how: "À l'échelle, avec cartouche et nomenclature.", act: "Imprimer", run: () => hooks.print(), off: !S.segs.length },
-      { done: !!(bk && bk.active), title: "Sauvegarde automatique", how: "Une copie .okteo dans un dossier du PC, à chaque modification (Chrome / Edge).", act: "Choisir le dossier", run: () => api.setTab("chantiers"), opt: true },
+      { k: "import", done: !!f, title: "Import du dossier", how: "Accueil (logo Oktéo) → « Ajouter un fond… » : le PDF du dossier, rôle de chaque page.", act: "Ouvrir l'accueil", run: () => api.setTab("chantiers") },
+      { k: "echelle", done: !!(f && f.calibre) && !!checked("echelle"), by: checked("echelle"), verif: true, title: "Échelle confirmée", how: "Échelle réglée (cotes du plan ou 1/50), puis vérifiée sur une cote connue avec l'outil Cote.", act: f && f.calibre ? "C'est vérifié" : "Régler l'échelle", run: () => (f && f.calibre ? validate("echelle") : api.startCalib()), off: !f },
+      V("murs", "Vérification des murs et pièces", "Murs à leur place, pièces fermées et bien nommées (comparez avec le fond).", S.segs.length >= 3 && S.rooms.length > 0, "C'est vérifié", () => validate("murs")),
+      { k: "appareils", done: apps.length > 0 && devAlerts === 0, title: "Vérification des appareils", how: devAlerts ? `${devAlerts} alerte${devAlerts > 1 ? "s" : ""} à traiter (appareils qui clignotent : « Pourquoi ça clignote ? »).` : "Toutes les alertes des appareils sont traitées.", act: "Voir l'alerte suivante", run: () => { const b = document.getElementById("ctl"); if (b) b.click(); }, off: !apps.length },
+      { k: "boites", done: boxes > 0, title: "Implantation des boîtes", how: "Panneau Câblage → « ⚡ Implantation rapide des pieuvres » (mode Bureau d'études), puis à la main.", act: "Implanter les boîtes", run: () => (circuits ? hooks.boxesAuto() : hooks.circuitsAuto()), off: !apps.length },
+      V("verifBoites", "Vérification des boîtes", "Boîtes à leur place, départs et faces corrects, gaines sans croisement.", boxes > 0, "C'est vérifié", () => validate("verifBoites")),
+      { k: "cablage", done: boxes > 0 && circuits > 0 && tab, title: "Câblage", how: tab ? "Circuits, boîtes, gaines et fils : panneau Câblage et page Étude." : "Posez d'abord le tableau (TD) sur le plan.", act: "Ouvrir le câblage", run: () => hooks.circuitsAuto && (circuits ? window.okteoExt?.panel?.show("cablage") : hooks.circuitsAuto()), off: !boxes },
+      V("tableau", "Vérification du tableau", "Page Tableau : rangées, différentiels et disjoncteurs.", circuits > 0, "C'est vérifié", () => validate("tableau")),
+      { k: "impression", done: printed, title: "Impression", how: "Plan à l'échelle avec cartouche, puis le dossier PDF complet.", act: "Imprimer", run: () => hooks.print(), off: !S.segs.length },
     ];
   }
+  // jauge : part des étapes faites (affichée en permanence dans le bandeau et en tête du panneau Étapes)
+  function progress() { const L = items(), n = L.filter((x) => x.done).length, nxt = L.find((x) => !x.done); return { n, total: L.length, pct: Math.round((n / L.length) * 100), next: nxt || null, list: L }; }
+  const gauge = document.createElement("button");
+  gauge.className = "st-gauge"; gauge.id = "st-gauge";
+  gauge.innerHTML = `<span class="sg-bar"><span class="sg-fill"></span></span><span class="sg-txt"></span>`;
+  gauge.onclick = () => panel.show("steps");
+  { const badge = document.querySelector(".top .badge"); if (badge) badge.after(gauge); else document.querySelector(".top")?.appendChild(gauge); }
+  function paintGauge() {
+    const P = progress();
+    gauge.querySelector(".sg-fill").style.width = P.pct + "%";
+    gauge.querySelector(".sg-txt").textContent = `${P.pct} %` + (P.next ? ` · ${P.next.title}` : " · dossier terminé");
+    gauge.title = `Avancement du dossier : ${P.n} / ${P.total} étapes${P.next ? ` — prochaine : ${P.next.title}` : ""}. Cliquez pour voir les étapes.`;
+    gauge.classList.toggle("full", P.n === P.total);
+  }
   function renderSteps() {
+    paintGauge();
     if (el.hidden && !el.isConnected) return;
-    const L = items(), nxt = L.findIndex((x) => !x.done && !x.opt);
-    const n = L.filter((x) => x.done).length;
+    const P = progress(), L = P.list, nxt = L.findIndex((x) => !x.done);
     el.innerHTML = `<div class="steps">
-      <p class="steps-h"><b>${esc(api.ch.nom)}</b> · niveau ${esc(api.level.name)} — ${n} / ${L.length} étapes</p>
-      <ol>${L.map((x, k) => `<li class="${x.done ? "done" : k === nxt ? "next" : ""}">
-        <span class="st-ic">${x.done ? "✓" : k + 1}</span><div><b>${esc(x.title)}</b>${x.opt ? ` <span class="mut sm">(conseillé)</span>` : ""}
+      <p class="steps-h"><b>${esc(api.ch.nom)}</b> · niveau ${esc(api.level.name)} — ${P.n} / ${L.length} étapes</p>
+      <div class="sg-big" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${P.pct}"><span style="width:${P.pct}%"></span><b>${P.pct} %</b></div>
+      <ol>${L.map((x, k) => `<li class="${x.done ? "done" : k === nxt ? "next" : ""}${x.verif ? " verif" : ""}" data-step="${x.k}">
+        <span class="st-ic">${x.done ? "✓" : k + 1}</span><div><b>${esc(x.title)}</b>${x.verif ? ` <span class="mut sm">(vérification)</span>` : ""}
         <div class="mut sm">${esc(x.how)}</div>
+        ${x.done && x.by ? `<div class="ok sm">Vérifié par ${esc(x.by.by || "")}${x.by.at ? ", " + esc(String(x.by.at).slice(0, 16).replace("T", " ")) : ""} <button class="lnk" data-undo="${x.k}" title="Annuler cette validation">annuler</button></div>` : ""}
         ${!x.done ? `<button data-k="${k}" class="${k === nxt ? "on" : ""}" ${x.off ? "disabled title=\"Faites d'abord l'étape précédente\"" : ""}>${esc(x.act)}</button>` : ""}</div></li>`).join("")}</ol>
       <button id="st-tour" title="Présentation de l'écran, étape par étape">▶ Visite guidée (2 min)</button>
     </div>`;
-    el.querySelectorAll("button[data-k]").forEach((b) => (b.onclick = () => { const x = L[+b.dataset.k]; if (api.tab !== "plan" && !/Chantiers|dossier/.test(x.act)) api.setTab("plan"); x.run(); }));
+    el.querySelectorAll("button[data-k]").forEach((b) => (b.onclick = () => { const x = L[+b.dataset.k]; if (api.tab !== "plan" && !/accueil|dossier/i.test(x.act)) api.setTab("plan"); x.run(); later(); }));
+    el.querySelectorAll("[data-undo]").forEach((b) => (b.onclick = () => { validate(b.dataset.undo, false); later(); }));
     el.querySelector("#st-tour").onclick = start;
   }
   let t = null;
   const later = () => { clearTimeout(t); t = setTimeout(renderSteps, 120); };
-  ["okteo:saved", "okteo:level", "okteo:fond", "okteo:calibrated", "okteo:tab", "okteo:printed"].forEach((ev) => document.addEventListener(ev, later));
+  ["okteo:saved", "okteo:level", "okteo:fond", "okteo:calibrated", "okteo:tab", "okteo:printed", "okteo:control"].forEach((ev) => document.addEventListener(ev, later));
   panel.onChange((s) => { if (s.pane === "steps") later(); });
   document.addEventListener("okteo:printed", () => { const p = store(PRINTED, {}); p[printedKey()] = Date.now(); storeSet(PRINTED, p); });
   renderSteps();
 
-  return { start, stop, next, prev, get step() { return i; }, steps: TOUR, render: renderSteps, items };
+  return { start, stop, next, prev, get step() { return i; }, steps: TOUR, render: renderSteps, items, progress, validate };
 }

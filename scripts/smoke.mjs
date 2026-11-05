@@ -1020,6 +1020,22 @@ try {
       && plan.tab === "plan" && plan.top !== "none" && plan.head && par.full && par.top === "none" && par.fold && par.head && bib && bar.inHead && bar.warn && !w.hidden && /Secours impossible/.test(w.txt) && viaWarn === "chantiers")) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("lot 5 : 9 étapes du dossier (surtout des vérifications validées par l'opérateur), jauge d'avancement toujours visible dans le bandeau ; « C'est vérifié » fait avancer la jauge, Ctrl+Z l'annule", async () => {
+    await ev(() => okteo.setTab("plan"));
+    const g0 = await ev(() => ({ vis: !!document.querySelector("#st-gauge") && getComputedStyle(document.querySelector("#st-gauge")).display !== "none", txt: document.querySelector("#st-gauge").textContent, P: okteoExt.tour.progress() }));
+    await page.click("#st-gauge");
+    await page.waitForSelector('.steps li[data-step="murs"]', { timeout: 5000 });
+    const L = await ev(() => [...document.querySelectorAll(".steps li[data-step]")].map((li) => li.dataset.step));
+    const murs0 = await ev(() => document.querySelector('.steps li[data-step="murs"]').classList.contains("done"));
+    await page.click('.steps li[data-step="murs"] button[data-k]');
+    await page.waitForFunction(() => document.querySelector('.steps li[data-step="murs"]').classList.contains("done"), null, { timeout: 5000 });
+    const g1 = await ev(() => ({ P: okteoExt.tour.progress(), by: !!document.querySelector('.steps li[data-step="murs"] .ok'), txt: document.querySelector("#st-gauge").textContent }));
+    await ev(() => okteo.undo()); await page.waitForTimeout(250);
+    const g2 = await ev(() => okteoExt.tour.progress().n);
+    const r = { g0: { ...g0, P: { n: g0.P.n, total: g0.P.total } }, L, murs0, g1: { n: g1.P.n, by: g1.by, txt: g1.txt }, g2 };
+    if (!(g0.vis && /%/.test(g0.txt) && g0.P.total === 9 && L.join() === "import,echelle,murs,appareils,boites,verifBoites,cablage,tableau,impression" && !murs0 && g1.P.n === g0.P.n + 1 && g1.by && g2 === g0.P.n)) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("05/11 : « Je confirme l'emplacement » arrête le clignotement (même après un déplacement), noté dans le rapport pour le BE ; Ctrl+Z le rallume ; « Modifier » garde l'appareil sélectionné", async () => {
     const keepV = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits }));
     await ev(() => { okteoExt.panel.close("assistant"); okteo.setTab("plan"); okteo.viewPreset("impl"); });
