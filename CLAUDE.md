@@ -437,6 +437,13 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
 - Étapes : 9 étapes, validations `cab.etapes`, jauge `#st-gauge`. Relevé : ai-align.js `mergeBands`, ai-plan.js
   croisements en X coupés.
 
+### MAJ du 05/11/2026 après-midi (pieuvres, mémoire, affichage) — détail : journal du 05/11
+- Pieuvres (mode BE) : boites.js `splitGroup` (pièces entières), `wallRuns` / `wallParts` (pans de mur), `settleBoxes`
+  (moins de croisements entre boîtes, 1 m entre deux boîtes), `boxCrossings` ; séjour → cuisine par pan de mur.
+- Mémoire : fiches `lu` / `inscription` ; `src/walls/ai-memory.js` (`memoryFixes`, `memoryPrompt`) ; ai-releve
+  `memoryStep` ; consigne copiée `pastePrompt({memory})` ; outil « legende » avec images (`out.images`).
+- Affichage : bandeau 1 toujours visible sur une ligne (`#web-dot`, pas de jauge), bandeau 2 seulement plan et 3D.
+
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (42 vérifications : relevé des murs, des pièces et des
 appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (87 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (14 : chantier de référence MAILLARD comparé au BE) + `scripts/v3d.test.mjs` (vue 3D) + `scripts/smoke.mjs` (171 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
