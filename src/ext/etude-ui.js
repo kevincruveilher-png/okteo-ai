@@ -30,8 +30,9 @@ export function etudeNow(api, { alternatives = true } = {}) {
 
 // « Câbler le chantier » : précontrôle, puis circuits (si aucun), boîtes (les boîtes verrouillées ou déplacées à la main
 // restent), circuits par boîte, trace de l'étude enregistrée dans le chantier — un seul Ctrl+Z. Renvoie un compte rendu.
-export function cabler(api) {
-  const S = cabS(api), J = getJournal(), current = api.allApps(), links = api.allLinks(), mode = BOX_MODE;
+// lot 4 : toujours le mode Bureau d'études à l'écran ; `mode` n'est passé que par les essais du moteur (MAILLARD)
+export function cabler(api, { mode: forced = "" } = {}) {
+  const S = cabS(api), J = getJournal(), current = api.allApps(), links = api.allLinks(), mode = forced || BOX_MODE;
   if (!current.filter((a) => a.t !== "TAB").length) return { ok: false, text: "Je ne peux pas câbler : le plan n'a pas encore d'appareils." };
   const proposal = equipmentProposal(api), patch = new Map(proposal.updates.map(u => [u.id,u]));
   const items = [...current.map(a => ({...a,...(patch.get(a.id)||{})})), ...proposal.adds.map((a,i)=>({...a,id:"proposition-"+i}))];

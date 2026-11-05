@@ -29,7 +29,7 @@ try {
     if (recable.connecte) okteo.setCab({ choix: { ...(okteo.cab.choix || {}), commandeVolet: "connecte" } });
     if (recable.mode) okteo.setCab({ mode: recable.mode });
     if (recable.departs) { const st = await import("/src/cablage/settings.js"); st.setCab({ ...st.getCab(), departsMax: recable.departs }); }
-    if (recable.on) { const e = await import("/src/ext/etude-ui.js"); await e.cabler(okteo); }
+    if (recable.on) { const e = await import("/src/ext/etude-ui.js"); await e.cabler(okteo, { mode: recable.mode || okteo.cab.mode || "proximite" }); }   // lot 4 : mode du moteur pour les essais
     const W = m.wiringNow(okteo);
     // v59 : croisements des gaines sur le plan (niveau ouvert) : dans une même boîte, entre boîtes, et avec l'arc unique d'avant
     const R = await import("/src/core/render.js"), T = await import("/src/cablage/trace.js");
