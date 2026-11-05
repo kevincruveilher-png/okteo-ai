@@ -2,7 +2,7 @@ import { arrowPoints, hatchLines, wallLook, wavePoints } from "../plan-style.js"
 import { ABREV_DEFAUT, abrevRoom, parseAbrev } from "../print/abrev.js";
 import { drawSymbol, drawText as ftzText } from "../print/ftz-sheet.js";
 import { boxColor, ftzSymbol, plaques, symIndex } from "../print/ftz-symbols.js";
-import { Placer, roomCandidates, spreadSymbols, pushOff, wallBoxes, repCandidates, lineBoxes } from "../place.js";
+import { Placer, roomCandidates, spreadSymbols, pushOff, wallBoxes, repCandidates, lineBoxes, glueToWall, switchParts, WALL_SWITCH, SWITCH_R } from "../place.js";
 import { pref } from "../prefs.js";
 import { logoData, LOGO_RATIO } from "./logo.js";
 // Sortie PDF imprimable du plan (vectorielle, à l'échelle exacte) : page 1 = plan + légende + échelle graphique
@@ -294,7 +294,10 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     const apps = o.appareils ? geo.apps.filter((a) => !o.appIds || o.appIds.has(a.id)) : [];   // v74 : appareils de la page
     // v58 : symboles sans chevauchement sur le papier (décalés le long de leur mur, trait de rappel vers la vraie position)
     // n° 13 : symbole mural poussé hors du mur (bord contre la face du mur), avant l'écartement entre voisins
-    const base = new Map(apps.map((a) => { const b = a.wall && a.wall.nx != null ? pushOff(a, a.wall, u / f) : a; return [a.id, { x: X(b.x), y: Y(b.y) }]; }));
+    // 05/11 : interrupteur / va-et-vient mural : rond collé à la face du mur (trait vers la pièce, voir symbol(..., nrm))
+    const wsw = (a) => WALL_SWITCH.has(a.t) && a.wall && a.wall.nx != null;
+    const swR = (a) => { const fs = FZ && ftzSymbol(FZ, a.t, a.h); return fs ? fs.h / 2 / f : SWITCH_R * u / f; };   // symbole FTZ en mm réels
+    const base = new Map(apps.map((a) => { const b = a.wall && a.wall.nx != null ? (wsw(a) ? glueToWall(a, a.wall, swR(a)) : pushOff(a, a.wall, u / f)) : a; return [a.id, { x: X(b.x), y: Y(b.y) }]; }));
     const disp = spreadSymbols(apps.map((a) => ({ id: a.id, ...base.get(a.id), ...(a.wall ? { ux: a.wall.ux, uy: a.wall.uy } : {}) })), 1.9 * u);
     const PX = (a) => (disp.get(a.id) || base.get(a.id)).x, PY = (a) => (disp.get(a.id) || base.get(a.id)).y;
     apps.forEach((a) => PL.add(boxAt(PX(a), PY(a), 2 * u, 2 * u)));      // les symboles sont des obstacles
@@ -457,8 +460,8 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       if (disp.has(a.id)) { doc.setDrawColor(150, 150, 150); doc.setLineWidth(0.1); doc.line(X(a.x), Y(a.y), PX(a), PY(a)); doc.setFillColor(150, 150, 150); doc.circle(X(a.x), Y(a.y), 0.25, "F"); }
       if (a.implantation?.etat === "a_preciser") { doc.setDrawColor(153,84,220); doc.setLineWidth(.25); doc.circle(PX(a),PY(a),u*1.6,"S"); }
       const fs = FZ && ftzSymbol(FZ, a.t, a.h);
-      if (fs) drawSymbol(doc, fs, PX(a), PY(a), 1, a.rot || 0);
-      else symbol(doc, a.t, PX(a), PY(a), u, a.rot || 0, o.circuits && !FZ ? rgb(a.color) : null);
+      if (fs) drawSymbol(doc, fs, PX(a), PY(a), 1, wsw(a) ? Math.atan2(a.wall.nx, -a.wall.ny) * 180 / Math.PI : a.rot || 0);
+      else symbol(doc, a.t, PX(a), PY(a), u, a.rot || 0, o.circuits && !FZ ? rgb(a.color) : null, wsw(a) ? Math.atan2(a.wall.ny, a.wall.nx) * 180 / Math.PI : null);
     });
     // v74 MAJ 4 : plaques multipostes + « PROF 50 » (placés avant les repères)
     if (FZ) plq.forEach((P) => {
@@ -709,9 +712,17 @@ export async function buildPlanPdf(geoIn, opts = {}) {
 // symboles normalisés simplifiés (mêmes formes qu'à l'écran, v37 : carrés sauf les lumières) ; u = unité de symbole en mm ;
 // rot = rotation de l'applique (degrés), côté plat contre le mur
 // col : couleur du circuit [r, g, b] (v48, comme le symbole à l'écran quand les circuits sont affichés), sinon bleu
-export function symbol(doc, t, x, y, u, rot = 0, col = null) {
+// nrm (05/11) : interrupteur / va-et-vient collé à un mur : direction de la pièce (degrés) ; rond + trait perpendiculaire
+export function symbol(doc, t, x, y, u, rot = 0, col = null, nrm = null) {
   const C = col || [20, 60, 110];
   doc.setLineWidth(Math.max(0.12, u * 0.08)); doc.setDrawColor(...C); doc.setFillColor(255, 255, 255);
+  if (nrm != null && WALL_SWITCH.has(t)) {
+    const P = switchParts(t), c = Math.cos(nrm * Math.PI / 180), sn = Math.sin(nrm * Math.PI / 180);
+    const R = (lx, ly) => [x + (lx * c - ly * sn) * u, y + (lx * sn + ly * c) * u];
+    doc.circle(x, y, P.r * u, "FD");
+    P.lines.forEach(([x1, y1, x2, y2]) => doc.line(...R(x1, y1), ...R(x2, y2)));
+    return;
+  }
   const txt = (s, white) => { doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(3.5, u * 0.85 * 72 / 25.4)); if (white) doc.setTextColor(255, 255, 255); else doc.setTextColor(...C); doc.text(s, x, y + u * 0.05, { align: "center", baseline: "middle" }); };
   const sq = (r, style = "FD") => doc.roundedRect(x - r * u, y - r * u, 2 * r * u, 2 * r * u, 0.18 * r * u, 0.18 * r * u, style);
   const tick = () => doc.line(x + 0.4 * u, y - 0.4 * u, x + 0.95 * u, y - 0.95 * u);

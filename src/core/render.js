@@ -5,7 +5,7 @@ import {ductPath} from '../cablage/vmc.js';
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
 import { K } from "./k.js";
 import { labelPoint, pointInPoly } from "../walls/rooms.js";
-import { Placer, roomCandidates, spreadSymbols, textBox, pushOff, wallBoxes, lineBoxes, repCandidates } from "../place.js";
+import { Placer, roomCandidates, spreadSymbols, textBox, pushOff, wallBoxes, lineBoxes, repCandidates, glueToWall, switchParts, WALL_SWITCH, SWITCH_R } from "../place.js";
 import { TYPES, VB, batiStyle, dist, epOf, layers, matOf, nodeById, pmNow, segById, segDir, segLen, state, symView } from "./model.js";
 import { V2W, W2V, autoSymCm, ensureReps, pxPerVB, repMap, syncVB, viewTransform, viewWorldBox } from "./view.js";
 import { followWalls, gaineCtrl, linkCtrl, linkRole, openHandles, roomArea, roomPoly, wallMounted } from "./attach.js";
@@ -70,6 +70,14 @@ export function glyph(t) {
     return sq(0.8) + (D.volet ? `<line x1="-0.8" y1="0.5" x2="0.8" y2="0.5" class="gs"/>` : "") + (D.faible ? `<path d="M0.35 -0.8H0.8V-0.35Z" class="gf"/>` : "") + `<text y="${D.volet ? 0.18 : 0.3}" class="${cls}">${L}</text>`;
   }
   return sq(0.8);
+}
+// échelle des symboles FTZ (mm de la charte) dans une unité de symbole de l'écran
+export const FTZK = 1.6 / 3.88;
+// 05/11/2026 : interrupteur / va-et-vient accroché à un mur (rond contre la face, trait vers la pièce : place.js switchParts)
+export function wallSwitch(a) { return WALL_SWITCH.has(a.t) && !!a.seg && wallU(a).nx != null; }
+export function switchGlyph(t) {
+  const P = switchParts(t), f = (v) => +v.toFixed(3);
+  return `<circle r="${P.r}" class="gy"/>` + P.lines.map(([x1, y1, x2, y2]) => `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" class="gs"/>`).join("");
 }
 // rotation (degrés) d'une applique : côté plat contre son mur, arrondi vers la pièce
 export function appRot(a) {
@@ -486,7 +494,10 @@ export function draw() {
   K.dispPos = new Map(); K.dispLead = new Set();
   if (layers.appareils.on) {
     const RS = 1.05 * symView();
-    const items = state.app.filter(a => !isSani(a.t)).map(a => { const w = wallU(a), b = w.nx != null ? pushOff(a, w, RS) : a; return { id: a.id, x: b.x, y: b.y, ux: w.ux, uy: w.uy, pushed: b !== a }; });
+    const FZ0 = ftzIdx();
+    // 05/11 : interrupteur / va-et-vient mural : bord du rond contre la face du mur (symbole Oktéo ou symbole FTZ du BE)
+    const swR = a => { const f = FZ0 && ftzSymbol(FZ0, a.t, a.h); return (f ? (f.h / 2) * FTZK : SWITCH_R) * symView(); };
+    const items = state.app.filter(a => !isSani(a.t)).map(a => { const w = wallU(a), b = w.nx != null ? (wallSwitch(a) ? glueToWall(a, w, swR(a)) : pushOff(a, w, RS)) : a; return { id: a.id, x: b.x, y: b.y, ux: w.ux, uy: w.uy, pushed: b !== a }; });
     const spread = spreadSymbols(items, 1.9 * symView());
     items.forEach(it => { const sp = spread.get(it.id); if (sp) { K.dispPos.set(it.id, sp); K.dispLead.add(it.id); } else if (it.pushed) K.dispPos.set(it.id, { x: it.x, y: it.y }); });
   }
@@ -512,17 +523,19 @@ export function draw() {
         if (c) { cls += " circ"; col = c.color; } else if (circ.__need(a) && !circ.__direct(a)) { cls += " circ nocirc"; col = "#d33"; }
       }
       // v58 : vue tournée : le symbole reste droit à l'écran (sauf l'applique, tournée dos à son mur)
-      const vr = K.view.rot || 0, r0 = appRot(a);
+      const vr = K.view.rot || 0, r0 = appRot(a), WS = wallSwitch(a) ? wallU(a) : null, WF = WS && FZS && ftzSymbol(FZS, a.t, a.h);
       // n° 13 : symbole dans le sens de son mur, mais jamais à l'envers à l'écran (vue tournée comprise)
-      const rot = !r0 ? -vr : a.t === "APP" ? r0 : (((r0 + vr) % 180 + 270) % 180 - 90) - vr, D = K.dispPos.get(a.id), X = D ? D.x : a.x, Y = D ? D.y : a.y;
+      // 05/11 : interrupteur / va-et-vient mural : tourné vers la pièce (normale du mur), comme l'applique
+      // (symbole Oktéo : trait vers +x ; symbole FTZ du BE : trait vers le haut, rond en bas)
+      const rot = WS ? +((WF ? Math.atan2(WS.nx, -WS.ny) : Math.atan2(WS.ny, WS.nx)) * 180 / Math.PI).toFixed(2) : !r0 ? -vr : a.t === "APP" ? r0 : (((r0 + vr) % 180 + 270) % 180 - 90) - vr, D = K.dispPos.get(a.id), X = D ? D.x : a.x, Y = D ? D.y : a.y;
       if (D && K.dispLead.has(a.id)) ap += `<g class="leader"><line x1="${a.x}" y1="${a.y}" x2="${X}" y2="${Y}" stroke="var(--mut)" stroke-width="${0.06 * ss}"/><circle cx="${a.x}" cy="${a.y}" r="${0.14 * ss}" fill="var(--mut)"/></g>`;
       ap += `<g class="${cls}" data-id="${a.id}"${D && K.dispLead.has(a.id) ? ` data-moved="1"` : ""}${col ? ` style="--c:${col}"` : ""}${circ && circ[a.id] ? ` data-c="${circ[a.id].n}"` : ""} transform="translate(${X} ${Y})${rot ? ` rotate(${rot})` : ""}"><g transform="scale(${ss})">`;
       if (aSel) ap += `<circle r="1.5" fill="none" stroke="var(--sel)" stroke-width=".12" stroke-dasharray=".3 .25"/>`;
       // v57 : équipement hors plan (ajouté d'après le devis) : carré pointillé violet « à vérifier avec le devis »
       if (a.hp) ap += `<rect class="hp-mark" x="-1.25" y="-1.25" width="2.5" height="2.5" rx=".3" fill="none" stroke="#8a4fd8" stroke-width=".12" stroke-dasharray=".35 .25"><title>Hors plan : à vérifier avec le devis</title></rect>`;
       const fs = FZS && ftzSymbol(FZS, a.t, a.h);
-      if (fs) ap += (col ? `<circle class="cring" r="1.35" fill="none" stroke="var(--c)" stroke-width=".16" opacity=".75"/>` : "") + `<circle class="fhit" r="1" fill="#fff" fill-opacity="0.01"/><g class="ftz" transform="scale(${(1.6 / 3.88).toFixed(4)})">${symbolSVG(fs)}</g></g>`;
-      else ap += glyph(a.t) + `</g>`;
+      if (fs) ap += (col ? `<circle class="cring" r="1.35" fill="none" stroke="var(--c)" stroke-width=".16" opacity=".75"/>` : "") + `<circle class="fhit" r="1" fill="#fff" fill-opacity="0.01"/><g class="ftz" transform="scale(${FTZK.toFixed(4)})">${symbolSVG(fs)}</g></g>`;
+      else ap += (WS ? switchGlyph(a.t) : glyph(a.t)) + `</g>`;
       ap += `</g>`;
     });
     h += `<g>${ap}</g>`;

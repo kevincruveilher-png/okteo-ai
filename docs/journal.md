@@ -1,3 +1,21 @@
+## 05/11/2026 — Interrupteurs et va-et-vient collés au mur, trait perpendiculaire vers la pièce
+
+- Demande de Kévin (capture à l'appui) : le rond de l'interrupteur collé contre la paroi, le trait du symbole
+  perpendiculaire au mur, tourné vers l'intérieur de la pièce ; pareil pour les va-et-vient.
+- `src/place.js` (commun écran + papier) : `WALL_SWITCH` (INT, VV), `SWITCH_R` (0,55 unité de symbole),
+  `switchParts(t)` (rond centré, axe +x = vers la pièce : un trait avec crochet ; va-et-vient : deux traits en V à ±22°),
+  `glueToWall(p, w, R)` (centre du rond posé exactement contre la face du mur côté pièce, même s'il était plus loin).
+- Écran (`render.js`) : `wallSwitch(a)` (INT/VV accroché à un mur), `switchGlyph(t)` ; position affichée collée au mur,
+  rotation = normale du mur côté pièce (comme l'applique) ; sans mur : dessin d'avant. Avec les symboles FTZ du BE
+  (préférence `charteBE`, active par défaut) : même règle sur le symbole de la charte (rond en bas, trait vers le haut) :
+  bas du rond contre la face (`h/2` × `FTZK`), trait tourné vers la pièce (`atan2(nx, -ny)`).
+- Papier (`print.js`) : même collage et `symbol(..., nrm)` (rond + traits tournés vers la pièce) ; symbole FTZ (mm réels)
+  collé de la même façon et tourné par `drawSymbol`.
+- Tests : `scripts/placement.test.mjs` (6) ; smoke (symboles Oktéo puis FTZ : écart rond / face = rayon, sens vers la pièce, papier) ;
+  le contrôle n° 13 (symboles poussés hors du mur) ne compte plus INT / VV.
+- Fusion dans `main` le 05/11/2026 (go de Kévin) : `npm run check` vert sur GitHub Actions (run 41993507221, smoke 209/209) ;
+  workflow temporaire retiré.
+
 ## 05/11/2026 — « Je confirme l'emplacement » arrête le clignotement, noté dans le rapport pour le BE
 
 - Constat de Kévin : dans « Pourquoi ça clignote ? », « Vu, je garde » notait la décision mais l'appareil continuait de
