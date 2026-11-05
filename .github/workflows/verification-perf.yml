@@ -1,0 +1,15 @@
+# TEMPORAIRE (05/11/2026) : mesure de la lenteur du plan (branche verification-perf, supprimée après usage)
+name: verification-perf
+on: { push: { branches: ["verification-perf"] } }
+permissions: { contents: read }
+jobs:
+  perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/perf-probe.mjs
