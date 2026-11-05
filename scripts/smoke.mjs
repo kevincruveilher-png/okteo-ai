@@ -947,7 +947,7 @@ try {
     const lab = await ev(() => document.querySelector(".whyb [data-ok]").textContent);
     await page.click(".whyb [data-ok]");
     await page.waitForTimeout(250);
-    const after = await ev((i) => ({ halo: !!document.querySelector(`#fx g.fx-halo[data-k="halo:${i}"]`), n: okteo.control.filter((c) => c.ids.includes(i)).length, txt: document.querySelector(".whyb").textContent }), id);
+    const after = await ev((i) => ({ halo: !!document.querySelector(`#fx g.fx-halo[data-k="halo:${i}"]:not(.gone)`), n: okteo.control.filter((c) => c.ids.includes(i)).length, txt: document.querySelector(".whyb").textContent }), id);
     await ev((i) => okteo.updateApps([{ id: i, x: okteo.state.app.find((a) => a.id === i).x + 0.5, y: okteo.state.app.find((a) => a.id === i).y }]), id);
     const moved = await ev((i) => okteo.control.filter((c) => c.ids.includes(i)).length, id);
     await ev(() => okteoExt.whyBlink.openRapport());
