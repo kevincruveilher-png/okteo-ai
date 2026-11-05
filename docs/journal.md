@@ -1,3 +1,9 @@
+## 05/11/2026 — Lot 1 fusionné dans `main` (grosse mise à jour, go de Kévin)
+
+- Valider toujours visible, « Pourquoi ça clignote » réparé, mode 4 seul, échelle (cm, échelle écrite, plausibilité,
+  blocage du collage à 10 %), boîtes d'obstacles des étiquettes bornées. Détail : entrée « Grosse mise à jour » (lots 1 à 6).
+- `npm run check` vert sur GitHub Actions (run 42016616834, smoke 214/214) ; workflow temporaire `verification-lots.yml` retiré.
+
 ## 05/11/2026 — Grosse mise à jour décidée (notes, pas de code)
 
 - Liste complète de Kévin (11:16) rangée en 6 lots : `docs/feuille-de-route.md`, section « Grosse mise à jour du 05/11/2026 ».
