@@ -29,7 +29,7 @@ export function createSidePanel() {
       + `<button class="col" title="Fermer le panneau (le rouvrir : bouton « ${P.label} » en haut)">✕</button>`;
     head.querySelector(".col").onclick = () => { st.collapsed = true; save(); apply(); };
     if (bar) {
-      bar.innerHTML = panes.map((p) => `<button data-pane="${p.id}" class="${!st.collapsed && p.id === cur ? "on" : ""}" aria-pressed="${!st.collapsed && p.id === cur}" title="${p.tip || p.label} — un 2e clic ferme le panneau"><span class="ic">${p.icon}</span>${p.label}</button>`).join("");
+      bar.innerHTML = panes.filter((p) => !p.hidden).map((p) => `<button data-pane="${p.id}" class="${!st.collapsed && p.id === cur ? "on" : ""}" aria-pressed="${!st.collapsed && p.id === cur}" title="${p.tip || p.label} — un 2e clic ferme le panneau"><span class="ic">${p.icon}</span>${p.label}</button>`).join("");
       bar.querySelectorAll("button[data-pane]").forEach((b) => (b.onclick = () => toggle(b.dataset.pane)));
     }
     if (dock) {
@@ -56,12 +56,13 @@ export function createSidePanel() {
     return el;
   }
 
-  function register({ id, label, icon, tip, dock: inDock }) {
+  // lot 4 (05/11/2026) : hidden = panneau sans bouton dans le bandeau (ouvert seulement par le code, ex. Packs)
+  function register({ id, label, icon, tip, dock: inDock, hidden = false }) {
     if (inDock) return mountDock({ id, label, icon });
     const el = document.createElement("div");
     el.className = "pane"; el.dataset.pane = id; el.hidden = true;
     side.appendChild(el);
-    panes.push({ id, label, icon, tip, el });
+    panes.push({ id, label, icon, tip, el, hidden });
     apply();
     return el;
   }

@@ -1763,15 +1763,17 @@ try {
     if (!(r.n === t.n - 1 && r.apps === t.apps && r.gone && /supprimée/.test(r.hint) && back === t.n)) throw new Error(JSON.stringify({ t, r, back }));
     return true;
   });
-  await check("recalcul avec un nombre de boîtes imposé", async () => {
+  await check("recalcul des boîtes cochées (mode Bureau d'études, lot 4 : plus de nombre imposé)", async () => {
     await ev(() => okteoExt.panel.show("cablage")); await page.waitForTimeout(150);
     const n0 = await ev(() => okteo.cab.boxes.length);
-    await page.click("#bx-auto"); await page.waitForSelector("#bx-count");
+    await page.click("#bx-auto"); await page.waitForSelector("#bx-yes");
+    const count = await ev(() => !!document.querySelector("#bx-count"));
     await ev(() => document.querySelectorAll(".bx-redo").forEach((c) => (c.checked = true)));
-    await page.fill("#bx-count", String(n0 + 1)); await page.click("#bx-yes");
+    await page.click("#bx-yes");
     const n1 = await ev(() => okteo.cab.boxes.length), names = await ev(() => okteo.cab.boxes.map((b) => b.n).join());
     await page.keyboard.press("Control+z");
-    if (!(n1 === n0 + 1 && /^LI\d\d/.test(names))) throw new Error(JSON.stringify({ n0, n1, names }));
+    const back = await ev(() => okteo.cab.boxes.length);
+    if (!(n0 > 0 && n1 > 0 && !count && /^LI\d\d/.test(names) && back === n0)) throw new Error(JSON.stringify({ n0, n1, names, count, back }));
     return true;
   });
   await check("dessin : liaisons en ligne droite, gaines en arc", async () => ev(() => {
@@ -1927,25 +1929,11 @@ try {
     if (!(cut.marks > 0 && btn && after === 0 && back > 0)) throw new Error(JSON.stringify({ cut, btn, after, back }));
     return true;
   });
-  await check("modes de pieuvre (v39) : comparatif économique / équilibrée / par pièce / par zone (v62 : note « belle pieuvre », mini-plans, chiffres), « Appliquer », un seul Ctrl+Z", async () => {
+  await check("lot 4 : un seul mode d'implantation des boîtes (Bureau d'études) : plus de choix de mode ni de comparaison dans le panneau Câblage ; « ⚡ Implantation rapide des pieuvres »", async () => {
     await page.click('#tabs button[data-tab="plan"]');
     await ev(() => okteoExt.panel.show("cablage")); await page.waitForTimeout(200);
-    const before = await ev(() => ({ mode: okteo.cab.mode || "proximite", boxes: JSON.stringify(okteo.cab.boxes.map((b) => [b.x, b.y])) }));
-    await page.click("#bx-cmp");
-    await page.waitForSelector(".cmpcard [data-apply]", { timeout: 60000 });
-    const r = await ev(() => [...document.querySelectorAll(".cmp-col")].map((c) => ({ mode: c.dataset.mode, boxes: c.querySelectorAll(".cmp-svg rect").length, rows: c.querySelectorAll(".cmp-t tr").length,
-      fil: +(c.querySelectorAll(".cmp-t tr")[5].children[1].textContent.replace(/\s/g, "").replace(",", ".")), ecart: +(c.querySelectorAll(".cmp-t tr")[8].children[1].textContent.replace(",", ".")), best: c.querySelectorAll(".best").length,
-      note: parseInt(c.querySelector(".cmp-t tr.cmp-note td.num").textContent, 10), h: c.querySelector("h3").textContent })));
-    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/modes.png" });
-    await page.click('.cmpcard [data-apply="piece"]');
-    const after = await ev(() => ({ mode: okteo.cab.mode, boxes: JSON.stringify(okteo.cab.boxes.map((b) => [b.x, b.y])), card: !!document.querySelector(".cmpcard") }));
-    await page.keyboard.press("Control+z");
-    const back = await ev(() => ({ mode: okteo.cab.mode || "proximite", boxes: JSON.stringify(okteo.cab.boxes.map((b) => [b.x, b.y])) }));
-    await goSub("bandes"); await page.waitForSelector(".bands .bd-svg svg");
-    const P = r.find((x) => x.mode === "proximite"), E = r.find((x) => x.mode === "equilibre");
-    const ok = r.length === 5 && r.some((x) => x.mode === "zone") && r.some((x) => x.mode === "be" && /Bureau d'études/.test(x.h)) && r.every((x) => x.boxes > 0 && x.rows === 11 && x.fil > 0 && x.note >= 0 && x.note <= 100) && /Économique/.test(P.h) && E.boxes <= P.boxes && r.some((x) => x.best > 0)
-      && after.mode === "piece" && !after.card && after.boxes !== before.boxes && back.mode === before.mode && back.boxes === before.boxes;
-    if (!ok) throw new Error(JSON.stringify({ r, before: before.mode, after: after.mode, back: back.mode }));
+    const r = await ev(() => ({ mode: !!document.querySelector("#bx-mode"), cmp: !!document.querySelector("#bx-cmp"), be: /Bureau d'études/.test((document.querySelector(".bx-be") || {}).textContent || ""), btn: (document.querySelector("#bx-auto") || {}).textContent || "" }));
+    if (r.mode || r.cmp || !r.be || !/Implantation rapide des pieuvres/.test(r.btn)) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("packs (v40) : pièce reconnue, « Compléter » pose ce qui manque (commande près de la porte, lumière, prises dans la pièce), « Pieuvre type » = boîte verrouillée de la pièce ; Ctrl+Z", async () => {
@@ -2473,7 +2461,7 @@ try {
   });
 
   console.log("Pack depuis le bandeau de la pièce (v44)");
-  await check("pièce sélectionnée : « Pack ▾ » dans son bandeau, Maj+P + chiffre = pack posé et pièce renommée, un seul Ctrl+Z", async () => {
+  await check("pièce sélectionnée sans nom de pack : « Implantation rapide » ouvre la liste des packs, Maj+P + chiffre = pack posé et pièce renommée, un seul Ctrl+Z", async () => {
     await ev(() => { okteo.zoomToBox(199, 199, 206, 205); okteo.setTool("piece"); });
     const a = await ev(() => okteo.toClient(200, 200)), b = await ev(() => okteo.toClient(204, 203.5));
     await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(b.x, b.y, { steps: 8 }); await page.mouse.up();
@@ -2493,6 +2481,27 @@ try {
     await ev(() => { okteo.undo(); okteo.setTool("sel"); });
     const ok = hudBtn && menu.n >= 5 && menu.first === "Chambre" && closed && /^Chambre/.test(after.name) && after.apps === apps0 + 6 && after.need === 0 && after.types === "INT,LUM,PC16,PC16,PC16,RJ45" && undone.name === room.name && undone.apps;
     if (!ok) throw new Error(JSON.stringify({ hudBtn, menu, closed, room, after, undone }));
+    return true;
+  });
+
+  await check("lot 4 : pièce nommée « Chambre » : « ⚡ Implantation rapide » pose son pack tout de suite (sans liste à choisir), un seul Ctrl+Z ; les packs se règlent dans Paramètres", async () => {
+    await ev(() => { okteo.zoomToBox(209, 199, 216, 205); okteo.setTool("piece"); });
+    const a = await ev(() => okteo.toClient(210, 200)), b = await ev(() => okteo.toClient(214, 203.5));
+    await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(b.x, b.y, { steps: 8 }); await page.mouse.up();
+    const id = await ev(() => { const r = okteo.state.rooms[okteo.state.rooms.length - 1]; okteo.renameRoom(r.id, "Chambre lot 4"); okteo.setTool("sel"); return r.id; });
+    const n0 = await ev(() => okteo.state.app.length);
+    await ev((i) => okteo.select([i]), id); await page.waitForTimeout(150);
+    const lab = await page.textContent('#hud [data-h="pack"]');
+    await page.click('#hud [data-h="pack"]');
+    await page.waitForTimeout(200);
+    const r = await ev((n) => ({ menu: !!document.querySelector(".pk-menu"), added: okteo.state.app.length - n }), n0);
+    await ev(() => okteo.undo());
+    const back = await ev((n) => okteo.state.app.length === n, n0);
+    await ev(() => { okteo.undo(); okteo.undo(); okteo.clearSel(); okteo.setTab("params"); });
+    await page.waitForSelector("#ps-packs #ps-packs-ed .pk-row", { timeout: 10000 });
+    const ed = await ev(() => ({ rows: document.querySelectorAll("#ps-packs .pk-row").length, save: !!document.querySelector("#ps-packs #pk-save") }));
+    await ev(() => okteo.setTab("plan"));
+    if (!(/Implantation rapide/.test(lab) && !r.menu && r.added === 6 && back && ed.rows >= 5 && ed.save)) throw new Error(JSON.stringify({ lab, r, back, ed }));
     return true;
   });
 
@@ -2684,15 +2693,14 @@ try {
     if (!ok) throw new Error(JSON.stringify({ f: f.slice(0, 300), ec, f2: f2.slice(0, 200) }));
     return true;
   });
-  await check("choix du chantier : mode de pieuvre, volets, appareils à choix enregistrés dans le chantier (Plug bloqué)", async () => {
-    const plug = await ev(() => document.querySelector('#rg-mode option[value="plug"]').disabled);
+  await check("choix du chantier : volets, appareils à choix enregistrés dans le chantier (lot 4 : mode de pieuvre = Bureau d'études, sans choix)", async () => {
+    const plug = await ev(() => !document.querySelector("#rg-mode") && /Bureau d'études/.test(document.querySelector("#ps-regles .rg-choix").textContent));
     await clickIn("#ps-regles .rg-context > summary");
-    await page.selectOption("#rg-mode", "equilibre");
     await page.selectOption("#rg-volets", "boite_a_part");
     await page.selectOption("#rg-racc", "ligne_directe");
     const c = await ev(() => ({ mode: okteo.cab.mode, ch: okteo.cab.choix }));
     await ev(() => okteo.setCab({ mode: "proximite", choix: {} }));
-    if (!(plug && c.mode === "equilibre" && c.ch.volets === "boite_a_part" && c.ch.raccordement === "ligne_directe")) throw new Error(JSON.stringify({ plug, c }));
+    if (!(plug && c.ch.volets === "boite_a_part" && c.ch.raccordement === "ligne_directe")) throw new Error(JSON.stringify({ plug, c }));
     return true;
   });
   await check("modifier une règle par l'assistant : avant / après, Valider = journal + historique ; proposition invalide refusée", async () => {
@@ -2995,11 +3003,11 @@ try {
   });
 
   console.log("Bandeau en encarts, assistant en bas à droite (v41)");
-  await check("bandeau : encarts Actions, Vues, Panneaux (Propriétés, Câblage, Packs, Étapes), sans bouton Assistant en haut", async () => ev(() => {
+  await check("bandeau : encarts Actions, Vues, Panneaux (Propriétés, Câblage, Étapes ; lot 4 : plus de bouton Packs), sans bouton Assistant en haut", async () => ev(() => {
     const labs = [...document.querySelectorAll(".top2 .grp .glab")].map((x) => x.textContent).join("|");
     const panes = [...document.querySelectorAll("#panes button[data-pane]")].map((b) => b.dataset.pane).join("|");
     const inGrp = !!document.querySelector(".grp-act #tools .trow.bati") && !!document.querySelector(".grp-view #vfilter [data-vp]");
-    return labs === "Actions|Vues|Panneaux" && panes === "props|cablage|packs|steps" && inGrp && !document.getElementById("btn-assistant") && !document.querySelector('#side-head [data-pane="assistant"]');
+    return labs === "Actions|Vues|Panneaux" && panes === "props|cablage|steps" && inGrp && !document.getElementById("btn-assistant") && !document.querySelector('#side-head [data-pane="assistant"]');
   }));
   await check("assistant : encart réduit en bas à droite, agrandi au clic, réduit par « — » et par Échap", async () => {
     await ev(() => okteoExt.panel.close("assistant"));

@@ -56,6 +56,9 @@ export function roomsByLevel(api) {
   api.levels.forEach((l) => { out[l.id] = (api.exportGeometry(l.id).rooms || []).filter((r) => r.poly && r.poly.length > 2).map((r) => ({ name: r.name, poly: r.poly })); });
   return out;
 }
+// lot 4 (05/11/2026) : un seul mode d'implantation des boîtes à l'écran, celui du bureau d'études (les autres modes
+// restent dans le moteur, pour les essais et la comparaison)
+export const BOX_MODE = "be";
 export function autoBoxes(api, keepIds = [], count = 0, mode = (api.cab.mode || "proximite"), circuits = api.cab.circuits || []) {
   const S = cabS(api), items = api.allApps(), links = api.allLinks();
   const tab = items.find((a) => a.t === "TAB");

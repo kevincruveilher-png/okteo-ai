@@ -26,7 +26,9 @@ const plWord = (w, i) => (/^[A-Z0-9]+$/.test(w) || /-/.test(w) || /[sx]$/.test(w
 const plural = (n, w) => `${n} ${n > 1 ? w.split(" ").map((x, i, all) => (all[i - 1] === "de" ? x : plWord(x, i))).join(" ") : w}`;
 
 export function createPacksPane({ api, panel }) {
-  const el = panel.register({ id: "packs", label: "Packs", icon: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>', tip: "Appareillage type de chaque pièce : compléter une pièce, tout le niveau, pieuvre type" });
+  // lot 4 (05/11/2026) : plus de bouton « Packs » dans le bandeau : les packs se règlent dans Paramètres, et une pièce
+  // nommée (Chambre, Séjour…) se remplit par « Implantation rapide » (bandeau de la pièce, Maj+P)
+  const el = panel.register({ hidden: true, id: "packs", label: "Packs", icon: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>', tip: "Appareillage type de chaque pièce : compléter une pièce, tout le niveau, pieuvre type" });
   let editing = false;
   const choice = new Map();       // pièce → pack choisi à la main (sinon : reconnu d'après le nom)
 
@@ -159,6 +161,16 @@ export function createPacksPane({ api, panel }) {
     return n;
   }
   document.addEventListener("okteo:pack-menu", (e) => openMenu(e.detail.room, e.detail.x, e.detail.y));
+  // lot 4 : « Implantation rapide » : le pack reconnu d'après le nom de la pièce est posé tout de suite (aucun choix à
+  // faire) ; une pièce dont le nom ne désigne aucun pack ouvre la liste des packs
+  function quick(roomId, x, y) {
+    const R = rooms().find((r) => r.id === roomId);
+    if (!R) { api.setHint("Sélectionnez d'abord une pièce fermée (relevée ou dessinée)."); return 0; }
+    const pk = packFor(R.room.name, getPacks());
+    if (!pk) { api.setHint(`« ${R.room.name} » : nom de pièce sans pack (Chambre, Séjour, Cuisine…). Choisissez un pack, ou renommez la pièce.`); openMenu(roomId, x ?? innerWidth / 2 - 150, y ?? 140); return 0; }
+    return applyPack(roomId, pk.id, { pieuvre: false, same: false });
+  }
+  document.addEventListener("okteo:pack-quick", (e) => quick(e.detail.room, e.detail.x, e.detail.y));
   document.addEventListener("keydown", (e) => {
     const typing = /input|select|textarea/i.test(e.target.tagName) || e.target.isContentEditable;
     if (menu) {
@@ -172,7 +184,7 @@ export function createPacksPane({ api, panel }) {
     if (sel.length !== 1 || !sel[0].startsWith("room:")) return;
     e.preventDefault();
     const b = document.querySelector('#hud [data-h="pack"]'), r = b ? b.getBoundingClientRect() : { left: innerWidth / 2 - 150, bottom: 140 };
-    openMenu(sel[0].slice(5), r.left, r.bottom + 4);
+    quick(sel[0].slice(5), r.left, r.bottom + 4);
   }, true);
 
   function editorHTML() {
@@ -180,6 +192,19 @@ export function createPacksPane({ api, panel }) {
     return `<div class="pk-ed"><p class="mut sm">Un pack par type de pièce : les mots reconnus dans le nom de la pièce, puis les appareils (ex. « PC16×3, LUM, INT, RJ45 » ; « PC16×norme » = une prise par 4 m², 5 au moins, 7 au-delà de 28 m²). Codes : ${Object.keys(NAMES).join(", ")}. Communs à tous les chantiers (ce PC).</p>
       ${P.map((p, i) => `<div class="pk-row" data-i="${i}"><input class="pk-name" value="${esc(p.name)}" title="Nom du pack"><input class="pk-words" value="${esc(p.words)}" title="Mots du nom de la pièce, séparés par des virgules"><input class="pk-items" value="${esc(p.items)}" title="Appareils du pack"><button data-del="${i}" title="Supprimer ce pack">✕</button></div>`).join("")}
       <div class="wrow"><button id="pk-add">＋ Pack</button><button class="on" id="pk-save">Enregistrer</button><button id="pk-reset" title="Revenir aux packs de base (norme + pratique KiTéOHM)">Packs de base</button><button id="pk-close">Fermer</button></div></div>`;
+  }
+  // lot 4 : éditeur des packs dans Paramètres (section « Packs »)
+  function mountEditor(box) {
+    const draw = () => {
+      box.innerHTML = editorHTML().replace('<button id="pk-close">Fermer</button>', "");
+      const rowsVal = () => [...box.querySelectorAll(".pk-row")].map((r, i) => ({ id: getPacks()[i]?.id || "p" + Date.now() + i, name: r.querySelector(".pk-name").value.trim(), words: r.querySelector(".pk-words").value.trim(), items: r.querySelector(".pk-items").value.trim() })).filter((p) => p.name);
+      box.querySelector("#pk-add").onclick = () => { setPacks([...rowsVal(), { id: "p" + Date.now(), name: "Nouveau pack", words: "", items: "PC16, LUM, INT" }]); draw(); };
+      box.querySelector("#pk-save").onclick = () => { const v = rowsVal(); const bad = v.find((p) => !parseItems(p.items).length); if (bad) { api.setHint(`Pack « ${bad.name} » : liste d'appareils illisible.`); return; } setPacks(v); api.setHint("Packs enregistrés."); draw(); };
+      box.querySelector("#pk-reset").onclick = () => { setPacks(PACK_DEFAULTS.map((p) => ({ ...p }))); draw(); };
+      box.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => { const v = rowsVal(); v.splice(+b.dataset.del, 1); setPacks(v); draw(); }));
+    };
+    draw();
+    return { draw };
   }
   function render() {
     if (editing) {
@@ -218,5 +243,5 @@ export function createPacksPane({ api, panel }) {
   ["okteo:saved", "okteo:level", "okteo:prefs"].forEach((ev) => document.addEventListener(ev, () => { if (panel.state.pane === "packs" && !editing) render(); }));
   document.addEventListener("okteo:packs-all", completeAll);
   render();
-  return { render, completeAll, completeOne, pieuvre, rooms, openMenu, applyPack, closeMenu, get menu() { return menu; } };
+  return { render, completeAll, completeOne, pieuvre, rooms, openMenu, applyPack, closeMenu, quick, mountEditor, get menu() { return menu; } };
 }

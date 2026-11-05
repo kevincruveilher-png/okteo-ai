@@ -129,8 +129,8 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
       <section class="pset-sec cab-set" id="cab-set">${cabHTML()}</section>
       <section class="pset-sec" id="ps-packs">
         <h3>Packs</h3>
-        <p class="mut">L'appareillage type de chaque pièce (chambre, séjour, cuisine…) se règle dans le panneau <b>Packs</b>, bouton « Modifier les packs… ». Communs à tous les chantiers de ce PC.</p>
-        <button class="ps-open-packs">▦ Ouvrir le panneau Packs</button>
+        <p class="mut">L'appareillage type de chaque pièce (chambre, séjour, cuisine…). Sur le plan : sélectionnez une pièce nommée, puis « ⚡ Implantation rapide » (ou Maj+P) pose son pack.</p>
+        <div id="ps-packs-ed"></div>
       </section>
       <p class="pset-none mut" hidden>Aucun réglage ne correspond à cette recherche.</p>
         </div>
@@ -208,7 +208,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
     const fi = el.querySelector(".pset-find");
     fi.oninput = () => find(fi.value);
     el.querySelectorAll(".pset-nav a").forEach((a) => (a.onclick = (e) => { e.preventDefault(); if (fi.value) { fi.value = ""; find(""); } el.querySelector("#" + a.dataset.to)?.scrollIntoView({ behavior: "smooth", block: "start" }); }));
-    el.querySelector(".ps-open-packs").onclick = () => openPacks && openPacks();
+    { const box = el.querySelector("#ps-packs-ed"); if (box && openPacks && openPacks.mount) openPacks.mount(box); }
     el.querySelectorAll(".pcard").forEach((c) => {
       const p = c.dataset.p, k = c.querySelector(".k"), m = c.querySelector(".m"), res = c.querySelector(".tres");
       k.onchange = () => { const s = settings.get(); settings.set({ keys: { ...s.keys, [p]: k.value.trim() }, provider: s.provider || p }); refreshProv(); };
