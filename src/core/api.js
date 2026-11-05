@@ -8,7 +8,9 @@ import { squarePlan, keepOpenings } from "../walls/squaring.js";
 import { CH, MATS, PAL, hDefault, isPmr, PLAN, TYPES, VB, batiStyle, epOf, layers, matOf, node, nodeById, segById, state, uidA, uidN, uidO, uidR, uidS } from "./model.js";
 import { markDirty, packData, snapshot, writeNow } from "./persist.js";
 import { fit, renumberReps, repMap, rotExtent, rotateView, syncVB } from "./view.js";
-import { draw, drawFx, gaineCrossings, glyph, sv } from "./render.js";
+import { draw, drawFx, gaineCrossings, glyph, sv, ftzIdx, FTZK } from "./render.js";
+import { ftzSymbol } from "../print/ftz-symbols.js";
+import { symbolSVG } from "../print/ftz-draw.js";
 import { attach, reattach, roomArea, roomPoly, snapToWall, wallMounted } from "./attach.js";
 import { bbox, clampOpenings, clearSel, duplicateGroup, multi, normalizeSel, openCenter, roomAt, selectAll, transformGroup } from "./groups.js";
 import { wallMeasure } from "./interact.js";
@@ -106,6 +108,14 @@ window.okteo = {
   state,
   TYPES,
   symbolMarkup: (type) => TYPES[type] ? glyph(type) : "",
+  // lot 2 (05/11/2026) : le symbole tel qu'il est dessiné sur le plan (symbole du BE quand la charte BE est active et
+  // chargée, sinon symbole Oktéo) ; même repère que symbolMarkup (cadre -1,6 … 1,6)
+  planSymbolMarkup(type, h) {
+    if (!TYPES[type]) return "";
+    const I = ftzIdx(), fs = I && ftzSymbol(I, type, h ?? TYPES[type].h);
+    return fs ? `<g class="ftz" transform="scale(${FTZK.toFixed(4)})">${symbolSVG(fs)}</g>` : glyph(type);
+  },
+  get ftzReady() { return !!ftzIdx(); },
   PAL,
   layers,
   sv,

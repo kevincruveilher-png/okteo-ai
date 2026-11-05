@@ -87,6 +87,8 @@ function start() {
   hooks.recheck = () => recheck.open();
   hooks.aiReleve = () => aiModes.open();
   const whyBlink = createWhyBlink({ api });   // n° 5 : « Pourquoi ça clignote ? » et rapport d'analyse
+  // lot 2 (05/11/2026) : mémoire des symboles commune (version en ligne) rapatriée au démarrage
+  import("./symbol-memory.js").then((m) => m.syncMemory()).catch(() => { /* hors ligne : mémoire du poste */ });
   hooks.rapport = () => whyBlink.openRapport();
   hooks.aiPaste = () => aiReleve.pastePanel();
   document.addEventListener("okteo:walls", () => walls.open());

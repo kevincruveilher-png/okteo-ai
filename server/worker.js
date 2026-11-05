@@ -116,6 +116,27 @@ export async function handle(request,env,ctx={waitUntil(){}}) {
     if(!r.meta.changes)fail(409,'Une autre version a été publiée. Rechargez la bibliothèque commune.');return json({id:r.meta.last_row_id});
    }
   }
+  // lot 2 (05/11/2026) : mémoire des symboles COMMUNE à tous les postes (décision de Kévin) : dessins validés par un
+  // opérateur, par pavillonneur. Chaque fiche = type Oktéo, description, petit extrait du dessin (≤ 90 Ko), pavillonneur,
+  // chantier d'origine, auteur, date. Aucun plan entier. Lecture : tout compte connecté ; ajout : tout compte ;
+  // suppression : son auteur ou un administrateur.
+  if(p==='/api/symbol-memory'){
+   await symbolTable(db);
+   if(request.method==='GET'){const pav=url.searchParams.get('pav');const q=pav?db.prepare('SELECT * FROM symbol_memory WHERE pav_key=? ORDER BY created DESC LIMIT 2000').bind(normPav(pav)):db.prepare('SELECT * FROM symbol_memory ORDER BY created DESC LIMIT 2000');return json((await q.all()).results.map(memoOut));}
+   if(request.method==='POST'){
+    const b=await body(request,120000),e=memoIn(b),key=normPav(e.pav);
+    const same=await db.prepare('SELECT id FROM symbol_memory WHERE pav_key=? AND type=? AND lower(descr)=lower(?)').bind(key,e.type,e.desc).first();
+    if(same){await run(db,'UPDATE symbol_memory SET image=CASE WHEN ?<>\'\' THEN ? ELSE image END,author=?,created=?,chantier=CASE WHEN ?<>\'\' THEN ? ELSE chantier END WHERE id=?',e.image,e.image,u.login,now(),e.chantier,e.chantier,same.id);return json({id:same.id,updated:true});}
+    const id=crypto.randomUUID();await run(db,'INSERT INTO symbol_memory(id,pav,pav_key,type,descr,chantier,author,created,image) VALUES(?,?,?,?,?,?,?,?,?)',id,e.pav,key,e.type,e.desc,e.chantier,u.login,now(),e.image);
+    return json({id});
+   }
+  }
+  if(p==='/api/symbol-memory/delete'&&request.method==='POST'){
+   await symbolTable(db);const b=await body(request,4096);if(typeof b.id!=='string'||b.id.length>64)fail(400,'Fiche inconnue.');
+   const row=await db.prepare('SELECT id,author FROM symbol_memory WHERE id=?').bind(b.id).first();if(!row)fail(404,'Fiche inconnue.');
+   if(u.role!=='admin'&&row.author!==u.login)fail(403,'Seul son auteur ou un administrateur peut retirer ce symbole.');
+   await run(db,'DELETE FROM symbol_memory WHERE id=?',b.id);await audit(db,u,'symbole-oublie',b.id);return json({ok:true});
+  }
   if(p==='/api/shared/history'&&request.method==='GET'){return json((await db.prepare('SELECT id,parent,author,created,note FROM shared_versions ORDER BY id DESC LIMIT 100').all()).results);}
   if(/^\/api\/shared\/\d+$/.test(p)&&request.method==='GET')return json(await db.prepare('SELECT * FROM shared_versions WHERE id=?').bind(+p.split('/').at(-1)).first());
   if(p==='/api/proposals'){
@@ -151,6 +172,20 @@ export function pricing(c,purpose){
  if(purpose!=='analyse')return{purpose:'chat',model:c.model,input_price:c.input_price,output_price:c.output_price};
  return{purpose:'analyse',model:ANALYSE_MODEL,input_price:c.analysis_input_price??ANALYSIS_DEFAULT.input_price,output_price:c.analysis_output_price??ANALYSIS_DEFAULT.output_price};
 }
+// lot 2 (05/11/2026) : table de la mémoire des symboles, créée à la première utilisation (aussi décrite dans
+// migrations/0002_symbol_memory.sql)
+async function symbolTable(db){await db.prepare('CREATE TABLE IF NOT EXISTS symbol_memory(id TEXT PRIMARY KEY,pav TEXT NOT NULL,pav_key TEXT NOT NULL,type TEXT NOT NULL,descr TEXT NOT NULL,chantier TEXT NOT NULL DEFAULT \'\',author TEXT NOT NULL,created TEXT NOT NULL,image TEXT NOT NULL DEFAULT \'\')').run();}
+export const normPav=(s)=>String(s||'').trim().toLowerCase()||'(sans pavillonneur)';
+export function memoIn(b){
+ if(!b||typeof b!=='object')fail(400,'Fiche invalide.');
+ const str=(v,n)=>typeof v==='string'?v.trim().slice(0,n):'';
+ const e={type:str(b.type,24),pav:str(b.pav,100),desc:str(b.desc,300),chantier:str(b.chantier,100),image:typeof b.image==='string'?b.image:''};
+ if(!/^[A-Z0-9_]{1,24}$/.test(e.type))fail(400,'Type de symbole invalide.');
+ if(!e.desc)e.desc=e.type;
+ if(e.image&&(!/^data:image\/(png|jpeg|webp);base64,[a-zA-Z0-9+/=]+$/.test(e.image)||e.image.length>90000))fail(400,'Extrait du dessin invalide ou trop volumineux.');
+ return e;
+}
+const memoOut=(r)=>({id:r.id,server:r.id,type:r.type,desc:r.descr,pav:r.pav,chantier:r.chantier,by:r.author,at:r.created,image:r.image});
 async function analysisColumns(db){
  const cols=(await db.prepare('PRAGMA table_info(config)').all()).results.map(r=>r.name);
  if(!cols.includes('analysis_model'))await run(db,"ALTER TABLE config ADD COLUMN analysis_model TEXT NOT NULL DEFAULT '"+ANALYSE_MODEL+"'");

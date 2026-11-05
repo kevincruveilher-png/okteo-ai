@@ -3,7 +3,7 @@
 // l'IA), choix possibles et leur conséquence, recommandation ; réponse de l'opérateur gardée (qui, quand) pour le
 // technicien BE ; ce que le plan ne dit pas devient une question au pavillonneur. Passe par l'API seulement.
 import { explain, buildRapport, rapportText, FAMILLES, confirmable, isConfirmed } from "../cablage/rapport.js";
-import { cropAround } from "./symbol-memory.js";
+import { cropAround, remember } from "./symbol-memory.js";
 import { esc } from "./util.js";
 
 export function createWhyBlink({ api }) {
@@ -35,6 +35,28 @@ export function createWhyBlink({ api }) {
     </div>`;
   }
   let cur = null;
+  // lot 2 (05/11/2026) : agir sur l'appareil, pas seulement confirmer : changer son type, enregistrer son dessin comme
+  // variante d'un symbole (bibliothèque + mémoire commune), « Je ne sais pas » (passe au suivant), précédent / suivant
+  const typeOpts = (sel) => Object.entries(api.TYPES).filter(([, T]) => !T.zone).map(([t, T]) => `<option value="${esc(t)}" ${t === sel ? "selected" : ""}>${esc(t)} · ${esc(T.n || t)}</option>`).join("");
+  function fixHTML(a, pts) {
+    if (!pts.some((p) => confirmable(p.kind))) return "";
+    const pav = api.ch.client || "";
+    return `<div class="why-fix">
+      <p class="sm"><b>Que faire de cet appareil ?</b></p>
+      <div class="why-row"><label class="sm">C'est un <select id="why-type" aria-label="Type de l'appareil">${typeOpts(a.t)}</select></label><button id="why-settype" title="Change le type de l'appareil (noté pour le technicien BE ; Ctrl+Z l'annule)">Changer le type</button></div>
+      <div class="why-row"><button id="why-var" class="on" title="Le dessin du plan autour de l'appareil est rangé dans la bibliothèque comme variante du symbole choisi ci-dessus, pour ${esc(pav || "ce pavillonneur")} : l'IA le reconnaîtra sur les prochains plans">Enregistrer ce dessin comme variante du symbole choisi</button></div>
+      <div class="why-row"><button id="why-idk" title="Laisse le point ouvert (il continue de clignoter), noté « je ne sais pas » pour le technicien BE, et passe au suivant">Je ne sais pas → suivant</button></div>
+      <p class="sm mut why-fixmsg" role="status"></p></div>`;
+  }
+  // appareils signalés (points réglables dans cette carte), dans l'ordre du contrôle
+  function navList() { const seen = new Set(), out = []; for (const it of api.control) { if (!confirmable(it.kind)) continue; const i = (it.ids || [])[0]; if (i && !seen.has(i) && api.state.app.some((x) => x.id === i)) { seen.add(i); out.push(i); } } return out; }
+  function navPos(id) { const L = navList(), k = L.indexOf(id); return L.length ? `${k < 0 ? "—" : k + 1} / ${L.length}` : ""; }
+  function go(step) {
+    const L = navList(); if (!L.length) { card.hidden = true; api.setHint("Plus aucun appareil signalé."); return; }
+    const k = L.indexOf(cur && cur.id), id = L[((k < 0 ? (step > 0 ? -1 : 0) : k) + step + L.length) % L.length];
+    api.select([id]); try { api.zoomTo([id]); } catch { /* vue inchangée */ }
+    open(id);
+  }
   async function open(id) {
     const B = byId(), a = B.get(id);
     if (!a) return;
@@ -47,9 +69,10 @@ export function createWhyBlink({ api }) {
     const done = Object.entries(decisions()).filter(([k, d]) => isConfirmed(d) && (k.split(":")[1] || "").split(",").includes(id)).map(([, d]) => d);
     card.innerHTML = `<button class="wx" title="Fermer (Échap)" aria-label="Fermer">✕</button><h3>Pourquoi ça clignote ? · ${esc(a.rep || a.t)}${a.room ? ` <span class="mut sm">${esc(a.room)}</span>` : ""}</h3>
       <div class="why-img" hidden><img alt="Extrait du plan autour de l'appareil"><span class="sm mut">Extrait du plan (1,20 m autour)</span></div>
+      ${fixHTML(a, pts)}
       ${pts.length ? pts.map(pointHTML).join("") : `<p class="ok">Plus rien à signaler sur cet appareil.</p>`}
       ${done.map((d) => `<p class="ok sm why-dec">✓ ${esc(d.label)} — ${esc(d.by || "")}${d.at ? ", " + esc(d.at.slice(0, 16).replace("T", " ")) : ""}</p>`).join("")}
-      <p class="why-foot"><button id="why-rap" title="Tous les points du plan, par famille, avec les décisions et les questions au pavillonneur">Rapport d'analyse</button></p>`;
+      <p class="why-foot wrow"><button id="why-prev" title="Point signalé précédent">‹ Précédent</button><span class="sm mut">${navPos(id)}</span><button id="why-next" title="Point signalé suivant">Suivant ›</button><span class="grow"></span><button id="why-rap" title="Tous les points du plan, par famille, avec les décisions et les questions au pavillonneur">Rapport d'analyse</button></p>`;
     card.hidden = false;
     wire();
     const img = await cropAround(api, a).catch(() => "");
@@ -57,6 +80,38 @@ export function createWhyBlink({ api }) {
   }
   function wire() {
     card.querySelector(".wx").onclick = () => (card.hidden = true);
+    const say = (t) => { const m = card.querySelector(".why-fixmsg"); if (m) m.textContent = t; };
+    card.querySelector("#why-prev").onclick = () => go(-1);
+    card.querySelector("#why-next").onclick = () => go(1);
+    const st = card.querySelector("#why-settype");
+    if (st) st.onclick = () => {
+      const t = card.querySelector("#why-type").value, p = cur.pts.find((x) => confirmable(x.kind)) || cur.pts[0];
+      if (!t || !api.TYPES[t]) return;
+      api.batch(() => { api.updateApps([{ id: cur.id, t, aiStatus: "lu" }]); if (p) decide(p, { choix: "type", label: `type corrigé : ${api.TYPES[t].n || t}`, type: t }); });
+      api.setHint(`Type changé : ${api.TYPES[t].n || t} (noté pour le technicien BE ; Ctrl+Z l'annule).`);
+      open(cur.id).then(() => say(`✓ Type changé : ${api.TYPES[t].n || t}.`));
+    };
+    const vb = card.querySelector("#why-var");
+    if (vb) vb.onclick = async () => {
+      const t = card.querySelector("#why-type").value, a = api.state.app.find((x) => x.id === cur.id);
+      if (!a || !api.TYPES[t]) return;
+      vb.disabled = true; say("Enregistrement du dessin…");
+      const image = await cropAround(api, a).catch(() => "");
+      const desc = [`dessin du plan pour ${api.TYPES[t].n || t}`, a.inscription ? `inscription « ${a.inscription} »` : "", a.aiType && a.aiType !== t ? `lu par l'IA comme ${a.aiType}` : ""].filter(Boolean).join(", ");
+      const r = remember({ pav: api.ch.client || "", type: t, desc, chantier: [api.ch.nom, api.ch.numero].filter(Boolean).join(" "), by: who(), image });
+      const p = cur.pts.find((x) => confirmable(x.kind)) || cur.pts[0];
+      api.batch(() => { if (a.t !== t || a.aiStatus !== "lu") api.updateApps([{ id: a.id, t, aiStatus: "lu" }]); if (p) decide(p, { choix: "variante", label: `dessin enregistré comme variante de ${api.TYPES[t].n || t}`, type: t }); });
+      document.dispatchEvent(new CustomEvent("okteo:symbol-memorized", { detail: r }));
+      api.setHint(`Dessin enregistré dans la bibliothèque : variante de ${api.TYPES[t].n || t} pour ${api.ch.client || "ce pavillonneur"}. L'IA s'en servira sur les prochains plans.`);
+      await open(cur.id); say(`✓ Variante enregistrée dans la bibliothèque (${api.TYPES[t].n || t}).`);
+      ui.lastVariant = r;
+    };
+    const idk = card.querySelector("#why-idk");
+    if (idk) idk.onclick = () => {
+      const p = cur.pts.find((x) => confirmable(x.kind)) || cur.pts[0];
+      if (p) decide(p, { choix: "inconnu", label: "je ne sais pas (à voir par le technicien BE)" });
+      go(1);
+    };
     card.querySelector("#why-rap").onclick = () => { card.hidden = true; openRapport(); };
     card.querySelectorAll("[data-c]").forEach((b) => (b.onclick = () => {
       const [i, j] = b.dataset.c.split(":").map(Number), p = cur.pts[i], c = p.choix[j];
@@ -121,6 +176,6 @@ export function createWhyBlink({ api }) {
   }
   document.addEventListener("okteo:why", (e) => open(e.detail && e.detail.id));
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { card.hidden = true; rcard.hidden = true; } });
-  const ui = { open, openRapport, rapport: rapportNow, lastText: "", card, rcard };
+  const ui = { open, openRapport, rapport: rapportNow, lastText: "", lastVariant: null, next: () => go(1), prev: () => go(-1), card, rcard };
   return ui;
 }

@@ -3,6 +3,7 @@ import { GROUPS, loadSymbols, saveSymbols, symbolEntries, filterSymbols, deviceI
 import { getJournal, CERTS, STATUTS } from "../cablage/regles.js";
 import { esc } from "./util.js";
 import { downloadBlob } from "./dossier.js";
+import { variantsOf, forget, syncMemory } from "./symbol-memory.js";
 
 export function mountSymbols(el, { api }) {
   let data = loadSymbols(), selected = "PC16", editing = false, image = "", message = "";
@@ -10,7 +11,7 @@ export function mountSymbols(el, { api }) {
   const all = () => symbolEntries(api.TYPES, data);
   const entry = () => all().find((d) => d.id === selected);
   const preview = (d) => d.origin === "be" ? (d.image ? `<img src="${esc(d.image)}" alt="Dessin original BE : ${esc(d.name)}">` : `<span class="sy-missing" aria-label="Dessin BE à fournir">?</span>`) :
-    `<svg class="ticon" viewBox="-1.6 -1.6 3.2 3.2" aria-label="${esc(d.name)}">${api.symbolMarkup(d.type)}</svg>`;
+    `<svg class="ticon" viewBox="-1.6 -1.6 3.2 3.2" aria-label="${esc(d.name)}">${(api.planSymbolMarkup || api.symbolMarkup)(d.type)}</svg>`;   // lot 2 : dessiné comme sur le plan
   const options = (items, val) => items.map(([v, n]) => `<option value="${esc(v)}" ${v === val ? "selected" : ""}>${esc(n)}</option>`).join("");
   const status = (d) => d.origin === "be" ? (d.type ? "Correspondance manuelle" : "Non reconnu par Oktéo") : "Symbole Oktéo";
 
@@ -33,7 +34,7 @@ export function mountSymbols(el, { api }) {
     const list = filterSymbols(all(), filters);
     el.querySelector("#sy-count").textContent = `${list.length} / ${all().length} symboles`;
     el.querySelector("#sy-grid").innerHTML = list.length ? list.map((d) => `<button class="sy-card ${selected === d.id ? "chosen" : ""}" data-symbol="${esc(d.id)}" aria-pressed="${selected === d.id}" title="${esc(d.name)} — ${status(d)}">
-      <span class="sy-preview">${preview(d)}</span><span class="sy-name">${esc(d.name)}</span><span class="sy-tag ${d.origin === "be" ? "sy-be" : ""}">${esc(d.origin === "be" ? status(d) : d.type)}</span></button>`).join("") : `<p class="mut">Aucun symbole. Modifiez les filtres ou ajoutez une variante BE.</p>`;
+      <span class="sy-preview">${preview(d)}</span><span class="sy-name">${esc(d.name)}</span><span class="sy-tag ${d.origin === "be" ? "sy-be" : ""}">${esc(d.origin === "be" ? status(d) : d.type)}</span>${d.origin !== "be" && variantsOf(d.type).length ? `<span class="sy-nvar" title="Dessins de plans enregistrés pour ce symbole">${variantsOf(d.type).length} variante${variantsOf(d.type).length > 1 ? "s" : ""}</span>` : ""}</button>`).join("") : `<p class="mut">Aucun symbole. Modifiez les filtres ou ajoutez une variante BE.</p>`;
   }
   function renderDetail() {
     const d = entry(), detail = el.querySelector("#sy-detail");
@@ -50,10 +51,24 @@ export function mountSymbols(el, { api }) {
       ${spec?.circuit ? `<dt>Réglage actuel du moteur</dt><dd>${spec.circuit.section} mm² · ${spec.circuit.prot} A</dd>` : ""}</dl>
       ${d.type === "PLAQ" ? `<p class="sy-warning">Le type PLAQ existe dans Oktéo (32 A). Le dessin « prise 32 A » du plan KICHOUH reste à fournir et à vérifier pour sa reconnaissance.</p>` : ""}
       ${d.notes ? `<p class="sy-notes">${esc(d.notes)}</p>` : ""}
+      ${d.origin !== "be" ? variantsHTML(d) : ""}
       <h4>Règles associées <span class="sy-tag">${(d.rules || []).length}</span></h4>
       <p class="mut sy-small">Liens de consultation. Le statut et la source du journal restent ceux de chaque règle.</p>
       ${(d.rules || []).map((id) => { const r = J.rules.find((r) => r.id === id); return r ? `<details class="sy-rule"><summary>${esc(id)} · ${esc(r.titre)}</summary><p><span class="sy-tag">${esc(CERTS[r.certitude] || r.certitude)}</span> <span class="sy-tag">${esc(STATUTS[r.statut] || r.statut)}</span></p><p>${esc(r.description)}</p><p class="mut">Source : ${esc(r.source || "Non renseignée")}</p></details>` : `<p class="mut">${esc(id)} — règle absente du journal</p>`; }).join("") || `<p class="mut">Aucune règle liée pour l’instant.</p>`}
       <p class="mut sy-small">Modifications sans code pour l’instant. Fiches enregistrées sur ce navigateur. Le halo violet est réservé à l’emplacement restant à préciser.</p>`;
+  }
+  // lot 2 (05/11/2026) : tous les dessins de plans déjà rattachés à ce symbole (mémoire commune, par pavillonneur) : ils
+  // servent de mémoire aux prochaines analyses (outil « legende » de l'IA)
+  function variantsHTML(d) {
+    const V = variantsOf(d.type), by = new Map();
+    V.forEach((v) => { const k = v.pav || "Sans pavillonneur"; if (!by.has(k)) by.set(k, []); by.get(k).push(v); });
+    return `<h4>Variantes enregistrées <span class="sy-tag">${V.length}</span></h4>
+      <p class="mut sy-small">Dessins rencontrés sur les plans et rattachés à ce symbole par un opérateur (« Pourquoi ça clignote ? » ou Propriétés). L'IA s'en sert pour les prochaines analyses du même pavillonneur.</p>
+      ${V.length ? [...by.entries()].map(([pav, L]) => `<div class="sy-vgrp"><p class="sy-vpav"><b>${esc(pav)}</b> · ${L.length}</p><div class="sy-vars">${L.map((v) => `<figure class="sy-var" data-var="${esc(v.id)}">
+        ${v.image ? `<img src="${esc(v.image)}" alt="Dessin du plan : ${esc(v.desc)}">` : `<span class="sy-missing" aria-label="Pas d'extrait">?</span>`}
+        <figcaption>${esc(v.desc)}<br><span class="mut">${esc(v.chantier || "")}${v.by ? ` · ${esc(v.by)}` : ""}${v.at ? ` · ${esc(String(v.at).slice(0, 10))}` : ""}${v.pending ? " · en attente d'envoi" : ""}</span></figcaption>
+        <button class="mini" data-forget="${esc(v.id)}" data-pav="${esc(v.pav || "")}" title="Retire ce dessin de la mémoire (son auteur ou un administrateur)">Oublier</button></figure>`).join("")}</div></div>`).join("")
+        : `<p class="mut">Aucune variante pour l'instant. Quand un symbole du plan n'est pas reconnu, « Pourquoi ça clignote ? » → « Enregistrer comme variante » le rattache ici.</p>`}`;
   }
   function renderEditor(d) {
     const isBE = !d || d.origin === "be";
@@ -103,6 +118,8 @@ export function mountSymbols(el, { api }) {
   el.addEventListener("click", (e) => {
     const card = e.target.closest("[data-symbol]");
     if (card) { if (editing) { tell("Enregistrez ou annulez la fiche avant de changer de symbole."); return; } selected = card.dataset.symbol; renderGrid(); renderDetail(); return; }
+    const fg = e.target.closest("[data-forget]");
+    if (fg) { forget(fg.dataset.pav, fg.dataset.forget).then(() => { tell("Variante retirée de la mémoire."); render(); }).catch((err) => { tell("Retrait impossible : " + err.message); render(); }); render(); return; }
     const action = e.target.closest("[data-action]")?.dataset.action, d = entry();
     if (action === "insert" && d?.type && api.TYPES[d.type]) { api.setTab("plan"); api.setTool(d.type); api.setHint(`${d.name} : cliquez sur le plan pour poser l’appareil. Échap pour terminer.`); }
     if (action === "edit") { editing = true; image = d?.image || ""; renderDetail(); }
@@ -112,5 +129,8 @@ export function mountSymbols(el, { api }) {
   });
   document.addEventListener("okteo:regles", () => { if (api.tab === "bibliotheque" && !editing) renderDetail(); });
   function render() { renderGrid(); if (!(editing && el.querySelector("#sy-form"))) renderDetail(); tell(message); }
-  render(); return { render };
+  document.addEventListener("okteo:ftz-ready", () => render());
+  document.addEventListener("okteo:symbol-memory", () => { if (!editing) render(); });
+  syncMemory().catch(() => { /* hors ligne : mémoire du poste */ });
+  render(); return { render, select: (id) => { selected = id; editing = false; render(); } };
 }

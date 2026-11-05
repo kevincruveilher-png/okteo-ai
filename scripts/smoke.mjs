@@ -952,6 +952,42 @@ try {
     if (!(q1.length === q0 + 1 && /essai lot 1/.test(q1[q1.length - 1]) && /essai lot 1/.test(rap.txt) && rap.z >= 40 && rap.why && !back.app && back.q === q0)) throw new Error(JSON.stringify({ q0, q1, rap: { ...rap, txt: rap.txt.slice(0, 300) }, back }));
     return true;
   });
+  await check("lot 2 : « Pourquoi ça clignote ? » : changer le type, enregistrer le dessin comme variante d'un symbole (bibliothèque), « Je ne sais pas » → suivant, précédent / suivant", async () => {
+    await ev(() => { okteoExt.panel.close("assistant"); okteo.setTab("plan"); okteo.viewPreset("impl"); });
+    const ids = await ev(() => { const S = okteo.state, X = Math.max(0, ...S.nodes.map((n) => n.x)) + 3, Y = Math.min(0, ...S.nodes.map((n) => n.y)) + 8;
+      return okteo.importDevices([{ t: "INCONNU", x: X, y: Y, aiStatus: "a_identifier", aiOrigin: "plan", aiNote: "symbole inconnu", aiType: "XYZ" }, { t: "INCONNU", x: X + 1.5, y: Y, aiStatus: "a_identifier", aiOrigin: "plan", aiNote: "symbole inconnu", aiType: "QQQ" }], [], { stay: true }).ids; });
+    await page.waitForTimeout(250);
+    await ev((i) => okteoExt.whyBlink.open(i), ids[0]);
+    await page.waitForSelector(".whyb:not([hidden]) #why-var", { timeout: 10000 });
+    const ui0 = await ev(() => ({ prev: !!document.querySelector("#why-prev"), next: !!document.querySelector("#why-next"), idk: !!document.querySelector("#why-idk"), set: !!document.querySelector("#why-settype"), pos: document.querySelector(".why-foot").textContent }));
+    await page.selectOption("#why-type", "LUM");
+    await page.click("#why-var");
+    await page.waitForFunction(() => /Variante enregistrée/.test(document.querySelector(".whyb").textContent), null, { timeout: 10000 });
+    const v = await ev(async (i) => { const m = await import("/src/ext/symbol-memory.js"); const L = m.variantsOf("LUM"); return { n: L.length, last: okteoExt.whyBlink.lastVariant, t: okteo.state.app.find((a) => a.id === i).t, dec: Object.values(okteo.cab.decisions || {}).some((d) => d.choix === "variante") }; }, ids[0]);
+    await page.click("#why-idk");
+    await page.waitForTimeout(200);
+    const nav = await ev(() => ({ title: document.querySelector(".whyb h3").textContent, open: !document.querySelector(".whyb").hidden, idk: Object.values(okteo.cab.decisions || {}).some((d) => d.choix === "inconnu") }));
+    await ev((i) => okteoExt.whyBlink.open(i), ids[1]);
+    await page.waitForSelector(".whyb:not([hidden]) #why-settype", { timeout: 10000 });
+    await page.selectOption("#why-type", "PC16");
+    await page.click("#why-settype");
+    await page.waitForFunction(() => /Type changé/.test(document.querySelector(".whyb").textContent), null, { timeout: 5000 });
+    const t2 = await ev((i) => okteo.state.app.find((a) => a.id === i).t, ids[1]);
+    // bibliothèque : le symbole LUM montre la variante (dessin du plan) et son nombre sur la carte
+    await ev(() => { document.querySelector(".whyb").hidden = true; okteo.setTab("bibliotheque"); });
+    await page.waitForSelector('#bibliotheque [data-symbol="LUM"]', { timeout: 10000 });
+    await page.click('#bibliotheque [data-symbol="LUM"]');
+    await page.waitForSelector("#bibliotheque .sy-var", { timeout: 5000 });
+    const lib = await ev(() => ({ vars: document.querySelectorAll("#bibliotheque .sy-var").length, tag: (document.querySelector('#bibliotheque [data-symbol="LUM"] .sy-nvar') || {}).textContent || "", svg: document.querySelector('#bibliotheque [data-symbol="LUM"] svg').innerHTML.length }));
+    await page.click("#bibliotheque .sy-var [data-forget]");
+    await page.waitForTimeout(200);
+    const gone = await ev(async () => (await import("/src/ext/symbol-memory.js")).variantsOf("LUM").length);
+    await ev(() => { okteo.setTab("plan"); for (let k = 0; k < 4; k++) okteo.undo(); okteo.clearSel(); });
+    const back = await ev((I) => I.filter((i) => okteo.state.app.some((a) => a.id === i)).length, ids);
+    const r = { ui0, v, nav, t2, lib, gone, back };
+    if (!(ui0.prev && ui0.next && ui0.idk && ui0.set && v.n >= 1 && v.last && v.last.type === "LUM" && v.t === "LUM" && v.dec && nav.idk && nav.open && t2 === "PC16" && lib.vars >= 1 && /variante/.test(lib.tag) && lib.svg > 20 && gone === v.n - 1 && back === 0)) throw new Error(JSON.stringify(r));
+    return true;
+  });
   await check("05/11 : « Je confirme l'emplacement » arrête le clignotement (même après un déplacement), noté dans le rapport pour le BE ; Ctrl+Z le rallume ; « Modifier » garde l'appareil sélectionné", async () => {
     const keepV = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits }));
     await ev(() => { okteoExt.panel.close("assistant"); okteo.setTab("plan"); okteo.viewPreset("impl"); });
