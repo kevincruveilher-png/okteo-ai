@@ -277,7 +277,7 @@ try {
   console.log("Assistant sans clé");
   await check("touche A ouvre l'assistant", async () => {
     // le focus doit être sur la page (pas dans un champ) avant la touche
-    await page.keyboard.press("Escape"); await ev(() => document.activeElement?.blur?.()); await page.click(".top .chip");   // lot 3 : le logo ouvre l'accueil
+    await page.keyboard.press("Escape"); await ev(() => document.activeElement?.blur?.()); await page.click("#savetxt");   // lot 3 : le logo ouvre l'accueil
     for (let k = 0; k < 2; k++) {
       await page.keyboard.press("a");
       if (await page.waitForSelector(".as-in textarea", { state: "visible", timeout: 2500 }).then(() => true, () => false)) return true;
@@ -1706,7 +1706,9 @@ try {
       return null;
     });
     if (!t) throw new Error("pas de gaine isolée");
-    await page.mouse.move(t.p.x, t.p.y); await page.mouse.down(); await page.mouse.move(t.p.x + 50, t.p.y + 50, { steps: 5 });
+    // MAJ pieuvres : on tire le point en s'éloignant de la boîte (sinon « Maj » l'aligne tout contre la boîte et le double-clic touche la boîte)
+    const away = await ev(({ box, p }) => { const b = okteo.cab.boxes.find((x) => x.id === box), q = okteo.toClient(b.x, b.y), dx = p.x - q.x, dy = p.y - q.y, L = Math.hypot(dx, dy) || 1; return { x: p.x + dx / L * 70, y: p.y + dy / L * 70 }; }, t);
+    await page.mouse.move(t.p.x, t.p.y); await page.mouse.down(); await page.mouse.move(away.x, away.y, { steps: 5 });
     const hint = await page.textContent("#hint");
     await page.mouse.up();
     const dbgR = await ev(({ box, id }) => ({ t: okteo.allApps().find((a) => a.id === id)?.t, lv: okteo.allApps().find((a) => a.id === id)?.lv, cur: okteo.level.id, routes: okteo.cab.boxes.filter((b) => b.routes).map((b) => b.id + ":" + Object.keys(b.routes).join(",")), sel: okteo.boxSel }), t);
