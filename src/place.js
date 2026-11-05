@@ -92,6 +92,28 @@ export function pushOff(p, w, R) {
   return d >= need ? p : { x: p.x + w.nx * (need - d), y: p.y + w.ny * (need - d) };
 }
 
+// 05/11/2026 (Kévin) : interrupteur et va-et-vient collés au mur : le rond touche la face du mur côté pièce, le trait part
+// perpendiculairement au mur vers la pièce, avec un petit crochet au bout (va-et-vient : deux traits en V). Forme commune
+// à l'écran et au papier, en unités de symbole, axe +x = vers la pièce ; le rond est centré en (0, 0).
+export const WALL_SWITCH = new Set(["INT", "VV"]);
+export const SWITCH_R = 0.55;
+export function switchParts(t) {
+  const r = SWITCH_R, L = 1.75, hook = 0.42, arm = (deg, side) => {
+    const a = deg * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+    const x0 = r * c, y0 = r * sn, x1 = L * c, y1 = L * sn;
+    // crochet perpendiculaire au trait, du côté `side`
+    return [[x0, y0, x1, y1], [x1, y1, x1 - side * sn * hook, y1 + side * c * hook]];
+  };
+  const lines = t === "VV" ? [...arm(-22, -1), ...arm(22, 1)] : arm(0, -1);
+  return { r, lines };
+}
+// centre du rond posé contre la face du mur (côté pièce), à la même place le long du mur
+export function glueToWall(p, w, R) {
+  if (!w || w.nx == null) return p;
+  const d = (p.x - w.ax) * w.nx + (p.y - w.ay) * w.ny, need = (w.ep || 0) / 2 + R;
+  return { x: p.x + w.nx * (need - d), y: p.y + w.ny * (need - d) };
+}
+
 // n° 8 (lot A) : boîtes d'obstacle le long d'un mur (pour que les repères ne tombent pas dedans) : un rectangle de mur
 // (4 sommets dans l'ordre) découpé en carrés de la taille de son épaisseur, le long de son grand côté
 export function wallBoxes(P, pad = 0) {

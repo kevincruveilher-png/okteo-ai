@@ -1,6 +1,6 @@
 // n° 13 + 8 (lot A) : symboles poussés hors du mur, obstacles des repères, positions candidates (src/place.js).
 import assert from "node:assert/strict";
-import { pushOff, wallBoxes, lineBoxes, repCandidates, Placer } from "../src/place.js";
+import { pushOff, wallBoxes, lineBoxes, repCandidates, Placer, switchParts, glueToWall, SWITCH_R } from "../src/place.js";
 
 let n = 0;
 const test = (name, f) => { f(); n++; console.log("  ✓ " + name); };
@@ -39,5 +39,15 @@ test("positions candidates : 3 couronnes de 12, côté pièce d'abord", () => {
   assert.ok(C[0].y > 0, "la première position est du côté de la pièce (y > 0)");
   const d0 = Math.hypot(C[0].x, C[0].y), d2 = Math.hypot(C[30].x, C[30].y);
   assert.ok(d2 > d0 * 1.5, "la 3e couronne est nettement plus loin");
+});
+test("05/11 : interrupteur collé au mur (rond contre la face, même loin ou dans le mur) ; trait vers la pièce avec crochet ; VV en V", () => {
+  const w = { ax: 0, ay: 0, ux: 1, uy: 0, nx: 0, ny: 1, ep: 0.2 };
+  for (const y of [0.02, 0.4, 1.2]) { const p = glueToWall({ x: 3, y }, w, 0.06); assert.equal(p.x, 3); assert.ok(Math.abs(p.y - 0.16) < 1e-9); }
+  const I = switchParts("INT"), V = switchParts("VV");
+  assert.equal(I.r, SWITCH_R); assert.equal(I.lines.length, 2); assert.equal(V.lines.length, 4);
+  const [arm, hook] = I.lines;
+  assert.ok(Math.abs(arm[0] - SWITCH_R) < 1e-9 && arm[1] === 0 && arm[2] > 1.5 && Math.abs(arm[3]) < 1e-9, "trait perpendiculaire au mur, depuis le bord du rond");
+  assert.ok(Math.abs(hook[2] - hook[0]) < 1e-9 && Math.abs(hook[3]) > 0.3, "crochet au bout");
+  assert.ok(V.lines[0][3] < 0 && V.lines[2][3] > 0 && V.lines.every((l) => l[2] > 0), "VV : deux traits vers la pièce, de part et d'autre");
 });
 console.log(`placement : ${n} vérifications OK`);
