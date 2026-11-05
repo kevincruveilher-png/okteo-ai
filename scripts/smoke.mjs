@@ -1660,6 +1660,7 @@ try {
         const arc = (o, c, t, k = 0.15) => { const qx = (o.x + c.x) / 2 - (c.y - o.y) * k, qy = (o.y + c.y) / 2 + (c.x - o.x) * k, u = 1 - t; return { x: u * u * o.x + 2 * u * t * qx + t * t * c.x, y: u * u * o.y + 2 * u * t * qy + t * t * c.y }; };
         const p = arc(P0(b, id), a, 0.5, R.bowOf(b.id, id));
         if (A.some((o) => Math.hypot(o.x - p.x, o.y - p.y) < 0.6) || okteo.cab.boxes.some((o) => Math.hypot(o.x - p.x, o.y - p.y) < 0.8)) continue;
+        { const sp = okteo.toClient(p.x, p.y); if (sp.y < 160 || sp.y > innerHeight - 220 || sp.x < 220 || sp.x > innerWidth - 420) continue; }   // lot 4 : point bien dans l'écran (le glisser va à +50 px)
         // pas d'autre gaine tout près de ce point
         const near = okteo.cab.boxes.some((o) => o.apps.some((k) => { if (k === id && o.id === b.id) return false; const c = by[k]; if (!c) return false;
           for (let i = 1; i < 30; i++) { const q = arc(P0(o, k), c, i / 30, R.bowOf(o.id, k)); if (Math.hypot(q.x - p.x, q.y - p.y) < 0.3) return true; } return false; }));
@@ -3179,7 +3180,7 @@ try {
     // clic sur un appareil mural
     let card = null;
     if (r.devs) {
-      const pt = await ev(() => { const S3 = okteoExt.pages.vue3d.ui.state; const d = S3.devs.find((x) => x.mount === "mur") || S3.devs[0]; okteoExt.pages.vue3d.ui.view("top", true); S3.ctl.update(); S3.R.render(S3.scene, S3.cam); const v = new S3.T.Vector3(d.x, d.h, d.y).project(S3.cam), b = document.querySelector(".v3d-cv").getBoundingClientRect(); return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height, id: d.id }; });
+      const pt = await ev(() => { const S3 = okteoExt.pages.vue3d.ui.state; const BX = (okteo.cab.boxes || []).filter((b) => b.lv === okteo.level.id), far = (x) => Math.min(99, ...BX.map((b) => Math.hypot(b.x - x.x, b.y - x.y))); const d = S3.devs.filter((x) => x.mount === "mur").sort((p, q) => far(q) - far(p))[0] || S3.devs[0]; okteoExt.pages.vue3d.ui.view("top", true); S3.ctl.update(); S3.R.render(S3.scene, S3.cam); const v = new S3.T.Vector3(d.x, d.h, d.y).project(S3.cam), b = document.querySelector(".v3d-cv").getBoundingClientRect(); return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height, id: d.id }; });
       await page.mouse.click(pt.x, pt.y); await page.waitForTimeout(400);
       card = await ev(() => ({ open: !document.querySelector(".v3d-card").hidden, id: document.querySelector(".v3d-card").dataset.id }));
       if (card.open) { await page.click('.v3d-card [data-a="plan"]'); await page.waitForTimeout(300); card.after = await ev(() => ({ tab: okteo.tab, sel: okteo.selection })); }
