@@ -979,7 +979,7 @@ try {
     await page.waitForSelector('#bibliotheque [data-symbol="LUM"]', { timeout: 10000 });
     await page.click('#bibliotheque [data-symbol="LUM"]');
     await page.waitForSelector("#bibliotheque .sy-var", { timeout: 5000 });
-    const lib = await ev(() => ({ vars: document.querySelectorAll("#bibliotheque .sy-var").length, tag: (document.querySelector('#bibliotheque [data-symbol="LUM"] .sy-nvar') || {}).textContent || "", svg: document.querySelector('#bibliotheque [data-symbol="LUM"] svg').innerHTML.length }));
+    const lib = await ev(() => ({ white: getComputedStyle(document.querySelector('#bibliotheque [data-symbol="LUM"]')).backgroundColor === "rgb(255, 255, 255)", vars: document.querySelectorAll("#bibliotheque .sy-var").length, tag: (document.querySelector('#bibliotheque [data-symbol="LUM"] .sy-nvar') || {}).textContent || "", svg: document.querySelector('#bibliotheque [data-symbol="LUM"] svg').innerHTML.length }));
     await page.click("#bibliotheque .sy-var [data-forget]");
     await page.waitForTimeout(200);
     const gone = await ev(async () => (await import("/src/ext/symbol-memory.js")).variantsOf("LUM").length);
@@ -987,7 +987,7 @@ try {
     const back = await ev((I) => I.filter((i) => okteo.state.app.some((a) => a.id === i)).length, ids);
     await ev((V) => { Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; }, keepV);
     const r = { ui0, v, nav, t2, lib, gone, back };
-    if (!(ui0.prev && ui0.next && ui0.idk && ui0.set && v.n >= 1 && v.last && v.last.type === "LUM" && v.t === "LUM" && v.dec && nav.idk && nav.open && t2 === "PC16" && lib.vars >= 1 && /variante/.test(lib.tag) && lib.svg > 20 && gone === v.n - 1 && back === 0)) throw new Error(JSON.stringify(r));
+    if (!(ui0.prev && ui0.next && ui0.idk && ui0.set && v.n >= 1 && v.last && v.last.type === "LUM" && v.t === "LUM" && v.dec && nav.idk && nav.open && t2 === "PC16" && lib.white && lib.vars >= 1 && /variante/.test(lib.tag) && lib.svg > 20 && gone === v.n - 1 && back === 0)) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("lot 3 : logo Oktéo = accueil (plus d'onglet Chantiers) ; accueil, Paramètres et Bibliothèque en pages entières sans bandeau du haut ni panneau de droite ; flèches « classeur » = retour au plan ; bandeau de la version en ligne rangé à l'accueil, avertissement signalé sur le plan", async () => {

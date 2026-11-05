@@ -492,7 +492,9 @@ function placeLevelBE(units, tab, S, roomsLv) {
       const A = groups[i], B = groups[j], L = [...A.units, ...B.units];
       const MA = majors(A), MB = majors(B), M = [...MA, ...MB].sort(), dA = departsOf(A.units, S), dB = departsOf(B.units, S);
       let p = null;
-      if (!near(A, B)) { if (Math.min(dA, dB) < minD && (!MA.length || !MB.length || MA.length + MB.length <= 2)) p = 4; }
+      // MAJ pieuvres (05/11/2026) : deux pièces qui ne se touchent pas ne sont réunies que si la petite n'a aucune voisine
+      // qui puisse la prendre (sinon des gaines traversent la maison et croisent celles des autres boîtes)
+      if (!near(A, B)) { const small = dA <= dB ? A : B; if (Math.min(dA, dB) < minD && (!MA.length || !MB.length || MA.length + MB.length <= 2) && !groups.some((h) => h !== small && near(small, h) && fits([...small.units, ...h.units]))) p = 4; }
       else if (!MA.length || !MB.length) p = !MA.length ? pref(A, B) : pref(B, A);
       else if (MA.length + MB.length === 2 && BE_COUPLES.some((c) => c.join() === M.join())) p = 1 + BE_COUPLES.findIndex((c) => c.join() === M.join()) * 0.1;
       else if (Math.min(dA, dB) < minD) p = 3;
@@ -504,20 +506,29 @@ function placeLevelBE(units, tab, S, roomsLv) {
     const A = groups[best.i], B = groups[best.j];
     groups = groups.filter((g) => g !== A && g !== B).concat([{ rooms: [...A.rooms, ...B.rooms], units: [...A.units, ...B.units] }]);
   }
-  // séjour trop chargé : ses prises (les plus proches de la cuisine d'abord) dans la boîte de la cuisine
+  // séjour trop chargé : un PAN DE MUR de ses prises (le mur le plus proche de la cuisine, en partant du bout côté cuisine,
+  // prises qui se suivent) va dans la boîte de la cuisine ; jamais des prises prises çà et là (MAJ pieuvres, 05/11/2026)
   const sej = groups.find((g) => kindsOf(g).includes("sejour") && !fits(g.units)), cui = groups.find((g) => kindsOf(g).includes("cuisine") && g !== sej);
   if (sej && cui) {
-    const c = ctr(cui.units);
-    for (const u of sej.units.filter((x) => x.prises).sort((p, q) => d2(p, c) - d2(q, c))) {
+    const c = ctr(cui.units), poly = polyOf.get(sej.rooms.find((r) => beKindOf(r) === "sejour"));
+    const pans = poly ? wallRuns(sej.units.filter((x) => x.prises), poly) : [];
+    pans.forEach((P) => { P.d = Math.min(...P.units.map((u) => d2(u, c))); P.units.sort((p, q) => d2(p, c) - d2(q, c)); });
+    for (const P of pans.sort((a, b) => a.d - b.d)) {
+      for (const u of P.units) {
+        if (fits(sej.units) || !fits([...cui.units, u])) break;
+        sej.units = sej.units.filter((x) => x !== u); cui.units.push(u);
+      }
       if (fits(sej.units)) break;
-      if (!fits([...cui.units, u])) break;
-      sej.units = sej.units.filter((x) => x !== u); cui.units.push(u);
     }
   }
   const out = [];
   for (const g of groups) {
+    // MAJ pieuvres : groupe trop chargé coupé par pièces entières, puis une pièce trop chargée par pans de mur
+    // (jamais une coupe géométrique qui mélange les pièces)
+    const ok = (P) => boxOk({ ...seat(P, tab, S, false), units: P }, tab, S);
     let parts = [g.units];
-    for (let k = 2; !parts.every((P) => boxOk({ ...seat(P, tab, S, false), units: P }, tab, S)) && k <= 6; k++) parts = bisect(g.units, k, S);
+    if (!ok(g.units)) parts = splitGroup(g, polyOf, S, ok, near);
+    for (let k = 2; !parts.every(ok) && k <= 6; k++) parts = bisect(g.units, k, S);   // secours (unité énorme)
     for (const P of parts) {
       let p = seat(P, tab, S, false);
       const polys = g.rooms.map((r) => polyOf.get(r)).filter(Boolean);
@@ -529,7 +540,114 @@ function placeLevelBE(units, tab, S, roomsLv) {
       out.push({ ...p, units: P, rooms: g.rooms });
     }
   }
+  settleBoxes(out, polyOf, tab, S);
   return out;
+}
+
+// ---------- MAJ pieuvres (05/11/2026, Kévin) ----------
+// pans de mur d'une pièce : chaque unité (prise) rangée sur le bord du polygone le plus proche, dans l'ordre du contour ;
+// unités à plus de 60 cm d'un bord = centre de la pièce. Renvoie [{edge, units}] dans l'ordre du contour.
+function edgeOf(u, poly) {
+  let best = { i: -1, d: Infinity, t: 0 };
+  for (let i = 0; i < poly.length; i++) {
+    const A = poly[i], B = poly[(i + 1) % poly.length], dx = B.x - A.x, dy = B.y - A.y, L2 = dx * dx + dy * dy || 1e-9;
+    const t = Math.max(0, Math.min(1, ((u.x - A.x) * dx + (u.y - A.y) * dy) / L2)), d = Math.hypot(u.x - (A.x + dx * t), u.y - (A.y + dy * t));
+    if (d < best.d) best = { i, d, t };
+  }
+  return best;
+}
+export function wallRuns(units, poly) {
+  const by = new Map();
+  for (const u of units) { const e = edgeOf(u, poly); const k = e.d <= 0.6 ? e.i : -1; if (!by.has(k)) by.set(k, []); by.get(k).push({ u, t: e.t }); }
+  return [...by].filter(([k]) => k >= 0).sort((a, b) => a[0] - b[0]).map(([edge, L]) => ({ edge, units: L.sort((p, q) => p.t - q.t).map((x) => x.u) }))
+    .concat(by.has(-1) ? [{ edge: -1, units: by.get(-1).map((x) => x.u) }] : []);
+}
+// groupe trop chargé pour une boîte : pièces entières réunies de proche en proche tant qu'elles tiennent ; une pièce
+// trop chargée seule est coupée par pans de mur (centre de la pièce = lumières et commandes dans la 1re boîte)
+function splitGroup(g, polyOf, S, ok, near) {
+  const byRoom = new Map();
+  g.units.forEach((u) => { const r = g.rooms.includes(u.room) ? u.room : g.rooms[0]; if (!byRoom.has(r)) byRoom.set(r, []); byRoom.get(r).push(u); });
+  const rooms = [...byRoom.keys()].sort((a, b) => departsOf(byRoom.get(b), S) - departsOf(byRoom.get(a), S));
+  // ordre de voisinage : on part de la pièce la plus chargée, puis toujours une voisine de ce qui est déjà pris
+  const order = [rooms.shift()];
+  while (rooms.length) {
+    const i = rooms.findIndex((r) => order.some((o) => near({ rooms: [o] }, { rooms: [r] })));
+    order.push(rooms.splice(i < 0 ? 0 : i, 1)[0]);
+  }
+  const parts = []; let cur = [];
+  for (const r of order) {
+    const U = byRoom.get(r);
+    if (ok([...cur, ...U])) { cur.push(...U); continue; }
+    if (cur.length) { parts.push(cur); cur = []; }
+    if (ok(U)) { cur = [...U]; continue; }
+    const poly = polyOf.get(r);
+    const W = poly ? wallParts(U, poly, ok) : [U];
+    parts.push(...W.slice(0, -1)); cur = W[W.length - 1] || [];
+  }
+  if (cur.length) parts.push(cur);
+  return parts;
+}
+// une pièce coupée par pans de mur : le centre (lumières, commandes) puis les murs dans l'ordre du contour ; un mur entier
+// passe dans la boîte suivante plutôt que d'être coupé, sauf s'il ne tient pas seul (il est alors coupé en tronçons qui se
+// suivent). On essaie chaque mur comme point de départ et on garde le découpage le plus court en boîtes.
+function wallParts(U, poly, ok) {
+  const runs = wallRuns(U.filter((u) => u.prises), poly), centre = U.filter((u) => !u.prises);
+  const walls = runs.filter((r) => r.edge >= 0), loose = (runs.find((r) => r.edge < 0) || { units: [] }).units;
+  let best = null;
+  for (let s0 = 0; s0 < Math.max(1, walls.length); s0++) {
+    const seq = [...walls.slice(s0), ...walls.slice(0, s0)];
+    const parts = []; let cur = [...centre, ...loose];
+    for (const w of seq) {
+      if (ok([...cur, ...w.units])) { cur.push(...w.units); continue; }
+      if (cur.length) { parts.push(cur); cur = []; }
+      if (ok(w.units)) { cur = [...w.units]; continue; }
+      for (const u of w.units) { if (cur.length && !ok([...cur, u])) { parts.push(cur); cur = []; } cur.push(u); }
+    }
+    if (cur.length) parts.push(cur);
+    if (!best || parts.length < best.length) best = parts;
+  }
+  return best || [U];
+}
+// position des boîtes d'un niveau : dans leurs pièces, au point qui croise le moins les gaines des autres boîtes
+// (gaines vues en droite boîte → endroit desservi), puis le moins de gaine ; deux passes. Un croisement entre deux
+// boîtes reste permis quand on ne peut pas l'éviter.
+const CROSS_PEN = 4;   // un croisement « coûte » 4 m de gaine
+function segCross(a, b, c, d) {
+  const o = (p, q, r) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+  const o1 = o(a, b, c), o2 = o(a, b, d), o3 = o(c, d, a), o4 = o(c, d, b);
+  return o1 * o2 < -1e-9 && o3 * o4 < -1e-9;
+}
+export function boxCrossings(boxes, S) {
+  const pts = boxes.map((b) => spotPts(b.units, S.memeEndroit ?? 0.3));
+  let n = 0;
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++)
+    for (const p of pts[i]) for (const q of pts[j]) if (segCross(boxes[i], p, boxes[j], q)) n++;
+  return n;
+}
+function settleBoxes(out, polyOf, tab, S) {
+  if (out.length < 2) return;
+  const P = out.map((b) => spotPts(b.units, S.memeEndroit ?? 0.3));
+  const cost = (k, c) => {
+    let x = 0, len = 0;
+    for (const p of P[k]) { len += d2(c, p); for (let j = 0; j < out.length; j++) if (j !== k) for (const q of P[j]) if (segCross(c, p, out[j], q)) x++; }
+    return len + CROSS_PEN * x;
+  };
+  for (let pass = 0; pass < 2; pass++) for (let k = 0; k < out.length; k++) {
+    const b = out[k], polys = (b.rooms || []).map((r) => polyOf.get(r)).filter(Boolean);
+    if (!polys.length) continue;
+    const C = [{ x: b.x, y: b.y }, ...polys.map((Q) => labelPoint(Q))];
+    for (const Q of polys) {
+      const xs = Q.map((p) => p.x), ys = Q.map((p) => p.y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+      const st = Math.max(0.5, Math.sqrt(((x1 - x0) * (y1 - y0)) / 40));
+      for (let x = x0 + st / 2; x < x1; x += st) for (let y = y0 + st / 2; y < y1; y += st) if (pointInPoly(x, y, Q)) C.push({ x, y });
+    }
+    let best = { c: { x: b.x, y: b.y }, v: cost(k, b) };
+    for (const c of C) {
+      if (!polys.some((Q) => pointInPoly(c.x, c.y, Q)) || out.some((o, j) => j !== k && d2(o, c) < 1) || !boxOk({ ...c, units: b.units }, tab, S)) continue;   // jamais deux boîtes à moins d'1 m
+      const v = cost(k, c); if (v < best.v - 1e-6) best = { c, v };
+    }
+    b.x = best.c.x; b.y = best.c.y;
+  }
 }
 
 // toutes les boîtes du chantier ; tabs : {[niveau]: {x, y}} position du tableau (ou de la trémie qui y mène) par niveau
@@ -607,6 +725,12 @@ export function placeBoxes(items0, links, circuits, tabs, S0, { keep = [], count
       const rv = mode === "be" ? (boxOk(one, tabOf(lv), S) ? [one] : placeLevel(LV, tabOf(lv), S, 4, 0)) : mode === "equilibre" ? voletsBalanced(LV, tabOf(lv), S) : placeLevel(LV, tabOf(lv), S, 4, 0);
       const ro = placeMode(LO, lv, want[lv] ? Math.max(1, want[lv] - (rv || []).length) : 0);
       r = rv && ro ? [...ro, ...rv] : null;
+      // MAJ pieuvres : en mode BE, la boîte des volets se pose aussi là où ses gaines croisent le moins celles des autres
+      if (r && mode === "be") {
+        const RL = (rooms[lv] || []).filter((q) => q.poly && q.poly.length > 2);
+        (rv || []).forEach((b) => { b.rooms = RL.map((q) => q.name); });
+        settleBoxes(r, new Map(RL.map((q) => [q.name, q.poly])), tabOf(lv), S);
+      }
     } else r = placeMode(L, lv, want[lv] || 0);
     if (!r) { issues.push(`Niveau ${lv} : impossible de respecter ${S.departsMax} départs par boîte (sans l'alimentation) et ${S.departsFace} gaines par face (une unité trop grosse ?)`); continue; }
     // n° 10 : jamais de boîte dans une zone d'exclusion : repoussée juste au-delà de son bord
