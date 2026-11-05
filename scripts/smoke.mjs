@@ -2063,7 +2063,7 @@ try {
     const measure = (ftz) => ev(async (ftz) => {
       const P = await import("/src/prefs.js"); P.setPref("charteBE", ftz); window.__okteo.draw();
       await new Promise((r) => setTimeout(r, 400)); window.__okteo.draw();
-      const FS = await import("/src/print/ftz-symbols.js"), CH = (await import("/src/print/ftz-charte.json")).default, IDX = FS.symIndex(CH);
+      const FS = await import("/src/print/ftz-symbols.js"), CH = await (await fetch("/src/print/ftz-charte.json")).json(), IDX = FS.symIndex(CH);
       const S = okteo.state, N = (id) => S.nodes.find((n) => n.id === id), out = [];
       S.app.filter((a) => a.seg && (a.t === "INT" || a.t === "VV")).forEach((a) => {
         const s = S.segs.find((x) => x.id === a.seg), A = N(s.a), B = N(s.b), L = Math.hypot(B.x - A.x, B.y - A.y);
@@ -2078,7 +2078,9 @@ try {
       });
       return out;
     }, ftz);
-    const ok = await measure(false), fz = await measure(true);
+    let ok = [], fz = [];
+    try { ok = await measure(false); fz = await measure(true); }
+    finally { await ev(async (v) => { (await import("/src/prefs.js")).setPref("charteBE", v); }, keepFtz); }
     // papier : même forme (rond au point, trait vers la direction donnée)
     const p = await ev(async () => { const m = await import("/src/ext/print.js"), calls = [];
       const doc = new Proxy({}, { get: (t, k) => (...a) => { calls.push([k, a]); return doc; } });
