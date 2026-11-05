@@ -6,6 +6,7 @@ import { pageLabels } from "../walls/labels.js";
 import { pageTexts } from "../walls/devices.js";
 import { solveDigits } from "../walls/digits.js";
 import { pdfjs } from "./fond-import.js";
+import { writtenScale } from "../walls/echelle.js";
 
 let cache = null;   // { id, page, width, segs, labels: Map(clé d'échelle → étiquettes) }
 
@@ -54,18 +55,39 @@ export async function chantierScaleCheck(api) {
   return r;
 }
 
+export { writtenScale, ECHELLES } from "../walls/echelle.js";
+// échelle 1/N du fond si on lui applique le facteur f (largeur de la feuille connue), sinon null
+export const ratioOf = (api, f = 1) => { const pw = api.ch.fond && api.ch.fond.paperW; return pw > 0 && api.BG.w > 0 ? (api.BG.w * f) / pw : null; };
+// plausible pour un plan de maison : entre le 1/20 et le 1/200 (sans largeur de feuille : facteur entre 0,3 et 3)
+export const plausible = (api, f) => { const N = ratioOf(api, f); return N == null ? f > 0.3 && f < 3 : N >= 18 && N <= 220; };
+
 // Échelle automatique : un fond PDF pas encore mis à l'échelle l'est d'après ses cotes (au moins 4 cotes concordantes),
-// sans rien demander. { ok, auto, cotes } ; ok = false si le fond n'a pas d'échelle et que les cotes ne se lisent pas.
+// sans rien demander. { ok, auto, cotes, why } ; ok = false si le fond n'a pas d'échelle et que les cotes ne se lisent pas.
+// Lot 1 : l'échelle écrite sur le plan sert de contrôle (écart > 10 % = rien n'est appliqué, l'opérateur choisit) et de
+// secours quand les cotes ne se lisent pas ; une échelle hors du 1/20 – 1/200 n'est jamais appliquée.
 export async function autoScale(api) {
   const f = api.ch.fond;
   if (!f) return { ok: false, cotes: 0 };
   if (f.calibre) return { ok: true, auto: false };
   const s = await chantierScaleCheck(api).catch(() => null);
-  if (!s || s.cotes < 4 || !(s.facteur > 0)) return { ok: false, cotes: s ? s.cotes : 0 };
+  const texts = await chantierTexts(api).catch(() => null);
+  const N = writtenScale(texts), fw = N && ratioOf(api) ? N / ratioOf(api) : null;
+  const cotesOk = !!(s && s.cotes >= 4 && s.facteur > 0 && plausible(api, s.facteur));
+  const fmt = (v) => Math.round(v);
+  let fac = null, why = "";
+  if (cotesOk && fw && Math.abs(s.facteur / fw - 1) > 0.1) {
+    return { ok: false, cotes: s.cotes, ecrite: N, why: `les cotes du plan donnent le 1/${fmt(ratioOf(api, s.facteur))} mais l'échelle écrite est le 1/${N} : vérifiez une cote connue.` };
+  }
+  if (cotesOk) fac = s.facteur;
+  else if (fw && plausible(api, fw)) { fac = fw; why = `échelle écrite 1/${N}`; }
+  if (!fac) {
+    const bad = s && s.cotes >= 4 && !plausible(api, s.facteur);
+    return { ok: false, cotes: s ? s.cotes : 0, why: bad ? `les cotes lues donnent une échelle impossible pour une maison (1/${fmt(ratioOf(api, s.facteur) || 0)}).` : "" };
+  }
   const a = { x: api.BG.x, y: api.BG.y };
   autoScale.busy = true;
-  try { api.applyCalib(a, { x: a.x + 1, y: a.y }, s.facteur); } finally { autoScale.busy = false; }
-  return { ok: !!api.ch.fond.calibre, auto: true, cotes: s.cotes };
+  try { api.applyCalib(a, { x: a.x + 1, y: a.y }, fac); } finally { autoScale.busy = false; }
+  return { ok: !!api.ch.fond.calibre, auto: true, cotes: s ? s.cotes : 0, ecrite: N, why };
 }
 
 // largeur de la feuille du PDF (m), pour l'échelle 1/N : ajoutée aux anciens chantiers qui ne l'avaient pas

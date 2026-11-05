@@ -29,6 +29,7 @@ export function createWhyBlink({ api }) {
       ${p.choix.length ? `<div class="why-ch">${p.choix.map((c, j) => `<button data-c="${i}:${j}" title="${esc(c.consequence)}">${esc(c.label)}</button><span class="sm mut">${esc(c.consequence)}</span>`).join("")}</div>` : ""}
       ${p.recommandation ? `<p class="sm"><b>Recommandation :</b> ${esc(p.recommandation)}</p>` : ""}
       <p class="why-act">${confirmable(p.kind) ? `<button class="why-ok" data-ok="${i}" title="Valide ce point : l'appareil ne clignote plus pour lui, même s'il est déplacé ensuite. Noté dans le rapport pour le technicien BE (Ctrl+Z l'annule).">${p.fam === "montage" ? "Je confirme, c'est voulu" : "Je confirme l'emplacement"}</button>` : ""}<button data-mod="${i}" title="Ferme la carte et garde l'appareil sélectionné : déplacez-le ou changez son type (Propriétés). Il clignote tant que le point n'est pas réglé ou confirmé.">Modifier</button>${p.question ? `<button data-q="${i}" title="Ajoute la question à la liste « Questions au pavillonneur » du rapport">Question au pavillonneur</button>` : ""}</p>
+      <div class="why-qbox" hidden></div>
       ${confirmable(p.kind) ? "" : `<p class="sm mut">Point de câblage : il se règle dans le panneau Câblage et s'éteint tout seul une fois réglé.</p>`}
       ${p.decision ? `<p class="ok sm why-dec">✓ ${esc(p.decision.label)} — ${esc(p.decision.by || "")}${p.decision.at ? ", " + esc(p.decision.at.slice(0, 16).replace("T", " ")) : ""}</p>` : ""}
     </div>`;
@@ -63,10 +64,22 @@ export function createWhyBlink({ api }) {
       api.setHint(`${c.label} : ${c.consequence} (décision notée pour le technicien BE ; Ctrl+Z l'annule).`);
       open(cur.id);
     }));
+    // lot 1 (05/11/2026) : la question s'affiche, modifiable, avant d'être ajoutée ; confirmation visible ensuite
     card.querySelectorAll("[data-q]").forEach((b) => (b.onclick = () => {
-      const p = cur.pts[+b.dataset.q];
-      decide(p, { choix: "pavillonneur", label: "question posée au pavillonneur" }, { questions: [...(api.cab.questions || []).filter((q) => q.text !== p.question), { text: p.question, key: p.key, by: who(), at: new Date().toISOString() }] });
-      open(cur.id);
+      const i = +b.dataset.q, p = cur.pts[i], box = card.querySelector(`.why-pt[data-i="${i}"] .why-qbox`);
+      if (!box) return;
+      box.hidden = false;
+      box.innerHTML = `<label class="sm"><b>Question au pavillonneur</b> (modifiable)<textarea class="why-qtxt" rows="3">${esc(p.question)}</textarea></label>
+        <p class="wrow"><button class="on why-qadd">Ajouter au rapport</button><button class="why-qno">Annuler</button></p>`;
+      const ta = box.querySelector(".why-qtxt"); ta.focus();
+      box.querySelector(".why-qno").onclick = () => { box.hidden = true; box.innerHTML = ""; };
+      box.querySelector(".why-qadd").onclick = () => {
+        const text = ta.value.trim() || p.question;
+        const qs = [...(api.cab.questions || []).filter((q) => q.key !== p.key && q.text !== text), { text, key: p.key, by: who(), at: new Date().toISOString() }];
+        decide(p, { choix: "pavillonneur", label: "question posée au pavillonneur" }, { questions: qs });
+        api.setHint(`Question ajoutée au rapport d'analyse (${qs.length} question${qs.length > 1 ? "s" : ""} au pavillonneur).`);
+        open(cur.id).then(() => { const n = card.querySelector(`.why-pt[data-i="${i}"] .why-qbox`); if (n) { n.hidden = false; n.innerHTML = `<p class="ok sm">✓ Question ajoutée au rapport (${qs.length} au total). <button class="lnk why-qrap">Voir le rapport</button></p>`; n.querySelector(".why-qrap").onclick = () => { card.hidden = true; openRapport(); }; } });
+      };
     }));
     // « Je confirme » : le point ne clignote plus (filtré par le contrôle) ; un emplacement à préciser passe à « confirmé »
     card.querySelectorAll("[data-ok]").forEach((b) => (b.onclick = () => {
@@ -82,8 +95,12 @@ export function createWhyBlink({ api }) {
     card.querySelectorAll("[data-mod]").forEach((b) => (b.onclick = () => {
       const p = cur.pts[+b.dataset.mod];
       decide(p, { choix: "modifier", label: "en cours de modification" });
-      card.hidden = true; api.select([cur.id]);
-      api.setHint(`${p.rep} : déplacez l'appareil ou changez son type dans Propriétés. Il clignote tant que le point n'est pas réglé ou confirmé.`);
+      // lot 1 (05/11/2026) : l'appareil est sélectionné, centré, et ses Propriétés s'ouvrent (type, hauteur, position)
+      const id = cur.id;
+      card.hidden = true; api.select([id]);
+      try { api.zoomTo([id]); } catch { /* vue inchangée */ }
+      window.okteoExt?.panel?.show?.("props");
+      api.setHint(`${p.rep} : glissez l'appareil à sa place ou changez son type dans Propriétés (à droite). Il clignote tant que le point n'est pas réglé ou confirmé.`);
     }));
   }
   function rapportNow() { return buildRapport(api.control, byId(), api.TYPES, decisions(), api.cab.questions || []); }

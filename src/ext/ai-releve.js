@@ -106,14 +106,15 @@ export function createAiReleve({ api, openParams }) {
       ${ecartsHTML()}
       ${plan.stats.ouverturesPerdues ? `<p class="warn sm">⚠ ${plan.stats.ouverturesPerdues} ouverture(s) loin de tout mur, ignorée(s).</p>` : ""}
       ${plan.stats.ouverturesAjustees ? `<p class="mut sm">${plan.stats.ouverturesAjustees} ouverture(s) recentrée(s) ou rétrécie(s) pour tenir sur leur morceau de mur : vérifiez-les sur le plan.</p>` : ""}
-      <div class="wrow"><button class="on" id="ai-ok">Ajouter la sélection</button><button id="ai-again" title="Redemander à l'IA (la réponse peut changer)">Refaire</button><button id="ai-no">Annuler</button></div>
-      <details class="sm"><summary>Réponse brute de l'IA</summary><pre class="ai-raw">${esc(lastText.slice(0, 4000))}</pre></details>`);
+      <details class="sm"><summary>Réponse brute de l'IA</summary><pre class="ai-raw">${esc(lastText.slice(0, 4000))}</pre></details>
+      <div class="wrow ai-act"><button class="on" id="ai-ok">Ajouter la sélection</button><button id="ai-again" title="Redemander à l'IA (la réponse peut changer)">Refaire</button><button id="ai-no">Annuler</button></div>`);
     card.querySelectorAll("[data-k]").forEach((el) => (el.onchange = () => { keep[el.dataset.k] = el.checked; preview(); render(); }));
     const rc = card.querySelector("#ai-recal");
     if (rc) rc.onchange = () => { recal.on = rc.checked; plan = recal.on ? recal.aligned : recal.raw; preview(); render(); };
     card.querySelector("#ai-no").onclick = close;
     // v76 : « Refaire » relance le même mode (modes 2 à 4 par ai-modes-run.js)
-    card.querySelector("#ai-again").onclick = () => { close(); if (run && run.mode > 1 && again) again(run.mode); else open(); };
+    // lot 1 (05/11/2026) : un seul mode d'analyse (le mode 4) ; une réponse collée se recolle
+    card.querySelector("#ai-again").onclick = () => { close(); if (lastMode === "paste") pastePanel(); else if (again) again(run && run.mode > 1 ? run.mode : 4); else open(); };
     card.querySelector("#ai-ok").onclick = add;
     // v76 : « Voir » un écart = zoom sur sa position (l'aperçu orange reste affiché)
     card.querySelectorAll("[data-ex]").forEach((b) => (b.onclick = () => { const x = +b.dataset.ex, y = +b.dataset.ey; api.zoomToBox(x - 1.5, y - 1.5, x + 1.5, y + 1.5); }));
@@ -219,26 +220,50 @@ export function createAiReleve({ api, openParams }) {
     if (!api.ch.fond.calibre) {
       show(`<p>Réglage de l'échelle d'après les cotes du plan…</p>`);
       const sc = await autoScale(api).catch(() => ({ ok: false }));
-      if (!sc.ok) { message("Réglez d'abord l'échelle du plan (les deux bouts d'une cote connue, puis sa longueur) : l'IA a besoin des vraies dimensions.", [{ label: "Régler l'échelle", run: () => api.startCalib() }, { label: "Fermer", run: () => {} }]); return null; }
+      if (!sc.ok) { message("Réglez d'abord l'échelle du plan (les deux bouts d'une cote connue, puis sa longueur) : l'IA a besoin des vraies dimensions." + (sc.why ? " " + esc(sc.why) : ""), [{ label: "Régler l'échelle", run: () => api.startCalib() }, { label: "Fermer", run: () => {} }]); return null; }
     }
     return { provider };
   }
 
   // Mode sans clé : la réponse (JSON) est donnée à la main (collée, ou lue dans un fichier .json). Coordonnées en pixels
   // d'une image de TOUTE la page du PDF ("ref": {"W":…,"H":…}) : indépendant du rognage fait pour l'envoi à l'IA.
+  // Lot 1 (05/11/2026) : l'échelle mesurée par l'IA sur les cotes (« remarques ») doit concorder avec celle du fond à 10 %
+  // près, sinon le collage est BLOQUÉ (chantier COURIAUT : fond faux d'un facteur 100, plan inutilisable)
+  const ECART_MAX = 10;
+  function askScale(c, text, why = "") {
+    const f = (v) => String(v).replace(".", ",");
+    message(`<b>Échelle à régler avant de coller.</b> ${why ? esc(why) + " " : ""}L'IA a mesuré <b>${f(c.ia)} px/m</b> sur les cotes du plan, le fond de ce chantier est à <b>${f(c.fond)} px/m</b>${Number.isFinite(c.ecart) ? ` (écart de ${f(c.ecart)} %)` : ""}. Coller ainsi décalerait tout le relevé (appareils loin des murs, plan très lent).`, [
+      { label: "Régler l'échelle d'après la réponse", run: async () => {
+        const a = { x: api.BG.x, y: api.BG.y };
+        if (api.applyCalib(a, { x: a.x + 1, y: a.y }, c.fondExact / c.ia)) await fromPaste(text);
+      } },
+      { label: "Régler l'échelle à la main", run: () => api.startCalib() },
+      { label: "Annuler", run: () => {} },
+    ]);
+    const b = card.querySelector('[data-i="0"]'); if (b) b.id = "ai-scale-fix";
+  }
+  const scaleOf = (raw, map) => { const c = scaleCheck(raw && raw.remarques, map); return c ? { ...c, fondExact: 1 / map.sx } : null; };
+
   async function fromPaste(text) {
     let raw;
     try { raw = parseAiJson(text); } catch (e) { return message("Ce texte n'est pas un relevé exploitable : " + esc(e.message), [{ label: "Réessayer", run: pastePanel }, { label: "Fermer", run: () => {} }]); }
     const f = await api.levelFond(api.level.id).catch(() => null);
     if (!f) return message("Ce chantier n'a pas encore de plan. Ajoutez le PDF ou l'image du plan dans l'onglet Chantiers.", [{ label: "Ouvrir Chantiers", run: () => api.setTab("chantiers") }, { label: "Fermer", run: () => {} }]);
+    // v77 : « ref » lu avec tolérance (W/H, w/h, width/height) et hauteur corrigée si la proportion est presque celle du fond
+    const ref0 = refOf(raw, { fondW: f.w, fondH: f.h });
+    if (!ref0) return message("Cette réponse n'indique pas la taille de l'image de référence (champ « ref », par exemple <code>\"ref\":{\"W\":1568,\"H\":1109}</code>). Elle ne peut pas être placée sur le plan.", [{ label: "Fermer", run: () => {} }]);
     if (!api.ch.fond.calibre) {
       const sc = await autoScale(api).catch(() => ({ ok: false }));
-      if (!sc.ok) return message("Réglez d'abord l'échelle du plan (outil Échelle : « 1/50 » si le plan est au 1/50 sur sa feuille d'origine), puis recollez la réponse.", [{ label: "Régler l'échelle", run: () => api.startCalib() }, { label: "Fermer", run: () => {} }]);
+      if (!sc.ok) {
+        const c = scaleOf(raw, { sx: f.w / ref0.W });
+        if (c) return askScale(c, text, "Le fond n'est pas encore à l'échelle" + (sc.why ? ` (${sc.why})` : "") + ".");
+        return message("Réglez d'abord l'échelle du plan (outil Échelle : « 1/50 » si le plan est au 1/50 sur sa feuille d'origine), puis recollez la réponse." + (sc.why ? " " + esc(sc.why) : ""), [{ label: "Régler l'échelle", run: () => api.startCalib() }, { label: "Fermer", run: () => {} }]);
+      }
     }
-    // v77 : « ref » lu avec tolérance (W/H, w/h, width/height) et hauteur corrigée si la proportion est presque celle du fond
     const f2 = await api.levelFond(api.level.id), ref = refOf(raw, { fondW: f2.w, fondH: f2.h });
-    if (!ref) return message("Cette réponse n'indique pas la taille de l'image de référence (champ « ref », par exemple <code>\"ref\":{\"W\":1568,\"H\":1109}</code>). Elle ne peut pas être placée sur le plan.", [{ label: "Fermer", run: () => {} }]);
     const map = { x0: f2.x, y0: f2.y, sx: f2.w / ref.W, sy: f2.h / ref.H };
+    const c = scaleOf(raw, map);
+    if (c && c.ecart > ECART_MAX) return askScale(c, text);
     lastMode = "paste"; lastUsage = null; lastMs = 0; run = { id: newAnalyseId(), mode: 1 };
     // v64.1 : image trop petite = symboles de quelques pixels, appareils oubliés (essai MAILLARD : 1 654 px, 63 appareils sur 102)
     const low = Math.max(ref.W, ref.H) < MIN_REF_W ? ` · ⚠ image de ${ref.W} px seulement : relevé fait en basse définition, des appareils sont probablement oubliés (la consigne demande ${MIN_REF_W} px au moins : redemandez-le)` : "";
@@ -281,7 +306,7 @@ export function createAiReleve({ api, openParams }) {
       if (!api.ch.fond.calibre) {
         show(`<p>Réglage de l'échelle d'après les cotes du plan…</p>`);
         const sc = await autoScale(api).catch(() => ({ ok: false }));
-        if (!sc.ok) { busy = false; return message("Réglez d'abord l'échelle du plan (les deux bouts d'une cote connue, puis sa longueur) : l'IA a besoin des vraies dimensions.", [{ label: "Régler l'échelle", run: () => api.startCalib() }, { label: "Fermer", run: () => {} }]); }
+        if (!sc.ok) { busy = false; return message("Réglez d'abord l'échelle du plan (les deux bouts d'une cote connue, puis sa longueur) : l'IA a besoin des vraies dimensions." + (sc.why ? " " + esc(sc.why) : ""), [{ label: "Régler l'échelle", run: () => api.startCalib() }, { label: "Fermer", run: () => {} }]); }
       }
       show(`<p>Préparation de l'image du plan…</p>`);
       const img = await fondImage(api, provider === "nvidia" ? { maxPx: 1280, maxB64: PROVIDERS.nvidia.maxImageB64 } : {});

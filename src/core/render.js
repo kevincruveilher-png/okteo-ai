@@ -642,18 +642,19 @@ export function draw() {
         hT = F * pm,
         gap = 3 * pm,
         SOFT = new Placer(pm * 48),
-        WALLS = new Placer(pm * 48);   // murs : obstacles des repères seulement (les longueurs des murs restent possibles)
+        WALLS = new Placer(pm * 48),   // murs : obstacles des repères seulement (les longueurs des murs restent possibles)
+        VB0 = viewWorldBox(), CLIP = { x0: VB0.x0 - 80 * pm, y0: VB0.y0 - 80 * pm, x1: VB0.x1 + 80 * pm, y1: VB0.y1 + 80 * pm };   // lot 1 : zone visible (+ marge)
       // obstacles durs : les murs, à leur vraie épaisseur
       state.segs.forEach(seg => {
         if (seg.virt) return;
         const d = segDir(seg); if (!d.a) return;
         const e2 = epOf(seg) / 2, nx = -d.uy * e2, ny = d.ux * e2;
-        wallBoxes([{ x: d.a.x + nx, y: d.a.y + ny }, { x: d.b.x + nx, y: d.b.y + ny }, { x: d.b.x - nx, y: d.b.y - ny }, { x: d.a.x - nx, y: d.a.y - ny }]).forEach(b => WALLS.add(b));
+        wallBoxes([{ x: d.a.x + nx, y: d.a.y + ny }, { x: d.b.x + nx, y: d.b.y + ny }, { x: d.b.x - nx, y: d.b.y - ny }, { x: d.a.x - nx, y: d.a.y - ny }], 0, CLIP).forEach(b => WALLS.add(b));
       });
       // obstacles « à éviter si possible » : liaisons et gaines (droites boîte → appareil)
       const byIdR = Object.fromEntries(state.app.map(a => [a.id, a]));
-      if (layers.liaisons.on) state.lia.forEach(l => { const c = byIdR[l.c], m = byIdR[l.l]; if (c && m) lineBoxes([dp(c), dp(m)], 6 * pm, 2 * pm).forEach(b => SOFT.add(b)); });
-      if (K.showCirc) (K.CAB.boxes || []).filter(b => b.lv == null || b.lv === K.LV.cur).forEach(b => (b.apps || []).forEach(id => { const m = byIdR[id]; if (m) lineBoxes([{ x: b.x, y: b.y }, dp(m)], 6 * pm, 2 * pm).forEach(q => SOFT.add(q)); }));
+      if (layers.liaisons.on) state.lia.forEach(l => { const c = byIdR[l.c], m = byIdR[l.l]; if (c && m) lineBoxes([dp(c), dp(m)], 6 * pm, 2 * pm, CLIP).forEach(b => SOFT.add(b)); });
+      if (K.showCirc) (K.CAB.boxes || []).filter(b => b.lv == null || b.lv === K.LV.cur).forEach(b => (b.apps || []).forEach(id => { const m = byIdR[id]; if (m) lineBoxes([{ x: b.x, y: b.y }, dp(m)], 6 * pm, 2 * pm, CLIP).forEach(q => SOFT.add(q)); }));
       const order = state.app.slice().sort((p, q) => (isSel("app", q.id) ? 1 : 0) - (isSel("app", p.id) ? 1 : 0));
       order.forEach(a => {
         const str = rm[a.id];
