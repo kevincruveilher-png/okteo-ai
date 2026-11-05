@@ -11,6 +11,7 @@
 - `view.js` : `syncVB(measure)` : pendant le dessin, taille mémorisée par le ResizeObserver (`watchSize`), sans mesure.
 - Résultat de la sonde : dessin 38 → 16 ms (vue entière), 48 → 17 ms (zoom ×12) ; fond décodé une seule fois.
 - Test smoke : 40 crans de molette → moins de 40 dessins ; le fond reste le même élément d'un dessin à l'autre.
+- Fusion dans `main` le 05/11/2026 (go de Kévin) : `npm run check` vert sur GitHub Actions (run 42002250587, smoke 210/210).
 
 ## 05/11/2026 — Interrupteurs et va-et-vient collés au mur, trait perpendiculaire vers la pièce
 
