@@ -24,12 +24,14 @@ export function variantsOf(type) {
 }
 // enregistre un symbole validé par l'opérateur ; même type et même description chez ce pavillonneur = pas de doublon.
 // Lot 2 : en version en ligne, la fiche part aussi dans la mémoire COMMUNE du serveur (tous les postes la voient).
-export function remember({ pav, type, desc, chantier = "", by = "", image = "" }) {
+// MAJ mémoire : `lu` = type que l'IA avait donné (ex. « XYZ », ou « LUM » avec un doute), `inscription` = texte voisin :
+// ce qui permet de reconnaître le même dessin à la prochaine analyse (src/walls/ai-memory.js)
+export function remember({ pav, type, desc, chantier = "", by = "", image = "", lu = "", inscription = "" }) {
   if (!type) return null;
   const M = memoAll(), k = norm(pav) || "(sans pavillonneur)", L = M[k] || [];
-  const e = { id: "sm-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), type, desc: String(desc || type).slice(0, 300), pav: pav || "", chantier, by, at: new Date().toISOString(), image };
+  const e = { id: "sm-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), type, desc: String(desc || type).slice(0, 300), pav: pav || "", chantier, by, at: new Date().toISOString(), image, lu: String(lu || "").slice(0, 24), inscription: String(inscription || "").slice(0, 80) };
   const same = L.find((x) => x.type === e.type && norm(x.desc) === norm(e.desc));
-  if (same) Object.assign(same, { image: e.image || same.image, at: e.at, by: e.by || same.by, chantier: e.chantier || same.chantier, pending: true });
+  if (same) Object.assign(same, { image: e.image || same.image, at: e.at, by: e.by || same.by, chantier: e.chantier || same.chantier, lu: e.lu || same.lu || "", inscription: e.inscription || same.inscription || "", pending: true });
   else L.push({ ...e, pending: true });
   M[k] = L; storeSet(KEY, M);
   const out = same || L[L.length - 1];
@@ -44,7 +46,7 @@ export function forget(pav, id) {
 }
 async function api(path, data) { const { request } = await import("../web/client.js"); return request(path, data); }
 async function push(e) {
-  const r = await api("/api/symbol-memory", { type: e.type, pav: e.pav, desc: e.desc, chantier: e.chantier, image: e.image && e.image.length <= 90000 ? e.image : "" });
+  const r = await api("/api/symbol-memory", { type: e.type, pav: e.pav, desc: e.desc, chantier: e.chantier, lu: e.lu || "", inscription: e.inscription || "", image: e.image && e.image.length <= 90000 ? e.image : "" });
   const M = memoAll();
   for (const L of Object.values(M)) for (const x of L || []) if (x.id === e.id) { x.server = r.id; delete x.pending; }
   storeSet(KEY, M);

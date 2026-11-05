@@ -63,7 +63,8 @@ export async function readWithTools({ call, system, first, ctx, maxRounds = 8, m
       try { out = await runTool(u.name, u.input, ctx); } catch (e) { out = { text: "Erreur de l'outil : " + (e && e.message || e) }; }
       uses.push({ outil: u.name, zone: u.input && u.input.w ? [u.input.x, u.input.y, u.input.w, u.input.h].map(Math.round).join(",") : "" });
       onTool(u.name);
-      results.push({ type: "tool_result", tool_use_id: u.id, content: out.image ? [{ type: "text", text: out.text }, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: out.image } }] : out.text });
+      const imgs = [...(out.image ? [out.image] : []), ...(out.images || [])];   // MAJ mémoire : dessins de la mémoire
+      results.push({ type: "tool_result", tool_use_id: u.id, content: imgs.length ? [{ type: "text", text: out.text }, ...imgs.map((data) => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data } }))] : out.text });
     }
     messages.push({ role: "user", blocks: results });
   }

@@ -115,13 +115,13 @@ Réponds UNIQUEMENT avec ce JSON (sans texte autour, guillemets droits ") :
 ${JSON_FORM}`;
 }
 // relevé sans clé (v36) : consigne à copier dans une conversation neuve avec le PDF joint ; la réponse se colle dans Oktéo
-export function pastePrompt({ page = 1 } = {}) {
+export function pastePrompt({ page = 1, memory = "" } = {}) {
   return `${AI_SYSTEM}
 
 Voici le plan d'une maison individuelle (PDF joint, page ${page}). Ignore les autres pages du PDF (plan du bureau d'études, notices).
 ${promptBody(`- Coordonnées en PIXELS de l'image entière de la page ${page} (origine en haut à gauche, x vers la droite, y vers le bas), nombres entiers. Donne la taille de cette image dans "ref" (W = largeur, H = hauteur en pixels) : sans "ref", la réponse ne peut pas être placée.
 - Mesure les positions sur l'image (pas à l'estime) : les murs doivent tomber sur les murs du plan.`, METHOD_PASTE(page))}
-
+${memory ? "\n" + memory + "\n" : ""}
 Réponds UNIQUEMENT avec ce JSON (sans texte autour, guillemets droits " : pas de guillemets typographiques) :
 ${JSON_FORM.replace("{", '{"ref":{"W":0,"H":0},\n ')}`;
 }

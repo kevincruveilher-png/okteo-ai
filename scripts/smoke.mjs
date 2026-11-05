@@ -1192,6 +1192,23 @@ try {
     if (!(r.w === 50 && r.c === "1.8,18.4,1.8," && r.pl === "true,false")) throw new Error(JSON.stringify(r));
     return true;
   });
+  await check("MAJ mémoire : un symbole appris (lu « QWE » = point lumineux) est reconnu à la réponse collée suivante, sans doute ; la consigne copiée contient la liste des symboles appris", async () => {
+    const id = await ev(async () => { const m = await import("/src/ext/symbol-memory.js"); return m.remember({ pav: okteo.ch.client || "", type: "LUM", desc: "essai mémoire", lu: "QWE", by: "essai" }).id; });
+    const rep = { ref: { W: 1000, H: 1000 }, murs: [{ x1: 200, y1: 200, x2: 800, y2: 200, ep: 20 }, { x1: 800, y1: 200, x2: 800, y2: 700, ep: 20 }, { x1: 800, y1: 700, x2: 200, y2: 700, ep: 20 }, { x1: 200, y1: 700, x2: 200, y2: 200, ep: 20 }],
+      ouvertures: [], pieces: [{ nom: "Essai mémoire", x: 500, y: 450 }], appareils: [{ t: "QWE", x: 500, y: 450 }, { t: "RTY", x: 300, y: 300 }], liaisons: [] };
+    await ev(() => okteoExt.aiReleve.pastePanel());
+    await page.click("#ai-copy");
+    await page.waitForFunction(() => !/Copier la consigne/.test(document.querySelector("#ai-copy").textContent), null, { timeout: 5000 });
+    const cons = await ev(() => okteoExt.aiReleve.copied);
+    await page.fill("#ai-paste", JSON.stringify(rep));
+    await page.click("#ai-read");
+    await page.waitForSelector("#ai-ok", { timeout: 15000 });
+    const r = await ev(() => ({ t: okteoExt.aiReleve.plan.devices.map((d) => d.t + ":" + (d.aiStatus || "")).join(","), txt: document.querySelector(".aicard").textContent }));
+    await ev(() => okteoExt.aiReleve.close());
+    await ev(async (i) => { const m = await import("/src/ext/symbol-memory.js"); await m.forget(okteo.ch.client || "", i); }, id);
+    if (!(/« QWE » = LUM/.test(cons) && r.t === "LUM:lu,INCONNU:a_identifier" && /1 symbole reconnu par la mémoire/.test(r.txt))) throw new Error(JSON.stringify({ r: { ...r, txt: r.txt.slice(0, 300) }, cons: /QWE/.test(cons) }));
+    return true;
+  });
   await check("relevé IA sans clé (v55.1) : « Copier la consigne » (ref, 40 types, hauteurs, CVR) ; réponse avec radiateur, volet + CVR, hauteur lue", async () => {
     await ev(() => okteoExt.aiReleve.pastePanel());
     await page.click("#ai-copy");

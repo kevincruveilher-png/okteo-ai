@@ -99,7 +99,7 @@ export function createWhyBlink({ api }) {
       vb.disabled = true; say("Enregistrement du dessin…");
       const image = await cropAround(api, a).catch(() => "");
       const desc = [`dessin du plan pour ${api.TYPES[t].n || t}`, a.inscription ? `inscription « ${a.inscription} »` : "", a.aiType && a.aiType !== t ? `lu par l'IA comme ${a.aiType}` : ""].filter(Boolean).join(", ");
-      const r = remember({ pav: api.ch.client || "", type: t, desc, chantier: [api.ch.nom, api.ch.numero].filter(Boolean).join(" "), by: who(), image });
+      const r = remember({ pav: api.ch.client || "", type: t, desc, chantier: [api.ch.nom, api.ch.numero].filter(Boolean).join(" "), by: who(), image, lu: a.aiType || a.t, inscription: a.inscription || "" });
       const p = cur.pts.find((x) => confirmable(x.kind)) || cur.pts[0];
       api.batch(() => { if (a.t !== t || a.aiStatus !== "lu") api.updateApps([{ id: a.id, t, aiStatus: "lu" }]); if (p) decide(p, { choix: "variante", label: `dessin enregistré comme variante de ${api.TYPES[t].n || t}`, type: t }); });
       document.dispatchEvent(new CustomEvent("okteo:symbol-memorized", { detail: r }));

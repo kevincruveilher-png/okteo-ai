@@ -17,6 +17,8 @@ import { autoScale, chantierPage, pageMap } from "./pdf-page.js";
 import { esc } from "./util.js";
 import { recordReleve } from "./ai-recheck-ui.js";
 import { createAttente } from "./attente.js";
+import { memoryFixes, memoryPrompt } from "../walls/ai-memory.js";
+import { symbolMemory } from "./symbol-memory.js";
 
 const SYSTEM = AI_SYSTEM;
 
@@ -161,7 +163,7 @@ export function createAiReleve({ api, openParams }) {
     recal = null;
     try { plan = aiToPlan(raw, map, { defEp: api.state.wallEp }); }
     catch (e) { api.setPreview(null); plan = null; message("Import annulé : " + esc(e.message)); return null; }
-    meta = info + scaleStep(raw, map) + squareStep();
+    meta = info + scaleStep(raw, map) + squareStep() + memoryStep();
     keep = { walls: plan.walls.length > 0, rooms: plan.pieces.length > 0 || plan.walls.length > 0, devices: plan.devices.length > 0 };
     preview(); render();
     return plan;
@@ -173,6 +175,14 @@ export function createAiReleve({ api, openParams }) {
     if (!c) return "";
     const f = (v) => String(v).replace(".", ",");
     return c.ok ? ` · échelle de l'IA conforme au fond (${f(c.ia)} px/m, écart ${f(c.ecart)} %)` : ` · ⚠ échelle annoncée par l'IA ${f(c.ia)} px/m, fond ${f(c.fond)} px/m (écart ${f(c.ecart)} %) : vérifiez l'échelle du fond (outil Échelle) ou le « ref » de la réponse`;
+  }
+  // MAJ mémoire (05/11/2026) : un symbole déjà appris chez ce pavillonneur prend le type validé, sans doute
+  function memoryStep() {
+    let F;
+    try { F = memoryFixes(plan.devices, symbolMemory(api.ch.client)); } catch { return ""; }
+    if (!F.fixed.length) return "";
+    plan = { ...plan, devices: F.devices, memoire: F.fixed };
+    return ` · ${F.fixed.length} symbole${F.fixed.length > 1 ? "s" : ""} reconnu${F.fixed.length > 1 ? "s" : ""} par la mémoire${api.ch.client ? " de " + api.ch.client : ""}`;
   }
   // n° 14 : murs mis d'équerre (réglages de Paramètres → Murs) avant le recalage ; renvoie le texte du compte rendu
   function squareStep() {
@@ -204,7 +214,7 @@ export function createAiReleve({ api, openParams }) {
   function fromPlan(P, { info = "", text = "", usage = null, ms = 0, mode = 2 } = {}) {
     lastText = String(text || "");
     recordInitial(api.ch.id, lastText, { map: null, info });
-    plan = P; meta = info; recal = null; meta += squareStep(); lastMode = "key"; lastUsage = usage; lastMs = ms; run = { id: newAnalyseId(), mode };
+    plan = P; meta = info; recal = null; meta += squareStep() + memoryStep(); lastMode = "key"; lastUsage = usage; lastMs = ms; run = { id: newAnalyseId(), mode };
     keep = { walls: plan.walls.length > 0, rooms: plan.pieces.length > 0 || plan.walls.length > 0, devices: plan.devices.length > 0 };
     preview(); render();
     return plan;
@@ -284,7 +294,9 @@ export function createAiReleve({ api, openParams }) {
     card.querySelector("#ai-read").onclick = () => { const t = ta.value.trim(); if (t) fromPaste(t); };
     card.querySelector("#ai-x").onclick = close;
     card.querySelector("#ai-copy").onclick = async (e) => {
-      const b = e.currentTarget, txt = pastePrompt({ page: (api.ch.fond && api.ch.fond.page) || 1 });
+      const names = Object.fromEntries(Object.entries(api.TYPES).map(([t, T]) => [t, T.n]));
+      const mem = (() => { try { return memoryPrompt(symbolMemory(api.ch.client), names); } catch { return ""; } })();
+      const b = e.currentTarget, txt = pastePrompt({ page: (api.ch.fond && api.ch.fond.page) || 1, memory: mem });
       copied = txt;
       let ok = false;
       // presse-papiers refusé ou sans réponse (1,5 s) : la consigne est mise dans la zone de texte, sélectionnée
