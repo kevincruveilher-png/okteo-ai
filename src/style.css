@@ -1298,4 +1298,6 @@ body.am-on{overflow:hidden}
 .why-pt{border-top:1px solid var(--line);padding:8px 0}.why-pt p{margin:4px 0}.why-pr{margin:4px 0 4px 18px;padding:0}
 .why-ch{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:center;margin:6px 0}
 .why-act{display:flex;gap:6px;flex-wrap:wrap}.why-img img{display:block;max-width:100%;border:1px solid var(--line);background:#fff}
+.why-act .why-ok{background:var(--accent,#0b8a7a);color:#fff;border-color:transparent;font-weight:600}
+.rap-val li{margin:2px 0 6px}
 .hud-why{color:#d33a2c;font-weight:600}.rap-fam ul{margin:4px 0 8px 16px;padding:0}.rap-fam li{margin:2px 0}
