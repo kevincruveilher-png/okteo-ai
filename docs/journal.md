@@ -1,3 +1,17 @@
+## 05/11/2026 — Plan fluide : un dessin par image, fond gardé, plus de mesure forcée de l'écran
+
+- Constat de Kévin (chantier COURIAUT, 119 appareils, fond du PDF) : plan très lent, la page plante au zoom.
+- Mesure (sonde temporaire sur GitHub Actions, maison type 18 × 9 m, 120 appareils, 30 liaisons, fond 4 500 px, 165 points
+  signalés) : un dessin = 38 ms sur la machine de test (bien plus sur un portable), dont 25 % pour `getBoundingClientRect`
+  (mise en page forcée à chaque dessin) ; la molette dessinait tout le plan à CHAQUE cran, et le fond (image de plusieurs
+  millions de pixels) était recréé à chaque dessin (nouveau décodage à chaque cran : mémoire qui explose, page qui plante).
+- `render.js` : `drawSoon()` (un seul dessin à l'image suivante, `requestAnimationFrame`, `K.rafDraw`) ; `draw()` annule un
+  dessin en attente ; fond = même élément `<image>` remis à sa place (`K.bgEl`, emplacement `g.bgslot`).
+- `interact.js` : molette et `pointermove` (glisser, déplacer, tracer) passent par `drawSoon()`.
+- `view.js` : `syncVB(measure)` : pendant le dessin, taille mémorisée par le ResizeObserver (`watchSize`), sans mesure.
+- Résultat de la sonde : dessin 38 → 16 ms (vue entière), 48 → 17 ms (zoom ×12) ; fond décodé une seule fois.
+- Test smoke : 40 crans de molette → moins de 40 dessins ; le fond reste le même élément d'un dessin à l'autre.
+
 ## 05/11/2026 — Interrupteurs et va-et-vient collés au mur, trait perpendiculaire vers la pièce
 
 - Demande de Kévin (capture à l'appui) : le rond de l'interrupteur collé contre la paroi, le trait du symbole

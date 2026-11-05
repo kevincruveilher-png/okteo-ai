@@ -420,6 +420,9 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
 - Version en ligne : Cloudflare Pages (voir « À LIRE EN PREMIER »), construite par `npm run build:web` à chaque push sur
   `main`. Le relais `/ai/*` de Vite n'existe qu'en local ; en ligne, `/ai/anthropic` est le Worker `server/worker.js`.
 - Un objet `window.__okteo` expose `state` et `draw` pour les tests.
+- 05/11/2026 (plan fluide) : événements fréquents (molette, `pointermove`) → `drawSoon()` (un dessin par image), jamais
+  `draw()` directement ; `syncVB(false)` dans `draw` (pas de `getBoundingClientRect`) ; le fond est un seul élément
+  `<image>` gardé (`K.bgEl`, `g.bgslot`) : ne jamais le remettre dans le texte de `sv.innerHTML`.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (42 vérifications : relevé des murs, des pièces et des
