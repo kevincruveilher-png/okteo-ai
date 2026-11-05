@@ -12,7 +12,16 @@ await page.waitForTimeout(3000);
 const ev = (f, a) => page.evaluate(f, a);
 // plan chargé : ajoute ~120 appareils et 40 liaisons répartis dans l'emprise, comme un vrai plan (COURIAUT : 119 appareils)
 const info = await ev(() => {
-  const S = okteo.state, xs = S.nodes.map((n) => n.x), ys = S.nodes.map((n) => n.y);
+  const S = okteo.state;
+  if (S.nodes.length < 4) {
+    // maison type 18 × 9 m (synthétique) : 4 murs extérieurs de 31 cm, cloisons de 7 cm en grille (10 pièces)
+    const W = [], m = (x1, y1, x2, y2, ep) => W.push({ a: { x: x1, y: y1 }, b: { x: x2, y: y2 }, ep });
+    m(0, 0, 18, 0, 0.31); m(18, 0, 18, 9, 0.31); m(18, 9, 0, 9, 0.31); m(0, 9, 0, 0, 0.31);
+    for (const x of [3.6, 7.2, 10.8, 14.4]) { m(x, 0, x, 4, 0.07); m(x, 5, x, 9, 0.07); }
+    m(0, 4, 18, 4, 0.07); m(0, 5, 18, 5, 0.07);
+    okteo.addWalls(W); okteo.addLimits && 0;
+  }
+  const xs = S.nodes.map((n) => n.x), ys = S.nodes.map((n) => n.y);
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
   const T = ["PC16", "PC16", "PC16", "LUM", "INT", "VV", "RJ45", "APP"], list = [], links = [];
   let seed = 7; const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
