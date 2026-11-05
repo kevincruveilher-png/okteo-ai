@@ -2,7 +2,7 @@
 // d'analyse. Pour chaque point : famille et couleur, explication, preuves (extrait du plan, inscriptions, lecture de
 // l'IA), choix possibles et leur conséquence, recommandation ; réponse de l'opérateur gardée (qui, quand) pour le
 // technicien BE ; ce que le plan ne dit pas devient une question au pavillonneur. Passe par l'API seulement.
-import { explain, buildRapport, rapportText, FAMILLES, confirmable } from "../cablage/rapport.js";
+import { explain, buildRapport, rapportText, FAMILLES, confirmable, isConfirmed } from "../cablage/rapport.js";
 import { cropAround } from "./symbol-memory.js";
 import { esc } from "./util.js";
 
@@ -42,9 +42,12 @@ export function createWhyBlink({ api }) {
     // les types candidats ne sont proposés qu'une fois (sur le premier point qui en a)
     let seenC = false; pts.forEach((p) => { if (p.choix.length) { if (seenC) p.choix = []; seenC = true; } });
     cur = { id, pts };
+    // points déjà confirmés pour cet appareil (ils ne clignotent plus) : rappel de qui a confirmé et quand
+    const done = Object.entries(decisions()).filter(([k, d]) => isConfirmed(d) && (k.split(":")[1] || "").split(",").includes(id)).map(([, d]) => d);
     card.innerHTML = `<button class="wx" title="Fermer (Échap)" aria-label="Fermer">✕</button><h3>Pourquoi ça clignote ? · ${esc(a.rep || a.t)}${a.room ? ` <span class="mut sm">${esc(a.room)}</span>` : ""}</h3>
       <div class="why-img" hidden><img alt="Extrait du plan autour de l'appareil"><span class="sm mut">Extrait du plan (1,20 m autour)</span></div>
       ${pts.length ? pts.map(pointHTML).join("") : `<p class="ok">Plus rien à signaler sur cet appareil.</p>`}
+      ${done.map((d) => `<p class="ok sm why-dec">✓ ${esc(d.label)} — ${esc(d.by || "")}${d.at ? ", " + esc(d.at.slice(0, 16).replace("T", " ")) : ""}</p>`).join("")}
       <p class="why-foot"><button id="why-rap" title="Tous les points du plan, par famille, avec les décisions et les questions au pavillonneur">Rapport d'analyse</button></p>`;
     card.hidden = false;
     wire();
