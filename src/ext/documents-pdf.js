@@ -30,7 +30,7 @@ export function documentsData(api) {
     unifilaire: tb ? unifilaire(tb.T, tb.C, apps) : [],
     reperage: tb ? reperage(tb.T, tb.C, apps) : [],
     liens: liensCom(apps),
-    fiche: autocontrole({ v: V.v, pieces, circuits: circ, tableau: tab, sdb, hasTableau: !!tb }),
+    fiche: autocontrole({ v: V.v, pieces, circuits: circ, tableau: tab, sdb, hasTableau: !!tb, pf: tabCtx(api).pf }),
   };
 }
 

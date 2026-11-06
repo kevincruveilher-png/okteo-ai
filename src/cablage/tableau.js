@@ -6,6 +6,8 @@
 // les autres répartis sur des ID type AC selon les circuits et la charge calculée, au plus 8 circuits par ID ;
 // une rangée par ID. Les circuits de communication (RJ45) n'ont pas de disjoncteur.
 
+import { withParafoudre, parafoudreIssues } from "../norme/parafoudre.js";
+
 // coffrets : Schneider Electric Resi9 et Legrand Drivia, 1 à 4 rangées de 13 ou 18 modules
 const SE = "Schneider Electric", LG = "Legrand";
 export const MODELS = [
@@ -29,6 +31,7 @@ export const BRANDS = [SE, LG];
 export const MODS = {
   pc: { n: "Prise modulaire 2P+T 16 A", s: "Prise 2P+T", w: 2.5, under: true },
   pf: { n: "Parafoudre type 2", s: "Parafoudre", w: 2 },
+  pf1: { n: "Parafoudre type 1 (paratonnerre)", s: "Parafoudre T1", w: 2 },
   pfd: { n: "Disjoncteur de déconnexion du parafoudre", s: "Disj. parafoudre", w: 1 },
   tl: { n: "Télérupteur", s: "Télérupteur", w: 1 },
   hc: { n: "Contacteur jour / nuit (chauffe-eau, heures creuses)", s: "Contacteur HC", w: 1 },
@@ -69,7 +72,7 @@ export function idCalibre(cs) { const need = idCalibreMin(cs); return ID_CALIBRE
 // R-105 : pièces où le tableau (GTL) ne se pose pas ; la cuisine reste une question (Q-91)
 export const GTL_INTERDIT = /salle d.?eau|salle de bain|\bbains?\b|\bsdb\b|\bsde\b|douche|placard|dressing|escalier/i;
 
-export function autoTableau(circuits, { model = DEFAULT_MODEL, previous = null } = {}) {
+export function autoTableau(circuits, { model = DEFAULT_MODEL, previous = null, parafoudre = null } = {}) {
   const C0 = (circuits || []).filter(hasBreaker);
   // MAJ norme n° 5 : recharge (un différentiel chacun), appareils à variateur (type F), extérieurs (différentiel à part)
   const irve = C0.filter(isIrve), fC = C0.filter((c) => !isIrve(c) && needsF(c)), ext = C0.filter((c) => !isIrve(c) && !needsF(c) && isExt(c));
@@ -123,6 +126,8 @@ export function autoTableau(circuits, { model = DEFAULT_MODEL, previous = null }
     const before = mods.filter((it) => firstId < 0 || row.findIndex((x) => x.id === it.id) < firstId);
     rows[i] = [...before, ...rows[i], ...mods.filter((it) => !before.includes(it))];
   });
+  // MAJ parafoudre : posé en tête de la 1re rangée quand l'étude (ou le BE) le retient
+  if (parafoudre && parafoudre.avec) return { model, rows: withParafoudre(rows, true, parafoudre.type) };
   return { model, rows };
 }
 
@@ -186,6 +191,7 @@ export function tableauIssues(tab, circuits, ctx = {}) {
   // sèche-linge ou four) ; le journal (R-134) en comptait 3
   if (C.length && spec.length < 4) out.push(`R-134 (CIR-05) : ${spec.length} circuit${spec.length > 1 ? "s" : ""} spécialisé${spec.length > 1 ? "s" : ""} ; la norme en demande 4 au moins (cuisson + lave-linge, lave-vaisselle, sèche-linge ou four).`);
   // R-105 : pièce du tableau ; R-116 : 4 RJ45 au moins (T3 et plus)
+  if (ctx.pf) out.push(...parafoudreIssues(tab, ctx.pf, ctx));
   if (ctx.tabRoom && GTL_INTERDIT.test(ctx.tabRoom)) out.push(`R-105 (GTL-03) : tableau dans « ${ctx.tabRoom} » : la GTL ne se pose pas dans une salle d'eau, un placard ni sous un escalier.`);
   if (ctx.rj45 != null && ctx.rj45 < 4) out.push(`R-116 (COM-01) : ${ctx.rj45} prise${ctx.rj45 > 1 ? "s" : ""} RJ45 ; 4 au moins pour un T3 ou plus (2 dans le séjour).`);
   return out;

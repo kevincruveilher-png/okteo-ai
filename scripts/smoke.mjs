@@ -3538,6 +3538,29 @@ try {
     if (!(/CIR-01 · 10 prises par circuit en 1,5 mm² : la norme en admet 8/.test(w) && gone)) throw new Error(JSON.stringify({ w, gone }));
     return true;
   });
+  await check("parafoudre : code postal → Nk (AQ2) ; Étapes → Norme → Parafoudre : ligne aérienne = obligatoire ; choix « sans » du BE noté au rapport (étude initiale / modifications humaines)", async () => {
+    await page.evaluate(() => okteo.setTab("chantiers"));
+    await page.waitForSelector('input[data-f="cp"]', { timeout: 15000 });
+    await page.fill('input[data-f="cp"]', "84000"); await ev(() => document.querySelector('input[data-f="cp"]').dispatchEvent(new Event("change")));
+    const nk = await ev(() => document.querySelector("#ch-nk").textContent);
+    await ev(() => okteo.setTab("plan"));
+    await ev(() => { okteoExt.panel.show("steps"); okteoExt.tour.render(); });
+    await page.waitForSelector("#nm-pf #pf-arr", { timeout: 10000 });
+    const e0 = await ev(() => document.getElementById("pf-etat").textContent);
+    await page.selectOption("#pf-arr", "aerien");
+    const e1 = await ev(() => ({ t: document.getElementById("pf-etat").textContent, avec: okteo.parafoudre().avec }));
+    await page.selectOption("#pf-be", "non");
+    const e2 = await ev(() => ({ avec: okteo.parafoudre().avec, ecart: !!document.getElementById("pf-ecart"), E: okteoExt.whyBlink.ecarts().map((x) => x.code + ":" + x.choix) }));
+    for (let k = 0; k < 2; k++) await ev(() => okteo.undo());
+    const back = await ev(() => okteo.parafoudre().choix.be);
+    await ev(() => okteoExt.panel.close("steps"));
+    await page.evaluate(() => okteo.setTab("chantiers"));
+    await page.waitForSelector('input[data-f="cp"]', { timeout: 15000 });
+    await page.fill('input[data-f="cp"]', ""); await ev(() => document.querySelector('input[data-f="cp"]').dispatchEvent(new Event("change")));
+    await ev(() => okteo.setTab("plan"));
+    if (!(/dép\. 84 · Nk 40 · zone AQ2/.test(nk) && /à préciser/.test(e0) && /obligatoire/.test(e1.t) && e1.avec && !e2.avec && e2.ecart && e2.E.includes("PF-01:parafoudre retiré par le BE") && back === "auto")) throw new Error(JSON.stringify({ nk, e0, e1, e2, back }));
+    return true;
+  });
   await check("n° 15 : dossier PDF de 3 pages (plan RDC, plan R+1, devis) → nouveau chantier avec ses 2 niveaux et leur fond ; le devis est joint à l'analyse (mode 4)", async () => {
     const { jsPDF } = await import("jspdf");
     const d = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });

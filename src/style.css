@@ -1400,6 +1400,11 @@ body[data-tab]:not([data-tab="plan"]):not([data-tab="vue3d"]) .top2{display:none
 .nm-n { margin-left: 4px; font-size: 12px; padding: 1px 6px; border-radius: 9px; }
 .nm-n.bad { background: #fde7c7; color: #8a4b00; }
 .nm-n.okk { background: #dff3e4; color: #1d6b35; }
+.nm-n.wait { background: #e8e4f6; color: #4b3a8a; }
+.nm-pf { margin: 8px 0 4px; padding: 6px 0 0; border-top: 1px solid var(--line, #0002); display: grid; gap: 4px; }
+.nm-pf select, .nm-pf input:not([type]) { font: inherit; font-size: 12.5px; }
+.nm-pf-f { flex-wrap: wrap; gap: 4px 10px; font-size: 12.5px; }
+.rap-ecarts li { margin-bottom: 4px; }
 .nm-list { margin: 6px 0 0; padding-left: 0; list-style: none; font-size: 12.5px; }
 .nm-list li { padding: 4px 0; border-top: 1px solid var(--line, #e6e9ef); }
 .nm-code { display: inline-block; font-family: "JetBrains Mono", monospace; font-size: 11px; padding: 0 4px; border-radius: 4px; background: #eef1f6; color: #33415c; }

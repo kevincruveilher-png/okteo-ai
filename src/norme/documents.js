@@ -72,6 +72,14 @@ export function autocontrole(ctx = {}) {
   add("Vérifié sur le plan (Oktéo)", "GTL-03", "Emplacement du tableau (ni salle d'eau, ni placard, ni sous un escalier)", st(n(TB, /R-105|GTL-03/), hasT));
   add("Vérifié sur le plan (Oktéo)", "DOC-01", "Repérage des circuits au tableau (local et fonction)", hasT ? "R" : "SO", hasT ? "étiquettes jointes" : "");
   add("Vérifié sur le plan (Oktéo)", "DOC-02", "Schéma unifilaire remis à l'usager", hasT ? "R" : "SO", hasT ? "joint" : "");
+  // MAJ parafoudre : étude (zone de foudre, arrivée, paratonnerre) et choix du BE
+  const PF = ctx.pf;
+  if (PF) {
+    const pose = TB.some((x) => /PF-01 : .*à ajouter|disjoncteur de déconnexion/.test(String(x)));
+    const etat = PF.etat === "inconnu" && PF.choix.be === "auto" ? "" : !PF.avec ? (PF.etat === "obligatoire" ? "NR" : "SO") : pose ? "NR" : "R";
+    add("Vérifié sur le plan (Oktéo)", "PF-01", "Parafoudre (zone de foudre, arrivée du réseau, paratonnerre)", etat, `${PF.texte}${PF.zone ? ` · Nk ${PF.zone.nk}` : ""}${PF.ecart ? " · choix du BE différent de l'étude" : ""}${PF.manque.length ? " · à préciser : " + PF.manque.join(", ") : ""}`);
+    if (PF.com) add("À vérifier sur le chantier", "PF-03", "Parafoudre de communication (arrivée en cuivre)", "", "");
+  } else add("À vérifier sur le chantier", "PF-01", "Parafoudre (selon la zone et l'alimentation)", "", "");
   // à vérifier sur le chantier (cases laissées vides)
   for (const [code, lib] of [
     ["SDE-16", "Prise de terre (valeur mesurée), liaison équipotentielle principale et supplémentaire"],
@@ -83,7 +91,6 @@ export function autocontrole(ctx = {}) {
     ["GTL-01", "ETEL et GTL : dimensions, distances (gaz, chaleur, eau), passage de 70 cm"],
     ["GTL-07", "Coupure d'urgence accessible (0,90 à 1,80 m)"],
     ["GTL-08", "Section des conducteurs d'alimentation du tableau"],
-    ["PF-01", "Parafoudre (selon la zone et l'alimentation)"],
     ["COM-08", "Tableau de communication (DTIo, bandeau RJ45, terre)"],
   ]) add("À vérifier sur le chantier", code, lib, "", "");
   return out;

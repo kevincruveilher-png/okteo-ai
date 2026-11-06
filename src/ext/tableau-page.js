@@ -15,7 +15,14 @@ import { esc } from "./util.js";
 const KIND = { eclairage: "Éclairage", prises: "Prises", cuisine: "Prises cuisine", specialise: "Spécialisé", comm: "Communication" };
 
 // v66 : contexte des règles du tableau (R-105 pièce du tableau, R-116 nombre de RJ45)
-export function tabCtx(api) { const A = api.allApps(), t = A.find((a) => a.t === "TAB"); return { tabRoom: t ? t.room || "" : "", rj45: A.filter((a) => a.t === "RJ45").length }; }
+export function tabCtx(api) {
+  const A = api.allApps(), T = A.filter((a) => a.t === "TAB"), t = T[0];
+  let pf = null; try { pf = api.parafoudre ? api.parafoudre() : null; } catch { pf = null; }
+  // PF-02 : autres tableaux (divisionnaires) et leur distance au tableau principal (autre niveau = inconnue)
+  const tabs = T.slice(1).map((o) => ({ name: `Tableau ${o.rep || ""}`.trim(), d: o.lv === t.lv ? Math.hypot(o.x - t.x, o.y - t.y) : null }));
+  return { tabRoom: t ? t.room || "" : "", rj45: A.filter((a) => a.t === "RJ45").length, pf, tabs };
+}
+export const pfOf = (api) => { try { return api.parafoudre ? api.parafoudre() : null; } catch { return null; } };
 
 export function mountTableauPage(el, { api }) {
   let drag = null;
@@ -24,7 +31,7 @@ export function mountTableauPage(el, { api }) {
   function current() {
     const C = api.cab.circuits || [];
     const saved = api.cab.tableau;
-    const T = saved && saved.rows ? syncTableau(saved, C) : { ...autoTableau(C, { model: (saved && saved.model) || DEFAULT_MODEL, area: area() }), missing: [] };
+    const T = saved && saved.rows ? syncTableau(saved, C) : { ...autoTableau(C, { model: (saved && saved.model) || DEFAULT_MODEL, area: area(), parafoudre: pfOf(api) }), missing: [] };
     return { T, C, saved: !!(saved && saved.rows) };
   }
   const save = (T) => api.setCab({ tableau: { model: T.model, rows: T.rows } });
@@ -85,7 +92,7 @@ export function mountTableauPage(el, { api }) {
     const $ = (s) => el.querySelector(s);
     $("#tb-model").onchange = (e) => save({ ...T, model: e.target.value });
     const sg = $("#tb-sug"); if (sg) sg.onclick = () => save({ ...T, model: suggestModel(T).id });
-    $("#tb-auto").onclick = () => { save(autoTableau(api.cab.circuits || [], { model: T.model, previous: T })); api.setHint("Tableau disposé automatiquement ; accessoires conservés à vérifier. Ctrl+Z pour revenir."); };
+    $("#tb-auto").onclick = () => { save(autoTableau(api.cab.circuits || [], { model: T.model, previous: T, parafoudre: pfOf(api) })); api.setHint("Tableau disposé automatiquement ; accessoires conservés à vérifier. Ctrl+Z pour revenir."); };
     const reviewed = $("#tb-reviewed");
     if (reviewed) reviewed.onclick = () => save({ ...T, rows: T.rows.map((r) => r.map(({ reviewPlacement, ...it }) => it)) });
     $("#tb-rules").onclick = () => openRulesLibrary(api, "tableau");

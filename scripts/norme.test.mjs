@@ -7,6 +7,9 @@ import { normeCircuits, normeSettings, protMax, prisesMax } from "../src/norme/c
 import { checkCircuits } from "../src/cablage/circuits.js";
 import { unifilaire, reperage, liensCom, autocontrole, fonctionOf } from "../src/norme/documents.js";
 import { CAB_DEFAULTS } from "../src/cablage/settings.js";
+import { NK, depOf, nkOf, etudeParafoudre, withParafoudre, parafoudreIssues, ecartParafoudre } from "../src/norme/parafoudre.js";
+import { autoTableau, tableauIssues } from "../src/cablage/tableau.js";
+import { ecartsHumains, rapportText } from "../src/cablage/rapport.js";
 
 let n = 0;
 const test = (name, f) => { f(); n++; console.log("  ✓ " + name); };
@@ -123,6 +126,65 @@ test("n° 6 : schéma unifilaire, repérage (local + fonction), liens RJ45 numé
   assert.equal(st["PC-01"], "NR"); assert.equal(st["CIR-05"], "NR"); assert.equal(st["TAB-03"], "R"); assert.equal(st["DOC-02"], "R"); assert.equal(st["SDE-16*"], "");
   assert.ok(F.every((r) => r.ref && r.libelle));
   assert.equal(autocontrole({ hasTableau: false }).find((r) => r.code === "TAB-03").etat, "SO");
+});
+
+test("parafoudre : départements, Nk de la carte (96 + outre-mer), zone AQ2 au-delà de 25", () => {
+  assert.equal(Object.keys(NK).filter((k) => k.length === 2).length, 96);
+  assert.equal(Object.entries(NK).filter(([k, v]) => k.length === 2 && v > 25).length, 29);
+  assert.equal(depOf("69300"), "69"); assert.equal(depOf("20090"), "2A"); assert.equal(depOf("20200"), "2B"); assert.equal(depOf("97400"), "974");
+  assert.equal(depOf("1"), "01"); assert.equal(depOf("abc"), "");
+  assert.deepEqual(nkOf("84000"), { dep: "84", nk: 40, aq2: true });
+  assert.equal(nkOf("44000").aq2, false); assert.equal(nkOf("15000").aq2, false);   // 25 = AQ1
+  assert.equal(nkOf(""), null);
+});
+test("parafoudre : étude (paratonnerre, ligne aérienne en AQ2, souterraine, sécurité des personnes, données manquantes)", () => {
+  const E = (cp, c, v) => etudeParafoudre({ cp }, c, v);
+  assert.equal(E("84000", { arrivee: "aerien" }).etat, "obligatoire");
+  assert.equal(E("84000", { arrivee: "souterrain" }).etat, "non");
+  assert.equal(E("84000", { arrivee: "souterrain", securite: true }).etat, "obligatoire");
+  assert.equal(E("44000", { arrivee: "aerien" }).etat, "non");
+  assert.equal(E("44000", {}).etat, "non");                                   // AQ1 : l'arrivée ne change rien
+  assert.equal(E("44000", { securite: true }).etat, "recommande");
+  assert.equal(E("84000", {}).etat, "inconnu");
+  assert.equal(E("", {}).etat, "inconnu");
+  const T1 = E("", { paratonnerre: true }); assert.equal(T1.etat, "obligatoire"); assert.equal(T1.type, 1);
+  assert.equal(E("84000", { arrivee: "aerien" }).com, true); assert.equal(E("84000", { arrivee: "aerien" }, "2002").com, false);
+  assert.equal(E("84000", { arrivee: "aerien" }).distance, 10); assert.equal(E("84000", { arrivee: "aerien" }, "2002").distance, 30);
+  assert.match(E("84000", { arrivee: "aerien" }).ref, /^PF-01 · NF C 15-100-10/);
+  // choix du BE : prioritaire, écart noté
+  const B = E("84000", { arrivee: "aerien", be: "non", by: "kevin", at: "2026-11-06T10:00", motif: "client refuse" });
+  assert.equal(B.avec, false); assert.equal(B.ecart, true);
+  const e = ecartParafoudre(B); assert.equal(e.code, "PF-01"); assert.match(e.initial, /obligatoire.*AQ2/); assert.equal(e.choix, "parafoudre retiré par le BE");
+  assert.equal(ecartParafoudre(E("84000", { arrivee: "aerien", be: "oui" })), null);   // même choix que l'étude : pas d'écart
+  assert.equal(E("44000", { be: "oui" }).ecart, true);
+});
+test("parafoudre : tableau (posé en tête, retiré s'il était automatique, alertes PF-01 à PF-04), rapport", () => {
+  const C = [{ n: "C1", kind: "eclairage", prot: 16, apps: [] }, { n: "C2", kind: "prises", prot: 16, apps: [] }, { n: "C3", kind: "prises", prot: 20, apps: [] }];
+  const pf = etudeParafoudre({ cp: "84000" }, { arrivee: "aerien" });
+  const T = autoTableau(C, { parafoudre: pf });
+  assert.deepEqual(T.rows[0].slice(0, 3).map((x) => x.t || x.k), ["pf", "pfd", "id"]);
+  assert.deepEqual(tableauIssues(T, C, { pf }).filter((x) => /^PF-0[124]/.test(x)), []);
+  assert.ok(tableauIssues(T, C, { pf }).some((x) => /^PF-03/.test(x)));
+  const T0 = autoTableau(C);
+  assert.ok(tableauIssues(T0, C, { pf }).some((x) => /^PF-01 : parafoudre obligatoire.*à ajouter/.test(x)));
+  assert.deepEqual(withParafoudre(T.rows, false).flat().filter((x) => x.k === "mod"), []);
+  const manual = [[{ k: "id", id: "i1", a: 40, type: "AC", w: 2 }, { k: "mod", t: "pf", id: "m1", w: 2 }]];
+  assert.equal(withParafoudre(manual, false)[0].length, 2);   // posé à la main : jamais retiré
+  assert.ok(parafoudreIssues({ rows: manual }, pf).some((x) => /^PF-04/.test(x)));
+  assert.ok(parafoudreIssues({ rows: T.rows }, pf, { tabs: [{ name: "Tableau garage", d: 14 }] }).some((x) => /^PF-02 : Tableau garage à 14 m/.test(x)));
+  const T1 = etudeParafoudre({}, { paratonnerre: true });
+  assert.equal(autoTableau(C, { parafoudre: T1 }).rows[0][0].t, "pf1");
+  // rapport : écarts du BE + minimums « voulus »
+  const E = ecartsHumains({ "norme:PC-01:r1": { choix: "garde", label: "minimum non retenu", rep: "Chambre 1", alerte: "PC-01 — 2 prises sur 3", by: "kevin", at: "2026-11-06T09:00" }, "lum:a1": { choix: "confirme" } },
+    [ecartParafoudre(etudeParafoudre({ cp: "84000" }, { arrivee: "aerien", be: "non", by: "kevin", at: "2026-11-06T10:00" }))]);
+  assert.deepEqual(E.map((e) => e.code), ["PC-01", "PF-01"]);
+  const txt = rapportText({ total: 0, decided: 0, parFamille: [], validations: [], questions: [] }, { ecarts: E });
+  assert.match(txt, /Étude initiale et modifications humaines \(2\)/);
+  assert.match(txt, /Parafoudre \[PF-01\] : étude initiale « Parafoudre obligatoire/);
+  // fiche d'autocontrôle
+  const F = autocontrole({ hasTableau: true, pf, tableau: [] }).find((r) => r.code === "PF-01");
+  assert.equal(F.groupe, "Vérifié sur le plan (Oktéo)"); assert.equal(F.etat, "R");
+  assert.equal(autocontrole({ hasTableau: true, pf: etudeParafoudre({ cp: "44000" }, {}) }).find((r) => r.code === "PF-01").etat, "SO");
 });
 
 console.log(`norme : ${n} groupes de vérifications réussis.`);

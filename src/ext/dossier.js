@@ -7,7 +7,7 @@ import { buildBandsPdf } from "./bandes-pdf.js";
 import { boxSheets } from "./cablage-bandes.js";
 import { modelOf, autoTableau, syncTableau, protections, rowMods, MODS, tableauIssues, hasBreaker } from "../cablage/tableau.js";
 import { logoData, LOGO_RATIO } from "./logo.js";
-import { tabCtx } from "./tableau-page.js";
+import { tabCtx, pfOf } from "./tableau-page.js";
 import { buildDocumentsPdf } from "./documents-pdf.js";
 
 let J = null;
@@ -22,7 +22,7 @@ export function tableauNow(api) {
   const C = api.cab.circuits || [], saved = api.cab.tableau;
   if (!C.filter(hasBreaker).length) return null;
   let area = 100; try { area = api.allLevelsGeometry().reduce((s, g) => s + g.rooms.reduce((t, r) => t + (r.area || 0), 0), 0) || 100; } catch { /* */ }
-  const T = saved && saved.rows ? syncTableau(saved, C) : { ...autoTableau(C, { model: (saved && saved.model) || undefined, area }), missing: [] };
+  const T = saved && saved.rows ? syncTableau(saved, C) : { ...autoTableau(C, { model: (saved && saved.model) || undefined, area, parafoudre: pfOf(api) }), missing: [] };
   return { T, C };
 }
 

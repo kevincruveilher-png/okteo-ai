@@ -1,4 +1,4 @@
-# À LIRE EN PREMIER — état du projet (mis à jour le 06/11/2026, v77 + vue 3D + lots A à D du 04/11 + grosse mise à jour du 05/11 (lots 1 à 6) + MAJ norme n° 1 à 6 du 06/11 dans `main`)
+# À LIRE EN PREMIER — état du projet (mis à jour le 06/11/2026, v77 + vue 3D + lots A à D du 04/11 + grosse mise à jour du 05/11 (lots 1 à 6) + MAJ norme n° 1 à 6 + parafoudre du 06/11 dans `main`)
 
 Ce fichier sert à TOUTES les IA qui travaillent sur le dépôt (Claude, ChatGPT/Codex…) : `AGENTS.md` y renvoie.
 Plusieurs IA se sont succédé (Claude jusqu'à v66, ChatGPT v67 à v72, Claude depuis v72.1) : garder une seule source de
@@ -16,7 +16,7 @@ vérité, celle-ci, et tenir `docs/journal.md` à jour à CHAQUE modification (e
   `public/assets/fond-evrard-04949.jpg`). Décision de Kévin attendue (dépôt privé ou retrait des plans). N'en ajouter aucun.
 - Ne lancer une mise à jour que sur ordre de Kévin ; ne rien pousser sur `main` sans son « go ». Branches de travail :
   `feat/…`, vérification par GitHub Actions sur une branche `verification-…` supprimée après usage.
-- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854 ; lot C : smoke 202/202, run 41904201702 ; bloc D : smoke 207/207, run 41913594686 ; confirmation d'emplacement : smoke 208/208, run 41990372145 ; interrupteurs au mur : smoke 209/209, run 41993507221 ; plan fluide : smoke 210/210, run 42002250587 ; grosse mise à jour du 05/11 (lots 1 à 6) : smoke 218/218, run 42019579696 ; MAJ norme n° 1 à 6 du 06/11 : smoke 224/224, run 42225339450). Sans navigateur en local : faire tourner les
+- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854 ; lot C : smoke 202/202, run 41904201702 ; bloc D : smoke 207/207, run 41913594686 ; confirmation d'emplacement : smoke 208/208, run 41990372145 ; interrupteurs au mur : smoke 209/209, run 41993507221 ; plan fluide : smoke 210/210, run 42002250587 ; grosse mise à jour du 05/11 (lots 1 à 6) : smoke 218/218, run 42019579696 ; MAJ norme n° 1 à 6 du 06/11 : smoke 224/224, run 42225339450 ; parafoudre : smoke 225/225, run 42227973132). Sans navigateur en local : faire tourner les
   tests sur GitHub Actions (workflow temporaire sur une branche `verification-…`, voir journal v72.1).
 
 # Oktéo AI — consignes pour Claude
@@ -471,6 +471,14 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
 - n° 6 : `src/norme/documents.js` (`unifilaire`, `reperage`, `liensCom`, `autocontrole`) + `src/ext/documents-pdf.js`
   (`documentsData`, `buildDocumentsPdf`) : partie « Documents à remettre » du dossier, bouton Bandes `#bd-docs`
   (`ui.lastDocs`) ; version de la norme sur la page de garde, les documents et le rapport copié.
+- Parafoudre (06/11) : `src/norme/parafoudre.js` (pur : `NK` par département (carte de l'annexe 10A, valeurs seules),
+  `depOf`, `nkOf`, `etudeParafoudre(meta, choix, v)`, `withParafoudre(rows, on, type)` (en tête de la 1re rangée, `auto`),
+  `parafoudreIssues` (PF-01 à PF-04), `ecartParafoudre`) ; fiche du chantier `input[data-f="cp"]` (`meta.cp`, `#ch-nk`) ;
+  `okteo.parafoudre()` ; choix `cab.choix.parafoudre` {arrivee, paratonnerre, securite, comCuivre, be auto|oui|non, by,
+  at, initial, motif} ; bloc `#nm-pf` (Étapes → Norme) ; `MODS.pf1` ; `autoTableau(..., {parafoudre})`, `tabCtx` → `pf`,
+  `tabs` ; rapport : `ecartsHumains(decisions, extra)` (rapport.js) = rubrique « Étude initiale et modifications
+  humaines » (`.rap-ecarts`, `okteoExt.whyBlink.ecarts()`) ; autocontrôle PF-01 vérifié sur le plan.
+- Reprise des paramètres FTZ (en cours, rien de codé) : décisions de Kévin dans `claude/decisions-ftz.md` (projet claude.ai).
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (42 vérifications : relevé des murs, des pièces et des

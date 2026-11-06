@@ -8,8 +8,10 @@ import * as CHS from "../chantiers.js";
 import { isPdf, isImage, openPdf, pdfThumbs, renderPdfPage, loadImage } from "./fond-import.js";
 import { ROLES, roleLabel, proposeRoles, setRole, dossierOf } from "../walls/page-roles.js";
 import { esc, norm } from "./util.js";
+import { nkOf } from "../norme/parafoudre.js";
 import { versionFor } from "../norme/nfc15100.js";
 // MAJ norme n° 1 : version de la norme d'après la date de dépôt du permis (champ de la fiche du chantier)
+const nkLabel = (m) => { const Z = nkOf(m.cp); return Z ? `dép. ${Z.dep} · Nk ${String(Z.nk).replace(".", ",")} · ${Z.aq2 ? "zone AQ2 (foudre forte)" : "zone AQ1"}` : (m.cp ? "département inconnu" : ""); };
 const normeLabel = (m) => { const V = versionFor(m); return V.sure ? V.court : `${V.court} (date du permis à renseigner)`; };
 import { buildOkteo, dataURLToBlob, download, fileName } from "./okteo-file.js";
 import { backupBox, wireBackupBox, onChange as onBackupChange } from "./backup.js";
@@ -93,6 +95,7 @@ export function mountChantiers(el, { api }) {
           <label class="f" title="Champ « N° » du cartouche du plan">N° d'affaire<input data-f="affaire" value="${esc(cur.affaire || "")}" placeholder="ex. AF26074879"></label>
           <label class="f" title="Champ « Dess. » du cartouche du plan (initiales)">Dessinateur<input data-f="dessinateur" value="${esc(cur.dessinateur || "")}" placeholder="ex. GS / ACR"></label>
           <label class="f" title="Date de dépôt de la demande de permis (à défaut : déclaration préalable, marché ou commande). Après le 31/08/2025 : série NF C 15-100 de 2024 ; avant : 2002 + A5. Sert aux contrôles de la norme, au rapport et au cartouche.">Dépôt du permis<input type="date" data-f="permis" value="${esc(cur.permis || "")}"><span class="nm-ver mut sm" id="ch-norme">${esc(normeLabel(cur))}</span></label>
+          <label class="f" title="Code postal du chantier (ou n° de département) : donne le niveau de foudre (Nk) de la NF C 15-100, qui décide du parafoudre (zone AQ2 au-delà de 25). Le choix final reste au BE (panneau Étapes → Norme).">Code postal<input data-f="cp" value="${esc(cur.cp || "")}" placeholder="ex. 69300" inputmode="numeric"><span class="nm-ver mut sm" id="ch-nk">${esc(nkLabel(cur))}</span></label>
           <label class="ck" title="Logement accessible (PMR) : prises, RJ45 et TV à 40 cm au lieu de 30, comme l'indiquent les légendes du BE. Cocher remonte aussi les appareils déjà posés à 30 cm (Ctrl+Z pour annuler)."><input type="checkbox" id="ch-pmr" ${cur.pmr ? "checked" : ""}> Logement PMR (prises à 40 cm)</label>
         </div>
         <div class="ch-fond"><span>Fond du niveau « ${esc((CHS.levelsOf(cur).find((l) => l.id === (cur.level || "rdc")) || {}).name || "RDC")} » : <b>${esc(cur.fond ? cur.fond.name : "aucun")}</b>${cur.fond && cur.fond.reprise ? ` <span class="mut sm">(échelle reprise du niveau « ${esc(cur.fond.reprise)} »)</span>` : ""} ${cur.fond ? (cur.fond.calibre ? `<span class="okk">✓ à l'échelle (${(cur.fond.w).toFixed(2)} m de large)</span>` : `<span class="warn">échelle à régler</span>`) : ""}</span>
@@ -132,6 +135,7 @@ export function mountChantiers(el, { api }) {
       const v = inp.value.trim(); if (inp.dataset.f === "nom" && !v) { inp.value = cur.nom; return; }
       event(cur.id,"identite",{element:inp.dataset.f,before:cur[inp.dataset.f],after:v});
       cur[inp.dataset.f] = v; CHS.update(cur.id, { [inp.dataset.f]: v });
+      if (inp.dataset.f === "cp") { const nv = el.querySelector("#ch-nk"); if (nv) nv.textContent = nkLabel(cur); document.dispatchEvent(new CustomEvent("okteo:norme", { detail: versionFor(cur) })); }
       if (inp.dataset.f === "permis") { const nv = el.querySelector("#ch-norme"); if (nv) nv.textContent = normeLabel(cur); document.dispatchEvent(new CustomEvent("okteo:norme", { detail: versionFor(cur) })); }
       const bd = document.querySelector(".badge"); if (bd) bd.textContent = cur.nom + (cur.numero ? " · " + cur.numero : "");
     }));
