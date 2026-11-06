@@ -34,5 +34,10 @@ check("positions le long du mur, à 8 cm (même plaque, sous les 30 cm du même 
 const g2 = one([{ id: "p", t: "PC16", x: 0, y: 0, lv: "rdc", rep: "P1" }, { id: "r", t: "RJ45", x: 0.08, y: 0, lv: "rdc", rep: "R1" }, { id: "q", t: "PC16", x: 0.16, y: 0, lv: "rdc", rep: "P2" }], []);
 check("PC + RJ + PC : les 2 prises dans une gaine, la RJ45 garde sa ligne (association du BE)", assocOK("PC16", "PC16") && !assocOK("PC16", "RJ45") && g2.boxes[0].gaines.some((g) => (g.appIds || []).length === 2));
 
+// lot 7 (AP-07) : LE menuiserie = un fil de terre 2,5 seul dans sa gaine, sans circuit
+const g3 = one([{ id: "p", t: "PC16", x: 0, y: 0, lv: "rdc", rep: "P1" }, { id: "m", t: "LEM", x: 2, y: 0, lv: "rdc", rep: "LE1" }], []);
+const gm = g3.boxes[0].gaines.find((g) => (g.appIds || [g.app]).includes("m"));
+check("LE menuiserie : un fil V/J 2,5 seul dans sa gaine, sans circuit, terre de l'alimentation en 2,5", !!APPAREILS.LEM && gm && gm.wires.length === 1 && gm.wires[0].fn === "terre" && gm.wires[0].section === 2.5 && !computeCircuits([{ id: "m", t: "LEM", x: 2, y: 0, lv: "rdc" }], [], S).some((c) => c.apps.includes("m")) && g3.boxes[0].gaines.find((g) => g.kind === "alim").wires.find((w) => w.fn === "terre").section === 2.5, JSON.stringify(gm && gm.wires));
+
 console.log(`\n${ok} vérifications réussies, ${ko} en échec.`);
 if (ko) process.exit(1);

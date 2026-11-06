@@ -9,7 +9,7 @@
 
 import { packAlim } from "./gaine.js";
 import { assocOK } from "./association.js";
-import { isVolet, sansCvr, lignesOf, parseFils } from "./appareils.js";
+import { isVolet, sansCvr, lignesOf, parseFils, isEq } from "./appareils.js";
 import { intrusions } from "./qualite.js";
 import { pointInPoly, labelPoint } from "../walls/rooms.js";
 import { zonesByLevel, pushOut } from "./exclusion.js";
@@ -126,7 +126,7 @@ function obliq(box, p) { const dx = Math.abs(p.x - box.x), dy = Math.abs(p.y - b
 export function buildUnits(items, links, circuits) {
   const circOf = new Map(); circuits.forEach((c) => c.apps.forEach((id) => circOf.set(id, c)));
   // (v54 : l'équipotentielle locale va dans une boîte sans circuit : un fil vert/jaune sur la terre, R-080)
-  const boxed = items.filter((a) => { const c = circOf.get(a.id); return (c && !c.direct && c.kind !== "comm") || a.t === "EQL"; });
+  const boxed = items.filter((a) => { const c = circOf.get(a.id); return (c && !c.direct && c.kind !== "comm") || isEq(a.t); });
   const ids = new Set(boxed.map((a) => a.id));
   const par = new Map(boxed.map((a) => [a.id, a.id])), find = (x) => (par.get(x) === x ? x : (par.set(x, find(par.get(x))), par.get(x)));
   for (const l of links) if (ids.has(l.c) && ids.has(l.l)) par.set(find(l.c), find(l.l));

@@ -208,7 +208,7 @@ const CMD = (t) => /^(INT|VV|BP|CVR|CVMC|DET)/.test(t);
 const LIGHT = (t) => ["LUM", "APP", "SPOT", "APPE"].includes(t);
 const HEAT = (t) => ["RAD", "SS"].includes(t);
 export function volumeRule(t, v) {
-  if (v == null || isSani(t) || ["TAB", "VEX", "VREJ", "EQL", "INCONNU"].includes(t)) return null;
+  if (v == null || isSani(t) || ["TAB", "VEX", "VREJ", "EQL", "LEM", "INCONNU"].includes(t)) return null;
   if (v === 0) return { bloquant: true, code: "SDE-07", text: "SDE-07 · volume 0 : aucun appareil électrique (sauf très basse tension 12 V)" };
   if (v === 1) {
     if (LIGHT(t)) return { bloquant: false, code: "SDE-07", text: "SDE-07 · volume 1 : luminaire en très basse tension 12 V seulement (IPX4)" };

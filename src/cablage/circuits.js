@@ -186,7 +186,7 @@ export function checkCircuits(circuits, items, S) {
     const same = ["CIR-01", "CIR-02"].includes(x.code) || (x.code === "CIR-04" && /prises de cuisine sur/.test(x.msg)) ? issues.find((y) => y.c === x.c && countMsg.test(y.msg)) : null;
     if (same) Object.assign(same, { msg: x.msg, code: x.code }); else issues.push(x);
   }
-  const need = (a) => !["TAB", "EQL", "VEX", "VREJ"].includes(a.t) && !isSani(a.t) && !(a.t === "VMC" && !S.vmcCablee) && !(a.t === "HOTTE" && raccOf(a) === "a_choisir");
+  const need = (a) => !["TAB", "EQL", "LEM", "VEX", "VREJ"].includes(a.t) && !isSani(a.t) && !(a.t === "VMC" && !S.vmcCablee) && !(a.t === "HOTTE" && raccOf(a) === "a_choisir");
   const orphans = items.filter((a) => need(a) && !inC.has(a.id)).map((a) => a.id);
   return { issues, orphans };
 }

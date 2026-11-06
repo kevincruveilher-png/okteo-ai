@@ -70,6 +70,8 @@ export const APPAREILS = {
   ANT: { n: "Antenne", r: "ANT", h: null, lab: "ANT", groupe: "Courant faible", faible: true, racc: "direct", lignes: [{ cable: "17 VATC", gaine: "V20" }] },
   EQP: { n: "Équipotentielle principale", r: "EQ", h: 30, lab: "EQ", groupe: "Terre et attentes", racc: "direct", lignes: [{ fils: "10 V/J", gaine: 20 }] },
   EQL: { n: "Équipotentielle locale (salle de bain)", r: "EQ", h: 30, lab: "EQL", groupe: "Terre et attentes", racc: "boite", terre: 2.5 },
+  // lot 7 (AP-07, FTZ) : liaison équipotentielle d'une menuiserie métallique = un fil de terre 2,5 comme l'EQL
+  LEM: { n: "Liaison équipotentielle menuiserie (LE menuiserie)", r: "LE", h: 30, lab: "LE", groupe: "Terre et attentes", mural: true, racc: "boite", terre: 2.5 },
   // v56 (bande MAILLARD du BE, Kévin 28/10/2026) : îlot (prises en ligne directe, sur le disjoncteur d'un circuit prises,
   // sans disjoncteur propre), bouton poussoir de sonnette (1 paire 9/10), sonnette (carillon en boîte, circuit éclairage)
   ILOT: { n: "Îlot (prises de l'îlot central)", r: "ILOT", h: 30, lab: "ILO", groupe: "Cuisine et spécialisés", racc: "direct", lignes: [{ fils: "1,5 GR+BF+V/J", gaine: 16 }], note: "sur le disjoncteur d'un circuit prises (pas de disjoncteur propre)" },
@@ -96,6 +98,9 @@ export function raccOf(a) {
   return r === "boite" ? "boite" : r === "ligne_directe" ? "direct" : "a_choisir";
 }
 // lignes directes d'un appareil (variante choisie comprise)
+// liaisons équipotentielles (un fil de terre seul) : EQL et LE menuiserie
+export const EQ_TYPES = new Set(["EQL", "LEM"]);
+export const isEq = (t) => EQ_TYPES.has(t);
 export function lignesOf(a) {
   const D = APPAREILS[a.t];
   if (!D) return LIGNES_BASE[a.t] || null;

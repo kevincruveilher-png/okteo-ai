@@ -4,7 +4,7 @@ import { computeCircuits, circuitsByBox } from "../src/cablage/circuits.js";
 import { placeBoxes } from "../src/cablage/boites.js";
 import { computeWiring } from "../src/cablage/gaines.js";
 import { CAB_DEFAULTS as S } from "../src/cablage/settings.js";
-import { spvLines, spvText, spvName, totaux, cableTxt, filsTxt } from "../src/cablage/spv.js";
+import { spvLines, spvText, spvName, totaux, cableTxt, filsTxt, pieceDefaut } from "../src/cablage/spv.js";
 
 let ok = 0, ko = 0;
 const check = (n, c, i) => { if (c) { ok++; console.log("  ✓ " + n); } else { ko++; console.log("  ✗ " + n + (i ? " — " + i : "")); } };
@@ -29,6 +29,8 @@ check("câble : « U1000R2V_3G1.5_B-M-V/J (0.40) » ; fils rigides « B[6] R[6] 
 check("nom du fichier « AF…_NOM-.spv »", spvName(ch) === "AF26000001_ESSAI_ETE-.spv", spvName(ch));
 const T = totaux(W, L);
 check("totaux (planning du BE, métrages) : somme des lignes ; nombre de boîtes", T.boites === W.boxes.length && T.fils["1.5 V/J"] > 0 && Math.abs(T.longueur - F.reduce((s, f) => s + (+f[2] || 0), 0)) < 0.5, JSON.stringify(T).slice(0, 200));
+
+check("CH-07 : pièce inconnue → GARAGE (moteur), EXTERIEUR (dehors), CELLIER (le reste) ; pièce connue gardée", pieceDefaut({ t: "MGAR" }) === "GARAGE" && pieceDefaut({ t: "PC16", ext: true }) === "EXTERIEUR" && pieceDefaut({ t: "GEXT" }) === "EXTERIEUR" && pieceDefaut({ t: "PC16" }) === "CELLIER");
 
 console.log(`\n${ok} vérifications réussies, ${ko} en échec.`);
 if (ko) process.exit(1);

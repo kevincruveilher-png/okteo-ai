@@ -1,3 +1,12 @@
+## 06/11/2026 — Lot 7 de la reprise des paramètres du BE : LE menuiserie, pièce par défaut (branche `feat/maj-lot6-raccourcis`)
+
+- AP-07 « Appliquée » : type `LEM` « Liaison équipotentielle menuiserie » (groupe Terre et attentes, mural, repère LE) ;
+  appareils.js `EQ_TYPES` / `isEq(t)` (EQL et LEM) utilisés par gaines.js (rôle terre, section 2,5, R-080, terre de
+  l'alimentation), boites.js, association.js (comme l'EQL) ; sans circuit (circuits.js, render.js, volumes.js).
+- CH-07 « Appliquée » : spv.js `pieceDefaut(a)` — pièce inconnue dans le .spv : moteur de garage → GARAGE, appareil
+  dehors → EXTERIEUR, le reste → CELLIER (valeurs de FTZ) ; pièce lue sur le plan gardée sinon.
+- Tests : lot3.test (LE menuiserie), spv.test (pièce par défaut).
+
 ## 06/11/2026 — Lot 6 de la reprise des paramètres du BE : raccourcis de FTZ, appareils par départ (branche `feat/maj-lot6-raccourcis`)
 
 - PO-01 « Appliquée » : `src/ext/raccourcis.js` (`ACTIONS` = touches de FTZ (custom.gr) → commande du catalogue :
