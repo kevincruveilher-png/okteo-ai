@@ -1411,3 +1411,65 @@ body[data-tab]:not([data-tab="plan"]):not([data-tab="vue3d"]) .top2{display:none
 .nm-act { gap: 8px; margin-top: 2px; }
 .nm-ver { display: block; margin-top: 2px; }
 .nm-warn { margin: 6px 0; padding: 6px 8px; border-radius: 6px; background: #fde7c7; color: #6b3a00; font-size: 12.5px; }
+/* ===== Page Paramètres (06/11/2026) : interface à part, plein écran, fond corail =====
+   Bandeau du logiciel, onglets et panneau masqués ; cartes blanches (lisibles quel que soit le thème). */
+body[data-tab="params"] .top,body[data-tab="params"] .tabs,body[data-tab="params"] #cl-fold{display:none!important}
+body[data-tab="params"] .main{grid-template-columns:minmax(0,1fr)}
+body[data-tab="params"] .main>.params:not([hidden]){padding-right:0;grid-column:1/-1}
+#params{--panel:#FFFFFF;--panel2:#FBF1EF;--bg:#FFFFFF;--fg:#14273A;--mut:#5A6B7B;--mut2:#3E5163;--line:#EBD3CE;--line2:#EBD3CE;--accent:#0B6E99;color-scheme:light;
+  background:#E8534A;color:var(--fg)}
+body.page-full #params .params-in.pp{max-width:1500px;padding:0 28px 48px}
+#params .pp-head{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 0 14px;background:#E8534A;margin:0 0 6px}
+#params .pp-brand .brand-mark{width:44px;height:44px;color:#FFFFFF;display:block}
+#params .pp-title{flex:1 1 300px;display:block;margin:0}
+#params .pp-title h2{margin:0;color:#FFFFFF;font-size:28px;letter-spacing:-.01em}
+#params .pp-title p{margin:2px 0 0;color:#FFF3F1;font-size:13.5px}
+#params .pp-head .pset-find{flex:1 1 320px;max-width:520px;border:0;border-radius:10px;padding:10px 14px;font-size:14.5px;background:#FFFFFF;color:#14273A;box-shadow:0 2px 8px rgba(80,20,10,.18)}
+#params .pp-head button{border:1px solid rgba(255,255,255,.75);background:transparent;color:#FFFFFF;border-radius:10px;padding:9px 14px;font-weight:600}
+#params .pp-head button:hover{background:rgba(255,255,255,.16)}
+#params .pp-head .pp-back{background:#14273A;border-color:#14273A}
+#params .pp-head .pp-back:hover{background:#0B1A29}
+body.page-full #params .pset-wrap{grid-template-columns:260px minmax(0,1fr);gap:26px}
+#params .pset-nav{top:84px;gap:3px;padding:4px 0}
+#params .pset-nav .pn-g{margin:14px 0 4px 10px;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#4A1410;opacity:.75}
+#params .pset-nav .pn-g:first-child{margin-top:4px}
+body.page-full #params .pset-nav a{display:flex;align-items:center;gap:8px;color:#1B0C0A;font-weight:500;border-left:0;border-radius:10px;padding:8px 12px}
+#params .pset-nav a:hover{background:rgba(255,255,255,.28)}
+#params .pset-nav a.on{background:#FFFFFF;color:#14273A;font-weight:600;box-shadow:0 2px 8px rgba(80,20,10,.16)}
+#params .pset-nav .pn-n{margin-left:auto;min-width:22px;text-align:center;font-size:11.5px;font-weight:700;border-radius:99px;padding:1px 7px;background:rgba(20,39,58,.14);color:#14273A}
+#params .pset-nav a.on .pn-n{background:#FDE3DF;color:#B23A31}
+#params .pset:not(.searching) .pset-sec:not(.on){display:none}
+body.page-full #params .pset-sec{border:0;border-radius:16px;padding:22px 26px;box-shadow:0 6px 22px rgba(80,20,10,.16)}
+body.page-full #params .pset-sec h3{font-size:21px;font-family:var(--fd);margin-bottom:6px}
+#params .rub-intro{font-size:14px;margin:0 0 12px;color:var(--mut2)}
+#params .pp-sub{font-size:15px;margin:22px 0 4px;padding-top:12px;border-top:2px solid var(--line)}
+#params .rf-count{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 14px}
+#params .rf-count[hidden]{display:none}
+#params .rf-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px}
+#params .rf-card{border:1px solid var(--line);border-left:5px solid #9AA7B3;border-radius:12px;padding:12px 14px;background:#FFFFFF;display:flex;flex-direction:column;gap:6px}
+#params .rf-card[hidden]{display:none}
+#params .rf-card p{margin:0;font-size:13.5px;line-height:1.45}
+#params .rf-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+#params .rf-id{font-family:var(--fm);font-size:12px;color:#7A4A44;background:#FBEAE7;border-radius:6px;padding:1px 6px}
+#params .rf-t{font-size:15px;flex:1 1 200px}
+#params .rf-l{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8A5A53;margin-bottom:1px}
+#params .rf-m{color:var(--mut);font-size:12.5px!important}
+#params .rf-cab a{color:#0B6E99;text-decoration:none}#params .rf-cab a:hover{text-decoration:underline}
+#params .rf-e{white-space:nowrap;font-size:12px;font-weight:600;border-radius:99px;padding:2px 9px;background:#EEF1F4;color:#46586A}
+#params .rf-e.e-actif{background:#DDF5E8;color:#17663F}#params .rf-card.e-actif{border-left-color:#1F9D57}
+#params .rf-e.e-decide{background:#FDE3DF;color:#B23A31}#params .rf-card.e-decide{border-left-color:#E8534A}
+#params .rf-e.e-question{background:#E7E3FA;color:#4B3A9C}#params .rf-card.e-question{border-left-color:#6E5BD6}
+#params .rf-e.e-plustard{background:#EEF1F4;color:#5A6B7B}#params .rf-card.e-plustard{border-left-color:#AAB6C1}
+#params .rf-e.e-ecarte{background:#F1F1F1;color:#7B7B7B}#params .rf-card.e-ecarte{border-left-color:#C9C9C9;opacity:.8}
+#params .rf-e.e-info{background:#E1F0F8;color:#0B5F86}#params .rf-card.e-info{border-left-color:#0B6E99}
+#params .pp-theme{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
+#params .pp-theme-l{font-weight:600;margin-right:6px}
+#params .pp-theme button{border:1px solid var(--line);background:#FFFFFF;color:var(--fg);border-radius:10px;padding:8px 14px}
+#params .pp-theme button[aria-pressed="true"]{background:#14273A;border-color:#14273A;color:#FFFFFF}
+#params .nm-row{display:block;border-bottom:1px dashed var(--line);padding:6px 0}
+#params .nm-row small{display:block;margin-top:2px}
+#params .pp-hist{width:100%;border-collapse:collapse;font-size:13px}
+#params .pp-hist th,#params .pp-hist td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+#params .pp-hist th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+#params input,#params select,#params textarea{color:#14273A;background:#FFFFFF;border-color:#D9C4BF}
+@media (max-width:900px){body.page-full #params .pset-wrap{grid-template-columns:1fr}#params .rf-list{grid-template-columns:1fr}#params .pset-nav{position:static}}

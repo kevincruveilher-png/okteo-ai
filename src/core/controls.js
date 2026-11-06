@@ -371,7 +371,9 @@ document.getElementById("export").onclick = () => {
 document.getElementById("theme").onclick = () => {
   const r = document.documentElement;
   const cur = r.getAttribute("data-theme") || "dark";   // v73 : la charte Oktéo est sombre par défaut
-  r.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+  const next = cur === "dark" ? "light" : "dark";
+  r.setAttribute("data-theme", next);
+  setPref("theme", next);   // page Paramètres (06/11/2026) : le thème choisi est gardé sur ce PC
   draw();
 };
 document.addEventListener("keydown", e => {

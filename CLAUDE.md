@@ -1,4 +1,4 @@
-# À LIRE EN PREMIER — état du projet (mis à jour le 06/11/2026, v77 + vue 3D + lots A à D du 04/11 + grosse mise à jour du 05/11 (lots 1 à 6) + MAJ norme n° 1 à 6 + parafoudre du 06/11 dans `main`)
+# À LIRE EN PREMIER — état du projet (mis à jour le 06/11/2026, v77 + vue 3D + lots A à D du 04/11 + grosse mise à jour du 05/11 (lots 1 à 6) + MAJ norme n° 1 à 6 + parafoudre + page Paramètres du 06/11 dans `main`)
 
 Ce fichier sert à TOUTES les IA qui travaillent sur le dépôt (Claude, ChatGPT/Codex…) : `AGENTS.md` y renvoie.
 Plusieurs IA se sont succédé (Claude jusqu'à v66, ChatGPT v67 à v72, Claude depuis v72.1) : garder une seule source de
@@ -16,7 +16,7 @@ vérité, celle-ci, et tenir `docs/journal.md` à jour à CHAQUE modification (e
   `public/assets/fond-evrard-04949.jpg`). Décision de Kévin attendue (dépôt privé ou retrait des plans). N'en ajouter aucun.
 - Ne lancer une mise à jour que sur ordre de Kévin ; ne rien pousser sur `main` sans son « go ». Branches de travail :
   `feat/…`, vérification par GitHub Actions sur une branche `verification-…` supprimée après usage.
-- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854 ; lot C : smoke 202/202, run 41904201702 ; bloc D : smoke 207/207, run 41913594686 ; confirmation d'emplacement : smoke 208/208, run 41990372145 ; interrupteurs au mur : smoke 209/209, run 41993507221 ; plan fluide : smoke 210/210, run 42002250587 ; grosse mise à jour du 05/11 (lots 1 à 6) : smoke 218/218, run 42019579696 ; MAJ norme n° 1 à 6 du 06/11 : smoke 224/224, run 42225339450 ; parafoudre : smoke 225/225, run 42227973132). Sans navigateur en local : faire tourner les
+- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854 ; lot C : smoke 202/202, run 41904201702 ; bloc D : smoke 207/207, run 41913594686 ; confirmation d'emplacement : smoke 208/208, run 41990372145 ; interrupteurs au mur : smoke 209/209, run 41993507221 ; plan fluide : smoke 210/210, run 42002250587 ; grosse mise à jour du 05/11 (lots 1 à 6) : smoke 218/218, run 42019579696 ; MAJ norme n° 1 à 6 du 06/11 : smoke 224/224, run 42225339450 ; parafoudre : smoke 225/225, run 42227973132 ; page Paramètres : smoke 225/225, run 42273573467). Sans navigateur en local : faire tourner les
   tests sur GitHub Actions (workflow temporaire sur une branche `verification-…`, voir journal v72.1).
 
 # Oktéo AI — consignes pour Claude
@@ -449,6 +449,15 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `setTous`, colonne serveur `tous`), `own` prioritaire ; `freshMemory` (avant collage / analyse avec outils),
   `startMemoryTimer` (5 min) ; ai-memory.js `doubtKey` / `readKey` (hésitation « A ou B ») ; `api.setClient`.
 - check.js `POSE_OFF` : plus d'alerte battant ni embrasure (pose.js garde les fonctions).
+
+### Page Paramètres et catalogue des règles (06/11/2026, lot 1)
+- Paramètres = interface à part, plein écran, fond corail (`body[data-tab="params"]` masque bandeau, onglets, panneau).
+  `src/referentiel/catalogue.js` (pur) : `RUBRIQUES` (« Règles KiTéOHM » / « Ce poste »), `FICHES` (id fixe AA-00, état
+  actif | decide | question | plustard | ecarte | info, source, usage, `cab`), `QUESTIONS`, `catalogueTexte`, historique.
+  Toute nouvelle règle métier = une fiche (ou une fiche passée en `actif`) ; jamais de prix ni de nom de client.
+  settings.js : une rubrique à la fois (`ui.setActive`), recherche dans toutes, `#pp-back`, `#pp-export` ; ouvrir une
+  rubrique depuis ailleurs : `okteo:params-goto` {detail: id}. Thème : préférence `theme` + `applyTheme`.
+  Tests smoke : `openParams(rub)`, `toPlan()` (jamais `#tabs button[data-tab="plan"]` depuis Paramètres).
 
 ### Norme NF C 15-100 (MAJ norme du 06/11/2026) — bible : document du projet claude.ai « Bible des règles Oktéo »
 - RÈGLE DE LICENCE : aucun texte de norme dans le dépôt ni dans les consignes de l'IA (exemplaires sous licence, hors

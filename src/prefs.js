@@ -23,6 +23,7 @@ export const PREFS_DEFAULTS = {
   // n° 14 : autocorrection des murs (Paramètres → Murs) : angle léger mis d'équerre, tolérance autour de 45°, déplacement
   // au-delà duquel le mur corrigé est signalé (cm)
   equerreTol: 10, equerre45: 10, equerreMax: 15,
+  theme: "auto", // page Paramètres (06/11/2026) : thème de l'écran « sombre », « clair » ou « auto » (celui de l'ordinateur)
   abrev: "", // v74 : abréviations des noms de pièces du plan imprimé (vide = table par défaut, src/print/abrev.js)
 };
 
@@ -35,4 +36,11 @@ export function setPref(k, v) {
   try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* stockage indisponible : réglage pour cette session seulement */ }
   document.dispatchEvent(new CustomEvent("okteo:prefs", { detail: { key: k, value: v } }));
   return p;
+}
+
+// thème de l'écran (Paramètres → Affichage) : « dark », « light », ou « auto » = celui de l'ordinateur (feuille de style)
+export function applyTheme(t = pref("theme")) {
+  const r = document.documentElement;
+  if (t === "dark" || t === "light") r.setAttribute("data-theme", t); else r.removeAttribute("data-theme");
+  return t;
 }

@@ -124,6 +124,14 @@ async function check(name, fn) {
   finally { clearTimeout(t); }
 }
 const ev = (f, a) => page.evaluate(f, a);
+// page Paramètres (06/11/2026) : interface à part (bandeau et onglets masqués) ; une rubrique à la fois
+const openParams = async (rub, viaTab = true) => {
+  if (viaTab && await page.isVisible('#tabs button[data-tab="params"]')) await page.click('#tabs button[data-tab="params"]'); else await ev(() => okteo.setTab("params"));
+  await page.waitForFunction(() => window.okteoExt?.pages?.params?.ui?.setActive, null, { timeout: 10000 });
+  if (rub) await ev((r) => okteoExt.pages.params.ui.setActive(r), rub);
+};
+// retour au plan : « Revenir au logiciel » depuis Paramètres, sinon l'onglet Plan
+const toPlan = async () => { if (await page.isVisible("#pp-back")) await page.click("#pp-back"); else await page.click('#tabs button[data-tab="plan"]'); };
 // v76 : une analyse de plus de 2 s ouvre la page d'attente (v73), qui reste sur « Votre plan est prêt » jusqu'au clic
 // « Ouvrir le chantier » : on la ferme comme l'opérateur avant de toucher à l'aperçu
 const closeWait = async () => { if (await page.isVisible("#aw-open").catch(() => false)) await page.click("#aw-open"); await page.waitForFunction(() => !document.body.classList.contains("aw-on"), null, { timeout: 10000 }).catch(() => {}); };
@@ -292,7 +300,7 @@ try {
 
   console.log("Paramètres et relais IA");
   await check("onglet Paramètres remplace la zone de dessin", async () => {
-    await page.click('#tabs button[data-tab="params"]');
+    await openParams("ia");
     return (await page.isVisible("#params .pcard")) && !(await page.isVisible(".stage"));
   });
   await check("clé Claude : test de connexion réussi via le relais local", async () => {
@@ -321,7 +329,7 @@ try {
 
   console.log("Assistant avec IA");
   await check("« Active l'outil pièce » : l'assistant agit seul", async () => {
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     await ev(() => okteo.setTool("sel"));
     await page.fill(".as-in textarea", "Active l'outil pièce"); await page.keyboard.press("Enter");
     await page.waitForFunction(() => document.querySelectorAll(".as-log").length > 0);
@@ -378,7 +386,7 @@ try {
   });
 
   await check("modèle retiré (410) : remplacé automatiquement par un Nemotron qui voit les images", async () => {
-    await page.click('#tabs button[data-tab="params"]');
+    await openParams("ia");
     // la page Paramètres peut se réafficher juste après l'ouverture (état du serveur local) : on réessaie si la saisie a été effacée
     let t = "";
     for (let k = 0; k < 3 && !t.includes("remplacé"); k++) {
@@ -398,7 +406,7 @@ try {
     const first = await page.getAttribute('#dl-nvidia option:first-child', "value");
     return t.includes("4 modèles") && first.includes("nemotron");
   });
-  await page.click('#tabs button[data-tab="plan"]');
+  await toPlan();
 
   await ev(() => okteoExt.panel.close("assistant")); // l'encart agrandi couvrirait le bas droit du plan
   console.log("Chantiers");
@@ -559,32 +567,50 @@ try {
 
   console.log("Surfaces des pièces (v42)");
   await check("surfaces masquées par défaut (plan, Propriétés) ; Paramètres → Affichage les remet, puis les retire", async () => {
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     const m2 = () => ev(() => (document.querySelector("#sv g.labels")?.textContent || "").includes("m²"));
     const off = !(await m2());
     await ev(() => { const r = okteo.state.rooms.find((x) => x.name === "Chambre 1"); okteo.select([r.id]); okteoExt.panel.show("props"); });
     const propOff = !(await page.textContent("#sidebody")).includes("m²");
     await ev(() => okteo.select([]));
-    await page.click('#tabs button[data-tab="params"]');
+    await openParams("affichage");
     await page.check('[data-pref="surfaces"]');
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     const on = await m2();
-    await page.click('#tabs button[data-tab="params"]');
+    await openParams("affichage");
     await page.uncheck('[data-pref="surfaces"]');
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     const off2 = !(await m2());
     if (!(off && propOff && on && off2)) throw new Error(JSON.stringify({ off, propOff, on, off2 }));
     return true;
   });
-  await check("Paramètres : sommaire, sections Affichage / IA / Câblage / Packs, recherche « couleur »", async () => {
-    await page.click('#tabs button[data-tab="params"]');
-    const secs = await ev(() => [...document.querySelectorAll("#params .pset-sec h3")].map((h) => h.textContent).join("|"));
+  await check("Paramètres (06/11/2026) : page à part sur fond corail (bandeau, onglets et panneau masqués), rubriques « Règles KiTéOHM » / « Ce poste », une rubrique à la fois, fiches avec leur état, recherche « couleur » dans toutes les rubriques, thème gardé, export du catalogue, retour au plan", async () => {
+    await openParams("chantier");
+    const look = await ev(() => ({ top: getComputedStyle(document.querySelector(".top")).display, tabs: getComputedStyle(document.querySelector("#tabs")).display, bg: getComputedStyle(document.querySelector("#params")).backgroundColor,
+      g: [...document.querySelectorAll("#params .pset-nav .pn-g")].map((x) => x.textContent).join("|"), rubs: document.querySelectorAll("#params .pset-nav a[data-rub]").length,
+      shown: [...document.querySelectorAll("#params .pset-sec")].filter((x) => x.offsetParent).map((x) => x.dataset.rub).join("|"), fiches: document.querySelectorAll("#rb-chantier .rf-card").length,
+      etat: document.querySelector('#fi-CH-01 .rf-e')?.textContent || "", back: !!document.querySelector("#pp-back") }));
+    await page.click('#params .pset-nav a[data-rub="cablage"]');
+    const cab = await ev(() => ({ shown: [...document.querySelectorAll("#params .pset-sec")].filter((x) => x.offsetParent).map((x) => x.dataset.rub).join("|"), reset: !!document.querySelector("#cab-set #cab-reset"), cur: document.querySelector('#fi-CB-01 [data-goto-cab="couleursCommande"] b')?.textContent || "" }));
     await page.fill(".pset-find", "couleur");
-    const r = await ev(() => ({ rows: [...document.querySelectorAll("#params .cab-row")].filter((x) => !x.hidden && x.offsetParent).length, ia: document.querySelector("#ps-ia").hidden, grp: [...document.querySelectorAll("#params .pset-grp")].filter((g) => !g.hidden).map((g) => g.querySelector("h4").textContent).join("|") }));
+    const r = await ev(() => ({ rows: [...document.querySelectorAll("#params .cab-row")].filter((x) => !x.hidden && x.offsetParent).length, ia: document.querySelector("#ps-ia").hidden, grp: [...document.querySelectorAll("#params .pset-grp")].filter((g) => !g.hidden && g.offsetParent).map((g) => g.querySelector("h4").textContent).join("|"),
+      fiches: [...document.querySelectorAll("#params .rf-card")].filter((x) => !x.hidden && x.offsetParent).map((x) => x.dataset.id).filter(Boolean) }));
     await page.fill(".pset-find", "");
-    const back = await ev(() => !document.querySelector("#ps-ia").hidden);
-    await page.click('#tabs button[data-tab="plan"]');
-    if (!(secs === "Affichage|Assistant et relevé IA|Bibliothèque des règles|Murs : mise d'équerre automatique|Vue 3D : hauteurs de départ|Câblage|Packs" && r.rows >= 6 && r.ia && r.grp === "Couleurs des fils" && back)) throw new Error(JSON.stringify({ secs, r, back }));
+    const back = await ev(() => !document.querySelector("#ps-ia").hidden && [...document.querySelectorAll("#params .pset-sec")].filter((x) => x.offsetParent).length === 1);
+    // thème : choisi dans Affichage, gardé sur ce PC
+    await openParams("affichage");
+    await page.click('[data-theme-set="light"]');
+    const th = await ev(async () => ({ attr: document.documentElement.getAttribute("data-theme"), pref: (await import("/src/prefs.js")).pref("theme"), hist: (JSON.parse(localStorage.getItem("okteo.parametres.historique.v1") || "[]")[0] || {}).quoi }));
+    await page.click('[data-theme-set="auto"]');
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#pp-export")]);
+    const exp = await ev(() => okteoExt.pages.params.ui.lastExport);
+    await toPlan();
+    const plan = await ev(() => ({ tab: okteo.tab, top: getComputedStyle(document.querySelector(".top")).display }));
+    const ok = look.top === "none" && look.tabs === "none" && look.bg === "rgb(232, 83, 74)" && look.g === "Règles KiTéOHM|Ce poste" && look.rubs >= 15 && look.shown === "chantier" && look.fiches >= 6 && /À intégrer/.test(look.etat) && look.back
+      && cab.shown === "cablage" && cab.reset && cab.cur.length > 0
+      && r.rows >= 6 && r.ia && r.grp === "Couleurs des fils" && r.fiches.includes("CB-01") && r.fiches.includes("CO-04") && back
+      && th.attr === "light" && th.pref === "light" && th.hist === "Thème de l'écran" && /^catalogue-regles-okteo-/.test(dl.suggestedFilename()) && /CB-01/.test(exp) && /PC-01/.test(exp) && plan.tab === "plan" && plan.top !== "none";
+    if (!ok) throw new Error(JSON.stringify({ look, cab, r, back, th, exp: exp.slice(0, 80), plan }));
     return true;
   });
 
@@ -997,9 +1023,9 @@ try {
     const home = await ev(() => ({ tab: okteo.tab, head: !document.querySelector("#home-head").hidden, top: getComputedStyle(document.querySelector(".top")).display, top2: getComputedStyle(document.querySelector(".top2")).display, side: getComputedStyle(document.querySelector(".side")).display, fold: !document.querySelector("#cl-fold").hidden, tabsVis: getComputedStyle(document.querySelector("#tabs")).display }));
     await page.click("#hh-plan");
     const plan = await ev(() => ({ tab: okteo.tab, top: getComputedStyle(document.querySelector(".top")).display, head: document.querySelector("#home-head").hidden }));
-    await page.click('#tabs button[data-tab="params"]');
-    const par = await ev(() => ({ full: document.body.classList.contains("page-full"), top: getComputedStyle(document.querySelector(".top")).display, fold: !document.querySelector("#cl-fold").hidden, head: document.querySelector("#home-head").hidden }));
-    await page.click("#cl-fold");
+    await openParams();
+    const par = await ev(() => ({ full: document.body.classList.contains("page-full"), top: getComputedStyle(document.querySelector(".top")).display, fold: getComputedStyle(document.querySelector("#cl-fold")).display === "none", head: document.querySelector("#home-head").hidden, back: !!document.querySelector("#pp-back") }));
+    await page.click("#pp-back");
     await page.waitForFunction(() => okteo.tab === "plan", null, { timeout: 3000 });
     await page.click('#tabs button[data-tab="bibliotheque"]');
     const bib = await ev(() => document.body.classList.contains("page-full") && !document.querySelector("#cl-fold").hidden);
@@ -1017,7 +1043,7 @@ try {
     await ev(() => { document.querySelector("#home-head .enterprise-bar").remove(); document.querySelector("#web-warn").hidden = true; okteo.setTab("plan"); });
     const r = { tabs, home, plan, par, bib, bar, w, viaWarn };
     if (!(!tabs.includes("chantiers") && tabs.includes("plan") && home.tab === "chantiers" && home.head && home.top !== "none" && home.top2 === "none" && home.side === "none" && home.fold && home.tabsVis !== "none"
-      && plan.tab === "plan" && plan.top !== "none" && plan.head && par.full && par.top !== "none" && par.fold && par.head && bib && bar.inHead && bar.warn && !w.hidden && /Secours impossible/.test(w.txt) && viaWarn === "chantiers")) throw new Error(JSON.stringify(r));
+      && plan.tab === "plan" && plan.top !== "none" && plan.head && par.full && par.top === "none" && par.fold && par.back && par.head && bib && bar.inHead && bar.warn && !w.hidden && /Secours impossible/.test(w.txt) && viaWarn === "chantiers")) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("lot 5 : 9 étapes du dossier (surtout des vérifications validées par l'opérateur), jauge d'avancement en tête du panneau Étapes (MAJ affichage : plus dans le bandeau) ; « C'est vérifié » fait avancer la jauge, Ctrl+Z l'annule", async () => {
@@ -1036,7 +1062,7 @@ try {
     if (!(g0.vis && /%/.test(g0.txt) && g0.P.total === 9 && L.join() === "import,echelle,murs,appareils,boites,verifBoites,cablage,tableau,impression" && !murs0 && g1.P.n === g0.P.n + 1 && g1.by && g2 === g0.P.n)) throw new Error(JSON.stringify(r));
     return true;
   });
-  await check("MAJ affichage : bandeau 1 sur une seule ligne, toujours visible (Étude, Pieuvre, Tableau, Symboles, Paramètres, accueil) ; bandeau 2 seulement sur le plan et la 3D ; Imprimer et Fonctions en icônes ; voyant « Connecté »", async () => {
+  await check("MAJ affichage : bandeau 1 sur une seule ligne, toujours visible (Étude, Pieuvre, Tableau, Symboles, accueil ; masqué dans Paramètres, page à part) ; bandeau 2 seulement sur le plan et la 3D ; Imprimer et Fonctions en icônes ; voyant « Connecté »", async () => {
     const out = {};
     for (const t of ["plan", "etude", "boites", "tableau", "bibliotheque", "params", "chantiers", "vue3d"]) {
       await ev((x) => okteo.setTab(x), t); await page.waitForTimeout(120);
@@ -1048,7 +1074,7 @@ try {
     await page.waitForTimeout(80);
     const dot = await ev(() => ({ vis: !document.querySelector("#web-dot").hidden, txt: document.querySelector("#web-dot").textContent, tip: document.querySelector("#web-dot").title, h: document.querySelector(".top").offsetHeight }));
     await ev(() => { document.querySelector("#home-head .enterprise-bar").remove(); document.querySelector("#web-dot").hidden = true; });
-    const one = Object.values(out).every((o) => o.top && o.top < 80);
+    const one = Object.entries(out).every(([t, o]) => t === "params" ? !o.top : o.top && o.top < 80);
     const two = out.plan.top2 && out.vue3d.top2 && !out.etude.top2 && !out.boites.top2 && !out.tableau.top2 && !out.bibliotheque.top2 && !out.params.top2 && !out.chantiers.top2;
     if (!(one && two && icons.print === "" && icons.pal === "" && dot.vis && /Connecté/.test(dot.txt) && /ressources hors ligne/.test(dot.tip) && dot.h < 80)) throw new Error(JSON.stringify({ out, icons, dot }));
     return true;
@@ -1309,7 +1335,7 @@ try {
     await page.waitForSelector("#et-ia .ia-pass", { timeout: 10000 });
     const et = await page.textContent("#et-ia");
     if (process.env.SHOT) { await page.$eval("#et-ia", (e) => e.scrollIntoView()); await (await page.$("#et-ia")).screenshot({ path: process.env.SHOT + "/rapport-ia.png" }); }
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     await page.keyboard.press("Control+z"); await page.keyboard.press("Control+z");
     const back = await ev(() => ({ app: okteo.state.app.length, segs: okteo.state.segs.length }));
     const r = { list, card: card.slice(0, 300), A, et: et.slice(0, 300), back, before };
@@ -1556,7 +1582,7 @@ try {
     await Promise.all([page.waitForNavigation({ timeout: 60000 }), page.click("#nf-ok")]);
     await page.waitForFunction(() => window.okteo && okteo.FOND && okteo.FOND.startsWith("blob:"), null, { timeout: 30000 });
     const f = await ev(() => ({ lv: okteo.level.name, cal: okteo.ch.fond.calibre, rep: okteo.ch.fond.reprise, w: okteo.BG.w, tool: okteo.tool }));
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     if (!(f.lv === "R+1" && f.cal && f.rep === "RDC" && Math.abs(f.w - rdc.w) < 1e-6 && f.tool !== "calib")) throw new Error(JSON.stringify(f));
     return true;
   });
@@ -1635,17 +1661,17 @@ try {
     return moved && sec === 2.5 && back;
   });
   await check("réglages du câblage (Paramètres) : 4 points par circuit → la répartition suit ; valeurs de base rétablies", async () => {
-    await page.click('#tabs button[data-tab="params"]');
+    await openParams("cablage");
     await page.fill('[data-cab="maxPoints"]', "4"); await page.dispatchEvent('[data-cab="maxPoints"]', "change");
     const chg = await page.isVisible(".cab-row.chg");
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     await ev(() => okteoExt.panel.show("cablage"));
     await page.click("#cb-auto"); await page.click("#cb-yes");
     const r = await ev(() => { const L = new Set(["LUM", "SPOT", "APP"]), A = new Map(okteo.allApps().map((a) => [a.id, a.t]));
       return okteo.cab.circuits.filter((c) => c.kind === "eclairage").map((c) => c.apps.filter((id) => L.has(A.get(id))).length); });
-    await page.click('#tabs button[data-tab="params"]'); await page.click("#cab-reset");
+    await openParams("cablage"); await page.click("#cab-reset");
     const reset = await ev(() => JSON.parse(localStorage.getItem("okteo.cablage.v1") || "null") === null);
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     await ev(() => okteo.undo());
     return chg && r.length >= 5 && r.every((n) => n <= 4) && reset;
   });
@@ -1682,7 +1708,7 @@ try {
     const n = await ev(() => okteo.cab.boxes.length);
     await goSub("lignes");
     const d = await ev(() => document.querySelectorAll(".cabpage .gt tbody tr").length);
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     if (!(r.boxes === n && r.rows > 60 && r.chips > 150 && r.nets > 20 && /n° 1 Terres/.test(r.first) && r.faces && d >= 8)) throw new Error(JSON.stringify({ ...r, n, d }));
     return true;
   });
@@ -1707,7 +1733,7 @@ try {
     return true;
   }));
   await check("gaine tirée sur le plan : point de passage (distance au mur affichée), longueur recalculée, boîte verrouillée ; Maj = tronçon droit ; double-clic le supprime", async () => {
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     await ev(() => { okteo.setTool("sel"); okteo.showCircuits = true; okteo.fit(); });
     const t = await ev(async () => {
       const m = await import("/src/ext/cablage-data.js"), W = m.wiringNow(okteo), R = await import("/src/core/render.js");
@@ -1813,7 +1839,7 @@ try {
   });
   console.log("Boîtes à la main, fenêtre de réglage (v35)");
   await check("la fenêtre de réglage d'un appareil se ferme quand on saisit une boîte, et par sa croix", async () => {
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     await ev(() => { okteo.setTool("sel"); okteo.showCircuits = true; okteo.fit(); });
     const t = await ev(() => { const a = okteo.state.app.find((x) => x.t === "PC16"), b = okteo.cab.boxes.find((x) => x.lv === okteo.level.id); return { a: okteo.toClient(a.x, a.y), b: okteo.toClient(b.x, b.y) }; });
     // vérifie l'affichage réel (display calculé), pas seulement l'attribut hidden
@@ -1875,7 +1901,7 @@ try {
 
   console.log("Symboles, filtre de vue, boîtes (v37)");
   await check("symboles : carrés sauf lumières (spot avec éclat) ; couleur du circuit sur le symbole, rouge sans circuit sauf ligne directe", async () => {
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     await ev(() => { okteo.showCircuits = true; });
     const r = await ev(() => {
       const shape = (t) => { const g = [...document.querySelectorAll("#tools .pb")].find((b) => b.dataset.tool === t); return g ? g.querySelector("svg").firstElementChild.tagName : null; };
@@ -2001,7 +2027,7 @@ try {
     return true;
   });
   await check("allumage coupé entre deux boîtes : alerte rouge sur le plan + « Ramener dans la même boîte » (tout l'allumage, Ctrl+Z)", async () => {
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     // on coupe un allumage à la main (sans passer par l'interface, qui l'empêche)
     const cut = await ev(() => {
       const B = okteo.cab.boxes, lk = okteo.allLinks().find((l) => { const bc = B.find((b) => b.apps.includes(l.c)), bl = B.find((b) => b.apps.includes(l.l)); return bc && bl && bc.id === bl.id && bc.lv === okteo.level.id; });
@@ -2022,14 +2048,14 @@ try {
     return true;
   });
   await check("lot 4 : un seul mode d'implantation des boîtes (Bureau d'études) : plus de choix de mode ni de comparaison dans le panneau Câblage ; « ⚡ Implantation rapide des pieuvres »", async () => {
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     await ev(() => okteoExt.panel.show("cablage")); await page.waitForTimeout(200);
     const r = await ev(() => ({ mode: !!document.querySelector("#bx-mode"), cmp: !!document.querySelector("#bx-cmp"), be: /Bureau d'études/.test((document.querySelector(".bx-be") || {}).textContent || ""), btn: (document.querySelector("#bx-auto") || {}).textContent || "" }));
     if (r.mode || r.cmp || !r.be || !/Implantation rapide des pieuvres/.test(r.btn)) throw new Error(JSON.stringify(r));
     return true;
   });
   await check("packs (v40) : pièce reconnue, « Compléter » pose ce qui manque (commande près de la porte, lumière, prises dans la pièce), « Pieuvre type » = boîte verrouillée de la pièce ; Ctrl+Z", async () => {
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     await ev(() => okteoExt.panel.show("packs")); await page.waitForTimeout(200);
     const t = await ev(() => { const R = okteoExt.packs.rooms(); const r = R.find((x) => x.pack && x.need.length) || R.find((x) => x.pack);
       return r ? { key: r.key, name: r.room.name, pack: r.pack.id, need: r.need.reduce((s, x) => s + x.n, 0), n0: okteo.state.app.length, rows: R.length, packs: R.filter((x) => x.pack).length } : null; });
@@ -2091,7 +2117,7 @@ try {
     const t1 = await txt(1), tTr = await txt(2), t2 = await txt(3), n = await ev(() => okteo.cab.boxes.length);
     // v60 : vue des 4 tranches à l'écran (sous le schéma) ; page « perçage des tranches » après le schéma
     const tr = await ev(() => ({ n: document.querySelectorAll(".bands .bd-tranches svg g.tranche").length, trous: document.querySelectorAll(".bands .bd-tranches svg g.trou[data-no]").length }));
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     const ok = doc.numPages >= 3 * n && /Boîte LI01/.test(t1) && /PAVILLONNEUR/.test(t1) && /TABLEAU/.test(t1) && /ORDRE DE CABLAGE/.test(t1) && /MODÈLE DE BOÎTE/.test(t1) && /-LI01/.test(t1) && /connecteur/.test(t1)
       && /perçage des tranches/.test(tTr) && tr.n === 4 && tr.trous > 2 && /raccordements à faire dans l'ordre/.test(t2) && /1\. Terres/.test(t2) && /Contrôle final/.test(await txt(doc.numPages));
     if (!ok) throw new Error(JSON.stringify({ pages: doc.numPages, n, tr, t1: t1.slice(0, 300), tTr: tTr.slice(0, 200), t2: t2.slice(0, 300) }));
@@ -2377,7 +2403,7 @@ try {
   });
   await check("IA (v75, v76) : conversation de l'assistant avec Sonnet, analyse du plan / relevé / relectures avec Opus 5.5 verrouillé (constante unique)", async () => {
     const r = await ev(async () => { const m = await import("/src/ext/ai.js"); return { chat: m.modelFor("anthropic", "chat"), an: m.modelFor("anthropic", "analyse"), nv: m.modelFor("nvidia", "analyse") === m.modelFor("nvidia", "chat"), forced: m.modelFor("anthropic", "analyse", { models: { anthropicAnalyse: "claude-haiku-5-5" } }), cfg: (await import("/src/ai-config.js")).ANALYSE_MODEL }; });
-    await ev(() => okteo.setTab("params")); await page.waitForTimeout(300);
+    await openParams("ia", false); await page.waitForTimeout(300);
     const f = await ev(() => ({ ma: !!document.querySelector('.pcard[data-p="anthropic"] .ma'), lock: document.querySelector('.pcard[data-p="anthropic"] .ma-lock')?.textContent || "" }));
     await ev(() => okteo.setTab("plan"));
     // v76 : modèle de l'analyse verrouillé (src/ai-config.js) : un ancien réglage « anthropicAnalyse » est ignoré, plus de champ dans Paramètres
@@ -2526,7 +2552,7 @@ try {
     return !(await page.textContent(".ch-list")).includes("(copie)");
   });
   await check("le chantier ouvert ne peut pas être supprimé", async () => page.isDisabled('.ch-list tr.cur button[data-act="del"]'));
-  await page.click('#tabs button[data-tab="plan"]');
+  await toPlan();
 
   console.log("Contrôle permanent (v43)");
   await ev(() => { okteoExt.panel.close("assistant"); okteo.setTool("sel"); okteo.viewPreset("impl"); });
@@ -2596,7 +2622,7 @@ try {
     const r = await ev((n) => ({ menu: !!document.querySelector(".pk-menu"), added: okteo.state.app.length - n }), n0);
     await ev(() => okteo.undo());
     const back = await ev((n) => okteo.state.app.length === n, n0);
-    await ev(() => { okteo.undo(); okteo.undo(); okteo.clearSel(); okteo.setTab("params"); });
+    await ev(() => { okteo.undo(); okteo.undo(); okteo.clearSel(); }); await openParams("appareils", false);
     await page.waitForSelector("#ps-packs #ps-packs-ed .pk-row", { timeout: 10000 });
     const ed = await ev(() => ({ rows: document.querySelectorAll("#ps-packs .pk-row").length, save: !!document.querySelector("#ps-packs #pk-save") }));
     await ev(() => okteo.setTab("plan"));
@@ -2637,7 +2663,7 @@ try {
   });
   console.log("Tableau (v46)");
   await check("tableau (v49) : clic sur le tableau du plan = onglet Tableau ; coffret Legrand Drivia avec sa marque ; prise modulaire ajoutée puis retirée", async () => {
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     const t = await ev(() => { okteoExt.panel.close("assistant"); okteo.setTool("sel"); okteo.viewPreset("impl"); const a = okteo.state.app.find((x) => x.t === "TAB"); if (!a) return null; okteo.zoomToBox(a.x - 2, a.y - 2, a.x + 2, a.y + 2); return okteo.toClient(a.x, a.y); });
     if (!t) throw new Error("pas de tableau sur le plan");
     await page.mouse.click(t.x, t.y); await page.waitForTimeout(200);
@@ -2701,7 +2727,7 @@ try {
     if (!ok) throw new Error(JSON.stringify({ r0, c, moved, cut, back, undone }));
     return true;
   });
-  await page.click('#tabs button[data-tab="plan"]');
+  await toPlan();
 
   console.log("Panneau extension");
   await check("panneau élargissable en tirant le bord", async () => {
@@ -2727,7 +2753,7 @@ try {
   const clickIn = async (sel) => { await ev((x) => document.querySelector(x)?.scrollIntoView({ block: "center" }), sel); await page.click(sel, { timeout: 8000 }); };
   await check("bibliothèque : pagination, domaines, recherche, filtres de validation et application", async () => {
     await ev(() => localStorage.removeItem("okteo.regles.v1"));
-    await page.click('#tabs button[data-tab="params"]');
+    await openParams("journal");
     await page.waitForSelector("#ps-regles .rg-rules");
     await page.fill(".pset-find", "");
     const initial = await page.locator("#ps-regles .rg-row").count();
@@ -2784,7 +2810,8 @@ try {
     const f = await ev(() => document.querySelector("#ps-regles .rg-fiche")?.textContent || "");
     const ec = await ev(() => [...document.querySelectorAll("#ps-regles .rg-ecarts tr")].map((tr) => tr.textContent).join("|"));
     await ev(async () => (await import("/src/cablage/settings.js")).resetCab());
-    await clickIn('#cab-set .rg-link[data-rule="R-074"]');
+    await ev(() => okteoExt.pages.params.ui.setActive("conducteurs"));
+    await clickIn('#rb-conducteurs .pset-grp .rg-link[data-rule="R-074"]');
     await page.waitForTimeout(200);
     const f2 = await ev(() => document.querySelector("#ps-regles .rg-row.on")?.dataset.id + "|" + (document.querySelector("#ps-regles .rg-fiche")?.textContent || ""));
     const ok = conform && /departs_max = 16/.test(f) && /Départs par boîte \(sans l'alimentation\) : 18 \(journal : 16\)/.test(f) && /R-088/.test(f) && /Bande DUCOURNEAU/.test(f) && /Q-50/.test(f) && /H-020/.test(f)
@@ -2825,7 +2852,7 @@ try {
     return true;
   });
   await check("journal : export JSON puis import (entrée « Import » dans l'historique), retour à la base", async () => {
-    await ev(() => okteo.setTab("params"));
+    await openParams("journal", false);
     await page.waitForSelector("#ps-regles .rg-rules");
     const [dl] = await Promise.all([page.waitForEvent("download"), clickIn("#rg-export")]);
     const txt = await ev(() => document.getElementById("ps-regles")._lastExport);
@@ -2859,7 +2886,7 @@ try {
     await page.click("#et-cabler");
     await page.waitForSelector("#etude .et-msg");
     const r = await ev(() => ({ msg: document.querySelector("#etude .et-msg").textContent, etude: okteo.cab.etude && okteo.cab.etude.steps.length, stats: Object.keys(JSON.parse(localStorage.getItem("okteo.etudes.v1") || "{}")).length, last: /Dernier câblage/.test(document.querySelector("#etude .et-pc").textContent) }));
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     await page.keyboard.press("Control+z");
     const undone = await ev(() => ({ etude: !!okteo.cab.etude, boxes: JSON.stringify(okteo.cab.boxes.map((b) => b.id + ":" + b.apps.length)) }));
     await page.keyboard.press("Control+y");
@@ -2898,7 +2925,7 @@ try {
     return true;
   });
   await check("« Pourquoi ? » : clic sur une boîte (R-001, mode, faces) puis sur sa gaine d'alimentation (R-074, R-075) et un fil (R-031)", async () => {
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     const id = await ev(() => okteo.cab.boxes[0].id);
     await ev((i) => document.dispatchEvent(new CustomEvent("okteo:box-select", { detail: { id: i } })), id);
     const box = await ev(() => document.querySelector(".why-card:not([hidden])")?.textContent || "");
@@ -2920,14 +2947,14 @@ try {
     const b64 = await ev(async () => { const u = new Uint8Array(await document.getElementById("etude").__report.blob.arrayBuffer()); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); });
     const doc = await pdfjsNode.getDocument({ data: new Uint8Array(Buffer.from(b64, "base64")), verbosity: 0 }).promise;
     const t = (await (await doc.getPage(1)).getTextContent()).items.map((x) => x.str).join(" ");
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     if (!(/Rapport de câblage/.test(t) && /Étapes/.test(t) && /Où ça coince/.test(t) && /Modes de pieuvre étudiés/.test(t))) throw new Error(t.slice(0, 300));
     return true;
   });
 
   console.log("Appareils du journal, volets, lignes directes (v54)");
   await check("barre d'outils : « Autres ▾ » ouvre les appareils par groupe ; choisir le radiateur l'active (symbole dans le bouton)", async () => {
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     await ev(() => okteoExt.panel.close("assistant"));
     await page.click('#tools [data-tool="__more"]');
     const groups = await ev(() => [...document.querySelectorAll("#tools .more-pop .mg b")].map((b) => b.textContent));
@@ -2957,7 +2984,7 @@ try {
     await page.waitForSelector("#lignes .dl-tab");
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/lignes.png" });
     const r = await ev(() => { const T = document.querySelector("#lignes"); return { head: [...T.querySelectorAll(".dl-tab thead th")].map((x) => x.textContent).join("|"), rows: [...T.querySelectorAll(".dl-tab tbody tr")].map((tr) => tr.textContent), tot: T.querySelector(".dl-tot").textContent }; });
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     const rad = r.rows.find((t) => /^C\d/.test(t)), tv = r.rows.find((t) => /^TV\d/.test(t)), hot = r.rows.find((t) => /^HOTTE\d/.test(t));
     if (!(r.head === "Étiquette|Longueur (m)|Gaine|Fil|Aboutissant|Circuit|Vérif" && rad && /ICTA 161,5 B\+N\+M\+V\/J/.test(rad) && tv && /ICTA 20 V \(verte\)17 VATC/.test(tv) && hot && /2,5 B\+R\+V\/J/.test(hot) && r.rows.some((t) => /^Courant faible/.test(t)) && /Total de gaines : .*ICTA 16/.test(r.tot))) throw new Error(JSON.stringify(r).slice(0, 600));
     return true;
@@ -3033,7 +3060,7 @@ try {
 
   console.log("Plan lisible (v58)");
   await check("taille des symboles d'après le dessin (12 à 26 cm, « Auto ») ; le curseur la règle à la main, « Auto » la recalcule", async () => {
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     await ev(() => { okteoExt.panel.close("assistant"); okteo.clearSel(); });
     const r = await ev(() => {
       const auto = okteo.symCm, ck = document.getElementById("symauto").checked;
@@ -3177,7 +3204,7 @@ try {
   });
   await check("Paramètres : section « Coûts d'un chantier » (prix des jetons, coût horaire)", async () => {
     await page.click('#mode-sw [data-m="be"]');
-    await ev(() => okteo.setTab("params"));
+    await openParams("ia", false);
     const r = await ev(() => ({ h: !!document.getElementById("ps-couts"), n: document.querySelectorAll("[data-cost]").length }));
     await ev(() => okteo.setTab("plan"));
     if (!(r.h && r.n === 3)) throw new Error(JSON.stringify(r));
@@ -3188,11 +3215,11 @@ try {
     await goSub("lignes");
     const a = await ev(() => ({ tab: okteo.tab, on: document.querySelector('#tabs button[data-tab="boites"]').classList.contains("on"), vis: !document.getElementById("lignes").hidden && !document.getElementById("pg-pieuvre").hidden,
       sub: document.querySelector('#subtabs [data-sub="lignes"]').classList.contains("on"), n: document.querySelectorAll("#tabs button").length, old: !!document.querySelector('#tabs button[data-tab="bandes"]') }));
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     const hid = await ev(() => document.getElementById("pg-pieuvre").hidden);
     await page.click('#tabs button[data-tab="boites"]');
     const back = await ev(() => okteo.tab);
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     if (!(a.tab === "lignes" && a.on && a.vis && a.sub && a.n === 7 && !a.old && hid && back === "lignes")) throw new Error(JSON.stringify({ a, hid, back }));
     return true;
   });
@@ -3315,7 +3342,7 @@ try {
     return true;
   });
   await check("3D-3 : hauteurs de départ dans Paramètres → Vue 3D, allège / linteau d'une fenêtre et hauteur sous plafond d'une pièce dans Propriétés → la 3D suit", async () => {
-    await ev(() => okteo.setTab("params"));
+    await openParams("v3d", false);
     await page.waitForSelector("#ps-3d [data-h3d=\"h3dPlafond\"]");
     await page.fill('#ps-3d [data-h3d="h3dPlafond"]', "270"); await page.press('#ps-3d [data-h3d="h3dPlafond"]', "Enter");
     await page.dispatchEvent('#ps-3d [data-h3d="h3dPlafond"]', "change");
@@ -3528,13 +3555,13 @@ try {
     return true;
   });
   await check("norme n° 4 : réglage plus large que la norme (10 prises en 1,5 mm²) → message CIR-01 dans Paramètres, rien de bloqué ; valeurs de base rétablies", async () => {
-    await page.click('#tabs button[data-tab="params"]');
+    await openParams("cablage");
     await page.fill('[data-cab="maxPrises"]', "10"); await page.dispatchEvent('[data-cab="maxPrises"]', "change");
     const w = await ev(() => (document.getElementById("cab-norme") || {}).textContent || "");
     await page.fill('[data-cab="maxPrises"]', "8"); await page.dispatchEvent('[data-cab="maxPrises"]', "change");
     const gone = await ev(() => !document.getElementById("cab-norme"));
     await page.click("#cab-reset");
-    await page.click('#tabs button[data-tab="plan"]');
+    await toPlan();
     if (!(/CIR-01 · 10 prises par circuit en 1,5 mm² : la norme en admet 8/.test(w) && gone)) throw new Error(JSON.stringify({ w, gone }));
     return true;
   });

@@ -11,7 +11,7 @@ import { PROVIDERS, testProvider, serverStatus, listModels } from "./ai.js";
 import { mountChantiers } from "./chantiers-page.js";
 import { createWallsTool } from "./walls-ui.js";
 import { squareOptions, squareText } from "../walls/squaring.js";
-import { getPrefs } from "../prefs.js";
+import { getPrefs, applyTheme } from "../prefs.js";
 import { createRoomsTool } from "./rooms-ui.js";
 import { createPrintTool } from "./print-ui.js";
 import { createPrepTool } from "./prep-ui.js";
@@ -42,6 +42,7 @@ import { createWhyBlink } from "./why-blink.js";
 
 function start() {
   const api = window.okteo;
+  if (applyTheme() !== "auto") document.dispatchEvent(new CustomEvent("okteo:prefs", { detail: { key: "theme" } }));   // page Paramètres : thème gardé sur ce PC (le plan se redessine)
   const panel = createSidePanel();
   let assistant = null, palette = null;
 
