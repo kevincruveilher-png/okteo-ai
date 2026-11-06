@@ -57,6 +57,14 @@ async function push(e) {
   storeSet(KEY, M);
   return r;
 }
+// MAJ « tous » (06/11/2026) : cocher / décocher « Valable pour tous les pavillonneurs » sur une variante enregistrée
+export function setTous(pav, id, on) {
+  const M = memoAll(), e = (M[keyOf(pav)] || []).find((x) => x.id === id);
+  if (!e) return null;
+  e.tous = !!on; e.pending = true; storeSet(KEY, M);
+  if (online()) push(e).catch(() => { /* renvoyée à la prochaine synchronisation */ });
+  return e;
+}
 // lot 2 : synchronisation avec la mémoire commune (version en ligne) : fiches en attente envoyées, puis la liste du serveur
 // remplace les fiches déjà connues du serveur (les fiches locales jamais envoyées sont gardées)
 export async function syncMemory() {
