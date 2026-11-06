@@ -131,6 +131,7 @@ export function controlIssues() {
 }
 
 // 3D-6 : contrôles de pose sur tous les niveaux (hauteurs de départ de Paramètres → Vue 3D, case PMR du chantier)
+export const POSE_OFF = new Set(["battant", "embrasure"]);
 export function posesAll() {
   const H = heightsFrom(getPrefs()), pmr = isPmr(), out = [];
   const cm = (v) => (Number.isFinite(+v) && +v > 0 ? +v / 100 : undefined);
@@ -140,7 +141,9 @@ export function posesAll() {
     const ep = state.wallEp > 0 ? state.wallEp : 0.2;
     const plan = { nodes: d.nodes || [], segs: (d.segs || []).map((s) => ({ id: s.id, a: s.a, b: s.b, ep: s.ep > 0 ? s.ep : ep, virt: !!s.virt })), openings: (d.openings || []).map((o) => ({ ...o, allege: cm(o.allege), linteau: cm(o.linteau) })) };
     const apps = d.app.map((a) => ({ id: a.id, t: a.t, x: a.x, y: a.y, seg: a.seg, pt: a.pt, h: Number.isFinite(a.h) ? a.h : hDefault(a.t) }));
-    for (const r of poseIssues(plan, apps, { pmr, H })) out.push({ kind: r.kind, ids: r.ids.filter((id) => d.app.some((a) => a.id === id)), lv, text: r.text });
+    // MAJ pose (06/11/2026, Kévin) : plus d'alerte « derrière le battant d'une porte » ni « dans l'embrasure » (trop de
+    // fausses alertes) ; restent la hauteur de pose (et, ailleurs, mur, salle de bains, zones d'exclusion)
+    for (const r of poseIssues(plan, apps, { pmr, H })) if (!POSE_OFF.has(r.kind)) out.push({ kind: r.kind, ids: r.ids.filter((id) => d.app.some((a) => a.id === id)), lv, text: r.text });
   }
   return out;
 }

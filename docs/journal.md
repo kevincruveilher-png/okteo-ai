@@ -1,3 +1,10 @@
+## 06/11/2026 — MAJ « pose » : plus d'alerte battant de porte ni embrasure (go de Kévin, 12:01)
+
+- check.js `POSE_OFF` (battant, embrasure) : ces deux contrôles de pose (3D-6, `src/3d/pose.js`) ne sont plus signalés,
+  ni sur le plan (halo orange) ni en 3D (la 3D lit `okteo.control`). Les fonctions pures restent (v3d.test.mjs).
+- Restent en orange : appareil hors de son mur, volumes de salle de bains, zones d'exclusion, hauteur de pose.
+- Smoke : l'essai 3D-6 vérifie maintenant qu'aucune de ces deux alertes n'apparaît.
+
 ## 05/11/2026 — MAJ affichage fusionnée dans `main`
 
 - `npm run check` vert sur GitHub Actions (run 42038694694). Corrigé avant fusion : « ressources hors ligne prêtes » ne

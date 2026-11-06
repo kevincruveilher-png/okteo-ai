@@ -3356,28 +3356,20 @@ try {
     if (!(prep.b > 0 && g0.n > 0 && g0.tubes === g0.n && g0.top > 2.5 && g0.low > 0.05 && /Longueur/.test(g0.card) && g1.L > g0.L && g1.low < 0.05 && g1.card)) throw new Error(JSON.stringify({ prep, g0, g1 }));
     return true;
   });
-  await check("3D-6 : contrôles de pose : interrupteur derrière le battant d'une porte et commande dans une fenêtre comptés dans « à vérifier », anneaux rouges et liste en 3D, un clic cadre l'appareil et explique ; Ctrl+Z", async () => {
+  await check("MAJ pose : interrupteur derrière le battant d'une porte et commande dans une fenêtre ne sont plus signalés (ni sur le plan ni en 3D) ; Ctrl+Z", async () => {
     await ev(() => okteo.setTab("plan"));
     const ids = await ev(() => okteo.batch(() => {
       okteo.addWalls([{ a: { x: 40, y: 0 }, b: { x: 44, y: 0 }, ep: 0.25 }, { a: { x: 44, y: 0 }, b: { x: 44, y: 3 }, ep: 0.25 }]);
       const N = (x, y) => okteo.state.nodes.find((n) => Math.hypot(n.x - x, n.y - y) < 1e-6).id;
       const s1 = okteo.state.segs.find((s) => s.a === N(40, 0) && s.b === N(44, 0)), s2 = okteo.state.segs.find((s) => s.a === N(44, 0) && s.b === N(44, 3));
       okteo.state.openings.push({ id: "o3d6a", seg: s1.id, t: 2, w: 0.8, kind: "porte", hinge: "g", swing: "int" }, { id: "o3d6b", seg: s2.id, t: 1.5, w: 1, kind: "fenetre", hinge: "g", swing: "int" });
-      return okteo.importDevices([{ t: "INT", x: 41.3, y: -0.2 }, { t: "INT", x: 42.6, y: -0.2 }, { t: "CVR", x: 44.2, y: 1.6 }], [], { stay: true }).ids;
+      return okteo.importDevices([{ t: "INT", x: 41.3, y: -0.2 }, { t: "CVR", x: 44.2, y: 1.6 }], [], { stay: true }).ids;
     }));
     await page.waitForTimeout(300);
-    const ctl = await ev((i) => okteo.control.filter((x) => i.includes(x.ids[0])).map((x) => x.ids[0] === i[0] ? "behind:" + x.kind : x.ids[0] === i[1] ? "handle:" + x.kind : "glass:" + x.kind), ids);
-    await ev(() => okteo.setTab("vue3d"));
-    try { await page.waitForFunction((i) => { const S3 = okteoExt.pages.vue3d.ui.state; return (S3.pose || []).some((p) => p.id === i[0]) && (S3.pose || []).some((p) => p.id === i[2]); }, ids, { timeout: 20000 }); }
-    catch { throw new Error("poses absentes en 3D : " + JSON.stringify({ ctl, pose: await ev(() => okteoExt.pages.vue3d.ui.state.pose) })); }
-    const r = await ev((i) => { const S3 = okteoExt.pages.vue3d.ui.state; return { halos: S3.marks.halos.filter((m) => i.includes(m.userData.pose)).length, list: document.querySelectorAll(".v3d-pose li button").length, shown: !document.querySelector(".v3d-pose").hidden }; }, ids);
-    const k = await ev((i) => { const L = okteoExt.pages.vue3d.ui.state.pose; return L.findIndex((p) => p.id === i[0]); }, ids);
-    await page.click(`.v3d-pose li button[data-p="${k}"]`); await page.waitForTimeout(900);
-    const card = await ev(() => ({ open: !document.querySelector(".v3d-card").hidden, bad: (document.querySelector(".v3d-card .v3d-bad") || {}).textContent || "" }));
-    await ev(() => { okteo.setTab("plan"); okteo.undo(); });
+    const ctl = await ev((i) => okteo.control.filter((x) => i.includes(x.ids[0])).map((x) => x.kind), ids);
+    await ev(() => okteo.undo());
     const back = await ev((i) => !okteo.state.app.some((a) => i.includes(a.id)) && !okteo.state.openings.some((o) => o.id === "o3d6a"), ids);
-    const ok = ctl.includes("behind:battant") && !ctl.some((x) => x.startsWith("handle:battant")) && ctl.includes("glass:embrasure") && r.halos >= 2 && r.list >= 2 && r.shown && card.open && /charnière/.test(card.bad) && back;
-    if (!ok) throw new Error(JSON.stringify({ ctl, r, card, back }));
+    if (ctl.includes("battant") || ctl.includes("embrasure") || !back) throw new Error(JSON.stringify({ ctl, back }));
     return true;
   });
   await check("3D-7 : clic sur un mur en 3D → élévation de la face touchée (appareil coté depuis l'angle, hauteur), autre face, PDF du mur à l'échelle ; Ctrl+Z", async () => {
