@@ -2,4 +2,5 @@
 // Chaque module y lit et y écrit directement : K.tool, K.sel, K.view…
 export const K = {};
 // (v56 : gaineGroups, gaineGroupsSig = découpage des gaines venu du calcul, pour les points d'accroche du plan)
+// lot 5 (06/11/2026) : group = groupe du BE en cours de pose (src/cablage/groupes.js), sinon null
 // variables : AID, BG, DID, FOND, KEY, LV, NID, OID, RID, SID, batching, bgLevel, calib, clip, dimDraft, dirty, draftFrom, draftPt, drag, fondSeq, ghost, gridM, guides, lastW, marquee, ortho, pan, preview, roomDraft, saveFail, saveT, sel, seriesMode, seriesN, seriesPrev, showBelow, showDims, showReps, symCm, tab, testMode, tool, typed, view

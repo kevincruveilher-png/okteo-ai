@@ -51,8 +51,8 @@ const FTZ = "Pratique du BE, reprise de FTZ";
 // usage = où la règle sert dans Oktéo ; source = d'où elle vient)
 export const FICHES = [
   // ---- Chantier et clients
-  F("CH-01", "chantier", "decide", "Identité de l'affaire", "N° d'affaire (AF…), pavillonneur, nom du client, nom du chantier.",
-    "Ces champs sont écrits dans le fichier .spv, l'export ALTIOR et le planning du BE. Aujourd'hui la fiche du chantier n'a ni le n° d'affaire ni le nom du client.",
+  F("CH-01", "chantier", "actif", "Identité de l'affaire", "N° d'affaire (AF…), pavillonneur, nom du client, nom du chantier.",
+    "Ces champs sont écrits dans le fichier .spv, l'export ALTIOR et le planning du BE. Ils sont dans la fiche du chantier (accueil) : « N° d'affaire », « Pavillonneur », « Nom » ; le .spv signale ceux qui manquent.",
     { n: [54], source: "Format du .spv et de l'export ALTIOR", usage: "Fiche du chantier, .spv, ALTIOR, planning" }),
   F("CH-02", "chantier", "decide", "Finitions commandées", "Par famille (appareillage, étanche intérieur et extérieur, éclairage, VMC, tableau) : marque, gamme, couleur, plaque. Exemple : SCHNEIDER · ODACE · BLANC · BLANC.",
     "ALTIOR choisit le vrai produit d'après ces finitions. Elles sont lues dans le fichier passerelle d'ALTIOR (une ligne par affaire), comme le fait FTZ, et restent modifiables.",
@@ -86,8 +86,8 @@ export const FICHES = [
   F("AP-03", "appareils", "decide", "Variantes des appareils", "Haute, cuisine, hotte, îlot, extérieure, USB / USB-C, HDMI, connectée, bus, variateur, volet micromodule, prises de communication, répartiteurs TV, supports box…",
     "La bibliothèque du BE compte environ 500 symboles. On reprend les variantes utiles ; la plomberie viendra plus tard.",
     { n: [49], source: FTZ, usage: "Barre des appareils, propriétés" }),
-  F("AP-04", "appareils", "decide", "Groupes en un clic", "PC+RJ, PC+TV, PC+RJ+TV, 2PC+2RJ+TV, 3PC+2RJ+TV, RJ+RJ, RJ+TV, 2PC, 3PC, 3PC cuisine, SA+SA, SA+VV, SA+BP, VV+VV, VV+BP, BP+BP ; chauffage : CETH split, CETH thermo, PAC intérieure, PAC extérieure, convecteur et sèche-serviette fournis.",
-    "Un groupe pose d'un coup la boîte, la plaque et les appareils déjà associés, aux bonnes hauteurs (prises 30 cm, commandes 1,10 ou 1,20 m). Les appareils d'une même plaque comptent chacun pour le câblage.",
+  F("AP-04", "appareils", "actif", "Groupes en un clic", "PC+RJ, PC+TV, PC+RJ+TV, 2PC+2RJ+TV, 3PC+2RJ+TV, RJ+RJ, RJ+TV, 2PC, 3PC, 3PC cuisine, SA+SA, SA+VV, SA+BP, VV+VV, VV+BP, BP+BP ; chauffage : CETH split, CETH thermo, PAC intérieure, PAC extérieure, convecteur et sèche-serviette fournis.",
+    "Un groupe pose d'un coup les appareils d'une plaque, côte à côte sur le mur, déjà associés, aux bonnes hauteurs (prises 30 cm, commandes 1,10 ou 1,20 m). Les appareils d'une même plaque comptent chacun pour le câblage. Appliqué le 06/11/2026 (lot 5) : bouton « Groupes ▾ » de la barre des appareils (17 groupes) ; les groupes de chauffage (CETH, PAC, appareils fournis) et le kit matériel viendront avec les nouveaux appareils.",
     { n: [25, 48], source: FTZ, usage: "Pose des appareils, Stream Deck" }),
   F("AP-05", "appareils", "decide", "Plaques", "Simple, double, triple, quadruple ; horizontale ou verticale.",
     "La plaque fait partie du kit matériel et de l'export ALTIOR.",
@@ -186,8 +186,8 @@ export const FICHES = [
     { n: [], source: "Norme NF C 15-100", usage: "Étapes → Norme, tableau, rapport" }),
 
   // ---- Fabrication et échanges
-  F("FA-01", "fabrication", "decide", "Fichier .spv pour Counter", "Une ligne par gaine : départ (boîte + face, tableau, coffret), gaine, longueur, arrivée (repères et pièce), câble, fils par section, n° de gaine, type (bras, alimentation, direct, pontages), hauteur, longueur de coupe.",
-    "Un seul fichier, tout « à faire » : l'atelier le découpe lui-même. Lignes rangées pour produire les gaines en série (gaine, câble puis fils, composition, longueur) ; Counter n'exige rien.",
+  F("FA-01", "fabrication", "actif", "Fichier .spv pour Counter", "Une ligne par gaine : départ (boîte + face, tableau, coffret), gaine, longueur, arrivée (repères et pièce), câble, fils par section, n° de gaine, type (bras, alimentation, direct, pontages), hauteur, longueur de coupe.",
+    "Un seul fichier, tout « à faire » : l'atelier le découpe lui-même. Lignes rangées pour produire les gaines en série (gaine, câble puis fils, composition, longueur) ; Counter n'exige rien. Appliqué le 06/11/2026 (lot 4) : Pieuvre → Bandes → « Fichier .spv (Counter) ». À valider dans Counter sur un chantier réel (FA-09).",
     { n: [53, 55, 58, 59, 8], source: "Fichiers .spv du BE", usage: "Pieuvre → Bandes" }),
   F("FA-02", "fabrication", "decide", "Export vers ALTIOR", "11 fichiers par affaire (appareillage, étanche, éclairage, VMC, tableau, fils et gaines…), un article générique par ligne avec la quantité totale.",
     "ALTIOR en tire l'ordre de fabrication. Les métrages de fils sont exactement la somme du .spv (vérifié sur un chantier réel) : un seul calcul pour les deux.",
@@ -195,8 +195,8 @@ export const FICHES = [
   F("FA-03", "fabrication", "question", "Dépôt des fichiers ALTIOR", "Au début : un fichier zip à télécharger.",
     "Oktéo est en ligne et ne voit pas le serveur de fichiers. À confirmer : dossier lu automatiquement par ALTIOR ?",
     { n: [62, 68], source: "Question au BE", usage: "Export ALTIOR" }),
-  F("FA-04", "fabrication", "decide", "Totaux du planning du BE", "Surface, nombre de gaines, nombre de boîtes, plomberie oui / non.",
-    "L'application du BE les écrit dans le planning. Au début Oktéo les affiche avec un bouton « copier ».",
+  F("FA-04", "fabrication", "actif", "Totaux du planning du BE", "Surface, nombre de gaines, nombre de boîtes, plomberie oui / non.",
+    "L'application du BE les écrit dans le planning. Appliqué le 06/11/2026 (lot 4) : Pieuvre → Bandes → « Totaux du planning » les copie, à coller dans InfoChantier.",
     { n: [30, 64], source: "Application du BE", usage: "Pieuvre" }),
   F("FA-05", "fabrication", "decide", "Nuage et indice de révision", "Mêmes mots qu'au BE : « nuage », « indice de révision ».",
     "Pour signaler sur le plan ce qui a changé d'une version à l'autre.",

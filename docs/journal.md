@@ -1,3 +1,23 @@
+## 06/11/2026 — Lots 4 et 5 de la reprise des paramètres du BE (fusionnés dans `main`, run 42280434989 vert)
+
+Lot 4 — fabrication (fiches FA-01, FA-04, CH-01 « Appliquée ») :
+- `src/cablage/spv.js` (pur) : `spvLines(W, items, ch, {surl, abrev})` = une ligne par gaine (bras, alimentation,
+  ligne directe, tronçon de pontage), 24 champs au format des .spv du BE (voir l'en-tête du fichier) ; `spvText` (CRLF),
+  `spvName` (« AF…_NOM-.spv »), `cableTxt` (âmes dans l'ordre des articles du BE), `filsTxt`, `totaux` (planning du BE et
+  métrages par fil = somme des lignes, comme le « cumul » du BE). Tout ACTIVE ; lignes rangées pour la production en série.
+- Pieuvre → Bandes : `#bd-spv` « Fichier .spv (Counter) » (`spvNow(api)`, `ui.lastSpv`) et `#bd-planning` « Totaux du
+  planning » (surface, gaines, boîtes, plomberie ; copiés ; `ui.lastPlanning`). N° d'affaire et pavillonneur = fiche du
+  chantier (`affaire`, `client`) ; le .spv signale s'ils manquent.
+- À faire valider par le BE : ouvrir un .spv d'Oktéo dans Counter sur un chantier réel (fiche FA-09).
+
+Lot 5 — groupes en un clic (fiche AP-04 « Appliquée ») :
+- `src/cablage/groupes.js` (pur) : `GROUPES_POSE` (17 groupes du Stream Deck du BE : PC+RJ, PC+TV, PC+RJ+TV,
+  2PC+2RJ+TV, 3PC+2RJ+TV, 2PC, 3PC, 3PC cuisine à 110 cm en plan de travail, RJ+RJ, RJ+TV, RJ+RJ+TV, SA+SA, SA+VV,
+  SA+BP, VV+VV, VV+BP, BP+BP), `groupePositions` (8 cm le long du mur), `ECART_GROUPE`.
+- Barre des appareils : « Groupes ▾ » `[data-tool="__groupes"]`, menu `[data-grp]` ; `K.group` ; interact.js : le 1er
+  appareil est posé sur le mur cliqué, les autres à côté le long du même mur ; un seul Ctrl+Z.
+- Tests : `scripts/spv.test.mjs` (9), `scripts/lot3.test.mjs` (7, groupes), smoke « lot 4 » et « lot 5 ».
+
 ## 06/11/2026 — Lots 2 et 3 fusionnés dans `main` (go de Kévin : « enchaîne les lots »)
 
 - `npm run check` vert sur GitHub Actions (run 42278123819). Workflow temporaire retiré.
