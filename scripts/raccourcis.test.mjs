@@ -1,0 +1,24 @@
+// Lot 6 (PO-01, TA-02) : touches du BE et appareils par départ (test pur, sans navigateur)
+const store = new Map();
+globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
+const R = await import("../src/ext/raccourcis.js");
+const { checkCircuits } = await import("../src/cablage/circuits.js");
+let ok = 0, ko = 0;
+const t = (name, cond, info) => { if (cond) { ok++; console.log("  ✓ " + name); } else { ko++; console.log("  ✗ " + name + (info ? " : " + JSON.stringify(info) : "")); } };
+const ev = (key, o = {}) => ({ key, code: o.code || "", ctrlKey: !!o.ctrl, altKey: !!o.alt, shiftKey: !!o.shift, metaKey: false });
+t("touche physique : Ctrl+8 sur AZERTY (« _ ») = Ctrl+8", R.keyName(ev("_", { ctrl: true, code: "Digit8" })) === "Ctrl+8");
+t("F5, Ctrl+Maj+R, touche seule", R.keyName(ev("F5")) === "F5" && R.keyName(ev("R", { ctrl: true, shift: true, code: "KeyR" })) === "Ctrl+Maj+R" && R.keyName(ev("Shift")) === "");
+const m = R.keymap(), by = (id) => m.find((a) => a.id === id);
+t("touches de FTZ par défaut", by("porte").keys[0] === "Ctrl+8" && by("ortho").keys.join() === "F6,F7" && by("copier").keys[0] === "Ctrl+Y" && by("association").cmd === null, m.map((a) => a.id + ":" + a.keys));
+t("touche gardée par le navigateur refusée avec une autre proposée", (() => { const r = R.setKey("porte", "Ctrl+W"); return !r.ok && /navigateur/.test(r.msg) && /Ctrl\+Maj\+F/.test(r.msg); })());
+t("touche changée ; prise à une autre action = retirée de celle-ci", (() => { const r = R.setKey("porte", "Ctrl+9"); const k = R.keymap(); return r.ok && /servait/.test(r.msg) && k.find((a) => a.id === "porte").keys[0] === "Ctrl+9" && k.find((a) => a.id === "fenetre").keys.length === 0; })());
+R.resetKey();
+t("retour aux touches du BE", R.keymap().find((a) => a.id === "fenetre").keys[0] === "Ctrl+9");
+const S = { maxPoints: 8, maxPrises: 8 };
+const items = [{ id: "r1", t: "RAD" }, { id: "r2", t: "RAD" }, { id: "r3", t: "SS" }, { id: "f", t: "FOUR" }, { id: "l", t: "LV" }];
+const c2 = checkCircuits([{ id: "c1", n: "C1", kind: "specialise", apps: ["r1", "r2"] }], items, S).issues.filter((i) => i.c === "c1");
+const c3 = checkCircuits([{ id: "c1", n: "C1", kind: "specialise", apps: ["r1", "r2", "r3"] }], items, S).issues.filter((i) => i.c === "c1");
+const c4 = checkCircuits([{ id: "c1", n: "C1", kind: "specialise", apps: ["f", "l"] }], items, S).issues.filter((i) => i.c === "c1");
+t("TA-02 : 2 convecteurs sur un circuit = admis ; 3 = alerte ; four + lave-vaisselle = alerte", !c2.some((i) => /chauffage|spécialisé/.test(i.msg)) && c3.some((i) => /2 au plus/.test(i.msg)) && c4.some((i) => /1 seul/.test(i.msg)), { c2, c3, c4 });
+console.log(`${ok} vérifications réussies, ${ko} en échec.`);
+if (ko) process.exit(1);

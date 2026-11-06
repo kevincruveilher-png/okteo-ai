@@ -40,6 +40,10 @@ export function filsTxt(wires, surl) {
 }
 const gaineTxt = (diam, faible) => (faible && (diam == null || diam === 20) ? "ICTA_V20" : diam ? `ICTA${diam}` : "");
 
+// lot 7 (CH-07) : pièce par défaut d'un départ dont la pièce est inconnue (valeurs de FTZ)
+const DEHORS = new Set(["PCEXT", "GEXT", "PX4", "ANT", "VREJ"]);
+export function pieceDefaut(a) { if (!a) return "CELLIER"; if (a.t === "MGAR") return "GARAGE"; if (a.ext || DEHORS.has(a.t)) return "EXTERIEUR"; return "CELLIER"; }
+
 // W = computeWiring(...) ; items = allApps() (rep, room, h, t) ; ch = fiche du chantier {affaire, nom, client} ;
 // o.abrev(nomDePièce) = nom court (Paramètres → Chantier → abréviations) ; o.surl = surlongueur des fils (m, 0,40)
 export function spvLines(W, items, ch = {}, o = {}) {
@@ -49,7 +53,8 @@ export function spvLines(W, items, ch = {}, o = {}) {
   const aff = ascii(ch.affaire || ch.numero || "").trim(), nom = ascii(ch.nom || "").trim().toUpperCase();
   const fixe = [`${aff}_${nom}`, ascii(ch.client || "").toUpperCase(), nom, aff, "", "", ""];
   const reps = (ids) => (ids || []).map((id) => (byId.get(id) || {}).rep).filter(Boolean).map(ascii).join("+");
-  const roomOf = (ids) => { const r = (ids || []).map((id) => (byId.get(id) || {}).room).find(Boolean); return r ? `(${ab(r)})` : ""; };
+  // lot 7 (CH-07, FTZ « local par défaut ») : pièce inconnue → GARAGE (moteur de porte), EXTERIEUR (appareil dehors), sinon CELLIER
+  const roomOf = (ids) => { const L = (ids || []).map((id) => byId.get(id)).filter(Boolean); if (!L.length) return ""; const r = L.map((a) => a.room).find(Boolean); return `(${r ? ab(r) : pieceDefaut(L[0])})`; };
   const hOf = (ids) => { const a = byId.get((ids || [])[0]); return a ? (a.h == null ? 2500 : Math.round(a.h * 10)) : 0; };
   const rows = [];
   const push = (r) => rows.push(r);

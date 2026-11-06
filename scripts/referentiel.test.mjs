@@ -2,6 +2,7 @@
 import { ETATS, RUBRIQUES, FICHES, QUESTIONS, fichesOf, compte, cherche, catalogueTexte } from "../src/referentiel/catalogue.js";
 import { CAB_DEFAULTS } from "../src/cablage/settings.js";
 import { REGLES } from "../src/norme/nfc15100.js";
+import { sharepointUrl, sharepointOk } from "../src/referentiel/sharepoint.js";
 
 let ok = 0, ko = 0;
 const check = (name, cond, info) => { if (cond) { ok++; console.log("  ✓ " + name); } else { ko++; console.log("  ✗ " + name + (info ? " — " + JSON.stringify(info) : "")); } };
@@ -29,6 +30,8 @@ check("export texte : toutes les fiches, les questions et la norme", ids.every((
 // confidentialité (dépôt public) : pas de prix, pas de nom de client ni de chantier étudié
 const all = JSON.stringify({ FICHES, QUESTIONS });
 check("aucun prix ni nom de chantier réel dans le catalogue", !/€|MONTEAUD|PASQUIER|MAILLARD|EVRARD|DUCOURNEAU/i.test(all));
+
+check("CH-08 : adresse SharePoint = modèle + n° d'affaire ; rien sans modèle, sans n° ou sans https", sharepointUrl("https://x.sharepoint.com/sites/BE/{affaire}/plans", "AF26 001") === "https://x.sharepoint.com/sites/BE/AF26%20001/plans" && sharepointUrl("https://x.sharepoint.com/BE", "AF1") === "https://x.sharepoint.com/BE/AF1" && sharepointUrl("", "AF1") === "" && sharepointUrl("https://x.sharepoint.com/{affaire}", "") === "" && sharepointUrl("javascript:alert(1)/{affaire}", "AF1") === "" && !sharepointOk("http://x.fr") && sharepointOk(""));
 
 console.log(`\n${ok} vérifications réussies, ${ko} en échec.`);
 if (ko) process.exit(1);

@@ -1482,3 +1482,17 @@ body.page-full #params .pset-sec h3{font-size:21px;font-family:var(--fd);margin-
 .more-pop .grp-l{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;min-width:330px}
 .more-pop .grp-l .gp{font-size:12px;padding:5px 6px;white-space:nowrap}
 .more-pop .grp-l .gp.on{background:var(--accent);color:#fff}
+
+/* lot 6 (PO-01) : touches du BE dans Paramètres → Raccourcis */
+.kb-tab{width:100%;border-collapse:collapse;margin:6px 0 14px;font-size:13px}
+.kb-tab th{text-align:left;font-weight:600;padding:6px 8px;border-bottom:1px solid rgba(0,0,0,.18)}
+.kb-tab td{padding:6px 8px;border-bottom:1px solid rgba(0,0,0,.08);vertical-align:top}
+.kb-tab kbd{font-family:"JetBrains Mono",monospace;font-size:12px;padding:1px 6px;border:1px solid rgba(0,0,0,.25);border-radius:4px;background:rgba(255,255,255,.7)}
+.kb-row.chg td:first-child{border-left:3px solid #1d2a4a}
+.kb-tab button.wait{outline:2px solid #1d2a4a}
+.kb-msg{min-height:1.2em;margin:4px 0}
+.kb-msg.err{color:#7a0d0d;font-weight:600}
+/* lot 8 (CH-08) : modèle d'adresse SharePoint, lien de la fiche du chantier */
+#pref-sp{width:100%;box-sizing:border-box;font-family:"JetBrains Mono",monospace;font-size:12px;padding:6px 8px}
+#pref-sp-ex.err{color:#7a0d0d;font-weight:600}
+#ch-sp{display:inline-block;margin-top:3px}

@@ -36,7 +36,7 @@ import { gaineFor, packAlim, placeFil, placeFils } from "./gaine.js";
 import { assocOK } from "./association.js";
 import { FACES, portLayout } from "./boites.js";
 import { permanentDetector, manuallyControlledLights } from "./detecteur.js";
-import { APPAREILS, lignesOf, parseFils, gaineLabel, raccOf, isFaible, sansCvr } from "./appareils.js";
+import { APPAREILS, lignesOf, parseFils, gaineLabel, raccOf, isFaible, sansCvr, isEq } from "./appareils.js";
 import { zonesByLevel, detour, detourVia } from "./exclusion.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
@@ -250,7 +250,7 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
     // équipotentielle locale (R-080) : un fil vert/jaune sur la terre de la boîte
     // lot 3 (06/11/2026, décision n° 2) : interrupteur lumineux / à témoin : le neutre de son circuit en plus dans sa gaine
     apps.filter((a) => CMD.has(a.t) && a.temoin && role.has(a.id)).forEach((a) => { const r = role.get(a.id), c = circOf.get(a.id); if (c && !r.some(([fn]) => fn === "neutre")) r.push(["neutre", "N" + c.id]); });
-    apps.filter((a) => a.t === "EQL").forEach((a) => role.set(a.id, [["terre", "T"]]));
+    apps.filter((a) => isEq(a.t)).forEach((a) => role.set(a.id, [["terre", "T"]]));
     // prises, sorties de câble, volets connectés
     apps.filter((a) => !LIGHT.has(a.t) && !CMD.has(a.t) && !role.has(a.id)).forEach((a) => { const c = circOf.get(a.id); if (c) role.set(a.id, [["phase", "P" + c.id], ["neutre", "N" + c.id], ["terre", "T"]]); });
 
@@ -267,7 +267,7 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
     }
     // v56 (R-073, H-041) : commande et prises au même endroit partagent une gaine, mais jamais de gaine ICTA 25 dans une
     // boîte : si la place des fils dépasse l'ICTA 20, prises d'un côté, commandes et lumières de l'autre
-    const secOf = (m) => (m.t === "EQL" ? (APPAREILS.EQL.terre || 2.5) : (circOf.get(m.id) || {}).section || 1.5);
+    const secOf = (m) => (isEq(m.t) ? (APPAREILS[m.t].terre || 2.5) : (circOf.get(m.id) || {}).section || 1.5);
     const sumOf = (G) => { const seen = new Set(); let t = 0; for (const m of G) for (const [, key] of role.get(m.id) || []) { if (key != null && seen.has(key)) continue; if (key != null) seen.add(key); t += placeFil(secOf(m)); } return t; };
     for (let i = 0; i < spots.length; i++) {
       const G = spots[i];
@@ -347,7 +347,7 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
     for (const G of spots) {
       const a = G[0], seen = new Set(), wires = [];
       for (const m of G) {
-        const sec = m.t === "EQL" ? (APPAREILS.EQL.terre || 2.5) : (circOf.get(m.id) || {}).section || 1.5;
+        const sec = isEq(m.t) ? (APPAREILS[m.t].terre || 2.5) : (circOf.get(m.id) || {}).section || 1.5;
         for (const [fn, key] of role.get(m.id) || []) {
           if (key != null && seen.has(key)) continue;          // fil commun : une seule fois (repiqué sur place)
           if (key != null) seen.add(key);
@@ -384,7 +384,7 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
       // la face est celle par où la gaine sort : vers son 1er point de passage s'il y en a un
       deps.push({ sol, id: a.id, kind: "app", p: PA.pts.length ? PA.pts[0] : a, pts: PA.pts.length ? [PA.pts[0]] : H.map((m) => ({ x: m.x, y: m.y })), ...(PA.auto ? { via: PA.pts, detour: true } : {}), app: a, appIds: G.map((m) => m.id), reps: G.map((m) => m.rep || NAMES[m.t] || m.t), routed: !!route, label, room: a.room, circuit: cn.join(", "), wires, length: len, cable, ext: !!cable, bouchon: !!cable,
         ...(ponts.length ? { ponts, pontLen } : {}),
-        rules: { length: "R-011", diam: "R-074", wires: G.length > 1 ? "R-073" : null, ronde: wires.some((w) => /^(retour|nav1|nav2|cmdTL|cmdV1|cmdV2)$/.test(w.fn)) ? "R-072" : null, volet: G.some((m) => m.t === "VR" || m.t === "VEL" || m.t === "CVR") ? "R-096" : null, eq: G.some((m) => m.t === "EQL") ? "R-080" : null, cable: cable ? "R-014" : null, bouchon: cable ? "R-095" : null } });
+        rules: { length: "R-011", diam: "R-074", wires: G.length > 1 ? "R-073" : null, ronde: wires.some((w) => /^(retour|nav1|nav2|cmdTL|cmdV1|cmdV2)$/.test(w.fn)) ? "R-072" : null, volet: G.some((m) => m.t === "VR" || m.t === "VEL" || m.t === "CVR") ? "R-096" : null, eq: G.some((m) => isEq(m.t)) ? "R-080" : null, cable: cable ? "R-014" : null, bouchon: cable ? "R-095" : null } });
     }
     // alimentation depuis le tableau : une seule gaine (phase + neutre de chaque circuit, télérupteur, une terre) ;
     // divisée si elle passait en Ø25, la terre restant dans la 1re
@@ -400,7 +400,7 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
       }
       // une seule terre par boîte : dans la 1re gaine d'alimentation, à la plus grosse section de la boîte
       // (v54 : 2,5 mm² si une équipotentielle locale est raccordée dans la boîte, R-075 / R-080)
-      if (gi === 0) wires.push({ fn: "terre", color: S.cTerre, section: Math.max(...circs.map((c) => c.section || 1.5), ...apps.filter((a) => a.t === "EQL").map(() => APPAREILS.EQL.terre || 2.5)), net: "T" });
+      if (gi === 0) wires.push({ fn: "terre", color: S.cTerre, section: Math.max(...circs.map((c) => c.section || 1.5), ...apps.filter((a) => isEq(a.t)).map((a) => APPAREILS[a.t].terre || 2.5)), net: "T" });
       const route = (b.routes || {}).tab || null;
       const solA = !!(b.sol || {}).tab;
       const PT0 = tab && tab.lv === b.lv ? pathOf(b, route, tab, b.lv) : { pts: route || [], auto: false };

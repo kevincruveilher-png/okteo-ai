@@ -526,7 +526,7 @@ try {
     if (s.n !== nbMurs || s.o < 12 || s.eps < 2 || s.j < 14) throw new Error(JSON.stringify(s));
     await page.keyboard.press("Control+z");
     const undone = await ev(() => okteo.state.segs.length + okteo.state.openings.length);
-    await page.keyboard.press("Control+y");
+    await page.keyboard.press("Control+Shift+z");
     return undone === 0 && (await ev(() => okteo.state.segs.length)) === nbMurs && !(await page.isVisible(".wcard"));
   });
   console.log("Détection des pièces");
@@ -633,7 +633,7 @@ try {
     if (s.n !== n || s.att < s.wall * 0.9 || s.lia < 20 || s.lum !== 10 || s.app !== 5) throw new Error(JSON.stringify(s));
     await page.keyboard.press("Control+z");
     const undone = await ev(() => okteo.state.app.length + okteo.state.lia.length);
-    await page.keyboard.press("Control+y");
+    await page.keyboard.press("Control+Shift+z");
     return undone === 0 && (await ev(() => okteo.state.app.length)) === n && !(await page.isVisible(".wcard"));
   });
   await check("hauteurs lues sur le plan (police codée) : prises à 110, 120, 65 cm ; affichées dans la carte", async () => {
@@ -2899,7 +2899,7 @@ try {
     await toPlan();
     await page.keyboard.press("Control+z");
     const undone = await ev(() => ({ etude: !!okteo.cab.etude, boxes: JSON.stringify(okteo.cab.boxes.map((b) => b.id + ":" + b.apps.length)) }));
-    await page.keyboard.press("Control+y");
+    await page.keyboard.press("Control+Shift+z");
     const redo = await ev(() => !!okteo.cab.etude);
     if (!(/^Câblé : \d+ boîtes/.test(r.msg) && r.etude === 9 && r.stats >= 1 && r.last && !undone.etude && undone.boxes === before && redo)) throw new Error(JSON.stringify({ r, undone, before, redo }));
     return true;
@@ -3331,6 +3331,29 @@ try {
     if (!(r.added === 4 && r.dashed && r.inGeo === 4 && r.asApp === 0 && r.vol === 0 && r.reps === 0 && r.pdf && z > 0.79 && back === 0)) throw new Error(JSON.stringify({ r, z, back }));
     return true;
   });
+  await check("lot 6 (PO-01) : Paramètres → Raccourcis = touches de FTZ ; F6 bascule les angles droits, Ctrl+8 prend la porte ; une touche changée (Ctrl+Alt+P) sert tout de suite ; Ctrl+W refusée (gardée par le navigateur)", async () => {
+    await openParams("clavier");
+    const tab = await ev(() => ({ rows: document.querySelectorAll("#kb-tab tr[data-kb]").length, porte: document.querySelector('#kb-tab tr[data-kb="porte"] td:nth-child(3)')?.textContent }));
+    await page.click('[data-kb-set="porte"]');
+    await page.keyboard.press("Control+Alt+KeyP");
+    await page.waitForTimeout(100);
+    const after = await ev(() => document.querySelector('#kb-tab tr[data-kb="porte"] td:nth-child(3)')?.textContent);
+    const refus = await ev(() => okteoExt.raccourcis.setKey("fenetre", "Ctrl+W"));
+    await toPlan();
+    await ev(() => { okteoExt.panel.close("assistant"); okteo.setTool("sel"); document.activeElement?.blur?.(); });
+    const o0 = await ev(() => document.getElementById("ortho").checked);
+    await page.keyboard.press("F6");
+    const o1 = await ev(() => document.getElementById("ortho").checked);
+    await page.keyboard.press("F6");
+    await page.keyboard.press("Control+Alt+KeyP");
+    const t1 = await ev(() => okteo.tool);
+    await ev(() => okteo.setTool("sel"));
+    await page.keyboard.press("Control+Digit9");
+    const t2 = await ev(() => okteo.tool);
+    await ev(() => { okteo.setTool("sel"); okteoExt.raccourcis.resetKey(); });
+    if (!(tab.rows >= 10 && /Ctrl\+8/.test(tab.porte) && /Ctrl\+Alt\+P/.test(after) && !refus.ok && o1 === !o0 && t1 === "porte" && t2 === "fenetre")) throw new Error(JSON.stringify({ tab, after, refus, o0, o1, t1, t2 }));
+    return true;
+  });
   await check("lot 5 : « Groupes ▾ » (17 groupes du BE) ; « SA+VV » posé d'un clic sur un mur = interrupteur + va-et-vient côte à côte (8 cm) sur le même mur, un seul Ctrl+Z", async () => {
     await ev(() => { okteo.setTab("plan"); okteoExt.panel.close("assistant"); okteo.clearSel(); });
     await page.click('#tools [data-tool="__groupes"]');
@@ -3630,6 +3653,23 @@ try {
     await page.fill('input[data-f="cp"]', ""); await ev(() => document.querySelector('input[data-f="cp"]').dispatchEvent(new Event("change")));
     await ev(() => okteo.setTab("plan"));
     if (!(/dép\. 84 · Nk 40 · zone AQ2/.test(nk) && /à préciser/.test(e0) && /obligatoire/.test(e1.t) && e1.avec && !e2.avec && e2.ecart && e2.E.includes("PF-01:parafoudre retiré par le BE") && back === "auto")) throw new Error(JSON.stringify({ nk, e0, e1, e2, back }));
+    return true;
+  });
+  await check("lot 8 (CH-08) : Paramètres → Chantier, modèle d'adresse SharePoint avec {affaire} ; la fiche du chantier montre « Dossier SharePoint ↗ » vers le dossier de l'affaire (caché sans n°)", async () => {
+    await openParams("chantier");
+    await page.fill("#pref-sp", "https://exemple.sharepoint.com/sites/BE/{affaire}"); await ev(() => document.querySelector("#pref-sp").dispatchEvent(new Event("change")));
+    const ex = await ev(() => document.querySelector("#pref-sp-ex").textContent);
+    await toPlan();
+    await page.evaluate(() => okteo.setTab("chantiers"));
+    await page.waitForSelector('input[data-f="affaire"]', { timeout: 15000 });
+    const a0 = await ev(() => document.querySelector('input[data-f="affaire"]').value);
+    await page.fill('input[data-f="affaire"]', ""); await ev(() => document.querySelector('input[data-f="affaire"]').dispatchEvent(new Event("change")));
+    const h0 = await ev(() => document.querySelector("#ch-sp").hidden);
+    await page.fill('input[data-f="affaire"]', "AF26000042"); await ev(() => document.querySelector('input[data-f="affaire"]').dispatchEvent(new Event("change")));
+    const l1 = await ev(() => ({ hidden: document.querySelector("#ch-sp").hidden, href: document.querySelector("#ch-sp").getAttribute("href") }));
+    await page.fill('input[data-f="affaire"]', a0); await ev(() => document.querySelector('input[data-f="affaire"]').dispatchEvent(new Event("change")));
+    await ev(() => { localStorage.setItem("okteo.prefs.v1", JSON.stringify({ ...JSON.parse(localStorage.getItem("okteo.prefs.v1") || "{}"), sharepoint: "" })); okteo.setTab("plan"); });
+    if (!(/AF26000001/.test(ex) && h0 && !l1.hidden && l1.href === "https://exemple.sharepoint.com/sites/BE/AF26000042")) throw new Error(JSON.stringify({ ex, h0, l1 }));
     return true;
   });
   await check("n° 15 : dossier PDF de 3 pages (plan RDC, plan R+1, devis) → nouveau chantier avec ses 2 niveaux et leur fond ; le devis est joint à l'analyse (mode 4)", async () => {

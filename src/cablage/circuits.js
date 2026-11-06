@@ -175,7 +175,8 @@ export function checkCircuits(circuits, items, S) {
     if (c.kind === "eclairage" && n > S.maxPoints) issues.push({ c: c.id, msg: `${c.n} : ${n} points lumineux (max ${S.maxPoints})` });
     if (c.kind === "prises" && p > S.maxPrises) issues.push({ c: c.id, msg: `${c.n} : ${p} prises (max ${S.maxPrises})` });
     if (c.kind === "cuisine" && p > (S.maxPrisesCuisine || 6)) issues.push({ c: c.id, msg: `${c.n} : ${p} prises de cuisine (max ${S.maxPrisesCuisine || 6})` });
-    if (c.kind === "specialise" && c.apps.length > 1) issues.push({ c: c.id, msg: `${c.n} : circuit spécialisé avec ${c.apps.length} appareils` });
+    // lot 6 (TA-02, BE) : un seul appareil par circuit spécialisé ; deux convecteurs ou sèche-serviettes au plus
+    if (c.kind === "specialise") { const chauf = c.apps.every((id) => ["RAD", "SS"].includes(typeOf.get(id))), max = chauf ? 2 : 1; if (c.apps.length > max) issues.push({ c: c.id, msg: chauf ? `${c.n} : ${c.apps.length} appareils de chauffage sur un circuit (2 au plus, règle du BE)` : `${c.n} : circuit spécialisé avec ${c.apps.length} appareils (1 seul, règle du BE)` }); }
     if (c.kind === "volets") { const P = c.apps.map((id) => items.find((a) => a.id === id)).filter((a) => a && a.t !== "CVR").reduce((s2, a) => s2 + (+(a.p ?? S.puissanceMoteur ?? 50) || 50), 0), cap = (c.prot >= 16 ? 3680 : 2300); if (P > cap) issues.push({ c: c.id, msg: `${c.n} : ${P} W de moteurs de volets (max ${cap} W en ${c.prot} A)` }); }
   }
   // MAJ norme n° 4 : plafonds de la NF C 15-100 quel que soit le réglage (code de la règle dans le message) ; un dépassement
@@ -185,7 +186,7 @@ export function checkCircuits(circuits, items, S) {
     const same = ["CIR-01", "CIR-02"].includes(x.code) || (x.code === "CIR-04" && /prises de cuisine sur/.test(x.msg)) ? issues.find((y) => y.c === x.c && countMsg.test(y.msg)) : null;
     if (same) Object.assign(same, { msg: x.msg, code: x.code }); else issues.push(x);
   }
-  const need = (a) => !["TAB", "EQL", "VEX", "VREJ"].includes(a.t) && !isSani(a.t) && !(a.t === "VMC" && !S.vmcCablee) && !(a.t === "HOTTE" && raccOf(a) === "a_choisir");
+  const need = (a) => !["TAB", "EQL", "LEM", "VEX", "VREJ"].includes(a.t) && !isSani(a.t) && !(a.t === "VMC" && !S.vmcCablee) && !(a.t === "HOTTE" && raccOf(a) === "a_choisir");
   const orphans = items.filter((a) => need(a) && !inC.has(a.id)).map((a) => a.id);
   return { issues, orphans };
 }
