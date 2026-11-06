@@ -1,3 +1,14 @@
+## 06/11/2026 — Lot 10 de la reprise des paramètres du BE : pièces du dossier, finitions (branche `feat/maj-lot9-nuage`)
+
+- CH-04 « Appliquée » : `src/referentiel/dossier.js` (pur : `PIECES` (10, PMR facultatif), `piecesOf(meta)` = case à la
+  main (`meta.pieces`) sinon déduite du rôle des pages du PDF (`meta.dossier` : plan, devis, plan cuisine) ou de
+  `meta.pmr`, `piecesResume` → {ok, n, manque}). Fiche du chantier : `#ch-pieces` (`[data-piece]`, `#ch-pieces-n`
+  « 7 / 9 », pièces manquantes), ouvert tant qu'il manque une pièce.
+- CH-02 (reste « À intégrer » : lecture du fichier passerelle ALTIOR à faire) : `FAMILLES` (6), `CHAMPS` (marque,
+  gamme, couleur, plaque), `finition` (majuscules sans accents), `finitionTexte`, `finitionsOf` ; fiche du chantier
+  `#ch-fins` (`[data-fin="famille.champ"]`) → `meta.finitions`. Chaque changement est noté dans l'historique du chantier.
+- Tests : `scripts/dossier.test.mjs` (5) dans `npm run check`, smoke « lot 10 (CH-04, CH-02) ».
+
 ## 06/11/2026 — Lot 9 de la reprise des paramètres du BE : nuage et indice de révision (branche `feat/maj-lot9-nuage`)
 
 - FA-05 « Appliquée » : `src/print/nuage.js` (pur : `rectOf`, `scallops`, `cloudPoints` (festons vers l'extérieur, mêmes

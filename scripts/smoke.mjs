@@ -3694,6 +3694,19 @@ try {
     if (!(/AF26000001/.test(ex) && h0 && !l1.hidden && l1.href === "https://exemple.sharepoint.com/sites/BE/AF26000042")) throw new Error(JSON.stringify({ ex, h0, l1 }));
     return true;
   });
+  await check("lot 10 (CH-04, CH-02) : fiche du chantier → « Pièces du dossier » (compte, case à la main gardée) et « Finitions commandées » (majuscules sans accents), enregistrées dans le chantier", async () => {
+    await page.evaluate(() => okteo.setTab("chantiers"));
+    await page.waitForSelector("#ch-pieces", { state: "attached", timeout: 15000 });
+    const n0 = await ev(() => document.querySelector("#ch-pieces-n").textContent);
+    await ev(() => { const c = document.querySelector('[data-piece="photos"]'); c.checked = !c.checked; c.dispatchEvent(new Event("change")); });
+    const n1 = await ev(() => document.querySelector("#ch-pieces-n").textContent);
+    await ev(() => { const i = document.querySelector('[data-fin="appareillage.marque"]'); i.value = "schnéider"; i.dispatchEvent(new Event("change")); });
+    const saved = await ev(() => { const L = JSON.parse(localStorage.getItem("okteo.chantiers.v1") || "[]"), cur = localStorage.getItem("okteo.current"), c = L.find((x) => x.id === cur) || {}; return { photos: (c.pieces || {}).photos, fin: ((c.finitions || {}).appareillage || {}).marque, shown: document.querySelector('[data-fin="appareillage.marque"]').value }; });
+    await ev(() => { const c = document.querySelector('[data-piece="photos"]'); c.checked = !c.checked; c.dispatchEvent(new Event("change")); const i = document.querySelector('[data-fin="appareillage.marque"]'); i.value = ""; i.dispatchEvent(new Event("change")); okteo.setTab("plan"); });
+    const a = +n0.split("/")[0], b = +n1.split("/")[0];
+    if (!(/^\d+ \/ \d+$/.test(n0) && Math.abs(b - a) === 1 && typeof saved.photos === "boolean" && saved.fin === "SCHNEIDER" && saved.shown === "SCHNEIDER")) throw new Error(JSON.stringify({ n0, n1, saved }));
+    return true;
+  });
   await check("n° 15 : dossier PDF de 3 pages (plan RDC, plan R+1, devis) → nouveau chantier avec ses 2 niveaux et leur fond ; le devis est joint à l'analyse (mode 4)", async () => {
     const { jsPDF } = await import("jspdf");
     const d = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });

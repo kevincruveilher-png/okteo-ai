@@ -11,8 +11,17 @@ import { esc, norm } from "./util.js";
 import { nkOf } from "../norme/parafoudre.js";
 import { versionFor } from "../norme/nfc15100.js";
 import { sharepointUrl } from "../referentiel/sharepoint.js";
+import { piecesOf, piecesResume, finitionsOf, CHAMPS, finition } from "../referentiel/dossier.js";
 import { getPrefs } from "../prefs.js";
 // MAJ norme n° 1 : version de la norme d'après la date de dépôt du permis (champ de la fiche du chantier)
+// lot 10 (CH-04, CH-02) : pièces du dossier (cases, cochées seules d'après le rôle des pages) et finitions commandées
+function dossierHTML(m) {
+  const R = piecesResume(m);
+  const pieces = piecesOf(m).map((p) => `<label class="ck${p.opt ? " opt" : ""}" title="${p.auto && !p.main ? "Cochée d'après les pages du dossier PDF" : p.main ? "Réglée à la main" : ""}"><input type="checkbox" data-piece="${p.id}"${p.ok ? " checked" : ""}> ${esc(p.label)}${p.auto && !p.main ? ' <span class="mut sm">(PDF)</span>' : ""}</label>`).join("");
+  const fins = finitionsOf(m).map((f) => `<tr><th>${esc(f.label)}</th>${CHAMPS.map((c) => `<td><input data-fin="${f.id}.${c.id}" value="${esc(f.v[c.id] || "")}" placeholder="${esc(c.ex)}" aria-label="${esc(f.label + " : " + c.label)}"></td>`).join("")}</tr>`).join("");
+  return `<details class="ch-dos" id="ch-pieces"${R.ok < R.n ? " open" : ""}><summary>Pièces du dossier <b id="ch-pieces-n">${R.ok} / ${R.n}</b>${R.manque.length ? ` <span class="mut sm">· manque : ${esc(R.manque.join(", "))}</span>` : ""}</summary><div class="ch-pcs">${pieces}</div></details>
+    <details class="ch-dos" id="ch-fins"><summary>Finitions commandées</summary><p class="mut sm">Comme la fiche chantier du BE : marque, gamme, couleur et plaque de chaque famille (écrites en majuscules).</p><table class="ch-fin"><thead><tr><th></th>${CHAMPS.map((c) => `<th>${esc(c.label)}</th>`).join("")}</tr></thead><tbody>${fins}</tbody></table></details>`;
+}
 // lot 8 (CH-08) : lien vers le dossier SharePoint de l'affaire (caché sans modèle d'adresse ou sans n° d'affaire)
 const spHref = (m) => { const u = sharepointUrl(getPrefs().sharepoint, m.affaire); return u ? ` href="${esc(u)}"` : " hidden"; };
 const nkLabel = (m) => { const Z = nkOf(m.cp); return Z ? `dép. ${Z.dep} · Nk ${String(Z.nk).replace(".", ",")} · ${Z.aq2 ? "zone AQ2 (foudre forte)" : "zone AQ1"}` : (m.cp ? "département inconnu" : ""); };
@@ -102,6 +111,7 @@ export function mountChantiers(el, { api }) {
           <label class="f" title="Code postal du chantier (ou n° de département) : donne le niveau de foudre (Nk) de la NF C 15-100, qui décide du parafoudre (zone AQ2 au-delà de 25). Le choix final reste au BE (panneau Étapes → Norme).">Code postal<input data-f="cp" value="${esc(cur.cp || "")}" placeholder="ex. 69300" inputmode="numeric"><span class="nm-ver mut sm" id="ch-nk">${esc(nkLabel(cur))}</span></label>
           <label class="ck" title="Logement accessible (PMR) : prises, RJ45 et TV à 40 cm au lieu de 30, comme l'indiquent les légendes du BE. Cocher remonte aussi les appareils déjà posés à 30 cm (Ctrl+Z pour annuler)."><input type="checkbox" id="ch-pmr" ${cur.pmr ? "checked" : ""}> Logement PMR (prises à 40 cm)</label>
         </div>
+        ${dossierHTML(cur)}
         <div class="ch-fond"><span>Fond du niveau « ${esc((CHS.levelsOf(cur).find((l) => l.id === (cur.level || "rdc")) || {}).name || "RDC")} » : <b>${esc(cur.fond ? cur.fond.name : "aucun")}</b>${cur.fond && cur.fond.reprise ? ` <span class="mut sm">(échelle reprise du niveau « ${esc(cur.fond.reprise)} »)</span>` : ""} ${cur.fond ? (cur.fond.calibre ? `<span class="okk">✓ à l'échelle (${(cur.fond.w).toFixed(2)} m de large)</span>` : `<span class="warn">échelle à régler</span>`) : ""}</span>
           <span class="grow"></span>
           ${cur.fond ? `<button id="ch-calib" title="Cliquer deux points d'une cote connue, puis taper sa longueur">Régler l'échelle</button>` : ""}
@@ -143,6 +153,19 @@ export function mountChantiers(el, { api }) {
       if (inp.dataset.f === "cp") { const nv = el.querySelector("#ch-nk"); if (nv) nv.textContent = nkLabel(cur); document.dispatchEvent(new CustomEvent("okteo:norme", { detail: versionFor(cur) })); }
       if (inp.dataset.f === "permis") { const nv = el.querySelector("#ch-norme"); if (nv) nv.textContent = normeLabel(cur); document.dispatchEvent(new CustomEvent("okteo:norme", { detail: versionFor(cur) })); }
       const bd = document.querySelector(".badge"); if (bd) bd.textContent = cur.nom + (cur.numero ? " · " + cur.numero : "");
+    }));
+    el.querySelectorAll("[data-piece]").forEach((c) => (c.onchange = () => {
+      const pieces = { ...(cur.pieces || {}), [c.dataset.piece]: c.checked };
+      event(cur.id, "identite", { element: "piece:" + c.dataset.piece, before: !c.checked, after: c.checked });
+      cur.pieces = pieces; CHS.update(cur.id, { pieces });
+      const R = piecesResume(cur), n = el.querySelector("#ch-pieces-n"); if (n) n.textContent = `${R.ok} / ${R.n}`;
+    }));
+    el.querySelectorAll("[data-fin]").forEach((inp) => (inp.onchange = () => {
+      const [fam, ch] = inp.dataset.fin.split("."), v = finition(inp.value), F = { ...(cur.finitions || {}) };
+      F[fam] = { ...(F[fam] || {}), [ch]: v }; if (!v) delete F[fam][ch];
+      inp.value = v;
+      event(cur.id, "identite", { element: "finition:" + inp.dataset.fin, before: ((cur.finitions || {})[fam] || {})[ch] || "", after: v });
+      cur.finitions = F; CHS.update(cur.id, { finitions: F });
     }));
     el.querySelector("#ch-pmr")?.addEventListener("change", (e) => { const n = api.setPmr(e.target.checked); cur.pmr = e.target.checked; e.target.closest("label").title = `${n} appareil${n > 1 ? "s" : ""} ${e.target.checked ? "remontés à 40 cm" : "redescendus à 30 cm"}`; });
     el.querySelector("#ch-calib")?.addEventListener("click", () => api.startCalib());
