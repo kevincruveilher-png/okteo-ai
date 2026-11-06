@@ -1,3 +1,17 @@
+## 06/11/2026 — MAJ norme n° 5 : tableau aligné sur la NF C 15-100:2024 (go de Kévin, 13:55)
+
+- tableau.js : `needsF(c)` (pompe à chaleur, clim, piscine, thermodynamique, Aqua Air → type F, NF C 15-100-1 553.2.6.1,
+  TAB-04), `isIrve(c)` (un différentiel par point de recharge, 7-722, IRVE-01), `isExt(c)` (extérieurs sous un différentiel
+  sans circuit intérieur, CIR-10) ; type F et B acceptés là où A est demandé.
+- `autoTableau` : groupes en plus (type F, chaque borne seule en type A, extérieurs à part) logés dans la place libre des
+  rangées (plusieurs ID par rangée : un ID protège jusqu'au suivant), sinon une rangée de plus. Les groupes habituels
+  gardent une rangée chacun. `addBreaker` : type F pour un appareil à variateur. CSS `.tid.tF`.
+- `tableauIssues` : alertes TAB-04, IRVE-01, CIR-10 ; R-134 passe de 3 à 4 spécialisés (10.1.6.4 : cuisson + 3) ; les
+  messages R-1xx portent aussi le code de la bible (« R-119 (TAB-03) : … »).
+- Non traité (données absentes du plan) : calibre du différentiel avec un générateur en amont (+ Ig), plancher chauffant
+  7,5 kW par différentiel, parafoudre (niveau kéraunique, ligne aérienne) : à poser en questions.
+- Tests : cablage.test.mjs (type F, borne seule, extérieur à part, alertes) ; anciens tests du tableau inchangés.
+
 ## 06/11/2026 — MAJ norme n° 4 : plafonds par circuit (go de Kévin, 13:55)
 
 - `src/norme/circuits.js` (pur) : `NORME` (8 points, 8 prises en 1,5 mm² / 12 en 2,5 mm², 6 prises de cuisine en 2,5 mm²),

@@ -41,6 +41,14 @@ export const DEFAULT_MODEL = "r9-13x4";
 export const MAX_PER_ID = 8;
 export const modelOf = (id) => MODELS.find((m) => m.id === id) || MODELS.find((m) => m.id === DEFAULT_MODEL);
 export const needsA = (c) => c.kind === "specialise";
+// MAJ norme n° 5 (06/11/2026, NF C 15-100:2024) : type F en amont des appareils à variateur monophasé (pompe à chaleur,
+// climatisation, piscine ; NF C 15-100-1 553.2.6.1, bible TAB-04) ; un différentiel propre à chaque point de recharge
+// (NF C 15-100-7-722, IRVE-01) ; circuits extérieurs sous un différentiel distinct des circuits intérieurs (CIR-10).
+const txt = (c) => `${c.label || ""} ${c.name || ""}`;
+export const needsF = (c) => c.kind === "specialise" && /pompe à chaleur|pompe a chaleur|\bpac\b|clim|piscine|thermodynamique|aqua ?air/i.test(txt(c));
+export const isIrve = (c) => /\birve\b|recharge|borne/i.test(txt(c));
+export const isExt = (c) => /ext[ée]rieur|portail|jardin|\bg ext\b|\bpc ext\b/i.test(txt(c));
+const okA = (type) => ["A", "F", "B"].includes(type);   // F et B protègent au moins comme A
 export const hasBreaker = (c) => c.kind !== "comm";
 
 let seq = 0;
@@ -62,7 +70,10 @@ export function idCalibre(cs) { const need = idCalibreMin(cs); return ID_CALIBRE
 export const GTL_INTERDIT = /salle d.?eau|salle de bain|\bbains?\b|\bsdb\b|\bsde\b|douche|placard|dressing|escalier/i;
 
 export function autoTableau(circuits, { model = DEFAULT_MODEL, previous = null } = {}) {
-  const C = (circuits || []).filter(hasBreaker);
+  const C0 = (circuits || []).filter(hasBreaker);
+  // MAJ norme n° 5 : recharge (un différentiel chacun), appareils à variateur (type F), extérieurs (différentiel à part)
+  const irve = C0.filter(isIrve), fC = C0.filter((c) => !isIrve(c) && needsF(c)), ext = C0.filter((c) => !isIrve(c) && !needsF(c) && isExt(c));
+  const C = C0.filter((c) => !irve.includes(c) && !fC.includes(c) && !ext.includes(c));
   const spec = C.filter(needsA), rest = C.filter((c) => !needsA(c));
   const groups = [];
   // AC : répartition équilibrée (éclairage et prises alternés pour ne pas tout couper d'un coup)
@@ -73,25 +84,35 @@ export function autoTableau(circuits, { model = DEFAULT_MODEL, previous = null }
   for (let i = 0; i < nAC; i++) groups.push({ type: "AC", a: 40, cs: [] });
   order.forEach((c, i) => groups[i % nAC].cs.push(c));
   for (let i = 0; i < spec.length; i += MAX_PER_ID) groups.push({ type: "A", a: 40, cs: spec.slice(i, i + MAX_PER_ID) });
+  for (let i = 0; i < fC.length; i += MAX_PER_ID) groups.push({ type: "F", a: 40, cs: fC.slice(i, i + MAX_PER_ID), pack: true });
+  for (let i = 0; i < ext.length; i += MAX_PER_ID) { const cs = ext.slice(i, i + MAX_PER_ID); groups.push({ type: cs.some(needsA) ? "A" : "AC", a: 40, cs, pack: true }); }
+  irve.forEach((c) => groups.push({ type: "A", a: 40, cs: [c], seul: true, pack: true }));
   // Fractionner les groupes qui dépassent le plus grand calibre disponible.
   for (let i = 0; i < groups.length; i++) {
     const g = groups[i];
-    if (g.cs.length > 1 && idCalibre(g.cs) === null) {
+    if (g.cs.length > 1 && !g.seul && idCalibre(g.cs) === null) {
       const moved = [];
       while (g.cs.length > 1 && idCalibre(g.cs) === null) moved.unshift(g.cs.pop());
-      groups.push({ type: g.type, cs: moved });
+      groups.push({ type: g.type, cs: moved, pack: g.pack });
     }
   }
   const active = groups.filter((g) => g.cs.length);
-  if (C.length && active.length < ID_MIN) {
+  if (C0.length && active.length < ID_MIN) {
     const g = active[0];
     active.push({ type: g.type, cs: g.cs.length > 1 ? g.cs.splice(Math.ceil(g.cs.length / 2)) : [] });
   }
   // R-148 : un différentiel en tête de chaque rangée ; R-124 : son calibre d'après ses circuits
-  const rows = active.map((g) => [
+  const rowOf = (g) => [
     { k: "id", id: uid("i"), a: idCalibre(g.cs) ?? 63, type: g.type, w: 2 },
     ...g.cs.map((c) => ({ k: "cb", id: uid("d"), c: c.n, a: c.prot || 16, w: 1 })),
-  ]);
+  ];
+  // une rangée par différentiel ; MAJ norme n° 5 : les petits groupes (type F, recharge, extérieurs) se logent dans la place
+  // libre d'une rangée (un ID protège ce qui est à sa droite jusqu'à l'ID suivant), sinon une rangée de plus
+  const rows = active.filter((g) => !g.pack).map(rowOf), mods = modelOf(model).mods;
+  for (const g of active.filter((x) => x.pack)) {
+    const R = rowOf(g), w = rowMods(R), host = rows.find((r) => mods - rowMods(r) >= w);
+    if (host) host.push(...R); else rows.push(R);
+  }
   // Les accessoires ne portent pas de liaison électrique explicite. Conserver leur
   // rangée et leur ordre relatif ; ne pas inventer un rattachement à un circuit.
   (previous?.rows || []).forEach((row, i) => {
@@ -131,31 +152,42 @@ export function tableauIssues(tab, circuits, ctx = {}) {
     const id = prot.get(it.id), c = byN.get(it.c);
     if (!id) { out.push(`${it.c} n'est protégé par aucun interrupteur différentiel (placez-le à droite d'un ID).`); continue; }
     count.set(id, (count.get(id) || 0) + 1);
-    if (c && needsA(c) && id.type !== "A") out.push(`${it.c} (${c.name || "spécialisé"}) doit être sous un différentiel type A.`);
+    if (c && needsF(c) && !["F", "B"].includes(id.type)) out.push(`TAB-04 : ${it.c} (${c.label || c.name || "appareil à variateur"}) : différentiel type F (exigé si l'appareil a un variateur monophasé ; à vérifier sur sa notice).`);
+    else if (c && needsA(c) && !okA(id.type)) out.push(`${it.c} (${c.name || "spécialisé"}) doit être sous un différentiel type A.`);
   }
   rows0: for (const r of tab.rows) { let cur = null; for (const it of r) { if (it.k === "id") cur = it; else if (it.k === "mod" && MODS[it.t] && MODS[it.t].under && !cur) { out.push(`${MODS[it.t].s} : à placer à droite d'un interrupteur différentiel.`); break rows0; } } }
-  for (const [id, n] of count) if (n > MAX_PER_ID) out.push(`Un différentiel ${id.a} A type ${id.type} protège ${n} circuits (8 au plus).`);
+  for (const [id, n] of count) if (n > MAX_PER_ID) out.push(`TAB-03 : un différentiel ${id.a} A type ${id.type} protège ${n} circuits (8 au plus).`);
+  // MAJ norme n° 5 : recharge = un différentiel pour elle seule ; extérieurs = jamais avec des circuits intérieurs
+  const under = (id) => tab.rows.flat().filter((x) => x.k === "cb" && prot.get(x.id) === id).map((x) => byN.get(x.c)).filter(Boolean);
+  for (const it of tab.rows.flat().filter((x) => x.k === "cb")) {
+    const id = prot.get(it.id), c = byN.get(it.c);
+    if (!id || !c) continue;
+    if (isIrve(c) && under(id).length > 1) out.push(`IRVE-01 : ${it.c} (recharge de véhicule) partage son différentiel ; chaque point de recharge a le sien (type A ou F en mode 1-2, B ou A/F avec détection du continu en mode 3).`);
+    if (isExt(c) && under(id).some((o) => !isExt(o))) out.push(`CIR-10 : ${it.c} (extérieur) est sous le même différentiel que des circuits intérieurs ; protégez les extérieurs à part.`);
+  }
   const used = tab.rows.reduce((s, r) => s + rowMods(r), 0), total = M.rows * M.mods;
-  if (total - used < Math.ceil(total * 0.2)) out.push(`Réserve insuffisante : ${total - used} modules libres (règle R-144 : 20 % du coffret libres, soit ${Math.ceil(total * 0.2)}).`);
+  if (total - used < Math.ceil(total * 0.2)) out.push(`Réserve insuffisante : ${total - used} modules libres (règle R-144, TAB-01 : 20 % du coffret libres, soit ${Math.ceil(total * 0.2)}).`);
   if (tab.rows.flat().some((it) => it.reviewPlacement)) out.push("Accessoires conservés après recalcul : vérifier leur emplacement et leurs raccordements, puis valider la revue.");
   // ---------- v66 : règles NF C 15-100:2024 (R-101 à R-161, à valider) ----------
   const ids = tab.rows.flat().filter((x) => x.k === "id"), C = (circuits || []).filter(hasBreaker);
-  if (C.length && ids.length < ID_MIN) out.push(`R-119 : ${ids.length} interrupteur différentiel ; il en faut 2 au moins dans un logement.`);
+  if (C.length && ids.length < ID_MIN) out.push(`R-119 (TAB-03) : ${ids.length} interrupteur différentiel ; il en faut 2 au moins dans un logement.`);
   // R-123 : chaque famille (éclairage, prises) sous au moins 2 différentiels quand elle a 2 circuits ou plus
   const famIds = (kind) => { const ns = C.filter((c) => c.kind === kind).map((c) => c.n), set = new Set(); tab.rows.flat().filter((x) => x.k === "cb" && ns.includes(x.c)).forEach((x) => { const id = prot.get(x.id); if (id) set.add(id); }); return { n: ns.length, ids: set.size }; };
-  for (const [kind, nom] of [["eclairage", "d'éclairage"], ["prises", "de prises"]]) { const f = famIds(kind); if (f.n >= 2 && f.ids < 2) out.push(`R-123 : les ${f.n} circuits ${nom} sont tous sous le même différentiel ; répartissez-les sous 2 différentiels au moins.`); }
+  for (const [kind, nom] of [["eclairage", "d'éclairage"], ["prises", "de prises"]]) { const f = famIds(kind); if (f.n >= 2 && f.ids < 2) out.push(`R-123 (TAB-03) : les ${f.n} circuits ${nom} sont tous sous le même différentiel ; répartissez-les sous 2 différentiels au moins.`); }
   // R-124 : calibre de chaque différentiel
-  ids.forEach((id) => { const cs = tab.rows.flat().filter((x) => x.k === "cb" && prot.get(x.id) === id).map((x) => byN.get(x.c)).filter(Boolean), need = idCalibreMin(cs); if (cs.length && id.a < need) out.push(`R-124 : différentiel ${id.a} A trop petit pour ses circuits (il faut au moins ${String(+need.toFixed(1)).replace(".", ",")} A : ${idCalibre(cs) === null ? "répartir les circuits ou étudier une autre protection" : idCalibre(cs) + " A"}).`); });
+  ids.forEach((id) => { const cs = tab.rows.flat().filter((x) => x.k === "cb" && prot.get(x.id) === id).map((x) => byN.get(x.c)).filter(Boolean), need = idCalibreMin(cs); if (cs.length && id.a < need) out.push(`R-124 (TAB-05) : différentiel ${id.a} A trop petit pour ses circuits (il faut au moins ${String(+need.toFixed(1)).replace(".", ",")} A : ${idCalibre(cs) === null ? "répartir les circuits ou étudier une autre protection" : idCalibre(cs) + " A"}).`); });
   // R-129 / R-130 : calibres de l'éclairage et des prises ; R-129 : 2 circuits d'éclairage au moins ; R-134 : 3 spécialisés au moins
   const ecl = C.filter((c) => c.kind === "eclairage");
-  if (ecl.length === 1) out.push("R-129 : un seul circuit d'éclairage ; le logement en demande 2 au moins.");
-  ecl.filter((c) => (c.prot || 10) > 16).forEach((c) => out.push(`R-129 : ${c.n} (éclairage) protégé en ${c.prot} A ; 16 A au plus.`));
-  C.filter((c) => c.kind === "prises").forEach((c) => { const sec = c.section || 1.5, a = c.prot || 16; if ((sec < 2.5 && a > 16) || a > 20) out.push(`R-130 : ${c.n} (prises ${String(sec).replace(".", ",")} mm²) protégé en ${a} A ; 16 A en 1,5 mm², 20 A en 2,5 mm².`); });
+  if (ecl.length === 1) out.push("R-129 (CIR-03) : un seul circuit d'éclairage ; le logement en demande 2 au moins.");
+  ecl.filter((c) => (c.prot || 10) > 16).forEach((c) => out.push(`R-129 (tableau 10-1F) : ${c.n} (éclairage) protégé en ${c.prot} A ; 16 A au plus.`));
+  C.filter((c) => c.kind === "prises").forEach((c) => { const sec = c.section || 1.5, a = c.prot || 16; if ((sec < 2.5 && a > 16) || a > 20) out.push(`R-130 (tableau 10-1F) : ${c.n} (prises ${String(sec).replace(".", ",")} mm²) protégé en ${a} A ; 16 A en 1,5 mm², 20 A en 2,5 mm².`); });
   const spec = C.filter((c) => c.kind === "specialise" && !isHeavy(c));
-  if (C.length && spec.length < 3) out.push(`R-134 : ${spec.length} circuit${spec.length > 1 ? "s" : ""} spécialisé${spec.length > 1 ? "s" : ""} (lave-linge, lave-vaisselle, four…) ; la norme en demande 3 au moins.`);
+  // MAJ norme n° 5 : NF C 15-100-10 10.1.6.4 = 4 spécialisés au moins (cuisson + 3 en 16 A : lave-linge, lave-vaisselle,
+  // sèche-linge ou four) ; le journal (R-134) en comptait 3
+  if (C.length && spec.length < 4) out.push(`R-134 (CIR-05) : ${spec.length} circuit${spec.length > 1 ? "s" : ""} spécialisé${spec.length > 1 ? "s" : ""} ; la norme en demande 4 au moins (cuisson + lave-linge, lave-vaisselle, sèche-linge ou four).`);
   // R-105 : pièce du tableau ; R-116 : 4 RJ45 au moins (T3 et plus)
-  if (ctx.tabRoom && GTL_INTERDIT.test(ctx.tabRoom)) out.push(`R-105 : tableau dans « ${ctx.tabRoom} » : la GTL ne se pose pas dans une salle d'eau, un placard ni sous un escalier.`);
-  if (ctx.rj45 != null && ctx.rj45 < 4) out.push(`R-116 : ${ctx.rj45} prise${ctx.rj45 > 1 ? "s" : ""} RJ45 ; 4 au moins pour un T3 ou plus (2 dans le séjour).`);
+  if (ctx.tabRoom && GTL_INTERDIT.test(ctx.tabRoom)) out.push(`R-105 (GTL-03) : tableau dans « ${ctx.tabRoom} » : la GTL ne se pose pas dans une salle d'eau, un placard ni sous un escalier.`);
+  if (ctx.rj45 != null && ctx.rj45 < 4) out.push(`R-116 (COM-01) : ${ctx.rj45} prise${ctx.rj45 > 1 ? "s" : ""} RJ45 ; 4 au moins pour un T3 ou plus (2 dans le séjour).`);
   return out;
 }
 
@@ -191,7 +223,7 @@ export function moveItem(rows, id, r, before = null) {
 }
 export function addBreaker(rows, c) {
   const R = rows.map((x) => [...x]), prot = protections(R);
-  const want = needsA(c) ? "A" : "AC";
+  const want = needsF(c) ? "F" : needsA(c) ? "A" : "AC";
   // sous un ID du bon type qui a encore de la place
   for (const row of R) {
     const id = row.find((it) => it.k === "id" && it.type === want);
