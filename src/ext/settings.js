@@ -138,7 +138,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
     const fiches = fichesOf(r.id);
     const list = fiches.length ? `${countHTML(r.id)}<div class="rf-list">${fiches.map(ficheHTML).join("")}</div>` : "";
     const groups = CAB_RUB[r.id] ? cabGroupsHTML(CAB_RUB[r.id]) : "";
-    if (r.id === "cablage") return `<div class="pset-h">${head.replace("</h3>", "</h3>")}<button id="cab-reset" title="Remettre toutes les valeurs de base du câblage (toutes rubriques)">Valeurs de base</button></div>${normeWarn()}${list}${groups ? `<h4 class="pp-sub">Réglages du câblage</h4>${groups}` : ""}`;
+    if (r.id === "cablage") return `<div class="pset-h"><div>${head}</div><button id="cab-reset" title="Remettre toutes les valeurs de base du câblage (toutes rubriques)">Valeurs de base</button></div>${normeWarn()}${list}${groups ? `<h4 class="pp-sub">Réglages du câblage</h4>${groups}` : ""}`;
     if (r.id === "chantier") return head + list + abrevHTML();
     if (r.id === "appareils") return head + list + `<div class="pp-packs" id="ps-packs"><h4 class="pp-sub">Implantation type des pièces (packs)</h4><p class="mut sm">L'appareillage type de chaque pièce (chambre, séjour, cuisine…). Sur le plan : sélectionnez une pièce nommée, puis « ⚡ Implantation rapide » (ou Maj+P) pose son pack.</p><div id="ps-packs-ed"></div></div>`;
     if (r.id === "norme") return head + `<p class="mut sm">Version appliquée à un chantier : ${esc(VERSIONS["2024"].label)} si le permis est déposé après le ${BASCULE.split("-").reverse().join("/")}, sinon ${esc(VERSIONS["2015"].label)} (date du permis dans la fiche du chantier).</p>` + normeHTML();

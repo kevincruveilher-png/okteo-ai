@@ -1414,7 +1414,8 @@ body[data-tab]:not([data-tab="plan"]):not([data-tab="vue3d"]) .top2{display:none
 /* ===== Page Paramètres (06/11/2026) : interface à part, plein écran, fond corail =====
    Bandeau du logiciel, onglets et panneau masqués ; cartes blanches (lisibles quel que soit le thème). */
 body[data-tab="params"] .top,body[data-tab="params"] .tabs,body[data-tab="params"] #cl-fold{display:none!important}
-body[data-tab="params"] .main>.params:not([hidden]){padding-right:0}
+body[data-tab="params"] .main{grid-template-columns:minmax(0,1fr)}
+body[data-tab="params"] .main>.params:not([hidden]){padding-right:0;grid-column:1/-1}
 #params{--panel:#FFFFFF;--panel2:#FBF1EF;--bg:#FFFFFF;--fg:#14273A;--mut:#5A6B7B;--mut2:#3E5163;--line:#EBD3CE;--line2:#EBD3CE;--accent:#0B6E99;color-scheme:light;
   background:#E8534A;color:var(--fg)}
 body.page-full #params .params-in.pp{max-width:1500px;padding:0 28px 48px}

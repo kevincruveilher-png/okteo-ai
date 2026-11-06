@@ -1,3 +1,30 @@
+## 06/11/2026 — Page Paramètres à part : catalogue des règles KiTéOHM (lot 1, branche `feat/maj-parametres`)
+
+- Demande de Kévin (19 h) : Paramètres = une autre interface, plein écran, fond corail, un « catalogue de règles » lisible
+  par un opérateur BE (pas de « chinoiserie d'informaticien ») ; l'affichage (thème clair / sombre…) y va pour libérer
+  l'écran de travail ; « faire notre propre logiciel, en beaucoup mieux que FTZ », pas une copie de ses fichiers.
+- `src/referentiel/catalogue.js` (pur) : `RUBRIQUES` (« Règles KiTéOHM » : chantier, appareils, câblage, fils / câbles /
+  gaines, pieuvres, tableau, norme, fabrication, journal, questions au BE, historique ; « Ce poste » : affichage, IA,
+  relevé, 3D, raccourcis), `FICHES` (52 fiches tirées de l'étude FTZ du 06/11, n° 1 à 69 de `claude/decisions-ftz.md` :
+  id fixe AA-00, ce qu'Oktéo fait, pourquoi, source, état `actif | decide | question | plustard | ecarte | info`, usage,
+  réglages liés `cab`), `QUESTIONS` (T1… au BE), `compte`, `cherche`, `catalogueTexte` (export Markdown),
+  `historique` / `noteChangement` (réglages changés sur ce PC, localStorage `okteo.parametres.historique.v1`).
+  Aucun prix, aucun code article commercial, aucun nom de client (test).
+- `src/ext/settings.js` : page plein écran (bandeau, onglets et panneau masqués : `body[data-tab="params"]`), en-tête
+  corail (recherche `.pset-find`, `#pp-export`, `#pp-back` « Revenir au logiciel », Échap), sommaire en deux groupes,
+  UNE rubrique à la fois (`.pset-sec.on`, mémorisée `okteo.params.rub`), recherche dans toutes (`.pset.searching`).
+  Les réglages du câblage (CAB_FIELDS) sont rangés dans leur rubrique (circuits + couleurs → Câblage `#cab-set`, boîtes →
+  Pieuvres, gaines + longueurs → Fils, câbles et gaines) ; norme = liste des 91 codes ; packs dans Appareils (`#ps-packs`) ;
+  abréviations des pièces dans Chantier. Ids gardés : ps-aff, ps-ia, ps-regles, ps-murs, ps-3d, cab-set, ps-couts.
+  `ui.setActive(rub)`, `ui.lastExport` ; événement `okteo:params-goto` {detail: id} ouvre la rubrique qui contient l'id
+  (catalogue, 3D, mode IA, `openRulesLibrary`).
+- Thème : préférence `theme` (auto | dark | light, prefs.js `applyTheme`, appliquée au démarrage), choisi dans
+  Paramètres → Affichage ; bouton `#theme` du menu Affichage caché (gardé pour la palette Ctrl+K).
+- Tests : `scripts/referentiel.test.mjs` (14) dans `npm run check` ; smoke : `openParams(rub)` / `toPlan()`, test de la
+  page refait (corail, rubriques, recherche, thème, export, retour). Captures : `scripts/shots-parametres.mjs`.
+- Lot suivant (sur go de Kévin) : activer les règles « à intégrer » rubrique par rubrique (câblage et conducteurs
+  d'abord), chantier de référence en comparaison.
+
 ## 06/11/2026 — MAJ parafoudre fusionnée dans `main` (go de Kévin, 16:05)
 
 - `npm run check` vert sur GitHub Actions (run 42227973132 : smoke 225/225, norme 14 groupes, cablage 89, chantiers 176,

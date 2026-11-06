@@ -450,6 +450,15 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `startMemoryTimer` (5 min) ; ai-memory.js `doubtKey` / `readKey` (hésitation « A ou B ») ; `api.setClient`.
 - check.js `POSE_OFF` : plus d'alerte battant ni embrasure (pose.js garde les fonctions).
 
+### Page Paramètres et catalogue des règles (06/11/2026, lot 1)
+- Paramètres = interface à part, plein écran, fond corail (`body[data-tab="params"]` masque bandeau, onglets, panneau).
+  `src/referentiel/catalogue.js` (pur) : `RUBRIQUES` (« Règles KiTéOHM » / « Ce poste »), `FICHES` (id fixe AA-00, état
+  actif | decide | question | plustard | ecarte | info, source, usage, `cab`), `QUESTIONS`, `catalogueTexte`, historique.
+  Toute nouvelle règle métier = une fiche (ou une fiche passée en `actif`) ; jamais de prix ni de nom de client.
+  settings.js : une rubrique à la fois (`ui.setActive`), recherche dans toutes, `#pp-back`, `#pp-export` ; ouvrir une
+  rubrique depuis ailleurs : `okteo:params-goto` {detail: id}. Thème : préférence `theme` + `applyTheme`.
+  Tests smoke : `openParams(rub)`, `toPlan()` (jamais `#tabs button[data-tab="plan"]` depuis Paramètres).
+
 ### Norme NF C 15-100 (MAJ norme du 06/11/2026) — bible : document du projet claude.ai « Bible des règles Oktéo »
 - RÈGLE DE LICENCE : aucun texte de norme dans le dépôt ni dans les consignes de l'IA (exemplaires sous licence, hors
   dépôt) ; seulement nos résumés, les valeurs et les numéros d'article. Les règles de la norme = ALERTES SIMPLES (Kévin),
