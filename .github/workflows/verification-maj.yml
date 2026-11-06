@@ -26,7 +26,19 @@ jobs:
       - run: git checkout -f ${GITHUB_SHA}
         if: always()
       - run: npm run test:web
-      - run: npm run check
+      - name: npm run check (journal gardé)
         timeout-minutes: 40
+        run: |
+          set -o pipefail
+          npm run check 2>&1 | tee /tmp/check.log
       - run: npm run build:web
         if: always()
+      - name: journal des tests sur la branche des captures
+        if: always()
+        run: |
+          [ -f /tmp/check.log ] || exit 0
+          grep -E "✗|Error|error|réussies|OK|vérifications" /tmp/check.log | tail -300 > /tmp/resume.log || true
+          git fetch -q origin verification-captures-parametres || exit 0
+          git checkout -q -f -B verification-captures-parametres origin/verification-captures-parametres
+          cp /tmp/resume.log check-resume.log && tail -400 /tmp/check.log > check-fin.log
+          git add check-resume.log check-fin.log && git commit -q -m "journal ${GITHUB_SHA}" && git push -q -f origin verification-captures-parametres
