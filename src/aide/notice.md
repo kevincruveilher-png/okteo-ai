@@ -224,7 +224,7 @@ Ces touches marchent sur le plan. Paramètres → Raccourcis permet de les chang
 
 ## Parcours de formation
 
-Six modules, du plus simple au plus complet. Chaque module se fait sur un chantier d'essai (créé pour l'occasion, supprimé ensuite) et se termine par un critère de réussite.
+Six modules, du plus simple au plus complet. Chaque module se fait sur MAILLARD, le chantier de référence déjà comparé au travail du BE, et se termine par un critère de réussite. On travaille toujours sur une copie : fichier MAILLARD_kevin.okteo, ouvert avec « Ouvrir un fichier .okteo » depuis l'accueil, puis supprimé à la fin. Le module 3 repart du PDF de MAILLARD dans un nouveau chantier. À la fin du module 5, on compare les boîtes et les gaines de l'élève à celles du BE.
 
 | Module | Exercice | Réussi si |
 | --- | --- | --- |
@@ -257,5 +257,6 @@ Six modules, du plus simple au plus complet. Chaque module se fait sur un chanti
 
 | Date | Mise à jour du logiciel | Ce qui a changé dans la notice |
 | --- | --- | --- |
+| 06/11/2026 | — | parcours de formation sur une copie de MAILLARD (choix de Kévin) |
 | 06/11/2026 | bouton « ? Aide » | notice lisible dans le logiciel (bouton « ? Aide », recherche) ; noms exacts du menu Relevé et du bouton « ✓ Contrôle » |
 | 06/11/2026 | lots 1 à 10 de la reprise des paramètres du BE | première version : prise en main, étapes 1 à 7, paramètres et touches du BE, parcours de formation, questions fréquentes |

@@ -1,3 +1,8 @@
+## 06/11/2026 — Notice : formation sur MAILLARD
+
+- Choix de Kévin (commentaire sur la notice) : le parcours de formation se fait sur une copie de MAILLARD
+  (MAILLARD_kevin.okteo), comparée au travail du BE. `src/aide/notice.md` et le document du projet mis à jour ensemble.
+
 ## 06/11/2026 — Notice dans le logiciel (bouton « ? Aide ») (fusionné dans `main`, run 42295122476 vert)
 
 - Demande de Kévin (commentaire sur la notice) : la notice aussi dans le logiciel.
