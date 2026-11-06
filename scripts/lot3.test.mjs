@@ -5,6 +5,8 @@ import { CAB_DEFAULTS as S } from "../src/cablage/settings.js";
 import { isZone, zonePoly, detour } from "../src/cablage/exclusion.js";
 import { APPAREILS } from "../src/cablage/appareils.js";
 import { AI_TYPES } from "../src/walls/ai-plan.js";
+import { GROUPES_POSE, groupePositions, ECART_GROUPE } from "../src/cablage/groupes.js";
+import { assocOK } from "../src/cablage/association.js";
 
 let ok = 0, ko = 0;
 const check = (n, c, i) => { if (c) { ok++; console.log("  ✓ " + n); } else { ko++; console.log("  ✗ " + n + (i ? " — " + i : "")); } };
@@ -24,6 +26,13 @@ check("5 types (trémies 50, 100, 200 × 150 ; réservations Ø50, Ø100) = zone
 const P = zonePoly({ t: "TR200", x: 5, y: 0 });
 const area = P.reduce((s, p, i) => { const q = P[(i + 1) % P.length]; return s + p.x * q.y - q.x * p.y; }, 0) / 2;
 check("trémie 200 × 150 : 3 m² ; une gaine la contourne", Math.abs(Math.abs(area) - 3) < 0.01 && detour({ x: 0, y: 0 }, { x: 10, y: 0 }, [P]).length > 0, String(area));
+
+console.log("Groupes du BE en un clic (lot 5, décisions n° 25 et 48)");
+check("17 groupes (prises, RJ45, TV, commandes), types connus, plaque double / triple / quadruple", GROUPES_POSE.length === 17 && GROUPES_POSE.every((g) => g.types.every((t) => ["PC16", "RJ45", "TV", "INT", "VV", "BP"].includes(t)) && /double|triple|quadruple/.test(g.plaque)));
+const pos = groupePositions(GROUPES_POSE.find((g) => g.id === "SA+VV"), { x: 1, y: 2 }, 0, 1);
+check("positions le long du mur, à 8 cm (même plaque, sous les 30 cm du même endroit)", pos[1].x === 1 && Math.abs(pos[1].y - 2 - ECART_GROUPE) < 1e-9 && ECART_GROUPE < 0.3);
+const g2 = one([{ id: "p", t: "PC16", x: 0, y: 0, lv: "rdc", rep: "P1" }, { id: "r", t: "RJ45", x: 0.08, y: 0, lv: "rdc", rep: "R1" }, { id: "q", t: "PC16", x: 0.16, y: 0, lv: "rdc", rep: "P2" }], []);
+check("PC + RJ + PC : les 2 prises dans une gaine, la RJ45 garde sa ligne (association du BE)", assocOK("PC16", "PC16") && !assocOK("PC16", "RJ45") && g2.boxes[0].gaines.some((g) => (g.appIds || []).length === 2));
 
 console.log(`\n${ok} vérifications réussies, ${ko} en échec.`);
 if (ko) process.exit(1);

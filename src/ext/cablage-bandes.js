@@ -13,6 +13,22 @@ import { buildDossier, downloadBlob } from "./dossier.js";
 import { pointInPoly } from "../walls/rooms.js";
 import { buildBandsPdf } from "./bandes-pdf.js";
 import { esc } from "./util.js";
+import { spvLines, spvText, spvName, totaux } from "../cablage/spv.js";
+import { coupeFils } from "../cablage/gaines.js";
+import { abrevRoom, parseAbrev } from "../print/abrev.js";
+import { getPrefs } from "../prefs.js";
+
+// lot 4 : fichier .spv du chantier ouvert (tous niveaux) + totaux du planning du BE
+export function spvNow(api) {
+  const W = wiringNow(api), items = api.allApps(), ch = api.ch || {}, S = getCab();
+  const R = parseAbrev(getPrefs().abrev || undefined);
+  const lines = spvLines(W, items, ch, { surl: +(coupeFils(0, S)).toFixed(2), abrev: (n) => abrevRoom(n, R) });
+  const T = totaux(W, lines);
+  let surface = 0;
+  try { surface = (api.allLevelsGeometry() || []).reduce((s, g) => s + (g.rooms || []).reduce((t, r) => t + (+r.area || 0), 0), 0); } catch { surface = 0; }
+  const manque = [!(ch.affaire || "").trim() && "n° d'affaire absent de la fiche du chantier", !(ch.client || "").trim() && "pavillonneur absent"].filter(Boolean).join(", ");
+  return { lines, text: spvText(lines), name: spvName(ch), totaux: T, manque, planning: { surface: Math.round(surface), gaines: lines.length, boites: T.boites, plomberie: false } };
+}
 
 // règles utilisées par une boîte qui ne sont pas encore confirmées par Kévin : [{id, titre}]
 export function aVerifier(ids) {
@@ -100,7 +116,7 @@ export function mountBandsPage(el, { api }) {
       <h2>Bandes — schémas de boîte</h2>
       <div class="bd-pick">${sheets.map((s) => `<button data-b="${s.box.id}" class="${s.box.id === cur ? "on" : ""}" title="${s.box.gaines.length} gaines · ${s.steps.length} raccordements">${esc(s.box.n)}</button>`).join("")}
         <span class="grow"></span><button id="bd-lab-one" class="on" title="Étiquette à coller sur la boîte (148,5 × 105 mm, un quart de A4) : schéma en grand, en-tête, logo, QR code et code barre">🏷 Étiquette ${esc(box.n)}</button><button id="bd-lab-all" title="Les étiquettes de toutes les boîtes, 4 par feuille A4 (traits de coupe)">🏷 Toutes les étiquettes (4 par A4)</button>
-        <button id="bd-one" title="Bande détaillée de cette boîte (PDF) : schéma, ordre de câblage, matériel, raccordements">📄 Bande détaillée ${esc(box.n)}</button><button id="bd-all" title="Bandes détaillées de toutes les boîtes (PDF)">📄 Toutes les bandes détaillées</button><button id="bd-dossier" title="Dossier PDF du chantier : page de garde, plan, tableau, documents à remettre, bandes détaillées de toutes les boîtes">📁 Dossier du chantier</button><button id="bd-docs" title="Documents à remettre (NF C 15-100) : schéma unifilaire, étiquettes de repérage, liens RJ45, fiche d'autocontrôle pré-remplie (PDF)">📄 Documents à remettre</button><span id="bd-st" class="mut sm"></span></div>
+        <button id="bd-one" title="Bande détaillée de cette boîte (PDF) : schéma, ordre de câblage, matériel, raccordements">📄 Bande détaillée ${esc(box.n)}</button><button id="bd-all" title="Bandes détaillées de toutes les boîtes (PDF)">📄 Toutes les bandes détaillées</button><button id="bd-dossier" title="Dossier PDF du chantier : page de garde, plan, tableau, documents à remettre, bandes détaillées de toutes les boîtes">📁 Dossier du chantier</button><button id="bd-docs" title="Documents à remettre (NF C 15-100) : schéma unifilaire, étiquettes de repérage, liens RJ45, fiche d'autocontrôle pré-remplie (PDF)">📄 Documents à remettre</button><button id="bd-spv" title="Fichier .spv pour Counter (fabrication des gaines) : une ligne par gaine, au format du BE, tout « à faire ». L'atelier le découpe lui-même. N° d'affaire et pavillonneur : fiche du chantier (accueil).">⚙ Fichier .spv (Counter)</button><button id="bd-planning" title="Totaux pour le planning du BE (surface, nombre de gaines, nombre de boîtes, plomberie) : copiés pour les coller dans InfoChantier">📋 Totaux du planning</button><span id="bd-st" class="mut sm"></span></div>
       <p class="mut sm">${esc(S.level)}${sides.under ? ` · au-dessus de : ${esc(sides.under)}` : ""} · ${box.gaines.length} gaines · <b title="Somme des longueurs de toutes les gaines de la boîte">${fr(S.longueur, 2)} m de gaines</b> · ${steps.length} raccordements · ${fr(box.cuivre)} m de fil${S.bouchons ? ` · <b class="warn" title="R-095 : bouchon obligatoire dans la boîte sur les gaines qui amènent l'air extérieur">${S.bouchons} bouchon${S.bouchons > 1 ? "s" : ""}</b>` : ""}</p>
       ${S.verifier.length ? `<p class="sm bd-verif" title="Le logiciel applique ces règles du journal, mais Kévin ne les a pas encore confirmées : le résultat est à vérifier">À vérifier — règles non confirmées : ${S.verifier.map((r) => `<b>${esc(r.id)}</b> ${esc(r.titre)}`).join(" · ")}</p>` : ""}
       <div class="bd-grid">
@@ -173,6 +189,20 @@ export function mountBandsPage(el, { api }) {
     el.querySelector("#bd-lab-one").onclick = () => labels([S]);
     el.querySelector("#bd-lab-all").onclick = () => labels(sheets);
     el.querySelector("#bd-dossier").onclick = () => dossier();
+    // lot 4 (06/11/2026, décisions n° 53 à 59 et 64) : .spv pour Counter et totaux du planning du BE
+    el.querySelector("#bd-spv").onclick = () => {
+      const st = el.querySelector("#bd-st"), r = spvNow(api);
+      el.__spv = r;
+      downloadBlob(new Blob([r.text], { type: "text/plain" }), r.name);
+      if (st) st.textContent = `Fichier ${r.name} : ${r.lines.length} lignes (gaines, alimentations, lignes directes).${r.manque ? " ⚠ " + r.manque : ""}`;
+    };
+    el.querySelector("#bd-planning").onclick = () => {
+      const st = el.querySelector("#bd-st"), r = spvNow(api), t = r.planning;
+      const txt = `Surface ${t.surface} m² · ${t.gaines} gaines · ${t.boites} boîtes · plomberie ${t.plomberie ? "oui" : "non"}`;
+      el.__planning = t;
+      navigator.clipboard?.writeText(txt).catch(() => {});
+      if (st) st.textContent = "Planning du BE (copié) : " + txt;
+    };
     el.querySelector("#bd-docs").onclick = async () => {
       const st = el.querySelector("#bd-st"); if (st) st.textContent = "Documents en préparation…";
       try { const { buildDocumentsPdf } = await import("./documents-pdf.js"); const { downloadBlob } = await import("./dossier.js"); const r = await buildDocumentsPdf(api); el.__docs = r; downloadBlob(r.blob, `Documents ${api.ch.nom}.pdf`); if (st) st.textContent = `Documents à remettre : ${r.pages} page(s).`; }
@@ -180,5 +210,5 @@ export function mountBandsPage(el, { api }) {
     };
   }
   render();
-  return { render, get last() { return el.__last; }, get lastLabels() { return el.__labels; }, get lastDossier() { return el.__dossier; }, get lastDocs() { return el.__docs; }, labels: (all) => labels(all ? boxSheets(api) : boxSheets(api).filter((s) => s.box.id === cur)), dossier, print: (all) => print(all ? boxSheets(api) : boxSheets(api).filter((s) => s.box.id === cur)), select: (id) => { cur = id; render(); } };
+  return { render, get last() { return el.__last; }, get lastLabels() { return el.__labels; }, get lastDossier() { return el.__dossier; }, get lastDocs() { return el.__docs; }, get lastSpv() { return el.__spv; }, get lastPlanning() { return el.__planning; }, labels: (all) => labels(all ? boxSheets(api) : boxSheets(api).filter((s) => s.box.id === cur)), dossier, print: (all) => print(all ? boxSheets(api) : boxSheets(api).filter((s) => s.box.id === cur)), select: (id) => { cur = id; render(); } };
 }

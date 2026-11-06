@@ -11,6 +11,7 @@ import { showSide } from "./panel.js";
 import { buildTools, hintFor, setHint, setTab } from "./controls.js";
 import { allLinks, levelName } from "./levels.js";
 import { essaiPress, lampLit, linkTables } from "./check.js";
+import { groupePositions } from "../cablage/groupes.js";
 
 // ---------- mesure sur mur (distance à l'angle) ----------
 export const fmtM = v => (v >= 0 ? "" : "−") + Math.abs(v).toFixed(2).replace(".", ",") + " m";
@@ -781,6 +782,18 @@ sv.addEventListener("pointerdown", e => {
     const p = placementFor(K.tool, wx, wy, null);
     K.guides = [];
     const na = placeApp(K.tool, p);
+    // lot 5 (06/11/2026) : groupe du BE : les autres appareils côte à côte le long du même mur, même plaque
+    if (K.group && K.group.types[0] === K.tool) {
+      const sg = na.seg && segById(na.seg); let ux = 1, uy = 0;
+      if (sg) { const A = nodeById(sg.a), B = nodeById(sg.b), L = Math.hypot(B.x - A.x, B.y - A.y) || 1; ux = (B.x - A.x) / L; uy = (B.y - A.y) / L; }
+      if (K.group.h != null) na.h = K.group.h;
+      if (K.group.pt) na.pt = true;
+      groupePositions(K.group, na, ux, uy).slice(1).forEach((q) => {
+        const nb = placeApp(q.t, placementFor(q.t, q.x, q.y, null));
+        if (K.group.h != null) nb.h = K.group.h;
+        if (K.group.pt) nb.pt = true;
+      });
+    }
     setSingle("app", na.id);
     markDirty();
     draw();

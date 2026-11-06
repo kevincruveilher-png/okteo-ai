@@ -2152,6 +2152,16 @@ try {
     if (!ok) throw new Error(JSON.stringify({ n, pages: L.numPages, w: vp.width, h: vp.height, t1: t1.slice(0, 400), d1: d1.slice(0, 200), parts, dp: D.numPages, page52, tBd: tBd.slice(0, 300), docs, tDc: tDc.slice(0, 200) }));
     return true;
   });
+  await check("lot 4 : Bandes → « Fichier .spv (Counter) » : une ligne par gaine au format du BE (24 champs, ASCII, CRLF, tout ACTIVE), nom « AF…_NOM-.spv » ; « Totaux du planning » (gaines, boîtes)", async () => {
+    await goSub("bandes");
+    await page.waitForSelector("#bd-spv");
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#bd-spv")]);
+    const r = await ev(() => { const s = okteoExt.pages.bandes.ui.lastSpv; return { n: s.lines.length, f24: s.lines.every((l) => l.split(";").length === 24), act: s.lines.every((l) => l.split(";")[10] === "ACTIVE"), crlf: s.text.includes("\r\n"), ascii: /^[\x20-\x7E\r\n]*$/.test(s.text), alim: s.lines.filter((l) => l.split(";")[20] === "Alimentation").length, bras: s.lines.filter((l) => l.split(";")[20] === "Bras").length }; });
+    await page.click("#bd-planning");
+    const p = await ev(() => okteoExt.pages.bandes.ui.lastPlanning);
+    if (!(/-\.spv$/.test(dl.suggestedFilename()) && r.n > 10 && r.f24 && r.act && r.crlf && r.ascii && r.alim >= 1 && r.bras > 5 && p.gaines === r.n && p.boites >= 1)) throw new Error(JSON.stringify({ name: dl.suggestedFilename(), r, p }));
+    return true;
+  });
   await check("couleurs par circuit et gaines partagées : une gaine « P… + P… » ; deux circuits 1,5 d'une boîte en rouge/bleu et gris/bleu foncé", async () => ev(async () => {
     const m = await import("/src/ext/cablage-data.js"), W = m.wiringNow(okteo), G = W.boxes.flatMap((b) => b.gaines);
     const shared = G.filter((g) => g.appIds && g.appIds.length > 1).length;
@@ -3319,6 +3329,24 @@ try {
     await ev(() => { okteo.setTab("plan"); okteo.undo(); });
     const back = await ev((ids) => okteo.state.app.filter((a) => ids.includes(a.id)).length, r.ids);
     if (!(r.added === 4 && r.dashed && r.inGeo === 4 && r.asApp === 0 && r.vol === 0 && r.reps === 0 && r.pdf && z > 0.79 && back === 0)) throw new Error(JSON.stringify({ r, z, back }));
+    return true;
+  });
+  await check("lot 5 : « Groupes ▾ » (17 groupes du BE) ; « SA+VV » posé d'un clic sur un mur = interrupteur + va-et-vient côte à côte (8 cm) sur le même mur, un seul Ctrl+Z", async () => {
+    await ev(() => { okteo.setTab("plan"); okteoExt.panel.close("assistant"); okteo.clearSel(); });
+    await page.click('#tools [data-tool="__groupes"]');
+    const n = await ev(() => document.querySelectorAll("#tools .more-pop [data-grp]").length);
+    await page.click('#tools .more-pop [data-grp="SA+VV"]');
+    const tool = await ev(() => okteo.tool);
+    const w = await ev(() => { const S = okteo.state, sg = S.segs.filter((x) => !x.virt).map((x) => { const a = S.nodes.find((q) => q.id === x.a), b = S.nodes.find((q) => q.id === x.b); return { x, a, b, L: Math.hypot(b.x - a.x, b.y - a.y) }; }).sort((p, q) => q.L - p.L)[0];
+      const m = { x: (sg.a.x + sg.b.x) / 2, y: (sg.a.y + sg.b.y) / 2 }; return { m, seg: sg.x.id, n0: S.app.length }; });
+    await ev((m) => okteo.zoomToBox(m.x - 2, m.y - 2, m.x + 2, m.y + 2), w.m);
+    await page.waitForTimeout(200);
+    const c = await ev((m) => okteo.toClient(m.x, m.y), w.m);
+    await page.mouse.click(c.x, c.y);
+    const r = await ev((n0) => { const A = okteo.state.app.slice(n0); return { n: A.length, t: A.map((a) => a.t).join(","), d: A.length === 2 ? Math.hypot(A[0].x - A[1].x, A[0].y - A[1].y) : 0, seg: A.length === 2 && A[0].seg && A[0].seg === A[1].seg }; }, w.n0);
+    await ev(() => { okteo.undo(); okteo.setTool("sel"); });
+    const back = await ev((n0) => okteo.state.app.length === n0, w.n0);
+    if (!(n === 17 && tool === "INT" && r.n === 2 && r.t === "INT,VV" && Math.abs(r.d - 0.08) < 0.02 && r.seg && back)) throw new Error(JSON.stringify({ n, tool, r, back }));
     return true;
   });
   await check("n° 11 : bouton « Mobilier ▾ » (10 meubles) ; canapé et table posés : gris clair, sans repère, en volume dans la vue 3D, un Ctrl+Z", async () => {

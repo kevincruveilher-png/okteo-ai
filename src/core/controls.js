@@ -9,6 +9,8 @@ import { applyOrtho, autoSymCm, fit, repMap, rotateView } from "./view.js";
 import { draw, glyph } from "./render.js";
 import { wallMounted } from "./attach.js";
 import { APPAREILS, GROUPES } from "../cablage/appareils.js";
+import { GROUPES_POSE } from "../cablage/groupes.js";
+const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 import { clearSel, currentGroup, duplicateGroup, groupCount, groupEmpty, instantiateGroup, multi, selectAll, serializeGroup, setSingle, transformGroup } from "./groups.js";
 import { hideReadout, linkSummary, placeApp, posOnWall, showText, wallMeasure } from "./interact.js";
 import { delSel, showSide } from "./panel.js";
@@ -51,12 +53,22 @@ export function buildTools() {
     (K.moreOpen === true ? `<div class="more-pop" role="menu">${GROUPES.map(g => `<div class="mg"><b>${g}</b><div class="mgl">${Object.keys(APPAREILS).filter(t => APPAREILS[t].groupe === g).map(pb).map((x, i) => x.replace('class="pb', 'class="pb mi')).join("")}</div></div>`).join("")}</div>` : "") + `</span>` +
     // n° 11 : « Mobilier ▾ » : canapé, table, chaises, lits, meuble TV… (sans électricité ni repère : 3D et implantation client)
     `<span class="more-w"><button data-tool="__meubles" class="pb more ${APPAREILS[K.tool]?.groupe === "Mobilier" || K.moreOpen === "meubles" ? 'on' : ''}" title="Mobilier : canapé, fauteuil, table, chaise, lits, meuble TV, armoire, bureau, plante (sans électricité ni repère ; dessiné en gris, en volume dans la vue 3D)" aria-label="Mobilier" aria-haspopup="true" aria-expanded="${K.moreOpen === "meubles"}"><svg class="ticon" viewBox="-1.25 -1.35 2.5 2.7" aria-hidden="true"><rect x="-1" y="-0.3" width="2" height="0.8" rx="0.15" class="gs"/><rect x="-1" y="-0.75" width="2" height="0.45" rx="0.1" class="gs"/></svg><span class="tl">Mobilier ▾</span></button>` +
-    (K.moreOpen === "meubles" ? `<div class="more-pop" role="menu"><div class="mg"><b>Mobilier</b><div class="mgl">${Object.keys(APPAREILS).filter(t => APPAREILS[t].groupe === "Mobilier").map(pb).map(x => x.replace('class="pb', 'class="pb mi')).join("")}</div></div></div>` : "") + `</span></span></div>`;
+    (K.moreOpen === "meubles" ? `<div class="more-pop" role="menu"><div class="mg"><b>Mobilier</b><div class="mgl">${Object.keys(APPAREILS).filter(t => APPAREILS[t].groupe === "Mobilier").map(pb).map(x => x.replace('class="pb', 'class="pb mi')).join("")}</div></div></div>` : "") + `</span>` +
+    // lot 5 (06/11/2026) : « Groupes ▾ » = les groupes du BE (une plaque, plusieurs appareils côte à côte, déjà associés)
+    `<span class="more-w"><button data-tool="__groupes" class="pb more ${K.group || K.moreOpen === "groupes" ? 'on' : ''}" title="Groupes du BE : prise + RJ45 + TV, 2 ou 3 prises, interrupteur + va-et-vient… posés d'un clic côte à côte sur le mur (une plaque), déjà associés" aria-label="Groupes" aria-haspopup="true" aria-expanded="${K.moreOpen === "groupes"}"><svg class="ticon" viewBox="-1.25 -1.35 2.5 2.7" aria-hidden="true"><rect x="-1.1" y="-0.55" width="2.2" height="1.1" rx="0.2" class="gs"/><circle cx="-0.5" r="0.3" class="gs"/><circle cx="0.5" r="0.3" class="gs"/></svg><span class="tl">${K.group ? esc(K.group.id) : "Groupes"} ▾</span></button>` +
+    (K.moreOpen === "groupes" ? `<div class="more-pop" role="menu"><div class="mg"><b>Groupes du BE (une plaque)</b><div class="mgl grp-l">${GROUPES_POSE.map(g => `<button data-grp="${g.id}" class="gp mi ${K.group && K.group.id === g.id ? 'on' : ''}" title="${esc(g.n)} : plaque ${g.plaque}${g.h ? `, à ${g.h} cm` : ""}">${esc(g.id)}</button>`).join("")}</div></div></div>` : "") + `</span></span></div>`;
   t.innerHTML = h;
   t.querySelectorAll("button").forEach(btn => btn.onclick = () => {
     const v = btn.dataset.tool;
-    if (v === "__more" || v === "__meubles") {
-      const want = v === "__more" ? true : "meubles";
+    if (btn.dataset.grp) {
+      // lot 5 : groupe choisi → l'outil pose son 1er appareil, les autres suivent sur le mur (interact.js)
+      const g = GROUPES_POSE.find((x) => x.id === btn.dataset.grp);
+      K.moreOpen = false; resetTransient(); K.group = g; K.tool = g.types[0]; K.testMode = false; clearSel(); buildTools();
+      setHint(`Groupe ${g.n} : cliquez sur un mur, les ${g.types.length} appareils sont posés côte à côte (une plaque ${g.plaque}). Un autre outil ou Échap pour arrêter.`);
+      draw(); showSide(); return;
+    }
+    if (v === "__more" || v === "__meubles" || v === "__groupes") {
+      const want = v === "__more" ? true : v === "__groupes" ? "groupes" : "meubles";
       K.moreOpen = K.moreOpen === want ? false : want;
       if (!K.moreHook) {
         // le menu se ferme au clic ailleurs ou avec Échap
@@ -68,6 +80,7 @@ export function buildTools() {
       return;
     }
     K.moreOpen = false;
+    K.group = null;
     resetTransient();
     if (v === "__test") {
       K.testMode = !K.testMode;
