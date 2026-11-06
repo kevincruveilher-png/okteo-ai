@@ -464,6 +464,8 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
 - n° 3 : volumes.js aligné sur 2024 (volume 2 = même hauteur que le volume 1, 2,25 m ; volume 0 de la douche à
   l'italienne jusqu'à 10 cm), textes `volumeRule` avec code SDE, `volumeZones` → `placeBoxes` repousse les boîtes hors des
   volumes 0 à 2.
+- n° 4 : `src/norme/circuits.js` (`NORME`, `prisesMax`, `protMax` (tableau 10-1F), `normeCircuits`, `normeSettings`) ;
+  `checkCircuits` y ajoute les dépassements de la norme (`issues[].code`) ; Paramètres → Câblage `#cab-norme`.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (42 vérifications : relevé des murs, des pièces et des

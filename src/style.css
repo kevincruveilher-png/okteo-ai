@@ -1404,3 +1404,4 @@ body[data-tab]:not([data-tab="plan"]):not([data-tab="vue3d"]) .top2{display:none
 .nm-code { display: inline-block; font-family: "JetBrains Mono", monospace; font-size: 11px; padding: 0 4px; border-radius: 4px; background: #eef1f6; color: #33415c; }
 .nm-act { gap: 8px; margin-top: 2px; }
 .nm-ver { display: block; margin-top: 2px; }
+.nm-warn { margin: 6px 0; padding: 6px 8px; border-radius: 6px; background: #fde7c7; color: #6b3a00; font-size: 12.5px; }

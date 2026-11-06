@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import { REGLES, THEMES, regle, refOf, art2015, versionFor, forJournal, BASCULE } from "../src/norme/nfc15100.js";
 import { REGLES_BASE } from "../src/cablage/regles-data.js";
 import { roomKind, prisesSejour, checkPieces, questionsOf } from "../src/norme/pieces.js";
+import { normeCircuits, normeSettings, protMax, prisesMax } from "../src/norme/circuits.js";
+import { checkCircuits } from "../src/cablage/circuits.js";
+import { CAB_DEFAULTS } from "../src/cablage/settings.js";
 
 let n = 0;
 const test = (name, f) => { f(); n++; console.log("  ✓ " + name); };
@@ -79,6 +82,28 @@ test("n° 2 : RJ45 hors séjour selon le nombre de pièces principales (2 → 1,
   const one = checkPieces(rooms, base).filter((i) => i.code === "COM-01");
   assert.equal(one.length, 1); assert.equal(one[0].need, 2); assert.equal(one[0].have, 0); assert.equal(one[0].roomId, null);
   assert.equal(checkPieces(rooms.slice(0, 2), base).filter((i) => i.code === "COM-01")[0].need, 1);
+});
+
+test("n° 4 : plafonds par circuit (8 / 12 prises selon la section, 8 points, cuisine 6 en 2,5 mm²) et tableau 10-1F", () => {
+  assert.equal(prisesMax(1.5), 8); assert.equal(prisesMax(2.5), 12);
+  assert.deepEqual([protMax("prises", 1.5), protMax("prises", 2.5), protMax("cuisine", 1.5), protMax("specialise", 6, "PLAQ"), protMax("specialise", 10), protMax("comm", null)], [16, 20, null, 32, 40, undefined]);
+  const P = (n, k = "p") => Array.from({ length: n }, (_, i) => ({ id: k + i, t: "PC16" })), L = Array.from({ length: 9 }, (_, i) => ({ id: "l" + i, t: "LUM" }));
+  const items = [...P(10), ...P(10, "q"), ...P(7, "k"), ...L];
+  const C = [{ id: "c1", n: "C1", kind: "prises", apps: P(10).map((a) => a.id), section: 1.5, prot: 16 },
+    { id: "c2", n: "C2", kind: "prises", apps: P(10, "q").map((a) => a.id), section: 2.5, prot: 20 },
+    { id: "c3", n: "C3", kind: "cuisine", apps: P(7, "k").map((a) => a.id), section: 1.5, prot: 16 },
+    { id: "c4", n: "C4", kind: "eclairage", apps: L.map((a) => a.id), section: 1.5, prot: 20 }];
+  const I = normeCircuits(C, items);
+  assert.deepEqual(I.map((x) => `${x.code}@${x.c}`), ["CIR-01@c1", "CIR-04@c3", "CIR-04@c3", "CIR-09@c3", "CIR-02@c4", "CIR-09@c4", "CIR-03@c4"]);
+  assert.match(I[0].msg, /^CIR-01 · C1 : 10 prises 16 A en 1,5 mm², la norme en admet 8$/);
+  // checkCircuits : le dépassement déjà vu par le réglage prend le message de la norme (pas de doublon)
+  const r = checkCircuits(C.slice(0, 1), items, CAB_DEFAULTS);
+  assert.equal(r.issues.length, 1); assert.equal(r.issues[0].code, "CIR-01");
+});
+test("n° 4 : réglages de Paramètres plus larges que la norme → messages (valeurs de base : aucun)", () => {
+  assert.deepEqual(normeSettings(CAB_DEFAULTS), []);
+  assert.deepEqual(normeSettings({ ...CAB_DEFAULTS, maxPrises: 10, maxPoints: 9, maxPrisesCuisine: 7, secCuisine: 1.5 }).map((x) => x.code), ["CIR-02", "CIR-01", "CIR-04", "CIR-04"]);
+  assert.deepEqual(normeSettings({ ...CAB_DEFAULTS, maxPrises: 12, secPrises: 2.5 }), []);
 });
 
 console.log(`norme : ${n} groupes de vérifications réussis.`);

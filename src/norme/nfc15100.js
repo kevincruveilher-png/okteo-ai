@@ -63,7 +63,7 @@ const RAW = [
   ["CIR-09", "O", "10.1.6.5", "Chauffage : 3 500 W / 16 A / 1,5 mm² ; 4 500 W / 20 A / 2,5 mm² ; 5 750 W / 25 A / 4 mm² ; 7 250 W / 32 A / 6 mm² par circuit.", ["R-136"]],
   ["CIR-10", "O", "10.1.6.6", "Circuits extérieurs en câble, sous un différentiel distinct des circuits intérieurs.", ["R-143"]],
   ["CIR-11", "O", "10.1.7.2.2", "Puissance et communication dans des conduits distincts ; croisements évités ou à angle droit.", []],
-  ["CIR-12", "BE", "10.1.6.3.3", "Pontage Oktéo : jamais au-delà de CIR-01 ; jamais sur les prises de la cuisine ni sur un circuit spécialisé.", []],
+  ["CIR-12", "BE", "10.1.6.3.3", "Pontage Oktéo : appareils d'un même circuit seulement, jamais un circuit spécialisé ; le circuit reste dans CIR-01 / CIR-02.", []],
   ["CIR-13", "BE", "-11 5.2.3", "Association Oktéo : jamais de courant faible avec une prise ou une commande ; boîte des volets roulants seule.", []],
   ["SDE-01", "O", "10.1.6.10.1", "Tout local avec baignoire ou douche est concerné, même une chambre ou un garage.", []],
   ["SDE-02", "O", "10.1.3.23", "Volume 0 : intérieur de la baignoire ou du receveur ; douche sans receveur : jusqu'à 10 cm au-dessus du fond.", []],
