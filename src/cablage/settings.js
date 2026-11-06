@@ -12,24 +12,24 @@ export const CAB_DEFAULTS = {
   // longueurs
   hsp: 2.5,                // hauteur sous plafond (m)
   traversee: 0.3,          // plancher / isolation à traverser entre la boîte et le haut du mur (m)
-  margeBoite: 0.3,         // surlongueur côté boîte (m)
-  margeApp: 0.2,           // surlongueur côté appareil (m)
+  margeBoite: 0.2,         // surlongueur des FILS côté boîte (m) — lot 2 (06/11/2026) : 0,20 comme le BE ; la gaine n'en a pas
+  margeApp: 0.2,           // surlongueur des FILS côté appareil (m)
   majoration: 10,          // tracé dans les combles : ligne droite légèrement arrondie (+ %)
   arrondi: 0.1,            // longueur arrondie au … supérieur (m)
   hTableau: 1.8,           // hauteur du haut du tableau (m) : les gaines du tableau montent de là vers les combles
   // gaines
   remplissage: 40,         // (ancienne méthode, v28–v51 : affichage seulement)
-  icta16: 7.5,             // R-074 : somme des sections maximum dans une ICTA 16 (mm²)
-  icta20: 13.5,            // R-074 : somme des sections maximum dans une ICTA 20 (mm²) ; au-delà : doute
+  icta16: 44,              // R-074 (lot 2, 06/11/2026) : place des fils au plus dans une ICTA 16 (fil 1,5 = 8,6 ; 2,5 = 11,9…)
+  icta20: 90,              // R-074 : place des fils au plus dans une ICTA 20 ; au-delà : doute
   // circuits (NF C 15-100) — v38, règles KiTéOHM : prises ordinaires en 1,5 mm² (16 A, 8 max), prises de cuisine en
   // 2,5 mm² sur leur circuit (20 A, 6 max), éclairage en 1,5 mm² (8 points max) ; dans une boîte : un circuit prises, un
   // circuit cuisine s'il y en a, un circuit éclairage (un de plus seulement au-delà des limites de la norme)
   maxPoints: 8,            // points d'éclairage par circuit
   maxPrises: 8,            // prises 16 A par circuit
   maxPrisesCuisine: 6,     // prises de cuisine par circuit
-  secEclairage: 1.5, protEclairage: 16,
+  secEclairage: 1.5, protEclairage: 10,     // lot 2 (06/11/2026) : calibres du BE (éclairage 10 A, prises de cuisine 16 A en 2,5)
   secPrises: 1.5, protPrises: 16,
-  secCuisine: 2.5, protCuisine: 20,
+  secCuisine: 2.5, protCuisine: 16,
   motsCuisine: "cuisine",  // pièces dont les prises 16 A sont des prises de cuisine (mots séparés par des virgules)
   // volets roulants (v54, R-079, R-087) : circuit dédié en 1,5 mm², 10 A, 50 W par moteur (valeur retenue par Kévin)
   secVolets: 1.5, protVolets: 10, puissanceMoteur: 50,
@@ -47,7 +47,7 @@ export const CAB_DEFAULTS = {
   couleursVolets: "gris/bleu clair",
   // ronde des fils : retours lampe, navettes (les deux de même couleur) et commandes de télérupteur prennent la couleur
   // suivante, dans chaque boîte en repartant du début ; même ordre dans toutes les boîtes (fabrication en série)
-  couleursCommande: "orange, violet, noir, marron, ivoire",
+  couleursCommande: "orange, ivoire, marron, noir, violet",   // lot 2 : ordre du BE (décision n° 1)
   bagues: true,            // bague numérotée sur chaque circuit de la gaine d'alimentation (n° du circuit, T1… télérupteur)
   memeEndroit: 0.3,        // appareils à moins de … m l'un de l'autre = même endroit = une seule gaine (repiquage)
   pontageMax: 5,           // n° 6 : pontage (choix du chantier) : endroits au plus à la suite sur une même gaine
@@ -57,10 +57,12 @@ export const CAB_DEFAULTS = {
 };
 
 // v38 : anciens réglages enregistrés avec les valeurs de base de l'époque → remplacés par les nouvelles valeurs de base
-const CAB_V = 4;
+const CAB_V = 5;
 // v52 : départs par boîte 18 (alimentation comprise) → 12 sans l'alimentation (R-001) ; v56 : 12 → 16 (H-038)
 // valeur ou liste de valeurs de base d'autrefois : un réglage encore égal à l'une d'elles reprend la nouvelle valeur de base
-const OLD_DEFAULTS = { secPrises: 2.5, protPrises: 20, couleursCommande: "orange, marron, noir, ivoire", departsMax: [18, 12] };
+// v5 (lot 2 de la reprise des paramètres du BE, 06/11/2026) : calibres, ronde, surlongueur, remplissage en place occupée
+const OLD_DEFAULTS = { secPrises: 2.5, protPrises: 20, couleursCommande: ["orange, marron, noir, ivoire", "orange, violet, noir, marron, ivoire"], departsMax: [18, 12],
+  protEclairage: 16, protCuisine: 20, margeBoite: 0.3, icta16: 7.5, icta20: 13.5 };
 
 const KEY = "okteo.cablage.v1";
 export function getCab() {
@@ -104,17 +106,17 @@ export const CAB_FIELDS = [
     ["coutBoite", "Pieuvre économique : une boîte de plus vaut autant que ce cuivre (boîte, connecteurs, alimentation, pose)", "m de fil", "num"],
     ["gaineLongue", "Note « belle pieuvre » : une gaine d'appareil est longue au-delà de", "m", "num"]],
     "Capacité d'une boîte et connecteurs utilisés pour les raccordements."],
-  ["Gaines et câbles", [["icta16", "ICTA 16 : somme des sections des fils au plus", "mm²", "num"], ["icta20", "ICTA 20 : somme des sections des fils au plus (au-delà : doute)", "mm²", "num"],
+  ["Gaines et câbles", [["icta16", "ICTA 16 : place des fils au plus (fil 1,5 = 8,6 ; 2,5 = 11,9)", "place", "num"], ["icta20", "ICTA 20 : place des fils au plus (au-delà : doute)", "place", "num"],
     ["memeEndroit", "Association : appareils au même endroit (même plaque, une seule gaine) : distance maximum", "m", "num"],
     ["pontageMax", "Pontage (si coché pour le chantier dans l'onglet Câblage) : prises ou lumières au plus à la suite sur une même gaine", "endroits", "int"],
     ["cableExt", "Appareil à l'extérieur : câble dans la gaine", "", "bool"], ["cablesStock", "Câbles en stock (le plus petit qui convient est choisi)", "", "txt"],
     ["cableBleuLibre", "Câble sans neutre : le bleu peut servir de phase ou de retour (sinon câble plus gros, fil en trop isolé)", "", "bool"]],
-    "Diamètre des gaines par la somme des sections (R-074), gaines partagées et câbles pour l'extérieur."],
+    "Diamètre des gaines par la place occupée par les fils, comme le BE (R-074), gaines partagées et câbles pour l'extérieur."],
   ["Longueurs des gaines", [["hsp", "Hauteur sous plafond", "m", "num"], ["traversee", "Traversée plancher / isolation", "m", "num"],
-    ["margeBoite", "Surlongueur côté boîte", "m", "num"], ["margeApp", "Surlongueur côté appareil", "m", "num"],
+    ["margeBoite", "Surlongueur des fils côté boîte", "m", "num"], ["margeApp", "Surlongueur des fils côté appareil", "m", "num"],
     ["majoration", "Tracé dans les combles (ligne droite arrondie)", "+ %", "num"], ["arrondi", "Arrondir la longueur au … supérieur", "m", "num"],
     ["hTableau", "Hauteur du haut du tableau", "m", "num"]],
-    "Longueur d'une gaine = tracé dans les combles + descentes + surlongueurs, arrondie."],
+    "Longueur d'une gaine = tracé dans les combles + descentes, arrondie. Longueur de coupe des fils = gaine + surlongueurs."],
 ];
 export const SECTIONS = [1.5, 2.5, 4, 6, 10];
 export const PROTS = [2, 10, 16, 20, 25, 32, 40];

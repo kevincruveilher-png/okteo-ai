@@ -22,7 +22,7 @@ export const GROUPES = ["Chauffage et ventilation", "Cuisine et spécialisés", 
 
 export const APPAREILS = {
   PC32: { n: "Prise / sortie 32 A (usage à préciser)", r: "P", h: 30, lab: "32", groupe: "Cuisine et spécialisés", mural: true, racc: "direct", lignes: [{ fils: "6 R+B+V/J", gaine: 20 }], circuit: { section: 6, prot: 32 } },
-  RAD: { n: "Radiateur (convecteur, fil pilote)", r: "C", h: 30, lab: "RAD", groupe: "Chauffage et ventilation", mural: true, racc: "direct", lignes: [{ fils: "1,5 B+N+M+V/J", gaine: 16 }], circuit: { section: 1.5, prot: 16 } },
+  RAD: { n: "Radiateur (convecteur, fil pilote)", r: "C", h: 30, lab: "RAD", groupe: "Chauffage et ventilation", mural: true, racc: "direct", lignes: [{ fils: "1,5 B+N+M+V/J", gaine: 16 }], circuit: { section: 1.5, prot: 10 } },   // lot 2 : convecteur seul 10 A (BE)
   SS: { n: "Sèche-serviette", r: "SS", h: 30, lab: "SS", groupe: "Chauffage et ventilation", mural: true, racc: "direct", lignes: [{ fils: "1,5 BF+M+V/J", gaine: 16 }], circuit: { section: 1.5, prot: 10 } },
   // v74 MAJ 3 : sanitaires (pas électriques) : ils servent à tracer les volumes de la salle de bain (volumes.js)
   BAIG: { n: "Baignoire", r: "SANI", h: 0, lab: "BAIG", groupe: "Sanitaires", racc: "aucun", lignes: [], sani: true },
@@ -36,6 +36,11 @@ export const APPAREILS = {
   // n° 10 : zones d'exclusion (pas électriques, sans repère) : boîtes, gaines, appareils et lignes directes les évitent
   ZONE: { n: "Zone d'exclusion (rectangle)", r: "SANI", h: 0, lab: "ZEX", groupe: "Zones d'exclusion", racc: "aucun", lignes: [], sani: true },
   ZONEC: { n: "Zone d'exclusion (cercle)", r: "SANI", h: 0, lab: "ZEX", groupe: "Zones d'exclusion", racc: "aucun", lignes: [], sani: true },
+  TR50: { n: "Trémie 50 × 50 cm", r: "SANI", h: 0, lab: "T50", groupe: "Zones d'exclusion", racc: "aucun", lignes: [], sani: true },
+  TR100: { n: "Trémie 100 × 100 cm", r: "SANI", h: 0, lab: "T100", groupe: "Zones d'exclusion", racc: "aucun", lignes: [], sani: true },
+  TR200: { n: "Trémie 200 × 150 cm", r: "SANI", h: 0, lab: "T200", groupe: "Zones d'exclusion", racc: "aucun", lignes: [], sani: true },
+  RS50: { n: "Réservation ronde Ø50 mm", r: "SANI", h: 0, lab: "R50", groupe: "Zones d'exclusion", racc: "aucun", lignes: [], sani: true },
+  RS100: { n: "Réservation ronde Ø100 mm", r: "SANI", h: 0, lab: "R100", groupe: "Zones d'exclusion", racc: "aucun", lignes: [], sani: true },
   // n° 11 : mobilier (bouton « Mobilier ▾ » de la barre des appareils ; pas dans « Autres ») : sans électricité ni repère
   ...Object.fromEntries([["CANAPE", "Canapé", "CAN"], ["FAUTEUIL", "Fauteuil", "FAU"], ["TABLE", "Table", "TAB."], ["CHAISE", "Chaise", "CH."], ["LIT2", "Lit double", "LIT"], ["LIT1", "Lit simple", "LIT"], ["MTV", "Meuble TV", "MTV"], ["ARMOIRE", "Armoire / rangement", "ARM"], ["MBUREAU", "Bureau (meuble)", "BUR"], ["PLANTE", "Plante", "PL."]].map(([k, n, lab]) => [k, { n, r: "SANI", h: 0, lab, groupe: "Mobilier", racc: "aucun", lignes: [], sani: true }])),
   VEX: { n: "Bouche extraction VMC", r: "EX", h: null, lab: "EX", groupe: "Chauffage et ventilation", racc: "aucun", lignes: [] },

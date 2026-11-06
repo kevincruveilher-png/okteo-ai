@@ -1,6 +1,6 @@
 // Généré par scripts/regles-import.mjs depuis docs/journal-regles-cablage.md — ne pas modifier à la main.
 export const REGLES_BASE = {
- "version": "2026-10-28.46",
+ "version": "2026-10-28.47",
  "rules": [
   {
    "id": "R-001",
@@ -832,7 +832,7 @@ export const REGLES_BASE = {
    "categorie": "allumages",
    "description": "Constat FTZ, pour mémoire et non copié : 1er va-et-vient navettes marron/marron + retour orange, 2e ivoire/ivoire + noir, 3e comme le 1er ; allumages simples ivoire, noir, orange, ivoire ; un même allumage a deux couleurs différentes (interrupteur ivoire, lumière en câble 3G marron) ; des couleurs répétées entre allumages sans repère.",
    "details": [
-    "Base : la ronde de Kévin (R-023) orange, violet, noir, marron, ivoire, avec la structure de FTZ : va-et-vient d'abord, allumages simples ensuite ; navettes d'un va-et-vient = 2 fils de la même couleur, retour d'une autre couleur.",
+    "Base : la ronde orange, ivoire, marron, noir, violet (ordre du BE, décision n° 1 de Kévin du 06/11/2026 ; avant : orange, violet, noir, marron, ivoire, R-023), avec la structure de FTZ : va-et-vient d'abord, allumages simples ensuite ; navettes d'un va-et-vient = 2 fils de la même couleur, retour d'une autre couleur.",
     "Règles d'attribution :\n1. Un allumage garde **la même couleur sur tous ses fils** (interrupteur, lumière, gaines).\n2. Dans une même gaine, deux allumages ont **toujours des couleurs différentes**.\n3. Lumière en câble 3G (extérieur) : la couleur de l'allumage est le **marron** du câble ; les autres allumages de la boîte évitent le marron tant qu'une autre couleur est libre.\n4. Couleurs données dans l'ordre de la ronde, **sans répétition tant qu'il en reste une libre dans la boîte** : d'abord les couleurs imposées (câble 3G), puis les va-et-vient, puis les allumages simples, par ordre de repère. Même ordre de ronde dans toutes les boîtes du chantier.\n5. Une couleur réutilisée (plus d'allumages que de couleurs) ne l'est que pour des allumages qui ne partagent aucune gaine, et chaque fil concerné reçoit une **bague portant le numéro de l'allumage** (12 pour L12).\n6. Un va-et-vient prend 2 couleurs de la ronde (navettes, retour) et n'a jamais deux fois la même dans une gaine.\n7. Impossible de respecter 2 ou 6 : **doute bloquant** sur la gaine.",
     "Numéros de raccordement : suivent R-031 (retours et navettes en dernier).",
     "Exemple LI03 : L1/L1A (câble 3G) marron ; va-et-vient 9 : navettes orange, retour violet ; I7 noir ; I8 ivoire ; I12 orange avec bague 12."
@@ -840,7 +840,7 @@ export const REGLES_BASE = {
    "condition": "",
    "action": "",
    "parametres": {
-    "ronde": "orange, violet, noir, marron, ivoire"
+    "ronde": "orange, ivoire, marron, noir, violet"
    },
    "parametres_texte": "",
    "certitude": "supposee",
@@ -896,37 +896,43 @@ export const REGLES_BASE = {
    "id": "R-074",
    "titre": "Diamètre des gaines",
    "categorie": "gaines",
-   "description": "Somme des sections nominales ≤ 7,5 mm² → ICTA 16 (5×1,5 ou 3×2,5) ; au-delà → ICTA 20. Maximum vu : 13,5 mm² (7 fils). Vérifié sur toutes les gaines des 5 boîtes.",
+   "description": "Depuis le 06/11/2026 (reprise des paramètres du BE, décision n° 38 de Kévin, sans passer par Thibault) : la gaine est choisie d'après la **place occupée** par ses fils (« encombrement » du BE), et non plus la somme des sections de cuivre.",
    "details": [
-    "Principe confirmé par Kévin (27/10/2026) : addition des sections et place dans la gaine, avec le même ratio pour tous les diamètres.",
-    "Paramètre réglable : capacité en mm² par diamètre. ICTA 16 = 7,5 (vu). ICTA 20 = 13,5 (maximum vu ; Kévin garde le même ratio que pour 16, 27/10/2026 12:43 : **valeur retenue**, ajustable si la valeur exacte est trouvée, Q-49). Au-dessus de la capacité connue : doute bloquant."
+    "Place d'un fil : 1,5 mm² → 8,6 ; 2,5 → 11,9 ; 6 → 22,9 ; 10 → 36,3 ; 16 → 50,3 ; 25 → 75,4. Place d'un câble : 35 (3G1,5, petits câbles), 70 (4G et 5G 1,5, câbles 2,5, 3G4, 3G6), 130 (4G et 5G 4, 5G6, 5G16, 2X16), 170 (10 mm², 3G16).",
+    "Capacité : ICTA 16 → 44 ; ICTA 20 → 90 ; ICTA 25 → 155 ; ICTA 32 → 200 ; ICTA 40 → 255 ; gaine aiguillée 20 / 25 → 70. Réglables. Au-dessus de l'ICTA 20 dans une boîte : doute bloquant (R-073 : pas d'ICTA 25 dans une boîte).",
+    "Les cas vus sur les bandes restent bons : 5 × 1,5 (43) et 3 × 2,5 (35,7) en ICTA 16 ; 9 × 1,5 (77,4) en ICTA 20 ; un câble 3G1,5 en ICTA 16, 4G1,5 et 3G2,5 en ICTA 20. Différence : 10 fils de 1,5 (86) tiennent désormais en ICTA 20.",
+    "Ancienne méthode (27/10 → 06/11/2026), gardée pour l'historique : somme des sections ≤ 7,5 mm² → ICTA 16, ≤ 13,5 mm² → ICTA 20 (Q-49).",
+    "**Exception (Kévin, 27/10/2026, Q-79)** : plaque de cuisson B + R + V/J en 6 mm² → ICTA 20. Ligne B + R + V/J en 10 mm² → ICTA 25 (Q-81). (Elles tombent aussi d'elles-mêmes avec la nouvelle méthode : 68,7 et 108,9.)"
    ],
    "condition": "",
    "action": "",
    "parametres": {
-    "icta16_mm2": 7.5,
-    "icta20_mm2": 13.5
+    "icta16_place": 44,
+    "icta20_place": 90
    },
    "parametres_texte": "",
-   "certitude": "supposee",
+   "certitude": "confirmee",
    "si_doute": "bloquer",
-   "statut": "a_valider",
-   "source": "Journal des règles, 27/10/2026",
-   "note": "",
+   "statut": "active",
+   "source": "méthode du BE, décision de Kévin du 06/11/2026",
+   "note": "méthode du BE, décision de Kévin du 06/11/2026",
    "precise": "précise R-012",
    "questions_liees": [
-    "Q-49"
+    "Q-49",
+    "Q-79",
+    "Q-81"
    ],
    "noeud": "chantier/gaines/R-074",
    "depends_on": [
-    "R-012"
+    "R-012",
+    "R-073"
    ],
    "choix": null,
    "preuves": [],
    "version": 1,
    "cree_le": "2026-10-27",
    "modifie_le": "2026-10-27",
-   "modifie_par": "IA (à valider par Kévin)"
+   "modifie_par": "Kévin"
   },
   {
    "id": "R-075",
@@ -3897,8 +3903,8 @@ export const REGLES_BASE = {
    "reponse": "« Je ne sais pas, je me renseigne » ; addition des sections et place dans la gaine, même ratio pour 16 et 20 (R-074)",
    "suppose": "",
    "si_doute": "",
-   "statut": "partielle",
-   "statut_texte": "répondue provisoirement : Kévin garde le même ratio, ICTA 20 = 13,5 mm² (R-074), à ajuster si Kévin trouve la valeur exacte"
+   "statut": "repondue",
+   "statut_texte": "répondue (06/11/2026) : valeurs exactes du BE, en place occupée : ICTA 16 = 44, ICTA 20 = 90, ICTA 25 = 155, ICTA 32 = 200 (R-074)"
   },
   {
    "id": "Q-50",
@@ -5026,6 +5032,17 @@ export const REGLES_BASE = {
    "apres": "Q-111 ouverte : distance « depuis l'angle » d'un appareil mural quand le mur est en deux morceaux dans le prolongement ; règle actuelle conservée",
    "motif": "Décision de Kévin le 04/11/2026 (00:19) : « Conserve cette règle et ajoute cette règle à trancher avec Thibaut »",
    "par": "Claude",
+   "code_valide": null
+  },
+  {
+   "id": "H-047",
+   "date": "06/11/2026",
+   "regle": "R-074, R-072, Q-49",
+   "action": "Modification",
+   "avant": "R-074 : somme des sections (7,5 / 13,5 mm²) ; R-072 : ronde orange, violet, noir, marron, ivoire",
+   "apres": "R-074 `active` · `confirmee` : place occupée (fil 1,5 = 8,6 ; ICTA 16 = 44, ICTA 20 = 90…) ; R-072 : ronde orange, ivoire, marron, noir, violet ; Q-49 répondue",
+   "motif": "Reprise des paramètres du BE (fichiers FTZ), décisions n° 1 et 38 de Kévin du 06/11/2026",
+   "par": "Claude (validé par Kévin)",
    "code_valide": null
   }
  ]

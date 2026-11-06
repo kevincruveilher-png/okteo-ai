@@ -2145,9 +2145,9 @@ try {
     const docs = await ev(() => { const r = okteoExt.pages.bandes.ui.lastDocs; return { pages: r.pages, ids: r.data.unifilaire.length, rep: r.data.reperage.length, fiche: r.data.fiche.length, doc1: (r.data.fiche.find((x) => x.code === "DOC-01") || {}).etat }; });
     const docsOk = dc && /unifilaire/.test(tDc) && /NF C 15-100/.test(tDc) && /Norme/.test(d1) && docs.pages >= 4 && docs.ids >= 2 && docs.rep >= 2 && docs.fiche >= 25 && docs.doc1 === "R";
     // v52 : longueur totale des gaines et règles non confirmées « à vérifier » sur l'étiquette, la page et la bande détaillée
-    const page52 = await ev(() => ({ len: /\d+,\d\d m de gaines/.test(document.querySelector(".bands").textContent), verif: /À vérifier — règles non confirmées : .*R-074/.test(document.querySelector(".bands .bd-verif")?.textContent || "") }));
+    const page52 = await ev(() => ({ len: /\d+,\d\d m de gaines/.test(document.querySelector(".bands").textContent), verif: /À vérifier — règles non confirmées : .*R-072/.test(document.querySelector(".bands .bd-verif")?.textContent || "") }));
     const ok = L.numPages === Math.ceil(n / 4) && vp.width > vp.height && /LI01/.test(t1) && /PAVILLONNEUR/.test(t1) && /-LI01/.test(t1) && !/ORDRE DE CABLAGE/.test(t1)
-      && /\d+,\d\d m de gaines/.test(t1) && /A VERIFIER : .*R-074/.test(t1) && page52.len && page52.verif
+      && /\d+,\d\d m de gaines/.test(t1) && /A VERIFIER : .*R-072/.test(t1) && page52.len && page52.verif
       && /Dossier de cablage/.test(d1) && /Sommaire/.test(d1) && parts.length === 4 && docsOk && /Tableau electrique/.test(tTb) && /ORDRE DE CABLAGE/.test(tBd) && /Longueur totale des gaines : \d+,\d\d m/.test(tBd) && /A VERIFIER \(règles non confirmées\)/.test(tBd) && D.numPages >= 3 + 2 * n;
     if (!ok) throw new Error(JSON.stringify({ n, pages: L.numPages, w: vp.width, h: vp.height, t1: t1.slice(0, 400), d1: d1.slice(0, 200), parts, dp: D.numPages, page52, tBd: tBd.slice(0, 300), docs, tDc: tDc.slice(0, 200) }));
     return true;
@@ -2815,7 +2815,7 @@ try {
     await page.waitForTimeout(200);
     const f2 = await ev(() => document.querySelector("#ps-regles .rg-row.on")?.dataset.id + "|" + (document.querySelector("#ps-regles .rg-fiche")?.textContent || ""));
     const ok = conform && /departs_max = 16/.test(f) && /Départs par boîte \(sans l'alimentation\) : 18 \(journal : 16\)/.test(f) && /R-088/.test(f) && /Bande DUCOURNEAU/.test(f) && /Q-50/.test(f) && /H-020/.test(f)
-      && /R-001.*16.*18/.test(ec) && /^R-074\|/.test(f2) && /icta20_mm2 = 13,5/.test(f2) && /bloquer/.test(f2);
+      && /R-001.*16.*18/.test(ec) && /^R-074\|/.test(f2) && /icta20_place = 90/.test(f2) && /bloquer/.test(f2);
     if (!ok) throw new Error(JSON.stringify({ f: f.slice(0, 300), ec, f2: f2.slice(0, 200) }));
     return true;
   });
@@ -3563,6 +3563,22 @@ try {
     await page.click("#cab-reset");
     await toPlan();
     if (!(/CIR-01 · 10 prises par circuit en 1,5 mm² : la norme en admet 8/.test(w) && gone)) throw new Error(JSON.stringify({ w, gone }));
+    return true;
+  });
+  await check("lot 3 (reprise du BE) : Propriétés d'une prise → « Étanche (IP) » et hauteurs rapides 120 / 110 / 40 ; d'un interrupteur → « Lumineux / témoin » ; un Ctrl+Z par réglage", async () => {
+    await ev(() => okteo.setTab("plan"));
+    const ids = await ev(() => okteo.importDevices([{ t: "PC16", x: 400, y: 400, h: 30 }, { t: "INT", x: 402, y: 400, h: 110 }]).ids);
+    await ev((id) => { okteo.select([id]); okteoExt.panel.show("props"); }, ids[0]);
+    await page.waitForSelector("#f_et");
+    await page.check("#f_et"); await page.click('[data-hq="120"]');
+    const p = await ev((id) => { const a = okteo.state.app.find((x) => x.id === id); return { et: a.et, h: a.h }; }, ids[0]);
+    await ev((id) => { okteo.select([id]); okteoExt.panel.show("props"); }, ids[1]);
+    await page.waitForSelector("#f_tem");
+    await page.check("#f_tem");
+    const i = await ev((id) => ({ tem: okteo.state.app.find((x) => x.id === id).temoin, all: okteo.allApps().find((x) => x.id === id).temoin }), ids[1]);
+    await ev(() => { okteo.undo(); okteo.undo(); okteo.undo(); okteo.undo(); okteo.clearSel(); });
+    const gone = await ev((id) => !okteo.state.app.some((x) => x.id === id), ids[0]);
+    if (!(p.et === true && p.h === 120 && i.tem === true && i.all === true && gone)) throw new Error(JSON.stringify({ p, i, gone }));
     return true;
   });
   await check("parafoudre : code postal → Nk (AQ2) ; Étapes → Norme → Parafoudre : ligne aérienne = obligatoire ; choix « sans » du BE noté au rapport (étude initiale / modifications humaines)", async () => {

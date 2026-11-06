@@ -146,7 +146,7 @@ export function whyGaine(g, b, S) {
     if (g.rules && g.rules.ronde) out.push({ rule: "R-072", text: `Couleurs de la ronde : ${[...new Set(g.wires.filter((w) => /^(retour|nav1|nav2|cmdTL)$/.test(w.fn)).map((w) => w.color + (w.bague ? ` (bague ${w.bague})` : "")))].join(", ")}` });
     if (g.cable) out.push({ rule: "R-014", text: `Appareil à l'extérieur : câble ${g.cable} dans la gaine` }, { rule: "R-095", text: "Bouchon obligatoire dans la boîte (air extérieur)" });
   }
-  out.push({ rule: "R-074", text: `Somme des sections ${fr(g.sum, 1)} mm² → ${g.diam ? "ICTA " + g.diam : "aucun diamètre (au-delà de l'ICTA 20 : doute)"}` });
+  out.push({ rule: "R-074", text: `${g.cable ? "Câble " + g.cable : `Place des fils ${fr(g.place ?? g.sum, 1)}`} → ${g.diam ? "ICTA " + g.diam : "aucun diamètre (au-delà de l'ICTA 20 : doute)"} (méthode du BE : ICTA 16 = 44, ICTA 20 = 90)` });
   out.push({ rule: "R-011", text: `Longueur ${fr(g.length, 2)} m = tracé + ${S.majoration} % + descentes + surlongueurs, arrondie` });
   return out;
 }

@@ -285,7 +285,7 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 
 **R-072 · Ronde Oktéo des navettes et retours** — `a_valider` · `supposee` (conçue par Claude sur mandat de Kévin, 27/10/2026 ; à valider sur une boîte exemple)
 - Constat FTZ, pour mémoire et non copié : 1er va-et-vient navettes marron/marron + retour orange, 2e ivoire/ivoire + noir, 3e comme le 1er ; allumages simples ivoire, noir, orange, ivoire ; un même allumage a deux couleurs différentes (interrupteur ivoire, lumière en câble 3G marron) ; des couleurs répétées entre allumages sans repère.
-- Base : la ronde de Kévin (R-023) orange, violet, noir, marron, ivoire, avec la structure de FTZ : va-et-vient d'abord, allumages simples ensuite ; navettes d'un va-et-vient = 2 fils de la même couleur, retour d'une autre couleur.
+- Base : la ronde orange, ivoire, marron, noir, violet (ordre du BE, décision n° 1 de Kévin du 06/11/2026 ; avant : orange, violet, noir, marron, ivoire, R-023), avec la structure de FTZ : va-et-vient d'abord, allumages simples ensuite ; navettes d'un va-et-vient = 2 fils de la même couleur, retour d'une autre couleur.
 - Règles d'attribution :
   1. Un allumage garde **la même couleur sur tous ses fils** (interrupteur, lumière, gaines).
   2. Dans une même gaine, deux allumages ont **toujours des couleurs différentes**.
@@ -301,12 +301,13 @@ Source : bandes FTZ (SchemBAT), chantier DUCOURNEAU, réf. AF26075150, client IM
 - Les fils des appareils au même endroit sont réunis dans une gaine, avec la phase R 1 et la terre comptées une seule fois (P13+I5+V4 = 7 fils). Libellé : prises, puis interrupteurs, puis va-et-vient.
 - Une commande et des prises au même endroit peuvent partager une gaine (Kévin, 28/10/2026, 00:32), **mais on évite les gaines ICTA 25 dans les boîtes** : si le regroupement demande plus qu'une ICTA 20, les appareils repartent dans des gaines séparées (prises d'un côté, commandes de l'autre). « Pas évident » : à revoir sur les prochains chantiers.
 
-**R-074 · Diamètre des gaines** (précise R-012) — `a_valider`
-- Somme des sections nominales ≤ 7,5 mm² → ICTA 16 (5×1,5 ou 3×2,5) ; au-delà → ICTA 20. Maximum vu : 13,5 mm² (7 fils). Vérifié sur toutes les gaines des 5 boîtes.
-- Principe confirmé par Kévin (27/10/2026) : addition des sections et place dans la gaine, avec le même ratio pour tous les diamètres.
-- Paramètre réglable : capacité en mm² par diamètre. ICTA 16 = 7,5 (vu). ICTA 20 = 13,5 (maximum vu ; Kévin garde le même ratio que pour 16, 27/10/2026 12:43 : **valeur retenue**, ajustable si la valeur exacte est trouvée, Q-49). Au-dessus de la capacité connue : doute bloquant.
-
-- **Exception (Kévin, 27/10/2026, Q-79)** : plaque de cuisson B + R + V/J en 6 mm² → ICTA 20 (18 mm², au-delà de la règle des sections). Ligne B + R + V/J en 10 mm² → ICTA 25 (Kévin, 27/10/2026, Q-81).
+**R-074 · Diamètre des gaines** (précise R-012) — `active` · `confirmee` (méthode du BE, décision de Kévin du 06/11/2026)
+- Depuis le 06/11/2026 (reprise des paramètres du BE, décision n° 38 de Kévin, sans passer par Thibault) : la gaine est choisie d'après la **place occupée** par ses fils (« encombrement » du BE), et non plus la somme des sections de cuivre.
+- Place d'un fil : 1,5 mm² → 8,6 ; 2,5 → 11,9 ; 6 → 22,9 ; 10 → 36,3 ; 16 → 50,3 ; 25 → 75,4. Place d'un câble : 35 (3G1,5, petits câbles), 70 (4G et 5G 1,5, câbles 2,5, 3G4, 3G6), 130 (4G et 5G 4, 5G6, 5G16, 2X16), 170 (10 mm², 3G16).
+- Capacité : ICTA 16 → 44 ; ICTA 20 → 90 ; ICTA 25 → 155 ; ICTA 32 → 200 ; ICTA 40 → 255 ; gaine aiguillée 20 / 25 → 70. Réglables. Au-dessus de l'ICTA 20 dans une boîte : doute bloquant (R-073 : pas d'ICTA 25 dans une boîte).
+- Les cas vus sur les bandes restent bons : 5 × 1,5 (43) et 3 × 2,5 (35,7) en ICTA 16 ; 9 × 1,5 (77,4) en ICTA 20 ; un câble 3G1,5 en ICTA 16, 4G1,5 et 3G2,5 en ICTA 20. Différence : 10 fils de 1,5 (86) tiennent désormais en ICTA 20.
+- Ancienne méthode (27/10 → 06/11/2026), gardée pour l'historique : somme des sections ≤ 7,5 mm² → ICTA 16, ≤ 13,5 mm² → ICTA 20 (Q-49).
+- **Exception (Kévin, 27/10/2026, Q-79)** : plaque de cuisson B + R + V/J en 6 mm² → ICTA 20. Ligne B + R + V/J en 10 mm² → ICTA 25 (Q-81). (Elles tombent aussi d'elles-mêmes avec la nouvelle méthode : 68,7 et 108,9.)
 
 **R-075 · Alimentation d'une boîte** (précise R-010) — `a_valider` (numérotation : R-031)
 - Gaine .01, avec les couleurs : éclairage R / B (1,5), prises GR / BF (1,5), cuisine R / B (2,5), volets roulants GR / B clair (1,5).
@@ -886,7 +887,7 @@ Chaque question est suivie ici : `ouverte` → `répondue` → règle créée ou
 | Q-46 | Couleurs des navettes et retours (voir R-072) | « Je ne comprends pas la question » | répondue (voir Q-58) |
 | Q-47 | Pourquoi un bleu à I1 et I2, et du câble 3G1,5 pour L1, L1A, L2, L2A ? | Bleu à l'interrupteur si voyant ou domotique (R-083) | répondue en partie (reste Q-56) |
 | Q-48 | Terre de l'alimentation de la plus forte section ? EQ1 / EQ2 : quelles pièces ? | EQ1 / EQ2 : salle de bain (R-080) | répondue en partie (reste Q-57) |
-| Q-49 | Capacité d'ICTA 20 et au-delà (ICTA 25, deux gaines) ? | « Je ne sais pas, je me renseigne » ; addition des sections et place dans la gaine, même ratio pour 16 et 20 (R-074) | répondue provisoirement : Kévin garde le même ratio, ICTA 20 = 13,5 mm² (R-074), à ajuster si Kévin trouve la valeur exacte |
+| Q-49 | Capacité d'ICTA 20 et au-delà (ICTA 25, deux gaines) ? | « Je ne sais pas, je me renseigne » ; addition des sections et place dans la gaine, même ratio pour 16 et 20 (R-074) | répondue (06/11/2026) : valeurs exactes du BE, en place occupée : ICTA 16 = 44, ICTA 20 = 90, ICTA 25 = 155, ICTA 32 = 200 (R-074) |
 | Q-50 | 18 départs sans l'alimentation ? 6 par face en la comptant ? | Règle non fixée chez eux : on garde celle de Claude (R-001) | répondue |
 | Q-51 | Volets roulants : boîte à part, maximum, commande filaire ? | Option du chantier : boîte à part ou mélangés ; pas de maximum sauf norme NF (R-079) | répondue (reste Q-61) |
 | Q-52 | Numérotation des gaines strictement dans le sens horaire ? | Oui, strictement (R-077) | répondue |
@@ -1213,3 +1214,4 @@ Source : « Bande AF25124651 FONTES D2 » (6 pages) et « AF25124651 FONTES D212
 
 | H-045 | 29/10/2026 | R-144 | Correction du calcul | Capacité = modules occupés × 1,2 | Capacité minimale = arrondi supérieur(modules occupés / 0,8) ; modules libres ≥ arrondi supérieur(20 % de la capacité du coffret) | Correction mathématique pour conserver 20 % de la capacité totale libres, autorisée par Kévin (« go pour la correction »). Statut normatif inchangé | ChatGPT | — |
 | H-046 | 04/11/2026 | Q-111 | Création | — | Q-111 ouverte : distance « depuis l'angle » d'un appareil mural quand le mur est en deux morceaux dans le prolongement ; règle actuelle conservée | Décision de Kévin le 04/11/2026 (00:19) : « Conserve cette règle et ajoute cette règle à trancher avec Thibaut » | Claude | — |
+| H-047 | 06/11/2026 | R-074, R-072, Q-49 | Modification | R-074 : somme des sections (7,5 / 13,5 mm²) ; R-072 : ronde orange, violet, noir, marron, ivoire | R-074 `active` · `confirmee` : place occupée (fil 1,5 = 8,6 ; ICTA 16 = 44, ICTA 20 = 90…) ; R-072 : ronde orange, ivoire, marron, noir, violet ; Q-49 répondue | Reprise des paramètres du BE (fichiers FTZ), décisions n° 1 et 38 de Kévin du 06/11/2026 | Claude (validé par Kévin) | — |

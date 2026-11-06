@@ -16,7 +16,7 @@ vérité, celle-ci, et tenir `docs/journal.md` à jour à CHAQUE modification (e
   `public/assets/fond-evrard-04949.jpg`). Décision de Kévin attendue (dépôt privé ou retrait des plans). N'en ajouter aucun.
 - Ne lancer une mise à jour que sur ordre de Kévin ; ne rien pousser sur `main` sans son « go ». Branches de travail :
   `feat/…`, vérification par GitHub Actions sur une branche `verification-…` supprimée après usage.
-- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854 ; lot C : smoke 202/202, run 41904201702 ; bloc D : smoke 207/207, run 41913594686 ; confirmation d'emplacement : smoke 208/208, run 41990372145 ; interrupteurs au mur : smoke 209/209, run 41993507221 ; plan fluide : smoke 210/210, run 42002250587 ; grosse mise à jour du 05/11 (lots 1 à 6) : smoke 218/218, run 42019579696 ; MAJ norme n° 1 à 6 du 06/11 : smoke 224/224, run 42225339450 ; parafoudre : smoke 225/225, run 42227973132 ; page Paramètres : smoke 225/225, run 42273573467). Sans navigateur en local : faire tourner les
+- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854 ; lot C : smoke 202/202, run 41904201702 ; bloc D : smoke 207/207, run 41913594686 ; confirmation d'emplacement : smoke 208/208, run 41990372145 ; interrupteurs au mur : smoke 209/209, run 41993507221 ; plan fluide : smoke 210/210, run 42002250587 ; grosse mise à jour du 05/11 (lots 1 à 6) : smoke 218/218, run 42019579696 ; MAJ norme n° 1 à 6 du 06/11 : smoke 224/224, run 42225339450 ; parafoudre : smoke 225/225, run 42227973132 ; page Paramètres : smoke 225/225, run 42273573467 ; lots 2 et 3 (câblage du BE, options des appareils) : run 42278123819). Sans navigateur en local : faire tourner les
   tests sur GitHub Actions (workflow temporaire sur une branche `verification-…`, voir journal v72.1).
 
 # Oktéo AI — consignes pour Claude
@@ -458,6 +458,13 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   settings.js : une rubrique à la fois (`ui.setActive`), recherche dans toutes, `#pp-back`, `#pp-export` ; ouvrir une
   rubrique depuis ailleurs : `okteo:params-goto` {detail: id}. Thème : préférence `theme` + `applyTheme`.
   Tests smoke : `openParams(rub)`, `toPlan()` (jamais `#tabs button[data-tab="plan"]` depuis Paramètres).
+
+### Reprise des paramètres du BE — lots 2 et 3 (06/11/2026)
+- R-074 en PLACE occupée (gaine.js `PLACE_FIL`, `placeCable`, `placeFils`, `gaineFor(fils, S, {cable})`, ICTA 16 = 44,
+  ICTA 20 = 90) ; calibres éclairage 10 A, cuisine 16 A, radiateur 10 A ; ronde O, IV, M, N, V ; surlongueur des FILS
+  seulement (`gaineLength` sans marges, `coupeFils`) ; association du BE `src/cablage/association.js` `assocOK`
+  (gaines.js ET boites.js `spotPts`) ; âmes des câbles X. Options Propriétés `#f_et` (`a.et`), `#f_tem` (`a.temoin` :
+  neutre en plus), hauteurs rapides `[data-hq]` ; obstacles TR50 / TR100 / TR200 / RS50 / RS100 (zones d'exclusion).
 
 ### Norme NF C 15-100 (MAJ norme du 06/11/2026) — bible : document du projet claude.ai « Bible des règles Oktéo »
 - RÈGLE DE LICENCE : aucun texte de norme dans le dépôt ni dans les consignes de l'IA (exemplaires sous licence, hors

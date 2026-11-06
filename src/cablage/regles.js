@@ -96,8 +96,8 @@ const ECARTS = [
   ["R-022", "Prises de cuisine par circuit", (p) => p.prises_max, "maxPrisesCuisine"],
   ["R-022", "Section cuisine", (p) => p.section, "secCuisine"],
   ["R-072", "Ronde des retours et navettes", (p) => p.ronde, "couleursCommande"],
-  ["R-074", "ICTA 16 : somme des sections (mm²)", (p) => p.icta16_mm2, "icta16"],
-  ["R-074", "ICTA 20 : somme des sections (mm²)", (p) => p.icta20_mm2, "icta20"],
+  ["R-074", "ICTA 16 : place des fils au plus", (p) => p.icta16_place, "icta16"],
+  ["R-074", "ICTA 20 : place des fils au plus", (p) => p.icta20_place, "icta20"],
 ];
 // réglage du panneau Paramètres → Câblage → règle(s) du journal
 export const CAB_RULES = { departsMax: ["R-001"], departsFace: ["R-001", "R-088"], maxPrises: ["R-021", "R-085"], maxPrisesCuisine: ["R-022"],

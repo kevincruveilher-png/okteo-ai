@@ -1,3 +1,32 @@
+## 06/11/2026 — Lots 2 et 3 fusionnés dans `main` (go de Kévin : « enchaîne les lots »)
+
+- `npm run check` vert sur GitHub Actions (run 42278123819). Workflow temporaire retiré.
+
+## 06/11/2026 — Lots 2 et 3 de la reprise des paramètres du BE (branche `feat/maj-lot3-appareils`, contient le lot 2)
+
+Lot 2 — câblage, fils, câbles et gaines (fiches CB-01, CB-02, CO-01, CO-02, CO-04, CO-07, TA-01 passées « Appliquée ») :
+- R-074 : gaine choisie par la PLACE occupée (méthode du BE, décision n° 38) — `gaine.js` `PLACE_FIL` (1,5 → 8,6 ;
+  2,5 → 11,9 ; 6 → 22,9 ; 10 → 36,3…), `placeCable` (35 / 70 / 130 / 170), `placeFils`, `gaineFor(fils, S, {cable})` ;
+  capacités `icta16` 44, `icta20` 90 (réglables) ; `packAlim` et le découpage R-073 en place ; `g.place`. Journal des
+  règles : R-074 `active · confirmee`, Q-49 répondue, R-072 ronde du BE, H-047 (`npm run regles`).
+- Calibres du BE : `protEclairage` 10, `protCuisine` 16 (2,5 mm²), radiateur seul 10 A (appareils.js `RAD`).
+- Ronde des retours `couleursCommande` « orange, ivoire, marron, noir, violet ».
+- Surlongueur des FILS seulement : `gaineLength` sans marges ; `coupeFils(len, S)` = gaine + `margeBoite` (0,20) +
+  `margeApp` (0,20) ; `g.coupe` ; cuivre compté en longueur de coupe. Réglages v5 (`CAB_V` 5, `OLD_DEFAULTS` migrés).
+- Association au même endroit = liste du BE : `src/cablage/association.js` `assocOK` (prises entre elles, prise + LE,
+  prise + commandes, commandes entre elles), utilisée par gaines.js ET boites.js (`spotPts` : même nombre de départs).
+- Âmes des câbles X (`cableCores`) : 2X noir, marron ; 3X noir, bleu, marron ; 4X gris, noir, bleu, marron.
+- Textes « Pourquoi ? » (etude.js) et aide (catalogue Ctrl+K) en place occupée.
+
+Lot 3 — appareils (fiches AP-01, AP-06, AP-08, PI-02 « Appliquée ») :
+- Propriétés (core/panel.js) : `optHTML` = « Étanche (IP) » `#f_et` (`a.et`, types `ETANCHE`) et « Lumineux / témoin »
+  `#f_tem` (`a.temoin`, INT / VV / BP) ; hauteurs rapides `[data-hq]` 120 · 110 · 40. `allApps()` rend `et`, `temoin`.
+- gaines.js : une commande `temoin` reçoit le neutre de son circuit (gaine + alimentation).
+- Obstacles du BE : types TR50, TR100, TR200 (trémies 50 × 50, 100 × 100, 200 × 150 cm), RS50, RS100 (réservations
+  rondes Ø50 / Ø100 mm) = zones d'exclusion (volumes.js `SANI`, appareils.js, groupe « Zones d'exclusion »).
+- Tests : `scripts/lot3.test.mjs` (4) ; cablage.test, chantiers.test, smoke mis à jour (ronde, calibres, longueurs sans
+  surlongueur, R-073 à 4 va-et-vient, « à vérifier » sans R-074 désormais confirmée) ; smoke « lot 3 ».
+
 ## 06/11/2026 — Page Paramètres (lot 1) fusionnée dans `main` (go de Kévin, 19:55)
 
 - `npm run check` vert sur GitHub Actions (runs 42269529080, 42272807074, 42273573467 ; smoke 225/225, catalogue 14).
