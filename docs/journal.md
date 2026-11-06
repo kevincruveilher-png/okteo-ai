@@ -1,4 +1,4 @@
-## 06/11/2026 — Loupe des pages du dossier PDF (petite MAJ, go de Kévin)
+## 06/11/2026 — Loupe des pages du dossier PDF (petite MAJ, go de Kévin ; fusionné dans `main`, run 42301134920 vert, smoke 234/234)
 
 - Demande de Kévin : à l'import d'un PDF de plusieurs pages, les vignettes sont trop petites pour savoir à quoi
   correspond chaque page.
@@ -9,7 +9,8 @@
 - `chantiers-page.js` : bouton `.thumb-zoom` 🔍 sur chaque vignette ; double-clic suivi à la main (`lastThumb`, 450 ms :
   le 1er clic redessine les vignettes ; remis à zéro par un changement de rôle) ; `pickPage` / `changeRole` partagés par les vignettes et la loupe (même logique
   qu'avant : un seul plan par niveau).
-- Test smoke « loupe des pages ». Catalogue `help.dossier` et notice (`src/aide/notice.md`) complétés.
+- Test smoke « loupe des pages » (fenêtre toujours refermée en fin de test : un échec ne bloque pas les suivants). Workflow
+  temporaire sur la branche `verification-loupe`, jamais fusionné. Catalogue `help.dossier` et notice (`src/aide/notice.md`) complétés.
 - Notice à mettre à jour : document du projet « Oktéo — Notice et support de formation », partie « Nouveau chantier »
   (même phrase que `src/aide/notice.md`) + ligne d'historique.
 
