@@ -4,6 +4,7 @@
 // Les clés sont rangées dans le navigateur de CE PC (localStorage), jamais dans le chantier ni dans l'export.
 // Une clé placée dans le fichier .env du projet est aussi acceptée (le serveur local l'ajoute lui-même).
 
+import { normeSettings } from "../norme/circuits.js";
 import { ABREV_DEFAUT, abrevRoom, parseAbrev } from "../print/abrev.js";
 import { CAB_DEFAULTS, CAB_FIELDS, PROTS, SECTIONS, getCab, resetCab, setCab } from "../cablage/settings.js";
 import { esc, store, storeSet } from "./util.js";
@@ -156,6 +157,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
     };
     return `<div class="pset-h"><h3>Câblage</h3><button id="cab-reset" title="Remettre toutes les valeurs de base du câblage">Valeurs de base</button></div>
       <p class="mut">Règles de la pieuvre décidées avec le bureau d'études : circuits, couleurs, boîtes, gaines. Une valeur modifiée est surlignée ; l'infobulle donne la valeur de base.</p>
+      ${(() => { const N = normeSettings(v); return N.length ? `<p class="nm-warn" id="cab-norme">Au-delà de la norme (alerte simple, rien n'est bloqué) : ${N.map((x) => esc(x.msg)).join(" ; ")}.</p>` : ""; })()}
       ${CAB_FIELDS.map(([g, rows, help], i) => `<div class="pset-grp" id="ps-cab-${i}"><h4>${esc(g)}</h4>${help ? `<p class="mut sm">${esc(help)}</p>` : ""}<div class="pset-rows">${rows.map(input).join("")}</div></div>`).join("")}`;
   }
   function wireCab() {
@@ -165,6 +167,9 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
       const v = c.type === "checkbox" ? c.checked : t === "number" ? parseFloat(String(c.value).replace(",", ".")) : c.value.trim();
       if (t === "number" && !(v >= 0)) { c.value = getCab()[k]; return; }
       setCab({ [k]: v }); c.closest(".cab-row").classList.toggle("chg", v !== CAB_DEFAULTS[k]);
+      // MAJ norme n° 4 : réglage plus large que la NF C 15-100 → message sous le titre (sans rien bloquer)
+      { const N = normeSettings(getCab()), w = box.querySelector("#cab-norme"), html = N.length ? `Au-delà de la norme (alerte simple, rien n'est bloqué) : ${N.map((x) => esc(x.msg)).join(" ; ")}.` : "";
+        if (w && !html) w.remove(); else if (w) w.innerHTML = html; else if (html) box.querySelector(".pset-h").insertAdjacentHTML("afterend", `<p class="nm-warn" id="cab-norme">${html}</p>`); }
     }));
     box.querySelectorAll(".rg-link").forEach((a) => (a.onclick = (e) => { e.preventDefault(); e.stopPropagation(); regles && regles.open(a.dataset.rule); }));
     box.querySelector("#cab-reset").onclick = () => { resetCab(); box.innerHTML = cabHTML(); wireCab(); };

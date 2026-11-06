@@ -1,3 +1,17 @@
+## 06/11/2026 — MAJ norme n° 4 : plafonds par circuit (go de Kévin, 13:55)
+
+- `src/norme/circuits.js` (pur) : `NORME` (8 points, 8 prises en 1,5 mm² / 12 en 2,5 mm², 6 prises de cuisine en 2,5 mm²),
+  `prisesMax(section)`, `protMax(kind, section, t)` (tableau 10-1F : éclairage 1,5 → 16 A ; prises 1,5 → 16 / 2,5 → 20 ;
+  cuisine 2,5 → 20 ; volets 1,5 → 16 ; spécialisé 1,5 → 16 … 10 mm² → 40 A, cuisson 6 → 32), `normeCircuits(circuits,
+  items)` → [{c, code, msg}] (CIR-01, CIR-02, CIR-03 un seul circuit d'éclairage pour 4 points ou plus, CIR-04, CIR-09
+  section / disjoncteur), `normeSettings(S)`.
+- circuits.js `checkCircuits` : ajoute les dépassements de la norme quel que soit le réglage ; un dépassement déjà vu par
+  le réglage prend le message de la norme (pas de doublon) ; `issues[].code`.
+- Paramètres → Câblage : `#cab-norme` (`.nm-warn`) quand un réglage est plus large que la norme (rien n'est bloqué).
+- Pontage : déjà conforme (un même circuit, jamais un spécialisé) ; texte de CIR-12 corrigé dans `nfc15100.js` (la
+  bible disait à tort « jamais sur les prises de la cuisine » : entre prises du même circuit de cuisine, c'est admis).
+- Tests : norme.test.mjs (plafonds, 10-1F, pas de doublon, réglages) + smoke (message CIR-01 dans Paramètres).
+
 ## 06/11/2026 — MAJ norme n° 3 : volumes de salle d'eau alignés sur la NF C 15-100-10:2024 (go de Kévin, 13:55)
 
 - volumes.js : le volume 2 a la même hauteur que le volume 1, 2,25 m (`V2_H = V1_H`) ; au-dessus = hors volume (avant :

@@ -3521,6 +3521,17 @@ try {
     if (!(r.codes === "ECL-01,PC-01" && r.ref === "PC-01 · NF C 15-100-10 § 10.1.6.3.2" && /sous le minimum/.test(r.n) && q.length === 1 && /Chambre essai : 0 prise 16 A .* 3 .*PC-01/.test(q[0]) && after === "PC-01" && !back.room && !back.q)) throw new Error(JSON.stringify({ r, q, after, back }));
     return true;
   });
+  await check("norme n° 4 : réglage plus large que la norme (10 prises en 1,5 mm²) → message CIR-01 dans Paramètres, rien de bloqué ; valeurs de base rétablies", async () => {
+    await page.click('#tabs button[data-tab="params"]');
+    await page.fill('[data-cab="maxPrises"]', "10"); await page.dispatchEvent('[data-cab="maxPrises"]', "change");
+    const w = await ev(() => (document.getElementById("cab-norme") || {}).textContent || "");
+    await page.fill('[data-cab="maxPrises"]', "8"); await page.dispatchEvent('[data-cab="maxPrises"]', "change");
+    const gone = await ev(() => !document.getElementById("cab-norme"));
+    await page.click("#cab-reset");
+    await page.click('#tabs button[data-tab="plan"]');
+    if (!(/CIR-01 · 10 prises par circuit en 1,5 mm² : la norme en admet 8/.test(w) && gone)) throw new Error(JSON.stringify({ w, gone }));
+    return true;
+  });
   await check("n° 15 : dossier PDF de 3 pages (plan RDC, plan R+1, devis) → nouveau chantier avec ses 2 niveaux et leur fond ; le devis est joint à l'analyse (mode 4)", async () => {
     const { jsPDF } = await import("jspdf");
     const d = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
