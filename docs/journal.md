@@ -1,3 +1,16 @@
+## 06/11/2026 — MAJ norme n° 6 : documents à remettre et fiche d'autocontrôle (go de Kévin, 13:55)
+
+- `src/norme/documents.js` (pur) : `unifilaire(T, C, apps)` (chaque ID et ses disjoncteurs : calibre, section, fonction,
+  locaux desservis, DOC-02), `reperage` (une étiquette par circuit, DOC-01), `liensCom(apps)` (RJ45 triées niveau / pièce
+  / repère → RJ1, RJ2… = port du bandeau, DOC-03), `autocontrole(ctx)` (fiche R / NR / SO : 18 lignes vérifiées sur le plan
+  d'après le contrôle des pièces, des circuits, du tableau et des volumes ; 11 lignes à remplir sur le chantier, DOC-04),
+  `fonctionOf`, `locauxOf`.
+- `src/ext/documents-pdf.js` : `documentsData(api)`, `buildDocumentsPdf(api)` (A4 : unifilaire, étiquettes de repérage
+  en pointillés à découper, liens RJ45 + code couleur B, fiche d'autocontrôle ; version de la norme sur chaque page,
+  DOC-05). Bandes : bouton `#bd-docs` (`ui.lastDocs`) ; dossier du chantier : partie « Documents à remettre » (4 parties
+  au lieu de 3) ; page de garde : ligne « Norme » ; rapport copié pour le BE : ligne « Référence : … ».
+- Catalogue `norme.documents`. Tests : norme.test.mjs (documents) + smoke (dossier 4 parties, documents seuls).
+
 ## 06/11/2026 — MAJ norme n° 5 : tableau aligné sur la NF C 15-100:2024 (go de Kévin, 13:55)
 
 - tableau.js : `needsF(c)` (pompe à chaleur, clim, piscine, thermodynamique, Aqua Air → type F, NF C 15-100-1 553.2.6.1,

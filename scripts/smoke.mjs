@@ -2097,7 +2097,7 @@ try {
     if (!ok) throw new Error(JSON.stringify({ pages: doc.numPages, n, tr, t1: t1.slice(0, 300), tTr: tTr.slice(0, 200), t2: t2.slice(0, 300) }));
     return true;
   });
-  await check("étiquettes de boîte (v50) : 4 par A4 paysage, nom, en-tête, code, longueur totale et « à vérifier » (v52) ; dossier PDF : garde + plan + tableau + bandes détaillées", async () => {
+  await check("étiquettes de boîte (v50) : 4 par A4 paysage, nom, en-tête, code, longueur totale et « à vérifier » (v52) ; dossier PDF : garde + plan + tableau + documents à remettre (norme n° 6) + bandes détaillées", async () => {
     await goSub("bandes"); await page.waitForSelector(".bands .bd-svg svg");
     const pdfOf = async (expr) => { const b64 = await ev(async (e) => { const r = eval(e); const u = new Uint8Array(await r.blob.arrayBuffer()); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); }, expr);
       return pdfjsNode.getDocument({ data: new Uint8Array(Buffer.from(b64, "base64")), verbosity: 0 }).promise; };
@@ -2112,12 +2112,18 @@ try {
     const D = await pdfOf("okteoExt.pages.bandes.ui.lastDossier"), parts = await ev(() => okteoExt.pages.bandes.ui.lastDossier.parts);
     if (process.env.SHOT) fs.writeFileSync(process.env.SHOT + "/dossier.pdf", Buffer.from(await ev(async () => { const u = new Uint8Array(await okteoExt.pages.bandes.ui.lastDossier.blob.arrayBuffer()); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); }), "base64"));
     const d1 = await txt(D, 1), tb = parts.find((p) => /Tableau/.test(p.title)), tTb = tb ? await txt(D, tb.page) : "", bd = parts.find((p) => /Bandes/.test(p.title)), tBd = bd ? await txt(D, bd.page) : "";
+    // MAJ norme n° 6 : documents à remettre dans le dossier (unifilaire en tête) et en PDF seul ; norme sur la page de garde
+    const dc = parts.find((p) => /Documents/.test(p.title)), tDc = dc ? await txt(D, dc.page) : "";
+    await page.click("#bd-docs");
+    await page.waitForFunction(() => okteoExt.pages.bandes.ui.lastDocs, null, { timeout: 60000 });
+    const docs = await ev(() => { const r = okteoExt.pages.bandes.ui.lastDocs; return { pages: r.pages, ids: r.data.unifilaire.length, rep: r.data.reperage.length, fiche: r.data.fiche.length, doc1: (r.data.fiche.find((x) => x.code === "DOC-01") || {}).etat }; });
+    const docsOk = dc && /unifilaire/.test(tDc) && /NF C 15-100/.test(tDc) && /Norme/.test(d1) && docs.pages >= 4 && docs.ids >= 2 && docs.rep >= 2 && docs.fiche >= 25 && docs.doc1 === "R";
     // v52 : longueur totale des gaines et règles non confirmées « à vérifier » sur l'étiquette, la page et la bande détaillée
     const page52 = await ev(() => ({ len: /\d+,\d\d m de gaines/.test(document.querySelector(".bands").textContent), verif: /À vérifier — règles non confirmées : .*R-074/.test(document.querySelector(".bands .bd-verif")?.textContent || "") }));
     const ok = L.numPages === Math.ceil(n / 4) && vp.width > vp.height && /LI01/.test(t1) && /PAVILLONNEUR/.test(t1) && /-LI01/.test(t1) && !/ORDRE DE CABLAGE/.test(t1)
       && /\d+,\d\d m de gaines/.test(t1) && /A VERIFIER : .*R-074/.test(t1) && page52.len && page52.verif
-      && /Dossier de cablage/.test(d1) && /Sommaire/.test(d1) && parts.length === 3 && /Tableau electrique/.test(tTb) && /ORDRE DE CABLAGE/.test(tBd) && /Longueur totale des gaines : \d+,\d\d m/.test(tBd) && /A VERIFIER \(règles non confirmées\)/.test(tBd) && D.numPages >= 3 + 2 * n;
-    if (!ok) throw new Error(JSON.stringify({ n, pages: L.numPages, w: vp.width, h: vp.height, t1: t1.slice(0, 400), d1: d1.slice(0, 200), parts, dp: D.numPages, page52, tBd: tBd.slice(0, 300) }));
+      && /Dossier de cablage/.test(d1) && /Sommaire/.test(d1) && parts.length === 4 && docsOk && /Tableau electrique/.test(tTb) && /ORDRE DE CABLAGE/.test(tBd) && /Longueur totale des gaines : \d+,\d\d m/.test(tBd) && /A VERIFIER \(règles non confirmées\)/.test(tBd) && D.numPages >= 3 + 2 * n;
+    if (!ok) throw new Error(JSON.stringify({ n, pages: L.numPages, w: vp.width, h: vp.height, t1: t1.slice(0, 400), d1: d1.slice(0, 200), parts, dp: D.numPages, page52, tBd: tBd.slice(0, 300), docs, tDc: tDc.slice(0, 200) }));
     return true;
   });
   await check("couleurs par circuit et gaines partagées : une gaine « P… + P… » ; deux circuits 1,5 d'une boîte en rouge/bleu et gris/bleu foncé", async () => ev(async () => {

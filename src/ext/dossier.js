@@ -8,6 +8,7 @@ import { boxSheets } from "./cablage-bandes.js";
 import { modelOf, autoTableau, syncTableau, protections, rowMods, MODS, tableauIssues, hasBreaker } from "../cablage/tableau.js";
 import { logoData, LOGO_RATIO } from "./logo.js";
 import { tabCtx } from "./tableau-page.js";
+import { buildDocumentsPdf } from "./documents-pdf.js";
 
 let J = null;
 async function jspdf() { if (!J) J = (await import("jspdf")).jsPDF; return J; }
@@ -78,12 +79,14 @@ async function coverPdf(api, parts) {
   doc.setFont("helvetica", "bold"); doc.setFontSize(24); doc.text("Dossier de cablage", 105, 100, { align: "center" });
   doc.setFont("helvetica", "normal"); doc.setFontSize(14);
   const ch = api.ch;
-  [["Chantier", ch.nom], ["Pavillonneur", ch.client || "-"], ["N° d'affaire", ch.numero || "-"], ["Date", today()]].forEach(([k, v], i) => {
+  // MAJ norme n° 6 (DOC-05) : version de la norme du chantier
+  const V = api.normeVersion ? api.normeVersion() : null;
+  [["Chantier", ch.nom], ["Pavillonneur", ch.client || "-"], ["N° d'affaire", ch.numero || "-"], ["Date", today()], ...(V ? [["Norme", V.court + (V.sure ? "" : " (permis ?)")]] : [])].forEach(([k, v], i) => {
     doc.setTextColor(110); doc.setFontSize(10); doc.text(win(k), 50, 122 + i * 12); doc.setTextColor(0); doc.setFontSize(14); doc.text(win(v), 95, 122 + i * 12);
   });
-  doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.text("Sommaire", 50, 185);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.text("Sommaire", 50, 192);
   doc.setFont("helvetica", "normal"); doc.setFontSize(11);
-  parts.forEach((p, i) => doc.text(win(`${p.title}${p.page ? "  ....  page " + p.page : ""}`), 55, 194 + i * 7));
+  parts.forEach((p, i) => doc.text(win(`${p.title}${p.page ? "  ....  page " + p.page : ""}`), 55, 201 + i * 7));
   doc.setFontSize(8); doc.setTextColor(120); doc.text("Oktéo AI - KiTéOHM", 105, 285, { align: "center" });
   return doc.output("blob");
 }
@@ -96,6 +99,8 @@ export async function buildDossier(api, { indice = "A" } = {}) {
   parts.push({ title: geo.length > 1 ? `Plan (${geo.length} niveaux) et nomenclature` : "Plan et nomenclature", blob: plan.blob });
   const tb = tableauNow(api);
   if (tb) parts.push({ title: "Tableau electrique", blob: (await buildTableauPdf(tb, { chantier: api.ch, colors: api.circuitColors || [], ctx: tabCtx(api) })).blob });
+  // MAJ norme n° 6 : documents à remettre (unifilaire, repérage, communication, autocontrôle)
+  try { parts.push({ title: "Documents a remettre (unifilaire, reperage, communication, autocontrole)", blob: (await buildDocumentsPdf(api)).blob }); } catch (e) { console.warn("documents à remettre", e); }
   const sheets = boxSheets(api);
   if (sheets.length) parts.push({ title: `Bandes detaillees (${sheets.length} boite${sheets.length > 1 ? "s" : ""} : ${sheets.map((s) => s.box.n).join(", ")})`, blob: (await buildBandsPdf(sheets, { chantier: api.ch.nom, numero: api.ch.numero })).blob });
   const { PDFDocument } = await import("pdf-lib");
