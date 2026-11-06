@@ -183,7 +183,7 @@ export function createWhyBlink({ api }) {
     rcard.querySelector(".wx").onclick = () => (rcard.hidden = true);
     rcard.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { const id = b.dataset.go; api.setTab("plan"); api.select([id]); api.zoomTo([id]); rcard.hidden = true; open(id); }));
     const copy = async (t) => { ui.lastText = t; try { await navigator.clipboard.writeText(t); api.setHint("Copié dans le presse-papiers."); } catch { api.setHint("Copie impossible ici : le texte est dans okteoExt.whyBlink.lastText."); } };
-    rcard.querySelector("#rap-copy").onclick = () => copy(rapportText(R, { chantier }));
+    rcard.querySelector("#rap-copy").onclick = () => copy(rapportText(R, { chantier, norme: api.normeVersion ? api.normeVersion().label : "" }));
     rcard.querySelector("#rap-q").onclick = () => copy(R.questions.map((q, i) => `${i + 1}. ${q}`).join("\n"));
   }
   document.addEventListener("okteo:why", (e) => open(e.detail && e.detail.id));

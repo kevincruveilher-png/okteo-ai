@@ -5,6 +5,7 @@ import { REGLES_BASE } from "../src/cablage/regles-data.js";
 import { roomKind, prisesSejour, checkPieces, questionsOf } from "../src/norme/pieces.js";
 import { normeCircuits, normeSettings, protMax, prisesMax } from "../src/norme/circuits.js";
 import { checkCircuits } from "../src/cablage/circuits.js";
+import { unifilaire, reperage, liensCom, autocontrole, fonctionOf } from "../src/norme/documents.js";
 import { CAB_DEFAULTS } from "../src/cablage/settings.js";
 
 let n = 0;
@@ -104,6 +105,24 @@ test("n° 4 : réglages de Paramètres plus larges que la norme → messages (va
   assert.deepEqual(normeSettings(CAB_DEFAULTS), []);
   assert.deepEqual(normeSettings({ ...CAB_DEFAULTS, maxPrises: 10, maxPoints: 9, maxPrisesCuisine: 7, secCuisine: 1.5 }).map((x) => x.code), ["CIR-02", "CIR-01", "CIR-04", "CIR-04"]);
   assert.deepEqual(normeSettings({ ...CAB_DEFAULTS, maxPrises: 12, secPrises: 2.5 }), []);
+});
+
+test("n° 6 : schéma unifilaire, repérage (local + fonction), liens RJ45 numérotés, fiche d'autocontrôle pré-remplie", () => {
+  const apps = [{ id: "a1", t: "LUM", room: "Chambre 1" }, { id: "a2", t: "LUM", room: "Séjour" }, { id: "a3", t: "PC16", room: "Séjour" }, { id: "a4", t: "PLAQ", room: "Cuisine" },
+    { id: "r2", t: "RJ45", room: "Séjour", rep: "R2", lvName: "RDC" }, { id: "r1", t: "RJ45", room: "Chambre 1", rep: "R1", lvName: "RDC" }];
+  const C = [{ n: "C1", kind: "eclairage", apps: ["a1", "a2"], section: 1.5, prot: 16 }, { n: "C2", kind: "prises", apps: ["a3"], section: 1.5, prot: 16 }, { n: "C3", kind: "specialise", apps: ["a4"], section: 6, prot: 32, label: "Plaque de cuisson PL1 · Cuisine" }];
+  const T = { rows: [[{ k: "id", a: 40, type: "AC" }, { k: "cb", c: "C1", a: 16 }, { k: "cb", c: "C2", a: 16 }], [{ k: "id", a: 40, type: "A" }, { k: "cb", c: "C3", a: 32 }]] };
+  const U = unifilaire(T, C, apps);
+  assert.deepEqual(U.map((g) => [g.id, g.circuits.map((l) => `${l.n}:${l.locaux.join("+")}`).join(",")]), [["ID 40 A type AC 30 mA", "C1:Chambre 1+Séjour,C2:Séjour"], ["ID 40 A type A 30 mA", "C3:Cuisine"]]);
+  assert.equal(fonctionOf(C[2]), "Spécialisé — Plaque de cuisson PL1");
+  const R = reperage(T, C, apps);
+  assert.deepEqual(R[0], { n: "C1", titre: "C1 · 16 A · 1,5 mm²", fonction: "Éclairage", locaux: "Chambre 1, Séjour" });
+  assert.deepEqual(liensCom(apps).map((l) => `${l.port}=${l.rep}@${l.room}`), ["RJ1=R1@Chambre 1", "RJ2=R2@Séjour"]);
+  const F = autocontrole({ pieces: [{ code: "PC-01" }], circuits: [], tableau: ["R-134 (CIR-05) : 1 circuit spécialisé"], sdb: [], hasTableau: true });
+  const st = Object.fromEntries(F.map((r) => [r.code + (r.groupe[0] === "V" ? "" : "*"), r.etat]));
+  assert.equal(st["PC-01"], "NR"); assert.equal(st["CIR-05"], "NR"); assert.equal(st["TAB-03"], "R"); assert.equal(st["DOC-02"], "R"); assert.equal(st["SDE-16*"], "");
+  assert.ok(F.every((r) => r.ref && r.libelle));
+  assert.equal(autocontrole({ hasTableau: false }).find((r) => r.code === "TAB-03").etat, "SO");
 });
 
 console.log(`norme : ${n} groupes de vérifications réussis.`);

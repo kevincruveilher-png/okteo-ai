@@ -100,7 +100,7 @@ export function mountBandsPage(el, { api }) {
       <h2>Bandes — schémas de boîte</h2>
       <div class="bd-pick">${sheets.map((s) => `<button data-b="${s.box.id}" class="${s.box.id === cur ? "on" : ""}" title="${s.box.gaines.length} gaines · ${s.steps.length} raccordements">${esc(s.box.n)}</button>`).join("")}
         <span class="grow"></span><button id="bd-lab-one" class="on" title="Étiquette à coller sur la boîte (148,5 × 105 mm, un quart de A4) : schéma en grand, en-tête, logo, QR code et code barre">🏷 Étiquette ${esc(box.n)}</button><button id="bd-lab-all" title="Les étiquettes de toutes les boîtes, 4 par feuille A4 (traits de coupe)">🏷 Toutes les étiquettes (4 par A4)</button>
-        <button id="bd-one" title="Bande détaillée de cette boîte (PDF) : schéma, ordre de câblage, matériel, raccordements">📄 Bande détaillée ${esc(box.n)}</button><button id="bd-all" title="Bandes détaillées de toutes les boîtes (PDF)">📄 Toutes les bandes détaillées</button><button id="bd-dossier" title="Dossier PDF du chantier : page de garde, plan, tableau, bandes détaillées de toutes les boîtes">📁 Dossier du chantier</button><span id="bd-st" class="mut sm"></span></div>
+        <button id="bd-one" title="Bande détaillée de cette boîte (PDF) : schéma, ordre de câblage, matériel, raccordements">📄 Bande détaillée ${esc(box.n)}</button><button id="bd-all" title="Bandes détaillées de toutes les boîtes (PDF)">📄 Toutes les bandes détaillées</button><button id="bd-dossier" title="Dossier PDF du chantier : page de garde, plan, tableau, documents à remettre, bandes détaillées de toutes les boîtes">📁 Dossier du chantier</button><button id="bd-docs" title="Documents à remettre (NF C 15-100) : schéma unifilaire, étiquettes de repérage, liens RJ45, fiche d'autocontrôle pré-remplie (PDF)">📄 Documents à remettre</button><span id="bd-st" class="mut sm"></span></div>
       <p class="mut sm">${esc(S.level)}${sides.under ? ` · au-dessus de : ${esc(sides.under)}` : ""} · ${box.gaines.length} gaines · <b title="Somme des longueurs de toutes les gaines de la boîte">${fr(S.longueur, 2)} m de gaines</b> · ${steps.length} raccordements · ${fr(box.cuivre)} m de fil${S.bouchons ? ` · <b class="warn" title="R-095 : bouchon obligatoire dans la boîte sur les gaines qui amènent l'air extérieur">${S.bouchons} bouchon${S.bouchons > 1 ? "s" : ""}</b>` : ""}</p>
       ${S.verifier.length ? `<p class="sm bd-verif" title="Le logiciel applique ces règles du journal, mais Kévin ne les a pas encore confirmées : le résultat est à vérifier">À vérifier — règles non confirmées : ${S.verifier.map((r) => `<b>${esc(r.id)}</b> ${esc(r.titre)}`).join(" · ")}</p>` : ""}
       <div class="bd-grid">
@@ -173,7 +173,12 @@ export function mountBandsPage(el, { api }) {
     el.querySelector("#bd-lab-one").onclick = () => labels([S]);
     el.querySelector("#bd-lab-all").onclick = () => labels(sheets);
     el.querySelector("#bd-dossier").onclick = () => dossier();
+    el.querySelector("#bd-docs").onclick = async () => {
+      const st = el.querySelector("#bd-st"); if (st) st.textContent = "Documents en préparation…";
+      try { const { buildDocumentsPdf } = await import("./documents-pdf.js"); const { downloadBlob } = await import("./dossier.js"); const r = await buildDocumentsPdf(api); el.__docs = r; downloadBlob(r.blob, `Documents ${api.ch.nom}.pdf`); if (st) st.textContent = `Documents à remettre : ${r.pages} page(s).`; }
+      catch (e) { if (st) st.textContent = "Documents : erreur (" + (e.message || e) + ")"; }
+    };
   }
   render();
-  return { render, get last() { return el.__last; }, get lastLabels() { return el.__labels; }, get lastDossier() { return el.__dossier; }, labels: (all) => labels(all ? boxSheets(api) : boxSheets(api).filter((s) => s.box.id === cur)), dossier, print: (all) => print(all ? boxSheets(api) : boxSheets(api).filter((s) => s.box.id === cur)), select: (id) => { cur = id; render(); } };
+  return { render, get last() { return el.__last; }, get lastLabels() { return el.__labels; }, get lastDossier() { return el.__dossier; }, get lastDocs() { return el.__docs; }, labels: (all) => labels(all ? boxSheets(api) : boxSheets(api).filter((s) => s.box.id === cur)), dossier, print: (all) => print(all ? boxSheets(api) : boxSheets(api).filter((s) => s.box.id === cur)), select: (id) => { cur = id; render(); } };
 }

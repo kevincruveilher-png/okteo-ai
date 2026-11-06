@@ -118,8 +118,9 @@ export function buildRapport(issues, byId, types = {}, decisions = {}, questions
   const Q = [...questions.map((q) => q.text), ...points.filter((p) => p.question && p.decision && p.decision.choix === "pavillonneur").map((p) => p.question)];
   return { points, parFamille, questions: [...new Set(Q)], validations, decided: points.filter((p) => p.decision).length, total: points.length };
 }
-export function rapportText(R, { chantier = "" } = {}) {
+export function rapportText(R, { chantier = "", norme = "" } = {}) {
   const L = [`Rapport d'analyse${chantier ? " — " + chantier : ""} : ${R.total} point(s), ${R.decided} décidé(s)`];
+  if (norme) L.push(`Référence : ${norme}`);   // MAJ norme n° 6 (DOC-05)
   for (const g of R.parFamille) {
     L.push("", `${g.label} (${g.points.length})`);
     for (const p of g.points) L.push(`- ${p.rep} : ${p.pourquoi}${p.decision ? ` → ${p.decision.label}${p.decision.by ? " (" + p.decision.by + (p.decision.at ? ", " + p.decision.at.slice(0, 10) : "") + ")" : ""}` : " → à décider"}`);
