@@ -37,7 +37,7 @@ import { assocOK } from "./association.js";
 import { FACES, portLayout } from "./boites.js";
 import { permanentDetector, manuallyControlledLights } from "./detecteur.js";
 import { APPAREILS, lignesOf, parseFils, gaineLabel, raccOf, isFaible, sansCvr, isEq } from "./appareils.js";
-import { zonesByLevel, detour, detourVia } from "./exclusion.js";
+import { zonesByLevel, detour, detourVia, housesByLevel } from "./exclusion.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
 export { assocOK };
@@ -122,12 +122,15 @@ export const coupeFils = (len, S) => +((len || 0) + (S.margeBoite ?? 0.2) + (S.m
 // descente du plafond (combles) jusqu'à l'appareil ; un appareil au plafond (hauteur vide) : seulement la traversée
 const down = (h, S) => S.traversee + (h == null ? 0 : Math.max(0, S.hsp - h / 100));
 
-export function computeWiring({ items: items0, links, circuits, boxes, levels = [], S }) {
+export function computeWiring({ items: items0, links, circuits, boxes, levels = [], S, houses = null }) {
   const items = sansCvr(items0, S);
   const byId = new Map(items.map((a) => [a.id, a]));
   // n° 10 : zones d'exclusion par niveau ; chaque gaine (et ligne directe) les contourne : g.via = points du contournement
   const ZL = zonesByLevel(items0), zonesOf = (lv) => ZL[lv] || [];
-  const pathOf = (A, route, B, lv) => { const Z = zonesOf(lv); if (!Z.length) return { pts: route || [], auto: false }; const pts = route ? detourVia(A, route, B, Z) : detour(A, B, Z); return { pts, auto: pts.length > (route || []).length }; };
+  // 07/11/2026 : et ne sortent jamais de la maison (houses = { niveau: [contours des pièces] }) : maison en L, la gaine
+  // d'une aile à l'autre passe par l'angle rentrant au lieu de couper par le jardin
+  const HL = housesByLevel(houses);
+  const pathOf = (A, route, B, lv) => { const Z = zonesOf(lv), H = HL[lv] || null; if (!Z.length && !H) return { pts: route || [], auto: false }; const pts = route ? detourVia(A, route, B, Z, undefined, H) : detour(A, B, Z, undefined, H); return { pts, auto: pts.length > (route || []).length }; };
   const manualLights = manuallyControlledLights(items, links);
   const circOf = new Map(); circuits.forEach((c) => c.apps.forEach((id) => circOf.set(id, c)));
   const lvIdx = (lv) => Math.max(0, levels.indexOf(lv));

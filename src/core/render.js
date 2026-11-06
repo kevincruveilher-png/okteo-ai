@@ -22,7 +22,7 @@ import { chooseBows, BOW0, curve, polyCross } from "../cablage/trace.js";
 import { implantationPending } from "../cablage/equipements.js";
 import { APPAREILS, raccOf } from "../cablage/appareils.js";
 import { isSani, isMeuble, roomFor, saniShape, volumesOf } from "../cablage/volumes.js";
-import { isZone, zonePoly, detour, detourVia } from "../cablage/exclusion.js";
+import { isZone, zonePoly, detour, detourVia, makeHouse } from "../cablage/exclusion.js";
 import { familyOf } from "../cablage/rapport.js";
 import { boxColor, ftzSymbol, symIndex } from "../print/ftz-symbols.js";
 import { symbolSVG } from "../print/ftz-draw.js";
@@ -418,6 +418,8 @@ export function draw() {
     let wp = "";
     const BX = K.CAB.boxes.filter(b => b.lv === K.LV.cur);
     const ZC = state.app.filter(a => isZone(a.t)).map(zonePoly).filter(P => P && P.length > 2);
+    // 07/11/2026 : enveloppe de la maison (pièces du niveau) : une gaine qui en sortirait la contourne par l'intérieur
+    const HS = makeHouse(state.rooms.map(roomPoly));
     // v59 : courbure de chaque gaine choisie pour qu'aucune ne croise une autre (tous les boîtes du niveau)
     K.gaineBows = levelBows(BX, pm, byId, tab);
     BX.forEach(b => {
@@ -429,7 +431,7 @@ export function draw() {
       const gpath = (key, P, t) => {
         const pts = R[key];
         // n° 10 : contournement des zones d'exclusion (points de passage compris)
-        if (ZC.length) { const v = pts && pts.length ? detourVia(P, pts, t, ZC) : detour(P, t, ZC); if (v.length) return "M" + [P, ...v, t].map(p => p.x + " " + p.y).join(" L "); }
+        if (ZC.length || HS) { const v = pts && pts.length ? detourVia(P, pts, t, ZC, undefined, HS) : detour(P, t, ZC, undefined, HS); if (v.length) return "M" + [P, ...v, t].map(p => p.x + " " + p.y).join(" L "); }
         if (pts && pts.length) return "M" + [P, ...pts, t].map(p => p.x + " " + p.y).join(" L ");
         const q = gaineCtrl(P, t, bowOf(b.id, key));
         return `M${P.x} ${P.y} Q ${q.x} ${q.y} ${t.x} ${t.y}`;
@@ -447,7 +449,7 @@ export function draw() {
           });
           // n° 6 : pontage : d'un appareil au suivant, trait mixte de la même couleur
           d.ponts.forEach(p => p.to.forEach(t => {
-            const c = cm[t.id], q = gaineCtrl(p.from, t, 0.12), v = ZC.length ? detour(p.from, t, ZC) : [];
+            const c = cm[t.id], q = gaineCtrl(p.from, t, 0.12), v = ZC.length || HS ? detour(p.from, t, ZC, undefined, HS) : [];
             bl += `<path class="pont" data-b="${b.id}" data-k="${t.id}" d="${v.length ? "M" + [p.from, ...v, t].map(z => z.x + " " + z.y).join(" L ") : `M${p.from.x} ${p.from.y} Q ${q.x} ${q.y} ${t.x} ${t.y}`}" fill="none" stroke="${pref("charteBE") !== false ? boxColor(b.n) : c ? c.color : "var(--mut)"}" stroke-width="${(on ? 2 : 1.1) * pm}" stroke-dasharray="${7 * pm} ${2.5 * pm} ${1.5 * pm} ${2.5 * pm}" opacity="${on ? 0.9 : 0.6}"><title>Pontage</title></path>`;
           }));
         });
