@@ -436,6 +436,33 @@ try {
     if (!(r0.join() === "ignorer,ignorer,niv:RDC" && r1.v.join() === "devis,niv:RDC,ignorer" && r1.on === "2" && r2.v.join() === "devis,ignorer,niv:RDC" && r2.on === "3")) throw new Error(JSON.stringify({ r0, r1, r2 }));
     return true;
   });
+  await check("loupe des pages : page en grand (haute définition), ← →, zoom, rôle, page déjà prise, double-clic, Échap", async () => {
+    await page.click('.thumb-zoom[data-page="1"]');
+    await page.waitForFunction(() => { const i = document.querySelector("#pg-loupe .pgl-img"); return i && !i.hidden && i.naturalWidth > 2000; }, null, { timeout: 30000 });
+    const n1 = await page.textContent("#pg-loupe .pgl-n");
+    await page.keyboard.press("ArrowRight");
+    await page.waitForFunction(() => document.querySelector("#pg-loupe .pgl-img")?.alt === "Page 2" && !document.querySelector("#pg-loupe .pgl-img").hidden, null, { timeout: 30000 });
+    const t0 = await ev(() => document.querySelector("#pg-loupe .pgl-img").style.transform);
+    const b = await page.locator("#pg-loupe .pgl-stage").boundingBox();
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.wheel(0, -300);
+    const t1 = await ev(() => document.querySelector("#pg-loupe .pgl-img").style.transform);
+    await page.selectOption("#pg-loupe .pgl-role", "devis");
+    const r2 = await ev(() => document.querySelector('.pg-role[data-page="2"]').value);
+    await page.selectOption("#pg-loupe .pgl-role", "ignorer");
+    await page.keyboard.press("ArrowRight");
+    await page.waitForFunction(() => document.querySelector("#pg-loupe .pgl-n").textContent.startsWith("Page 3"));
+    const picked = await page.isDisabled("#pg-loupe .pgl-pick");
+    await page.keyboard.press("Escape");
+    const closed = !(await page.isVisible("#pg-loupe"));
+    await page.click('.thumb[data-page="3"]'); await page.click('.thumb[data-page="3"]');
+    await page.waitForSelector("#pg-loupe", { timeout: 5000 });
+    const n3 = await page.textContent("#pg-loupe .pgl-n");
+    await page.click("#pg-loupe .pgl-x");
+    const end = await ev(() => ({ v: [...document.querySelectorAll(".pg-role")].map((s) => s.value).join(), on: document.querySelector(".thumb.on")?.dataset.page, open: !!document.querySelector("#pg-loupe") }));
+    const ok = n1 === "Page 1 / 3" && t0 !== t1 && r2 === "devis" && picked && closed && n3 === "Page 3 / 3" && end.v === "devis,ignorer,niv:RDC" && end.on === "3" && !end.open;
+    if (!ok) throw new Error(JSON.stringify({ n1, t0, t1, r2, picked, closed, n3, end }));
+    return true;
+  });
   await check("création : chantier ouvert, fond haute définition chargé, échelle à régler", async () => {
     await Promise.all([page.waitForNavigation({ timeout: 60000 }), page.click("#nf-ok")]);
     await reopened();

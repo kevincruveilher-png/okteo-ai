@@ -1,3 +1,18 @@
+## 06/11/2026 — Loupe des pages du dossier PDF (petite MAJ, go de Kévin)
+
+- Demande de Kévin : à l'import d'un PDF de plusieurs pages, les vignettes sont trop petites pour savoir à quoi
+  correspond chaque page.
+- `src/ext/page-loupe.js` (`openLoupe(o)`) : fenêtre `#pg-loupe` (`.pgl`), page rendue à la demande en haute définition
+  (`renderPdfPage(doc, p, 2600)`, une image par page gardée tant que la fenêtre est ouverte), zoom molette autour du pointeur
+  et boutons − / Ajuster / +, glisser = déplacer, double-clic = page entière, ← → = page précédente / suivante, rôle
+  `.pgl-role`, bouton `.pgl-pick` « Prendre cette page comme plan » (désactivé si déjà prise), Échap / ✕ / clic sur le fond.
+- `chantiers-page.js` : bouton `.thumb-zoom` 🔍 sur chaque vignette ; double-clic suivi à la main (`lastThumb`, 450 ms :
+  le 1er clic redessine les vignettes) ; `pickPage` / `changeRole` partagés par les vignettes et la loupe (même logique
+  qu'avant : un seul plan par niveau).
+- Test smoke « loupe des pages ». Catalogue `help.dossier` et notice (`src/aide/notice.md`) complétés.
+- Notice à mettre à jour : document du projet « Oktéo — Notice et support de formation », partie « Nouveau chantier »
+  (même phrase que `src/aide/notice.md`) + ligne d'historique.
+
 ## 06/11/2026 — Notice : formation sur MAILLARD
 
 - Choix de Kévin (commentaire sur la notice) : le parcours de formation se fait sur une copie de MAILLARD
