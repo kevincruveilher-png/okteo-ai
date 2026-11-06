@@ -137,7 +137,7 @@ export function buildCatalog(api, hooks) {
   add("Sélection et édition", "edit.mx", "Symétrie gauche-droite", "X", "Avec une sélection de plusieurs objets ou une pièce.", () => api.transform("mx"));
   add("Sélection et édition", "edit.my", "Symétrie haut-bas", "Y", "Avec une sélection de plusieurs objets ou une pièce.", () => api.transform("my"));
   add("Sélection et édition", "edit.undo", "Annuler", "Ctrl+Z", "Annule la dernière modification (80 niveaux).", () => api.undo());
-  add("Sélection et édition", "edit.redo", "Rétablir", "Ctrl+Y", "Refait ce qui vient d'être annulé.", () => api.redo());
+  add("Sélection et édition", "edit.redo", "Rétablir", "Ctrl+Maj+Z", "Refait ce qui vient d'être annulé (Ctrl+Y = copier, comme dans FTZ ; voir Paramètres → Raccourcis).", () => api.redo());
   add("Sélection et édition", "help.resize", "Redimensionner une pièce", "", "Sélectionner la pièce et tirer ses poignées : les murs suivent.");
   add("Sélection et édition", "help.mur", "Changer la longueur d'un mur", "", "Sélectionner le mur : champ « L » (m) dans son menu flottant.");
   add("Sélection et édition", "help.gond", "Gond et sens d'une porte", "G / S", "Porte sélectionnée : G change le côté du gond, S le sens d'ouverture.");

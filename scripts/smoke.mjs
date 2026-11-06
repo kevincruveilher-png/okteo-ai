@@ -526,7 +526,7 @@ try {
     if (s.n !== nbMurs || s.o < 12 || s.eps < 2 || s.j < 14) throw new Error(JSON.stringify(s));
     await page.keyboard.press("Control+z");
     const undone = await ev(() => okteo.state.segs.length + okteo.state.openings.length);
-    await page.keyboard.press("Control+y");
+    await page.keyboard.press("Control+Shift+z");
     return undone === 0 && (await ev(() => okteo.state.segs.length)) === nbMurs && !(await page.isVisible(".wcard"));
   });
   console.log("Détection des pièces");
@@ -633,7 +633,7 @@ try {
     if (s.n !== n || s.att < s.wall * 0.9 || s.lia < 20 || s.lum !== 10 || s.app !== 5) throw new Error(JSON.stringify(s));
     await page.keyboard.press("Control+z");
     const undone = await ev(() => okteo.state.app.length + okteo.state.lia.length);
-    await page.keyboard.press("Control+y");
+    await page.keyboard.press("Control+Shift+z");
     return undone === 0 && (await ev(() => okteo.state.app.length)) === n && !(await page.isVisible(".wcard"));
   });
   await check("hauteurs lues sur le plan (police codée) : prises à 110, 120, 65 cm ; affichées dans la carte", async () => {
@@ -2899,7 +2899,7 @@ try {
     await toPlan();
     await page.keyboard.press("Control+z");
     const undone = await ev(() => ({ etude: !!okteo.cab.etude, boxes: JSON.stringify(okteo.cab.boxes.map((b) => b.id + ":" + b.apps.length)) }));
-    await page.keyboard.press("Control+y");
+    await page.keyboard.press("Control+Shift+z");
     const redo = await ev(() => !!okteo.cab.etude);
     if (!(/^Câblé : \d+ boîtes/.test(r.msg) && r.etude === 9 && r.stats >= 1 && r.last && !undone.etude && undone.boxes === before && redo)) throw new Error(JSON.stringify({ r, undone, before, redo }));
     return true;
