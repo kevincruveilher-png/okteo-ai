@@ -773,6 +773,8 @@ window.okteo = {
   // MAJ mémoire « tous » (06/11/2026) : pavillonneur du chantier (fiche), demandé avant d'enregistrer un symbole
   // MAJ norme n° 1 : version de la NF C 15-100 du chantier, d'après la date de dépôt du permis (fiche du chantier)
   normeVersion() {
+    const m = CHS.get(CH.id);   // la fiche du chantier peut avoir été modifiée par la page Chantiers (autre copie)
+    if (m && m.permis !== CH.permis) CH.permis = m.permis;
     return versionFor(CH);
   },
   setClient(name) {
