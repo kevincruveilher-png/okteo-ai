@@ -14,7 +14,7 @@ import { pointInPoly } from "../src/walls/rooms.js";
 import { PACK_DEFAULTS, packFor, missing, placePack, prisesNorme } from "../src/cablage/packs.js";
 import { computeWiring, gaineLength, cableColors } from "../src/cablage/gaines.js";
 import { connectorsFor, boxSteps, boxMaterial, boxChecks, parseSizes, schemaSVG, tranchesSVG, trancheOrder, overlaps } from "../src/cablage/schema.js";
-import { autoTableau, syncTableau, tableauIssues, protections, moveItem, suggestModel, addBreaker, addModular, MODELS, idCalibre, nbIdCommuns } from "../src/cablage/tableau.js";
+import { autoTableau, syncTableau, tableauIssues, protections, moveItem, suggestModel, addBreaker, addModular, MODELS, idCalibre, nbIdCommuns, needsF, isIrve, isExt } from "../src/cablage/tableau.js";
 import { packSheet, unpackSheet, encodeSheet, decodeSheet, sheetUrl } from "../src/cablage/bande-code.js";
 
 let ok = 0; const fails = [];
@@ -414,6 +414,20 @@ console.log("Tableau électrique (v46)");
   const ix = tableauIssues(all1, Cx, { tabRoom: "Salle de bain", rj45: 2 });
   check("alertes du tableau : R-119 (1 seul ID), R-123 (éclairage sous un seul ID), R-129 (éclairage en 20 A), R-130 (prises 1,5 en 20 A), R-134 (< 3 spécialisés), R-105 (tableau en salle de bain), R-116 (< 4 RJ45)",
     ["R-119", "R-123", "R-129", "R-130", "R-134", "R-105", "R-116"].every((r) => ix.some((x) => x.startsWith(r))), JSON.stringify(ix));
+}
+{
+  // MAJ norme n° 5 (NF C 15-100:2024) : type F (variateur), un différentiel par point de recharge, extérieurs à part, 4 spécialisés
+  const C = [{ n: "C1", kind: "eclairage", prot: 16 }, { n: "C2", kind: "eclairage", prot: 16 }, { n: "C3", kind: "prises", prot: 16 }, { n: "C4", kind: "prises", prot: 16 },
+    { n: "C5", kind: "specialise", prot: 32, label: "Plaque de cuisson" }, { n: "C6", kind: "specialise", prot: 20, label: "Lave-linge" }, { n: "C7", kind: "specialise", prot: 20, label: "Lave-vaisselle" }, { n: "C8", kind: "specialise", prot: 20, label: "Four" },
+    { n: "C9", kind: "specialise", prot: 20, label: "Pompe à chaleur" }, { n: "C10", kind: "specialise", prot: 40, label: "Borne de recharge" }, { n: "C11", kind: "specialise", prot: 20, label: "Prise extérieure P2" }];
+  const T = autoTableau(C), P = protections(T.rows), idOf = (n) => P.get(T.rows.flat().find((x) => x.c === n).id);
+  check("MAJ norme n° 5 : PAC sous un type F, borne seule sous son différentiel, prise extérieure sous un différentiel sans circuit intérieur ; aucune alerte",
+    needsF(C[8]) && isIrve(C[9]) && isExt(C[10]) && idOf("C9").type === "F" && T.rows.flat().filter((x) => x.k === "cb" && P.get(x.id) === idOf("C10")).length === 1
+      && T.rows.flat().filter((x) => x.k === "cb" && P.get(x.id) === idOf("C11")).every((x) => x.c === "C11") && tableauIssues(T, C).length === 0, JSON.stringify(tableauIssues(T, C)));
+  const bad = { model: "r9-13x4", rows: [[{ k: "id", id: "i1", a: 40, type: "A", w: 2 }, ...["C5", "C9", "C10", "C11", "C3"].map((c) => ({ k: "cb", id: "d" + c, c, a: 16, w: 1 }))], [{ k: "id", id: "i2", a: 40, type: "AC", w: 2 }, ...["C1", "C2", "C4"].map((c) => ({ k: "cb", id: "d" + c, c, a: 16, w: 1 }))]] };
+  const I = tableauIssues(bad, C.filter((c) => !["C6", "C7", "C8"].includes(c.n)));
+  check("MAJ norme n° 5 : alertes TAB-04 (PAC sans type F), IRVE-01 (borne qui partage son différentiel), CIR-10 (extérieur avec l'intérieur), CIR-05 (moins de 4 spécialisés)",
+    ["TAB-04", "IRVE-01", "CIR-10", "R-134 (CIR-05)"].every((k) => I.some((x) => x.startsWith(k))), JSON.stringify(I));
 }
 {
   // v57 (R-100) : équipements hors plan : cochés d'après les chantiers déjà faits, posés dans la bonne pièce

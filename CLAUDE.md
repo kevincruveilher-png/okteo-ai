@@ -466,6 +466,8 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   volumes 0 à 2.
 - n° 4 : `src/norme/circuits.js` (`NORME`, `prisesMax`, `protMax` (tableau 10-1F), `normeCircuits`, `normeSettings`) ;
   `checkCircuits` y ajoute les dépassements de la norme (`issues[].code`) ; Paramètres → Câblage `#cab-norme`.
+- n° 5 : tableau.js `needsF` (type F : PAC, clim, piscine), `isIrve` (un ID par borne), `isExt` (extérieurs à part) ;
+  `autoTableau` loge ces petits groupes dans la place libre des rangées ; R-134 = 4 spécialisés ; messages « R-1xx (CODE) ».
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (42 vérifications : relevé des murs, des pièces et des
