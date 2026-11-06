@@ -3080,7 +3080,7 @@ try {
       okteo.setTab("plan"); okteoExt.panel.close("assistant"); okteo.showCircuits = true; okteo.toggleView("gaines", true); okteo.toggleView("appareils", true);
       const m = await import("/src/ext/cablage-data.js"), W0 = m.wiringNow(okteo), lv = okteo.level.id, by = new Map(okteo.state.app.map((a) => [a.id, a]));
       let pick = null;
-      for (const b of W0.boxes) { const B = okteo.cab.boxes.find((x) => x.id === b.id); if (!B || B.lv !== lv) continue; for (const g of b.gaines) { const a = g.kind === "app" && by.get(g.appIds[0]); if (a && !g.routed && !g.ponts && Math.hypot(a.x - B.x, a.y - B.y) > 3) { pick = { B, a, g }; break; } } if (pick) break; }
+      for (const b of W0.boxes) { const B = okteo.cab.boxes.find((x) => x.id === b.id); if (!B || B.lv !== lv) continue; for (const g of b.gaines) { const a = g.kind === "app" && by.get(g.appIds[0]); if (a && !g.routed && !g.ponts && !g.via && Math.hypot(a.x - B.x, a.y - B.y) > 3) { pick = { B, a, g }; break; } } if (pick) break; }
       if (!pick) return { none: true };
       const mx = (pick.B.x + pick.a.x) / 2, my = (pick.B.y + pick.a.y) / 2, n0 = okteo.state.app.length;
       const res = okteo.importDevices([{ t: "ZONE", x: mx, y: my }], [], { stay: true });
@@ -3097,6 +3097,32 @@ try {
     const back = await ev((id) => !okteo.state.app.some((a) => a.id === id), r.zid);
     await ev((V) => { Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; }, keepV);
     if (!(r.added === 1 && r.hatch && r.via >= 1 && r.longer && r.poly && back)) throw new Error(JSON.stringify(r));
+    return true;
+  });
+
+  await check("07/11 : aucune gaine ne sort de la maison (contour des pièces) : calcul, plan affiché et impression", async () => {
+    const r = await ev(async () => {
+      okteo.setTab("plan"); okteo.showCircuits = true; okteo.toggleView("gaines", true); window.__okteo.draw();
+      const X = await import("/src/cablage/exclusion.js"), m = await import("/src/ext/cablage-data.js");
+      const W = m.wiringNow(okteo), H = X.housesByLevel(m.housesOf(okteo)), apps = new Map(okteo.allApps().map((a) => [a.id, a]));
+      const out = [];
+      let n = 0, det = 0;
+      for (const b of W.boxes) {
+        const B = okteo.cab.boxes.find((x) => x.id === b.id); if (!B || !H[B.lv]) continue;
+        for (const g of b.gaines) {
+          if (g.kind !== "app" || g.routed) continue;
+          const a = apps.get(g.appIds[0]); if (!a || a.lv !== B.lv) continue;
+          n++; if (g.via) det++;
+          if (X.leavesHouse(B, g.via || [], a, H[B.lv])) out.push(g.no);
+        }
+      }
+      // plan imprimé du niveau ouvert : mêmes tracés
+      const geo = okteo.exportGeometry(), Hc = H[okteo.level.id];
+      const outGeo = Hc ? geo.boxes.flatMap((b) => b.deps.flatMap((d) => d.tab ? [] : d.ends.filter((e) => X.leavesHouse(b, e.route || [], e, Hc)).map((e) => e.key))) : [];
+      return { n, det, out, outGeo, houses: Object.keys(H).length };
+    });
+    if (!r.houses || !r.n) return true;   // chantier sans pièces ou sans boîtes : rien à vérifier
+    if (r.out.length || r.outGeo.length) throw new Error(JSON.stringify(r));
     return true;
   });
 

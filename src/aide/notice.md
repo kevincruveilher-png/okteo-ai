@@ -157,6 +157,8 @@ Le plus court : onglet **Étude** → **« Câbler le chantier »**. Oktéo fait
 | supprimer une boîte | la sélectionner, Suppr : ses appareils vont à la boîte la plus proche |
 | revoir les circuits | panneau Câblage → Circuits |
 
+Une gaine ne sort jamais de la maison : dans une maison en L, la gaine d'une aile à l'autre passe par l'angle intérieur au lieu de couper par le jardin, et sa longueur en tient compte. Oktéo se repère sur les pièces du plan : une partie de la maison sans pièce dessinée est vue comme l'extérieur. Il contourne aussi les zones d'exclusion.
+
 Les choix propres au chantier (pontage, commande des volets, raccordement de la hotte) se règlent dans le panneau Câblage. Les règles générales (couleurs, sections, nombre de départs, place dans les gaines) sont dans Paramètres.
 
 ### Le tableau
@@ -257,6 +259,7 @@ Six modules, du plus simple au plus complet. Chaque module se fait sur MAILLARD,
 
 | Date | Mise à jour du logiciel | Ce qui a changé dans la notice |
 | --- | --- | --- |
+| 07/11/2026 | gaines dans la maison | Étape 6 : une gaine ne sort jamais de la maison (contournement par l'intérieur, d'après les pièces) |
 | 06/11/2026 | loupe des pages du PDF | Nouveau chantier : loupe 🔍 / double-clic pour voir une page du dossier en grand |
 | 06/11/2026 | — | parcours de formation sur une copie de MAILLARD (choix de Kévin) |
 | 06/11/2026 | bouton « ? Aide » | notice lisible dans le logiciel (bouton « ? Aide », recherche) ; noms exacts du menu Relevé et du bouton « ✓ Contrôle » |

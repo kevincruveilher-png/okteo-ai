@@ -1,3 +1,25 @@
+## 07/11/2026 — Gaines toujours dans la maison (petite MAJ, ordre de Kévin)
+
+- Constat de Kévin : maison en L, une pieuvre d'un côté du L trace une gaine droite qui sort de la maison et rentre de
+  l'autre côté. Cause : le tracé (ligne droite / arc) ne connaissait que les zones d'exclusion, pas le contour de la maison.
+- `src/cablage/exclusion.js` : enveloppe de la maison d'un niveau = contours des pièces (`makeHouse(polys)`, mise en
+  cache par signature ; un point est dedans s'il est dans une pièce ou à moins de `HOUSE_TOL` 0,22 m d'une pièce : les
+  murs intérieurs se traversent par les combles) ; `inHouse`, `outDist`, `segInHouse` (contrôle tous les 10 cm),
+  `leavesHouse`, `housesByLevel`. Points de passage = angles des pièces proches de l'extérieur, rentrés de 12 cm.
+  `detour(A, B, zones, m, house)` / `detourVia(…, house)` : plus court chemin qui évite les zones ET reste dans la maison
+  (même graphe de visibilité, résultats mis en cache). Appareil dehors (façade, jardin) : seule sa partie hors de la
+  maison est permise en ligne droite. Sans pièce sur le niveau : rien ne change.
+- Branché partout où passe une gaine : moteur `computeWiring({…, houses})` (longueurs, `g.via`, lignes directes,
+  pontages), `wiringNow` / `compareModes` (`housesOf(api)`, cablage-data.js), flèches du plan (`plan-wiring.js`
+  `housePolys()`), dessin du plan (render.js `HS`), impression (levels.js), 3D (suit `g.via`).
+- Limite : l'enveloppe vient des PIÈCES ; une partie de maison sans pièce (non relevée) est vue comme l'extérieur.
+  Les arcs dessinés sans contournement peuvent encore bomber de quelques centimètres hors d'un angle (tracé seulement).
+- Tests : `scripts/zones.test.mjs` (+4 : maison en L, façade / jardin, L + zone + points manuels, longueur de la gaine) ;
+  smoke « aucune gaine ne sort de la maison » (calcul + plan imprimé sur le chantier d'essai) ; le test smoke n° 10
+  choisit une gaine sans contournement.
+- Notice à mettre à jour : document du projet « Oktéo — Notice et support de formation », Étape 6 (même paragraphe que
+  `src/aide/notice.md`) + ligne d'historique.
+
 ## 06/11/2026 — Loupe des pages du dossier PDF (petite MAJ, go de Kévin ; fusionné dans `main`, run 42301134920 vert, smoke 234/234)
 
 - Demande de Kévin : à l'import d'un PDF de plusieurs pages, les vignettes sont trop petites pour savoir à quoi

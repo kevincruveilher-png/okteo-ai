@@ -6,7 +6,7 @@ import { K } from "./k.js";
 import * as CHS from "../chantiers.js";
 import { labelPoint } from "../walls/rooms.js";
 import { hasVolumes, isSani, isMeuble, roomFor, sani3d, saniRect, saniShape, volumesOf } from "../cablage/volumes.js";
-import { isZone, zonePoly, detour, detourVia } from "../cablage/exclusion.js";
+import { isZone, zonePoly, detour, detourVia, makeHouse } from "../cablage/exclusion.js";
 import { CH, LKEYS, TYPES, batiStyle, hDefault, dist, epOf, matOf, nodeById, segById, segDir, state, symScaleOf } from "./model.js";
 import { markDirty, snapshot } from "./persist.js";
 import { fit, repMap } from "./view.js";
@@ -462,6 +462,7 @@ export function okteoGeo() {
   const wiring = planWiring();
   const tabA = state.app.find(a => a.t === "TAB");
   const ZC = state.app.filter(a => isZone(a.t)).map(zonePoly).filter(P => P && P.length > 2);   // n° 10
+  const HS = makeHouse(state.rooms.map(roomPoly));   // 07/11/2026 : gaines dans la maison
   const boxes = (K.CAB.boxes || []).filter(b => b.lv === K.LV.cur).map(b => {
     const LY = boxLayout(b, 1), R = b.routes || {};
     return {
@@ -478,7 +479,7 @@ export function okteoGeo() {
         face: d.face,
         slot: d.slot,
         ends: d.tab ? (tabA ? [{ key: "tab", x: tabA.x, y: tabA.y, route: (R.tab || []).map(p => ({ x: p.x, y: p.y })), color: null }] : [])
-          : d.head.map(a => { const man = (R[a.id] || []).map(p => ({ x: p.x, y: p.y })), auto = ZC.length ? (man.length ? detourVia(b, man, a, ZC) : detour(b, a, ZC)) : []; return { key: a.id, x: a.x, y: a.y, route: auto.length ? auto : man, auto: auto.length > man.length, color: (cmap[a.id] || {}).color || null }; }),
+          : d.head.map(a => { const man = (R[a.id] || []).map(p => ({ x: p.x, y: p.y })), auto = ZC.length || HS ? (man.length ? detourVia(b, man, a, ZC, undefined, HS) : detour(b, a, ZC, undefined, HS)) : []; return { key: a.id, x: a.x, y: a.y, route: auto.length ? auto : man, auto: auto.length > man.length, color: (cmap[a.id] || {}).color || null }; }),
         // n° 6 : tronçons de pontage (d'un appareil au suivant)
         ponts: d.tab ? [] : (d.ponts || []).flatMap(p => p.to.map(t => ({ a: { x: p.from.x, y: p.from.y }, b: { x: t.x, y: t.y }, key: t.id, color: (cmap[t.id] || {}).color || null })))
       }))

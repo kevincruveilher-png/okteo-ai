@@ -4,7 +4,7 @@ import { CAB_DEFAULTS } from "../src/cablage/settings.js";
 import { computeCircuits } from "../src/cablage/circuits.js";
 import { computeWiring } from "../src/cablage/gaines.js";
 import { placeBoxes } from "../src/cablage/boites.js";
-import { isZone, zonePoly, detour, detourVia, pushOut, segHits, zonesByLevel, insideAny } from "../src/cablage/exclusion.js";
+import { isZone, zonePoly, detour, detourVia, pushOut, segHits, zonesByLevel, insideAny, makeHouse, leavesHouse, inHouse } from "../src/cablage/exclusion.js";
 import { sani3d, isSani, volumeZones } from "../src/cablage/volumes.js";
 
 let n = 0;
@@ -74,5 +74,44 @@ test("MAJ norme n° 3 : aucune boîte de pieuvre dans les volumes d'une salle d'
   const VZ = volumeZones([bath]);
   assert.ok(VZ.rdc.length === 1 && insideAny(free.boxes[0], VZ.rdc), "la boîte libre était dans le volume");
   assert.ok(r.boxes.length && r.boxes.every((b) => !insideAny(b, VZ.rdc)), JSON.stringify(r.boxes.map((b) => [b.x, b.y])));
+});
+// 07/11/2026 (Kévin) : une gaine ne sort jamais de la maison. Maison en L : séjour 10 × 4 en bas, deux chambres à gauche
+// au-dessus (cloisons de 10 à 20 cm) ; le creux du L (x > 4, y > 4) est dehors.
+const RECT = (x0, y0, x1, y1) => [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }];
+const L_ROOMS = [RECT(0, 0, 10, 4), RECT(0, 4.2, 4, 7), RECT(0, 7.1, 4, 10)], HL = makeHouse(L_ROOMS);
+test("maison en L : la ligne droite d'une aile à l'autre sort ; le contournement passe par l'angle rentrant, dans la maison", () => {
+  const A = { x: 2, y: 9 }, B = { x: 9, y: 2 };
+  assert.ok(leavesHouse(A, [], B, HL), "la ligne droite devrait sortir par le creux du L");
+  const v = detour(A, B, [], undefined, HL);
+  assert.equal(v.length, 1, JSON.stringify(v));
+  assert.ok(Math.abs(v[0].x - 4) < 0.3 && Math.abs(v[0].y - 4.1) < 0.3, "angle rentrant : " + JSON.stringify(v));
+  assert.ok(!leavesHouse(A, v, B, HL));
+  const l = len(A, v, B); assert.ok(l > Math.hypot(7, 7) && l < 13, String(l));
+});
+test("maison en L : trajet intérieur (même aile, à travers les cloisons) = rien ; appareil en façade ou au jardin accepté", () => {
+  assert.deepEqual(detour({ x: 1, y: 9 }, { x: 2, y: 1 }, [], undefined, HL), []);
+  assert.deepEqual(detour({ x: 5, y: 2 }, { x: 10.35, y: 2 }, [], undefined, HL), []);
+  assert.ok(!inHouse({ x: 10.6, y: 2 }, HL) && inHouse({ x: 4.1, y: 2 }, HL));
+  assert.equal(detour({ x: 2, y: 9 }, { x: 10.3, y: 1 }, [], undefined, HL).length, 1);
+  assert.equal(makeHouse([]), null);
+  assert.deepEqual(detour({ x: 2, y: 9 }, { x: 9, y: 2 }, [], undefined, null), [], "sans pièce : comportement d'avant");
+});
+test("maison en L + zone d'exclusion : les deux contraintes ensemble, points manuels compris", () => {
+  const A = { x: 2, y: 9 }, B = { x: 9, y: 2 }, Zc = zonePoly({ t: "ZONE", x: 6, y: 2.6, sw: 1.5, sd: 2.4 });
+  const v = detour(A, B, [Zc], undefined, HL), Lp = [A, ...v, B];
+  assert.ok(v.length >= 2 && !leavesHouse(A, v, B, HL), JSON.stringify(v));
+  for (let i = 1; i < Lp.length; i++) assert.ok(!segHits(Lp[i - 1], Lp[i], Zc), "tronçon dans la zone");
+  const m = detourVia(A, [{ x: 2, y: 5 }], B, [], undefined, HL);
+  assert.ok(m.some((p) => p.x === 2 && p.y === 5) && !leavesHouse(A, m, B, HL), JSON.stringify(m));
+});
+test("câblage : la gaine d'une aile à l'autre du L reste dans la maison, sa longueur suit le contournement", () => {
+  const its = [{ id: "tab", t: "TAB", x: 1, y: 1, lv: "rdc" }, { id: "p1", t: "PC16", x: 9, y: 2, h: 30, lv: "rdc", rep: "P1" }];
+  const C = computeCircuits(its, [], S), bx = [{ id: "b", n: "LI01", lv: "rdc", x: 2, y: 9, apps: ["p1"] }];
+  const W0 = computeWiring({ items: its, links: [], circuits: C, boxes: bx, levels: ["rdc"], S });
+  const W1 = computeWiring({ items: its, links: [], circuits: C, boxes: bx, levels: ["rdc"], S, houses: { rdc: L_ROOMS } });
+  const g0 = W0.boxes[0].gaines.find((g) => g.appIds && g.appIds.includes("p1")), g1 = W1.boxes[0].gaines.find((g) => g.appIds && g.appIds.includes("p1"));
+  assert.ok(!g0.via && g1.via && g1.via.length === 1 && g1.detour, JSON.stringify(g1.via));
+  assert.ok(g1.length > g0.length, `${g0.length} → ${g1.length}`);
+  assert.ok(!leavesHouse(bx[0], g1.via, its[1], makeHouse(L_ROOMS)));
 });
 console.log(`zones : ${n} vérifications OK`);

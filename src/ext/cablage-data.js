@@ -23,9 +23,11 @@ export function markExterior(api, items) {
   });
 }
 
+// 07/11/2026 : contours des pièces de chaque niveau (enveloppe de la maison : les gaines n'en sortent pas)
+export function housesOf(api) { return Object.fromEntries(Object.entries(roomsByLevel(api)).map(([lv, R]) => [lv, R.map((r) => r.poly)])); }
 export function wiringNow(api) {
   const S = cabS(api), items = markExterior(api, api.allApps()), links = api.allLinks();
-  const W = computeWiring({ items, links, circuits: api.cab.circuits || [], boxes: api.cab.boxes || [], levels: api.levels.map((l) => l.id), S });
+  const W = computeWiring({ items, links, circuits: api.cab.circuits || [], boxes: api.cab.boxes || [], levels: api.levels.map((l) => l.id), S, houses: housesOf(api) });
   // v56 : le plan suit le découpage des gaines (une gaine coupée en deux par R-073 = deux points d'accroche)
   if (api.setGaineGroups) {
     const m = {};
@@ -73,11 +75,11 @@ export function compareModes(api) {
   const S = cabS(api), items = api.allApps(), links = api.allLinks();
   const keepIds = (api.cab.boxes || []).filter((b) => b.locked).map((b) => b.id);
   const base = (api.cab.circuits || []).length ? api.cab.circuits : computeCircuits(items, links, S);
-  const ext = markExterior(api, items), levels = api.levels.map((l) => l.id);
+  const ext = markExterior(api, items), levels = api.levels.map((l) => l.id), houses = housesOf(api);
   const res = Object.entries(MODES).map(([mode, name]) => {
     const r = autoBoxes(api, keepIds, 0, mode, base);
     const circuits = S.circuitsParBoite ? circuitsByBox(items, links, r.boxes, S) : base;
-    const W = computeWiring({ items: ext, links, circuits, boxes: r.boxes, levels, S });
+    const W = computeWiring({ items: ext, links, circuits, boxes: r.boxes, levels, S, houses });
     const dep = W.boxes.map((b) => b.gaines.filter((g) => g.kind === "app").length);   // départs sans l'alimentation (R-001)
     const mean = dep.reduce((s, v) => s + v, 0) / (dep.length || 1);
     const q = mesures(W, { items, boxes: r.boxes, S });
