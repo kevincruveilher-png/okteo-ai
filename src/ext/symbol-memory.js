@@ -10,11 +10,16 @@ const norm = (s) => String(s || "").trim().toLowerCase();
 const online = () => typeof window !== "undefined" && !!window.okteoSession;
 export function memoAll() { const m = store(KEY, null); return m && typeof m === "object" && !Array.isArray(m) ? m : {}; }
 // symboles connus pour un pavillonneur : sa mémoire + les symboles BE communs (avec correspondance Oktéo)
+// MAJ « tous » (06/11/2026) : la mémoire d'un pavillonneur = ses fiches (prioritaires, `own`) + les fiches des autres
+// pavillonneurs cochées « Valable pour tous les pavillonneurs » (`tous`). Sans pavillonneur : les fiches « sans pavillonneur ».
+const keyOf = (pav) => norm(pav) || "(sans pavillonneur)";
 export function symbolMemory(pav) {
-  const own = (memoAll()[norm(pav)] || []).map((e) => ({ ...e, pav: e.pav || pav }));
+  const k = keyOf(pav), M = memoAll();
+  const own = (M[k] || []).map((e) => ({ ...e, pav: e.pav || pav, own: true }));
+  const all = Object.entries(M).filter(([x]) => x !== k).flatMap(([, L]) => (L || []).filter((e) => e.tous)).map((e) => ({ ...e, own: false }));
   let be = [];
   try { be = (loadSymbols().be || []).filter((e) => e.type && (!e.pav || norm(e.pav) === norm(pav))).map((e) => ({ type: e.type, desc: [e.name, e.notes].filter(Boolean).join(" — "), pav: e.pav || "", chantier: e.source || "", commun: true })); } catch { /* bibliothèque illisible */ }
-  return [...own, ...be];
+  return [...own, ...all, ...be];
 }
 // lot 2 (05/11/2026) : toutes les variantes enregistrées d'un type Oktéo, tous pavillonneurs confondus (bibliothèque)
 export function variantsOf(type) {
@@ -26,12 +31,12 @@ export function variantsOf(type) {
 // Lot 2 : en version en ligne, la fiche part aussi dans la mémoire COMMUNE du serveur (tous les postes la voient).
 // MAJ mémoire : `lu` = type que l'IA avait donné (ex. « XYZ », ou « LUM » avec un doute), `inscription` = texte voisin :
 // ce qui permet de reconnaître le même dessin à la prochaine analyse (src/walls/ai-memory.js)
-export function remember({ pav, type, desc, chantier = "", by = "", image = "", lu = "", inscription = "" }) {
+export function remember({ pav, type, desc, chantier = "", by = "", image = "", lu = "", inscription = "", tous = false }) {
   if (!type) return null;
-  const M = memoAll(), k = norm(pav) || "(sans pavillonneur)", L = M[k] || [];
-  const e = { id: "sm-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), type, desc: String(desc || type).slice(0, 300), pav: pav || "", chantier, by, at: new Date().toISOString(), image, lu: String(lu || "").slice(0, 24), inscription: String(inscription || "").slice(0, 80) };
+  const M = memoAll(), k = keyOf(pav), L = M[k] || [];
+  const e = { id: "sm-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), type, desc: String(desc || type).slice(0, 300), pav: pav || "", chantier, by, at: new Date().toISOString(), image, lu: String(lu || "").slice(0, 24), inscription: String(inscription || "").slice(0, 80), tous: !!tous };
   const same = L.find((x) => x.type === e.type && norm(x.desc) === norm(e.desc));
-  if (same) Object.assign(same, { image: e.image || same.image, at: e.at, by: e.by || same.by, chantier: e.chantier || same.chantier, lu: e.lu || same.lu || "", inscription: e.inscription || same.inscription || "", pending: true });
+  if (same) Object.assign(same, { image: e.image || same.image, at: e.at, by: e.by || same.by, chantier: e.chantier || same.chantier, lu: e.lu || same.lu || "", inscription: e.inscription || same.inscription || "", tous: !!tous, pending: true });
   else L.push({ ...e, pending: true });
   M[k] = L; storeSet(KEY, M);
   const out = same || L[L.length - 1];
@@ -39,18 +44,26 @@ export function remember({ pav, type, desc, chantier = "", by = "", image = "", 
   return out;
 }
 export function forget(pav, id) {
-  const M = memoAll(), k = norm(pav) || "(sans pavillonneur)", e = (M[k] || []).find((x) => x.id === id);
+  const M = memoAll(), k = keyOf(pav), e = (M[k] || []).find((x) => x.id === id);
   M[k] = (M[k] || []).filter((x) => x.id !== id); storeSet(KEY, M);
   if (e && e.server && online()) return api("/api/symbol-memory/delete", { id: e.server });
   return Promise.resolve({ ok: true });
 }
 async function api(path, data) { const { request } = await import("../web/client.js"); return request(path, data); }
 async function push(e) {
-  const r = await api("/api/symbol-memory", { type: e.type, pav: e.pav, desc: e.desc, chantier: e.chantier, lu: e.lu || "", inscription: e.inscription || "", image: e.image && e.image.length <= 90000 ? e.image : "" });
+  const r = await api("/api/symbol-memory", { type: e.type, pav: e.pav, desc: e.desc, chantier: e.chantier, lu: e.lu || "", inscription: e.inscription || "", tous: !!e.tous, image: e.image && e.image.length <= 90000 ? e.image : "" });
   const M = memoAll();
   for (const L of Object.values(M)) for (const x of L || []) if (x.id === e.id) { x.server = r.id; delete x.pending; }
   storeSet(KEY, M);
   return r;
+}
+// MAJ « tous » (06/11/2026) : cocher / décocher « Valable pour tous les pavillonneurs » sur une variante enregistrée
+export function setTous(pav, id, on) {
+  const M = memoAll(), e = (M[keyOf(pav)] || []).find((x) => x.id === id);
+  if (!e) return null;
+  e.tous = !!on; e.pending = true; storeSet(KEY, M);
+  if (online()) push(e).catch(() => { /* renvoyée à la prochaine synchronisation */ });
+  return e;
 }
 // lot 2 : synchronisation avec la mémoire commune (version en ligne) : fiches en attente envoyées, puis la liste du serveur
 // remplace les fiches déjà connues du serveur (les fiches locales jamais envoyées sont gardées)
@@ -61,7 +74,7 @@ export async function syncMemory() {
   const list = await api("/api/symbol-memory");
   const M = {};
   for (const [k, L] of Object.entries(memoAll())) { const keep = (L || []).filter((e) => !e.server); if (keep.length) M[k] = keep; }
-  for (const e of list || []) { const k = norm(e.pav) || "(sans pavillonneur)"; (M[k] ||= []).push({ ...e, id: e.server }); }
+  for (const e of list || []) { const k = keyOf(e.pav); (M[k] ||= []).push({ ...e, id: e.server }); }
   storeSet(KEY, M);
   document.dispatchEvent(new CustomEvent("okteo:symbol-memory"));
   return { ok: true, n: (list || []).length };
@@ -78,4 +91,15 @@ export async function cropAround(api, a, side = 1.2) {
   const c = document.createElement("canvas"), S = Math.min(220, Math.round(w)); c.width = S; c.height = Math.round(S * h / w);
   const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, x, y, w, h, 0, 0, c.width, c.height);
   return c.toDataURL("image/jpeg", 0.8);
+}
+
+// MAJ mémoire (06/11/2026) : relue sur le serveur juste avant une analyse ou une réponse collée (3 s au plus, sinon la
+// copie du poste), et toutes les 5 minutes : un symbole appris sur un autre PC sert sans recharger la page
+export function freshMemory(ms = 3000) {
+  if (!online()) return Promise.resolve({ ok: false, offline: true });
+  return Promise.race([syncMemory().catch(() => ({ ok: false })), new Promise((r) => setTimeout(() => r({ ok: false, late: true }), ms))]);
+}
+export function startMemoryTimer(every = 5 * 60000) {
+  if (startMemoryTimer.t || !online()) return;
+  startMemoryTimer.t = setInterval(() => { if (!document.hidden) syncMemory().catch(() => {}); }, every);
 }

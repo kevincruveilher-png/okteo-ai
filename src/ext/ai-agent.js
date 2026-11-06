@@ -4,7 +4,7 @@
 import { AI_TOOLS, runTool, TOOLS_GUIDE } from "../walls/ai-tools.js";
 import { chantierPage, chantierTexts, pageMap } from "./pdf-page.js";
 import { detectWalls } from "../walls/detect.js";
-import { symbolMemory } from "./symbol-memory.js";
+import { symbolMemory, freshMemory } from "./symbol-memory.js";
 
 const hex = (c) => (Array.isArray(c) ? "#" + c.slice(0, 3).map((v) => Math.round(v * (v <= 1 ? 255 : 1)).toString(16).padStart(2, "0")).join("") : c ? String(c) : "");
 
@@ -35,6 +35,7 @@ export async function toolContext(api, G, S) {
       return walls;
     } });
   }
+  await freshMemory();   // MAJ mémoire : relue sur le serveur avant l'analyse
   ctx.memory = symbolMemory(api.ch.client);
   if (S && S.render) ctx.zoom = async (z) => {
     // pixels de l'image → mètres → pixels du fond

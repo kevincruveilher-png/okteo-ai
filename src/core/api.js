@@ -769,6 +769,14 @@ window.okteo = {
   get pmr() {
     return isPmr();
   },
+  // MAJ mémoire « tous » (06/11/2026) : pavillonneur du chantier (fiche), demandé avant d'enregistrer un symbole
+  setClient(name) {
+    const v = String(name || "").trim().slice(0, 100);
+    if (!v) return false;
+    Object.assign(CH, CHS.update(CH.id, { client: v }));
+    document.dispatchEvent(new CustomEvent("okteo:chantier", { detail: { client: v } }));
+    return true;
+  },
   setPmr(on, { apply = true } = {}) {
     Object.assign(CH, CHS.update(CH.id, { pmr: !!on }));
     let n = 0;

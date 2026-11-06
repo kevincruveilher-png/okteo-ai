@@ -1391,3 +1391,4 @@ body[data-tab]:not([data-tab="plan"]):not([data-tab="vue3d"]) .top2{display:none
 .web-dot .dot{background:var(--ok,#2e9e5b)}
 .web-dot.off .dot{background:#d9822b}.web-dot.bad .dot{background:#d33}
 .web-dot[hidden]{display:none!important}
+.sy-var .sy-tous{display:flex;gap:4px;align-items:center;font-size:11px}

@@ -1,7 +1,7 @@
 // MAJ mémoire (05/11/2026) : un symbole appris n'est plus réappris (correction après l'analyse, consigne copiée,
 // images envoyées à l'IA par l'outil « legende »). Données synthétiques, aucun plan client.
 import assert from "node:assert/strict";
-import { memoryFixes, memoryPrompt, learned } from "../src/walls/ai-memory.js";
+import { memoryFixes, memoryPrompt, learned, doubtKey, readKey } from "../src/walls/ai-memory.js";
 import { runTool } from "../src/walls/ai-tools.js";
 import { pastePrompt } from "../src/walls/ai-plan.js";
 
@@ -40,5 +40,21 @@ await test("outil « legende » : la mémoire avec « lu comme » et les dessins
   const r = await runTool("legende", {}, { W: 100, H: 100, memory: mem, pav: "Maisons Aliénor" });
   assert.match(r.text, /lu comme « XYZ »/); assert.match(r.text, /\[image 1\]/);
   assert.deepEqual(r.images, ["AAAA"]);
+});
+await test("MAJ « tous » : la variante du pavillonneur passe avant une variante « tous les pavillonneurs » plus récente ; la note dit d'où vient la variante", () => {
+  const M = [{ type: "SC", lu: "ZZ", own: false, tous: true, pav: "Autre", at: "2026-11-06T10:00:00Z" }, { type: "LUM", lu: "ZZ", own: true, at: "2026-11-01T10:00:00Z" }];
+  assert.equal(memoryFixes([{ t: "INCONNU", aiType: "ZZ" }], M).devices[0].t, "LUM");
+  const F = memoryFixes([{ t: "INCONNU", aiType: "ZZ" }], [M[0]]);
+  assert.equal(F.devices[0].t, "SC"); assert.match(F.devices[0].aiNote, /tous les pavillonneurs, appris chez Autre/);
+  assert.match(memoryPrompt([M[0]]), /\(tous les pavillonneurs\) dessin lu comme « ZZ »/);
+});
+await test("hésitation entre deux types (symboles qui se chevauchent) : « VV ou INT » apprise une fois = tranchée de la même façon ensuite, dans n'importe quel ordre", () => {
+  const a = { t: "INT", aiStatus: "a_confirmer", aiNote: "INT ou VV ? deux symboles se chevauchent" };
+  assert.equal(doubtKey(a), "INT ou VV"); assert.equal(readKey(a), "INT ou VV"); assert.equal(readKey({ t: "LUM", aiType: "XYZ" }), "XYZ");
+  const M = [{ type: "VV", lu: "INT ou VV", by: "kevin", own: true }];
+  const F = memoryFixes([{ t: "INT", aiStatus: "a_confirmer", aiNote: "VV ou INT ?" }, { t: "INT", aiStatus: "a_confirmer", aiNote: "INT ou BP ?" }], M);
+  assert.equal(F.devices[0].t, "VV"); assert.equal(F.devices[0].aiStatus, "lu");
+  assert.equal(F.devices[1].t, "INT", "autre hésitation : pas tranchée");
+  assert.match(memoryPrompt(M), /deux symboles se chevauchent/);
 });
 console.log(`mémoire des symboles : ${n} vérifications OK`);

@@ -4,6 +4,7 @@
 // technicien BE ; ce que le plan ne dit pas devient une question au pavillonneur. Passe par l'API seulement.
 import { explain, buildRapport, rapportText, FAMILLES, confirmable, isConfirmed } from "../cablage/rapport.js";
 import { cropAround, remember } from "./symbol-memory.js";
+import { readKey } from "../walls/ai-memory.js";
 import { esc } from "./util.js";
 
 export function createWhyBlink({ api }) {
@@ -44,7 +45,9 @@ export function createWhyBlink({ api }) {
     return `<div class="why-fix">
       <p class="sm"><b>Que faire de cet appareil ?</b></p>
       <div class="why-row"><label class="sm">C'est un <select id="why-type" aria-label="Type de l'appareil">${typeOpts(a.t)}</select></label><button id="why-settype" title="Change le type de l'appareil (noté pour le technicien BE ; Ctrl+Z l'annule)">Changer le type</button></div>
-      <div class="why-row"><button id="why-var" class="on" title="Le dessin du plan autour de l'appareil est rangé dans la bibliothèque comme variante du symbole choisi ci-dessus, pour ${esc(pav || "ce pavillonneur")} : l'IA le reconnaîtra sur les prochains plans">Enregistrer ce dessin comme variante du symbole choisi</button></div>
+      ${pav ? "" : `<div class="why-row"><label class="sm">Pavillonneur du chantier <input id="why-pav" placeholder="ex. Maisons Aliénor" style="width:180px" title="La mémoire des symboles est rangée par pavillonneur : il est enregistré aussi dans la fiche du chantier"></label></div>`}
+      <div class="why-row"><button id="why-var" class="on" title="Le dessin du plan autour de l'appareil est rangé dans la bibliothèque comme variante du symbole choisi ci-dessus, pour ${esc(pav || "ce pavillonneur")} : il sera reconnu sur ses prochains plans">Enregistrer ce dessin comme variante du symbole choisi</button></div>
+      <div class="why-row"><label class="sm" title="Par défaut, la variante ne sert qu'aux plans de ce pavillonneur (un même dessin peut avoir un autre sens ailleurs). Cochez pour un dessin sans ambiguïté : il servira pour tous ; la variante propre à un pavillonneur reste prioritaire."><input type="checkbox" id="why-tous"> Valable pour tous les pavillonneurs</label></div>
       <div class="why-row"><button id="why-idk" title="Laisse le point ouvert (il continue de clignoter), noté « je ne sais pas » pour le technicien BE, et passe au suivant">Je ne sais pas → suivant</button></div>
       <p class="sm mut why-fixmsg" role="status"></p></div>`;
   }
@@ -96,14 +99,22 @@ export function createWhyBlink({ api }) {
     if (vb) vb.onclick = async () => {
       const t = card.querySelector("#why-type").value, a = api.state.app.find((x) => x.id === cur.id);
       if (!a || !api.TYPES[t]) return;
+      // MAJ « tous » : sans pavillonneur, on le demande (et il va dans la fiche du chantier) avant d'enregistrer
+      const pf = card.querySelector("#why-pav");
+      if (!api.ch.client) {
+        const v = pf ? pf.value.trim() : "";
+        if (!v) { say("Indiquez d'abord le pavillonneur du chantier : la mémoire des symboles est rangée par pavillonneur."); if (pf) pf.focus(); return; }
+        api.setClient(v);
+      }
+      const tous = !!(card.querySelector("#why-tous") || {}).checked;
       vb.disabled = true; say("Enregistrement du dessin…");
       const image = await cropAround(api, a).catch(() => "");
       const desc = [`dessin du plan pour ${api.TYPES[t].n || t}`, a.inscription ? `inscription « ${a.inscription} »` : "", a.aiType && a.aiType !== t ? `lu par l'IA comme ${a.aiType}` : ""].filter(Boolean).join(", ");
-      const r = remember({ pav: api.ch.client || "", type: t, desc, chantier: [api.ch.nom, api.ch.numero].filter(Boolean).join(" "), by: who(), image, lu: a.aiType || a.t, inscription: a.inscription || "" });
+      const r = remember({ pav: api.ch.client || "", type: t, desc, chantier: [api.ch.nom, api.ch.numero].filter(Boolean).join(" "), by: who(), image, lu: readKey(a), inscription: a.inscription || "", tous });
       const p = cur.pts.find((x) => confirmable(x.kind)) || cur.pts[0];
       api.batch(() => { if (a.t !== t || a.aiStatus !== "lu") api.updateApps([{ id: a.id, t, aiStatus: "lu" }]); if (p) decide(p, { choix: "variante", label: `dessin enregistré comme variante de ${api.TYPES[t].n || t}`, type: t }); });
       document.dispatchEvent(new CustomEvent("okteo:symbol-memorized", { detail: r }));
-      api.setHint(`Dessin enregistré dans la bibliothèque : variante de ${api.TYPES[t].n || t} pour ${api.ch.client || "ce pavillonneur"}. L'IA s'en servira sur les prochains plans.`);
+      api.setHint(`Dessin enregistré dans la bibliothèque : variante de ${api.TYPES[t].n || t} ${tous ? "pour tous les pavillonneurs" : "pour " + api.ch.client}. Il sera reconnu sur les prochains plans.`);
       open(cur.id); say(`✓ Variante enregistrée dans la bibliothèque (${api.TYPES[t].n || t}).`);
       ui.lastVariant = r;
     };
