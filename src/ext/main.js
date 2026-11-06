@@ -19,6 +19,7 @@ import { createDevicesTool } from "./devices-ui.js";
 import { initBackup } from "./backup.js";
 import { createLevelsBar } from "./levels.js";
 import { createTour } from "./tour.js";
+import { createNorme } from "./norme-ui.js";
 import { createCablagePane } from "./cablage-ui.js";
 import { createPacksPane } from "./packs-ui.js";
 import { createControl, describe as ctlDescribe } from "./controle-ui.js";
@@ -201,6 +202,8 @@ function start() {
   hooks.horsplan = () => { panel.show("cablage"); setTimeout(() => { const d = document.getElementById("hp-sec"); if (d) { d.open = true; d.scrollIntoView({ block: "start" }); } }, 60); };
   hooks.circuitsAuto = () => { panel.show("cablage"); cablage.auto(); };
   hooks.boxesAuto = () => { panel.show("cablage"); cablage.placeAuto(); };
+  const norme = createNorme({ api });   // MAJ norme n° 2 : minimums par pièce (alertes simples), lecture du plan avant dessin
+  hooks.norme = norme;
   const tour = createTour({ api, panel, hooks });
   hooks.tour = () => tour.start();
   hooks.steps = () => { panel.show("steps"); tour.render(); };
@@ -212,7 +215,7 @@ function start() {
   const home = createHomeShell({ api });   // lot 3 : logo = accueil, pages entières « en classeur »
   hooks.modeIa = () => iaMode.setMode(iaMode.mode === "ia" ? "be" : "ia");
   hooks.cabler = () => { const r = cabler(api); api.setHint(r.text); if (pages.etude.ui) pages.etude.ui.render(); return r.text; };
-  window.okteoExt = { home, whyBlink, doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, aiRunner, recheck, iaMode, temps, oneCard, pages, backup: null };
+  window.okteoExt = { home, norme, whyBlink, doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, aiRunner, recheck, iaMode, temps, oneCard, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 

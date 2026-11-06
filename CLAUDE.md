@@ -457,6 +457,10 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
 - `src/norme/nfc15100.js` (pur) : `REGLES` (91 codes stables PC-01… DOC-05, niveau O / R / BE, article 2024, résumé, R-xxx
   du journal), `refOf(code, v)`, `art2015`, `versionFor(meta)` (2024 si permis déposé après le 31/08/2025 ; `meta.permis`,
   champ « Dépôt du permis » de la fiche du chantier), `okteo.normeVersion()`.
+- n° 2 : `src/norme/pieces.js` (`roomKind`, `prisesSejour`, `checkPieces` → PC / ECL / COM, clé « norme:CODE:pièce ») ;
+  `src/ext/norme-ui.js` (`okteoExt.norme`) : section « Norme » du panneau Étapes (`#nm-host`), Voir / Question au
+  pavillonneur (`cab.questions`) / Voulu (`cab.decisions[key].choix = "garde"`) ; après un relevé IA, la ligne d'aide
+  annonce les points sous le minimum (lecture du plan avant dessin).
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (42 vérifications : relevé des murs, des pièces et des

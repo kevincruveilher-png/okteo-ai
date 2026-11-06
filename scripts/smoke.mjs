@@ -3506,6 +3506,21 @@ try {
     if (!(v0.v === "2024" && !v0.sure && v1.v === "2015" && /A5/.test(v1.lab) && v2.v === "2024" && v2.sure && v2.lab === "NF C 15-100:2024")) throw new Error(JSON.stringify({ v0, v1, v2 }));
     return true;
   });
+  await check("norme n° 2 : pièce nommée sous le minimum → alerte simple dans Étapes (code, article), question au pavillonneur, « Voulu »", async () => {
+    await ev(() => okteo.batch(() => okteo.state.rooms.push({ id: "rNormeT", name: "Chambre essai", x0: 300, x1: 303, y0: 300, y1: 303.5 })));
+    await ev(() => { okteoExt.panel.show("steps"); okteoExt.tour.render(); });
+    await page.waitForSelector("#nm-sec-d .nm-list li", { timeout: 10000 });
+    const r = await ev(() => { const I = okteoExt.norme.issues().filter((i) => i.roomId === "rNormeT"); return { codes: I.map((i) => i.code).join(), ref: (I.find((i) => i.code === "PC-01") || {}).ref, n: document.getElementById("nm-n").textContent }; });
+    await ev(() => { const I = okteoExt.norme.issues(), k = I.findIndex((i) => i.roomId === "rNormeT" && i.code === "PC-01"); document.querySelector(`#nm-host [data-q="${k}"]`).click(); });
+    const q = await ev(() => (okteo.cab.questions || []).filter((x) => x.key === "norme:PC-01:rNormeT").map((x) => x.text));
+    await ev(() => { const I = okteoExt.norme.issues(), k = I.findIndex((i) => i.roomId === "rNormeT" && i.code === "ECL-01"); document.querySelector(`#nm-host [data-keep="${k}"]`).click(); });
+    const after = await ev(() => okteoExt.norme.issues().filter((i) => i.roomId === "rNormeT").map((i) => i.code).join());
+    for (let k = 0; k < 3; k++) await ev(() => okteo.undo());
+    const back = await ev(() => ({ room: okteo.state.rooms.some((x) => x.id === "rNormeT"), q: (okteo.cab.questions || []).some((x) => x.key === "norme:PC-01:rNormeT") }));
+    await ev(() => okteoExt.panel.close("steps"));
+    if (!(r.codes === "ECL-01,PC-01" && r.ref === "PC-01 · NF C 15-100-10 § 10.1.6.3.2" && /sous le minimum/.test(r.n) && q.length === 1 && /Chambre essai : 0 prise 16 A .* 3 .*PC-01/.test(q[0]) && after === "PC-01" && !back.room && !back.q)) throw new Error(JSON.stringify({ r, q, after, back }));
+    return true;
+  });
   await check("n° 15 : dossier PDF de 3 pages (plan RDC, plan R+1, devis) → nouveau chantier avec ses 2 niveaux et leur fond ; le devis est joint à l'analyse (mode 4)", async () => {
     const { jsPDF } = await import("jspdf");
     const d = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
