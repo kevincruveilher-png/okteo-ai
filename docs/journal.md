@@ -1,3 +1,9 @@
+## 06/11/2026 — MAJ norme n° 1 fusionnée dans `main`
+
+- `npm run check` vert sur GitHub Actions (run 42223606044 : smoke 222/222, norme, chantiers 176, MAILLARD 14). Corrigé
+  avant fusion : `okteo.normeVersion()` relit la fiche enregistrée (la page Chantiers en modifie une autre copie).
+  Workflow temporaire retiré.
+
 ## 06/11/2026 — MAJ norme n° 1 : socle des règles de la NF C 15-100 (go de Kévin, 13:55)
 
 Contexte : « Bible des règles Oktéo — NF C 15-100 (2024) » (document du projet claude.ai, 91 règles résumées avec nos

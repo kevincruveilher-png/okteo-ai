@@ -450,6 +450,14 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `startMemoryTimer` (5 min) ; ai-memory.js `doubtKey` / `readKey` (hésitation « A ou B ») ; `api.setClient`.
 - check.js `POSE_OFF` : plus d'alerte battant ni embrasure (pose.js garde les fonctions).
 
+### Norme NF C 15-100 (MAJ norme du 06/11/2026) — bible : document du projet claude.ai « Bible des règles Oktéo »
+- RÈGLE DE LICENCE : aucun texte de norme dans le dépôt ni dans les consignes de l'IA (exemplaires sous licence, hors
+  dépôt) ; seulement nos résumés, les valeurs et les numéros d'article. Les règles de la norme = ALERTES SIMPLES (Kévin),
+  jamais bloquantes : l'impression reste toujours possible.
+- `src/norme/nfc15100.js` (pur) : `REGLES` (91 codes stables PC-01… DOC-05, niveau O / R / BE, article 2024, résumé, R-xxx
+  du journal), `refOf(code, v)`, `art2015`, `versionFor(meta)` (2024 si permis déposé après le 31/08/2025 ; `meta.permis`,
+  champ « Dépôt du permis » de la fiche du chantier), `okteo.normeVersion()`.
+
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (42 vérifications : relevé des murs, des pièces et des
 appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (87 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (14 : chantier de référence MAILLARD comparé au BE) + `scripts/v3d.test.mjs` (vue 3D) + `scripts/smoke.mjs` (171 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`
