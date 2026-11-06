@@ -1,4 +1,4 @@
-## 07/11/2026 — Gaines toujours dans la maison (petite MAJ, ordre de Kévin)
+## 07/11/2026 — Gaines toujours dans la maison (petite MAJ, ordre de Kévin ; fusionné dans `main`, run 42309404083 vert, smoke 235/235)
 
 - Constat de Kévin : maison en L, une pieuvre d'un côté du L trace une gaine droite qui sort de la maison et rentre de
   l'autre côté. Cause : le tracé (ligne droite / arc) ne connaissait que les zones d'exclusion, pas le contour de la maison.
@@ -16,7 +16,7 @@
   Les arcs dessinés sans contournement peuvent encore bomber de quelques centimètres hors d'un angle (tracé seulement).
 - Tests : `scripts/zones.test.mjs` (+4 : maison en L, façade / jardin, L + zone + points manuels, longueur de la gaine) ;
   smoke « aucune gaine ne sort de la maison » (calcul + plan imprimé sur le chantier d'essai) ; le test smoke n° 10
-  choisit une gaine sans contournement.
+  choisit une gaine sans contournement. 1er passage : échec isolé du glisser-déposer du tableau (sans lien), vert à la relance.
 - Notice à mettre à jour : document du projet « Oktéo — Notice et support de formation », Étape 6 (même paragraphe que
   `src/aide/notice.md`) + ligne d'historique.
 
