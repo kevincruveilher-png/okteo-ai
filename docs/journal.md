@@ -1,3 +1,20 @@
+## 06/11/2026 — MAJ norme n° 1 : socle des règles de la NF C 15-100 (go de Kévin, 13:55)
+
+Contexte : « Bible des règles Oktéo — NF C 15-100 (2024) » (document du projet claude.ai, 91 règles résumées avec nos
+mots, codes PC-01… DOC-05, articles de la série 2024 vérifiés sur les normes le 06/11). Ordre décidé par Kévin : n° 1 socle,
+n° 2 minimums par pièce + lecture du plan avant dessin, n° 3 volumes de salle d'eau, n° 4 plafonds par circuit, n° 5 tableau,
+n° 6 fiche d'autocontrôle + documents à remettre. Les règles de la norme donnent des ALERTES SIMPLES, jamais bloquantes
+(l'impression reste toujours possible). Licence : AUCUN texte de norme dans le dépôt (exemplaires sous licence, hors dépôt) ;
+seulement nos résumés et les numéros d'article.
+
+- `src/norme/nfc15100.js` (pur) : `REGLES` [{code, theme, niveau O|R|BE, art (2024), texte, R (règles du journal KiTéOHM
+  sur le même sujet)}], `regle(code)`, `refOf(code, v)` (« PC-01 · NF C 15-100-10 § 10.1.6.3.2 », ou l'article de l'A5
+  2015 par `art2015`), `versionFor(meta)` (série 2024 si le permis est déposé après le 31/08/2025, sinon 2002 + A5 ;
+  sans date : 2024, `sure: false`), `THEMES`, `forJournal(R-xxx)`.
+- Fiche du chantier : « Dépôt du permis » (`input[data-f=permis]`, `meta.permis`) + version affichée (`#ch-norme`),
+  événement `okteo:norme` ; `okteo.normeVersion()`.
+- Tests : `scripts/norme.test.mjs` (dans `npm run check`, et `npm run test:norme`), smoke (date du permis → version).
+
 ## 06/11/2026 — MAJ mémoire (pavillonneur / tous) et MAJ pose fusionnées dans `main`
 
 - `npm run check` vert sur GitHub Actions : mémoire run 42207276115, pose run 42207333809. Workflow temporaire retiré.

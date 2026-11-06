@@ -3493,6 +3493,19 @@ try {
     if (!(n >= 1 && r.tab === "plan")) throw new Error(JSON.stringify({ n, r }));
     return true;
   });
+  await check("norme n° 1 : date de dépôt du permis dans la fiche du chantier → version de la NF C 15-100 (2015 avant le 01/09/2025, 2024 après)", async () => {
+    await page.evaluate(() => okteo.setTab("chantiers"));
+    await page.waitForSelector('input[data-f="permis"]', { timeout: 15000 });
+    const v0 = await ev(() => okteo.normeVersion());
+    await page.fill('input[data-f="permis"]', "2025-06-01"); await ev(() => document.querySelector('input[data-f="permis"]').dispatchEvent(new Event("change")));
+    const v1 = await ev(() => ({ v: okteo.normeVersion().v, lab: document.querySelector("#ch-norme").textContent }));
+    await page.fill('input[data-f="permis"]', "2026-02-10"); await ev(() => document.querySelector('input[data-f="permis"]').dispatchEvent(new Event("change")));
+    const v2 = await ev(() => ({ v: okteo.normeVersion().v, sure: okteo.normeVersion().sure, lab: document.querySelector("#ch-norme").textContent }));
+    await page.fill('input[data-f="permis"]', ""); await ev(() => document.querySelector('input[data-f="permis"]').dispatchEvent(new Event("change")));
+    await ev(() => okteo.setTab("plan"));
+    if (!(v0.v === "2024" && !v0.sure && v1.v === "2015" && /A5/.test(v1.lab) && v2.v === "2024" && v2.sure && v2.lab === "NF C 15-100:2024")) throw new Error(JSON.stringify({ v0, v1, v2 }));
+    return true;
+  });
   await check("n° 15 : dossier PDF de 3 pages (plan RDC, plan R+1, devis) → nouveau chantier avec ses 2 niveaux et leur fond ; le devis est joint à l'analyse (mode 4)", async () => {
     const { jsPDF } = await import("jspdf");
     const d = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
