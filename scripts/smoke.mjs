@@ -436,6 +436,38 @@ try {
     if (!(r0.join() === "ignorer,ignorer,niv:RDC" && r1.v.join() === "devis,niv:RDC,ignorer" && r1.on === "2" && r2.v.join() === "devis,ignorer,niv:RDC" && r2.on === "3")) throw new Error(JSON.stringify({ r0, r1, r2 }));
     return true;
   });
+  await check("loupe des pages : page en grand (haute définition), ← →, zoom, rôle, page déjà prise, double-clic, Échap", async () => {
+    const st = () => ev(() => { const l = document.querySelector("#pg-loupe"); if (!l) return null; const i = l.querySelector(".pgl-img"); return { n: l.querySelector(".pgl-n").textContent, alt: i.alt, hid: i.hidden, w: i.naturalWidth, wait: l.querySelector(".pgl-wait").hidden ? "" : l.querySelector(".pgl-wait").textContent }; });
+    const until = async (step, fn) => { try { await page.waitForFunction(fn, null, { timeout: 60000 }); } catch { throw new Error(step + " : " + JSON.stringify(await st())); } };
+    try {
+      await page.click('.thumb-zoom[data-page="1"]');
+      await until("page 1 en grand", () => { const i = document.querySelector("#pg-loupe .pgl-img"); return i && !i.hidden && i.alt === "Page 1" && i.naturalWidth > 1500; });
+      const n1 = await page.textContent("#pg-loupe .pgl-n");
+      await page.keyboard.press("ArrowRight");
+      await until("page 2 par →", () => { const i = document.querySelector("#pg-loupe .pgl-img"); return i && !i.hidden && i.alt === "Page 2"; });
+      const t0 = await ev(() => document.querySelector("#pg-loupe .pgl-img").style.transform);
+      const b = await page.locator("#pg-loupe .pgl-stage").boundingBox();
+      await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.wheel(0, -300);
+      await page.waitForTimeout(200);
+      const t1 = await ev(() => document.querySelector("#pg-loupe .pgl-img").style.transform);
+      await page.selectOption("#pg-loupe .pgl-role", "devis");
+      const r2 = await ev(() => document.querySelector('.pg-role[data-page="2"]').value);
+      await page.selectOption("#pg-loupe .pgl-role", "ignorer");
+      await page.click('#pg-loupe .pgl-nav[data-d="1"]');
+      await until("page 3 par le bouton →", () => document.querySelector("#pg-loupe .pgl-n")?.textContent.startsWith("Page 3"));
+      const picked = await page.isDisabled("#pg-loupe .pgl-pick");
+      await page.keyboard.press("Escape");
+      const closed = !(await page.isVisible("#pg-loupe"));
+      await page.click('.thumb[data-page="3"]'); await page.click('.thumb[data-page="3"]');
+      await until("double-clic sur la vignette 3", () => !!document.querySelector("#pg-loupe"));
+      const n3 = await page.textContent("#pg-loupe .pgl-n");
+      await page.click("#pg-loupe .pgl-x");
+      const end = await ev(() => ({ v: [...document.querySelectorAll(".pg-role")].map((s) => s.value).join(), on: document.querySelector(".thumb.on")?.dataset.page, open: !!document.querySelector("#pg-loupe") }));
+      const ok = n1 === "Page 1 / 3" && t0 !== t1 && r2 === "devis" && picked && closed && n3 === "Page 3 / 3" && end.v === "devis,ignorer,niv:RDC" && end.on === "3" && !end.open;
+      if (!ok) throw new Error(JSON.stringify({ n1, t0, t1, r2, picked, closed, n3, end }));
+      return true;
+    } finally { await ev(() => document.querySelector("#pg-loupe .pgl-x")?.click()); }
+  });
   await check("création : chantier ouvert, fond haute définition chargé, échelle à régler", async () => {
     await Promise.all([page.waitForNavigation({ timeout: 60000 }), page.click("#nf-ok")]);
     await reopened();

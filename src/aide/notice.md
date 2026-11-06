@@ -19,7 +19,7 @@ Oktéo s'ouvre à l'adresse [okteo-ai.pages.dev](https://okteo-ai.pages.dev/), a
 ### L'accueil et les chantiers
 
 - Le **logo Oktéo**, en haut à gauche, ramène toujours à l'accueil : la liste des chantiers.
-- **＋ Nouveau chantier** : on donne le nom, puis on choisit le PDF du pavillonneur. Oktéo propose le rôle de chaque page (implantation RDC, étage, plan cuisine, devis, à ignorer) ; on corrige si besoin.
+- **＋ Nouveau chantier** : on donne le nom, puis on choisit le PDF du pavillonneur. Oktéo propose le rôle de chaque page (implantation RDC, étage, plan cuisine, devis, à ignorer) ; on corrige si besoin. Pour bien voir une page, cliquer sur la loupe 🔍 de sa vignette (ou double-cliquer sur la vignette) : la page s'ouvre en grand ; molette = zoom, glisser = déplacer, ← → = page précédente / suivante ; le rôle se corrige aussi depuis cette vue, et « Prendre cette page comme plan » choisit la page. Échap pour fermer.
 - La **fiche du chantier** regroupe : n° d'affaire, pavillonneur, dessinateur, date de dépôt du permis (elle choisit la version de la norme), code postal (il décide du parafoudre), case PMR, pièces du dossier et finitions commandées.
 
 ### L'écran de travail
@@ -257,6 +257,7 @@ Six modules, du plus simple au plus complet. Chaque module se fait sur MAILLARD,
 
 | Date | Mise à jour du logiciel | Ce qui a changé dans la notice |
 | --- | --- | --- |
+| 06/11/2026 | loupe des pages du PDF | Nouveau chantier : loupe 🔍 / double-clic pour voir une page du dossier en grand |
 | 06/11/2026 | — | parcours de formation sur une copie de MAILLARD (choix de Kévin) |
 | 06/11/2026 | bouton « ? Aide » | notice lisible dans le logiciel (bouton « ? Aide », recherche) ; noms exacts du menu Relevé et du bouton « ✓ Contrôle » |
 | 06/11/2026 | lots 1 à 10 de la reprise des paramètres du BE | première version : prise en main, étapes 1 à 7, paramètres et touches du BE, parcours de formation, questions fréquentes |

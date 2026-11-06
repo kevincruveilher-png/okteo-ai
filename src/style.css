@@ -193,6 +193,23 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 .thumb-w .pg-role{width:100%;font-size:12px}
 .thumb-w .pg-role.doubt{border-color:#c98a00;background:color-mix(in srgb,#c98a00 12%,var(--panel))}
 .thumb span{font-size:12px}
+/* Loupe des pages du dossier (06/11/2026) */
+.thumb-w{position:relative}
+.thumb-zoom{position:absolute;top:10px;right:10px;padding:2px 6px;font-size:14px;line-height:1.2;border-radius:6px;background:color-mix(in srgb,var(--panel) 88%,transparent);border:1px solid var(--line);cursor:zoom-in}
+.thumb-zoom:hover{border-color:var(--accent)}
+.thumb{cursor:pointer}
+.pgl{position:fixed;inset:0;z-index:1000;background:rgba(5,12,20,.82);display:flex;flex-direction:column;padding:14px;gap:8px}
+.pgl-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--fg)}
+.pgl-bar .pgl-n{min-width:96px;text-align:center}
+.pgl-rl{display:flex;align-items:center;gap:6px;font-size:13px}
+.pgl-role.doubt{border-color:#c98a00;background:color-mix(in srgb,#c98a00 12%,var(--panel))}
+.pgl-sp{flex:1}
+.pgl-stage{flex:1;position:relative;overflow:hidden;background:#3a444d;border-radius:10px;cursor:grab;touch-action:none}
+.pgl-stage.drag{cursor:grabbing}
+.pgl-img{position:absolute;left:0;top:0;transform-origin:0 0;background:#fff;box-shadow:0 6px 24px rgba(0,0,0,.4);user-select:none;max-width:none}
+.pgl-wait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;margin:0}
+.pgl-wait[hidden],.pgl-img[hidden]{display:none}
+.pgl-help{margin:0;text-align:center;color:#c9d4dc;font-size:12px}
 @media (max-width:760px){.ch-list thead{display:none}.ch-list tr{display:grid;grid-template-columns:1fr auto}.ch-list td{border:0}.ch-list .acts{grid-column:1/-1;justify-content:flex-start}}
 
 /* ===== v15 : relevé des murs ===== */

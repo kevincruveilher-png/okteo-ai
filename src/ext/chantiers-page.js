@@ -7,6 +7,7 @@ import {event,readHistory,saveHistory,revisionLabel} from "../web/history.js";
 import * as CHS from "../chantiers.js";
 import { isPdf, isImage, openPdf, pdfThumbs, renderPdfPage, loadImage } from "./fond-import.js";
 import { ROLES, roleLabel, proposeRoles, setRole, dossierOf } from "../walls/page-roles.js";
+import { openLoupe } from "./page-loupe.js";
 import { esc, norm } from "./util.js";
 import { nkOf } from "../norme/parafoudre.js";
 import { versionFor } from "../norme/nfc15100.js";
@@ -57,6 +58,7 @@ export function mountChantiers(el, { api }) {
     if (pick.busy) return `<p class="mut">${esc(pick.busy)}</p>`;
     if (pick.doc) return `<p class="mut">${esc(pick.file.name)} · ${pick.doc.numPages} page${pick.doc.numPages > 1 ? "s" : ""} : Oktéo propose le rôle de chaque page (plan d'implantation d'un niveau, plan cuisine, devis, à ignorer) ; corrigez si besoin. Un clic sur une vignette la prend comme plan ${mode === "new" ? "du RDC" : "du niveau ouvert"}.${mode === "new" ? " Chaque niveau trouvé est créé avec sa page ; le plan cuisine et le devis seront joints à l'analyse IA." : " Le plan cuisine et le devis seront joints à l'analyse IA."}</p>
       <div class="thumbs">${pick.thumbs.map((t) => { const r = roleOf(t.page); return `<div class="thumb-w"><button type="button" class="thumb ${t.page === pick.page ? "on" : ""}" data-page="${t.page}"><img src="${t.url}" alt="Page ${t.page}"><span>Page ${t.page}</span></button>
+        <button type="button" class="thumb-zoom" data-page="${t.page}" title="Voir la page ${t.page} en grand (ou double-clic sur la vignette)" aria-label="Voir la page ${t.page} en grand">🔍</button>
         <select class="pg-role${r.conf != null && r.conf < 0.6 ? " doubt" : ""}" data-page="${t.page}" title="${esc(r.why ? "Proposé par Oktéo : " + r.why + (r.conf < 0.6 ? " (à vérifier)" : "") : "Rôle de la page")}" aria-label="Rôle de la page ${t.page}">${ROLES.map((k) => `<option value="${k}"${r.role === k ? " selected" : ""}>${esc(roleLabel(k))}${r.role === k && r.conf < 0.6 ? " ?" : ""}</option>`).join("")}</select></div>`; }).join("")}</div>`;
     return `<p class="mut">${esc(pick.file.name)} (image)</p>`;
   }
@@ -202,16 +204,35 @@ export function mountChantiers(el, { api }) {
     el.querySelector("#nf-cancel").onclick = () => { mode = null; render(); };
     el.querySelector("#nf-ok").onclick = submit;
   }
+  let lastThumb = { p: 0, t: 0 };
+  function pickPage(p) { pick.page = p; pick.roles = setRole(pick.roles, p, targetRole()); refreshFond(); }
+  function changeRole(p, v) {
+    lastThumb = { p: 0, t: 0 }; // un changement de rôle entre deux clics : ce n'est pas un double-clic
+    pick.roles = setRole(pick.roles, p, v);
+    if (v === targetRole()) pick.page = p;
+    else if (p === pick.page) { const o = pick.roles.find((x) => x.role === targetRole()); if (o) pick.page = o.page; }
+    refreshFond();
+  }
+  // Loupe : la page en grand (même rôle, même choix de page que les vignettes)
+  function loupe(p) {
+    if (!pick.doc || document.querySelector("#pg-loupe")) return;
+    openLoupe({
+      doc: pick.doc, pages: pick.thumbs.map((t) => t.page), page: p,
+      roleOf, onRole: changeRole, onPick: pickPage, isPicked: (q) => q === pick.page,
+      pickLabel: `Prendre cette page comme plan ${mode === "new" ? "du RDC" : "du niveau ouvert"}`,
+    });
+  }
   function refreshFond() {
     const box = el.querySelector("#nf-fond"); if (!box) return;
     box.innerHTML = fondHTML();
-    box.querySelectorAll(".thumb").forEach((b) => (b.onclick = () => { pick.page = +b.dataset.page; pick.roles = setRole(pick.roles, pick.page, targetRole()); refreshFond(); }));
-    box.querySelectorAll(".pg-role").forEach((s) => (s.onchange = () => {
-      const p = +s.dataset.page; pick.roles = setRole(pick.roles, p, s.value);
-      if (s.value === targetRole()) pick.page = p;
-      else if (p === pick.page) { const o = pick.roles.find((x) => x.role === targetRole()); if (o) pick.page = o.page; }
-      refreshFond();
+    // Le double-clic est suivi à la main : le premier clic redessine les vignettes, le dblclick du navigateur n'arrive pas
+    box.querySelectorAll(".thumb").forEach((b) => (b.onclick = () => {
+      const p = +b.dataset.page, now = Date.now(), dbl = lastThumb.p === p && now - lastThumb.t < 450;
+      lastThumb = { p, t: dbl ? 0 : now };
+      pickPage(p); if (dbl) loupe(p);
     }));
+    box.querySelectorAll(".thumb-zoom").forEach((b) => (b.onclick = () => loupe(+b.dataset.page)));
+    box.querySelectorAll(".pg-role").forEach((s) => (s.onchange = () => changeRole(+s.dataset.page, s.value)));
     const ok = el.querySelector("#nf-ok"); if (ok) ok.disabled = !!pick.busy;
   }
 
