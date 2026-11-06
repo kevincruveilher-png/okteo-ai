@@ -2383,7 +2383,7 @@ try {
       const room = okteo.state.rooms[0], P = room.poly || [{ x: room.x0, y: room.y0 }, { x: room.x1, y: room.y1 }];
       const c = { x: P.reduce((s, p) => s + p.x, 0) / P.length, y: P.reduce((s, p) => s + p.y, 0) / P.length };
       const n0 = okteo.state.app.length, k0 = okteo.control.filter((x) => x.kind === "sdb").length;
-      const { ids } = okteo.importDevices([{ t: "DITAL", x: c.x, y: c.y }, { t: "LUM", x: c.x + 0.4, y: c.y }]);
+      const { ids } = okteo.importDevices([{ t: "DITAL", x: c.x, y: c.y }, { t: "LUM", x: c.x + 0.4, y: c.y, h: 200 }]);   // MAJ norme n° 3 : au plafond (> 2,25 m) = hors volume ; à 2 m = volume 1
       const v = { v1: document.querySelectorAll("#sv polygon.vol.v1").length, v2: document.querySelectorAll("#sv polygon.vol.v2").length, sani: document.querySelectorAll("#sv g.sani").length };
       const sdb = okteo.control.filter((x) => x.kind === "sdb"), geo = okteo.exportGeometry();
       const rep = !!(okteo.repMap && okteo.repMap()[ids[0]]);

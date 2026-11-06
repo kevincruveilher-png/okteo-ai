@@ -255,8 +255,8 @@ export function draw() {
     sanis.forEach(a => {
       const V = volumesOf(a, roomFor(a, polys));
       if (!V) return;
-      if (V.v2) sv += `<polygon class="vol v2" points="${pts(V.v2)}" fill="url(#vol2)" stroke="#777" stroke-width=".01" stroke-dasharray=".04 .04"><title>Volume 2 (0,60 m autour du volume 1, jusqu'à 3 m)</title></polygon>`;
-      if (V.v1) sv += `<polygon class="vol v1" points="${pts(V.v1)}" fill="url(#vol1)" stroke="#555" stroke-width=".012" stroke-dasharray=".04 .03"><title>Volume 1 (jusqu'à 2,25 m)</title></polygon>`;
+      if (V.v2) sv += `<polygon class="vol v2" points="${pts(V.v2)}" fill="url(#vol2)" stroke="#777" stroke-width=".01" stroke-dasharray=".04 .04"><title>Volume 2 (0,60 m autour du volume 1, jusqu'à 2,25 m : SDE-04)</title></polygon>`;
+      if (V.v1) sv += `<polygon class="vol v1" points="${pts(V.v1)}" fill="url(#vol1)" stroke="#555" stroke-width=".012" stroke-dasharray=".04 .03"><title>Volume 1 (jusqu'à 2,25 m : SDE-03)</title></polygon>`;
     });
     sanis.forEach(a => {
       const on = isSel("app", a.id) || GH && GH.apps.has(a.id);

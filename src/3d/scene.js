@@ -236,7 +236,7 @@ export function buildMarks(T, { issues = [], devs = [], volumes = [] }, { plafon
     m.rotation.x = -Math.PI / 2; m.renderOrder = 4; return m;
   };
   for (const v of volumes) {
-    if (v.v2 && v.v2.length > 2) vols.add(prism(v.v2, Math.min(3, plafond), 0x7fb2ff, 0.1));
+    if (v.v2 && v.v2.length > 2) vols.add(prism(v.v2, Math.min(2.25, plafond), 0x7fb2ff, 0.1));   // MAJ norme n° 3 : même hauteur que le volume 1 (2024)
     if (v.v1 && v.v1.length > 2) vols.add(prism(v.v1, Math.min(2.25, plafond), 0x2f6fe0, 0.2));
   }
   group.add(vols);

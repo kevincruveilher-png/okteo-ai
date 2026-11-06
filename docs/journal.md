@@ -1,3 +1,22 @@
+## 06/11/2026 — MAJ norme n° 3 fusionnée dans `main`
+
+- `npm run check` vert sur GitHub Actions (run 42223624017 : smoke 222/222 avec les n° 1 à 3).
+
+## 06/11/2026 — MAJ norme n° 3 : volumes de salle d'eau alignés sur la NF C 15-100-10:2024 (go de Kévin, 13:55)
+
+- volumes.js : le volume 2 a la même hauteur que le volume 1, 2,25 m (`V2_H = V1_H`) ; au-dessus = hors volume (avant :
+  « jusqu'à 3 m », règle validée le 02/11 en attendant le référentiel ; la norme 2024 est maintenant la référence).
+  Douche sans receveur : volume 0 = emprise du volume 1 jusqu'à 10 cm (`ITAL_V0_H`, `V.v0h`).
+- `volumeRule` : textes avec le code de la règle (SDE-07 volume 0 / 1, SDE-08 volume 2, SDE-15 RJ45 / TV : interdite en
+  volume 1, « à vérifier » en volume 2 car admise en très basse tension) et `code`. Toujours de simples alertes.
+- `volumeZones(items, rooms)` : contour extérieur des volumes par niveau ; `placeBoxes` repousse les boîtes de pieuvre hors
+  des volumes 0, 1, 2 (boîte de connexion interdite, SDE-07 / SDE-08), comme hors des zones d'exclusion.
+- 3D : prisme du volume 2 à 2,25 m. Infobulles des volumes avec SDE-03 / SDE-04. Rapport : article 10.1.6.10.
+- Limite : les gaines ne contournent pas encore les volumes (la norme y limite les canalisations à celles des appareils
+  du volume) ; la règle du contournement par une paroi de douche fixe n'est pas dessinée (seuls les murs de la pièce).
+- Tests : charte.test.mjs (hauteurs 2024, volume 0 de la douche à l'italienne, codes SDE), zones.test.mjs (boîte hors
+  des volumes), smoke (luminaire à 2 m = volume 1 ; au plafond il serait hors volume).
+
 ## 06/11/2026 — MAJ norme n° 2 fusionnée dans `main`
 
 - `npm run check` vert sur GitHub Actions avec les n° 1 à 3 (run 42223624017, branche feat/maj-norme-3 qui contient la n° 2 ;

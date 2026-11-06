@@ -101,18 +101,24 @@ check("baignoire contre le mur : volume 1 = son emprise, volume 2 = 0,60 m autou
   const bb = (P) => [Math.min(...P.map((p) => p.x)), Math.min(...P.map((p) => p.y)), Math.max(...P.map((p) => p.x)), Math.max(...P.map((p) => p.y))].map((v) => +v.toFixed(2));
   if (!(Math.abs(A(V.v1) - 1.275) < 1e-6 && bb(V.v2).join() === "0,0,2.3,1.35" && A(V.v2) > 2.9 && A(V.v2) < 3.1)) throw new Error(JSON.stringify({ v1: A(V.v1), v2: bb(V.v2), a2: A(V.v2) }));
   const at = (x, y, h) => VOL.volumeAt(x, y, h, V);
-  return at(0.5, 0.3, 30) === 0 && at(0.5, 0.3, 110) === 1 && at(2.1, 0.3, 110) === 2 && at(2.5, 0.3, 110) === null && at(0.5, 0.3, 250) === 2 && at(1, 2, 30) === null;
+  return at(0.5, 0.3, 30) === 0 && at(0.5, 0.3, 110) === 1 && at(2.1, 0.3, 110) === 2 && at(2.5, 0.3, 110) === null && at(0.5, 0.3, 250) === null && at(2.1, 0.3, 240) === null && at(1, 2, 30) === null;
 });
 check("douche à l'italienne : volume 1 = 1,20 m autour de la pomme, s'arrête aux murs", () => {
   const room = [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 2, y: 3 }, { x: 0, y: 3 }];
   const V = VOL.volumesOf({ id: "d", t: "DITAL", x: 0.1, y: 0.1 }, room);
-  return V.v0 === null && V.v1.every((p) => p.x >= -1e-9 && p.y >= -1e-9) && VOL.volumeAt(1.1, 0.1, 100, V) === 1 && VOL.volumeAt(1.6, 0.1, 100, V) === 2 && VOL.volumeAt(1.95, 2.9, 100, V) === null;
+  // MAJ norme n° 3 : volume 0 de la douche sans receveur = emprise du volume 1 jusqu'à 10 cm au-dessus du fond
+  return V.v0 === V.v1 && VOL.volumeAt(0.5, 0.5, 5, V) === 0 && VOL.volumeAt(0.5, 0.5, 30, V) === 1 && V.v1.every((p) => p.x >= -1e-9 && p.y >= -1e-9) && VOL.volumeAt(1.1, 0.1, 100, V) === 1 && VOL.volumeAt(1.6, 0.1, 100, V) === 2 && VOL.volumeAt(1.95, 2.9, 100, V) === null;
 });
 check("contrôle : prise et interrupteur en volume 1 ou 2 interdits, luminaire en volume 1 = TBTS, hors volume rien", () => {
   const room = [{ x: 0, y: 0 }, { x: 3, y: 0 }, { x: 3, y: 2.5 }, { x: 0, y: 2.5 }];
   const apps = [{ id: "b", t: "BAIG", x: 0.85, y: 0.375 }, { id: "p1", t: "PC16", x: 1.2, y: 0, h: 110 }, { id: "i1", t: "INT", x: 2.1, y: 0, h: 110 }, { id: "l1", t: "APP", x: 0.85, y: 0, h: 180 }, { id: "p2", t: "PC16", x: 3, y: 2, h: 30 }, { id: "l2", t: "LUM", x: 2.6, y: 2, h: null }];
   const I = VOL.checkVolumes(apps, [room]), by = Object.fromEntries(I.map((x) => [x.id, x]));
   if (!(by.p1 && by.p1.v === 1 && by.p1.bloquant && by.i1 && by.i1.v === 2 && by.i1.bloquant && by.l1 && !by.l1.bloquant && !by.p2 && !by.l2 && I.length === 3)) throw new Error(JSON.stringify(I));
+});
+check("MAJ norme n° 3 : textes avec le code de la règle (SDE-07, SDE-08, SDE-15), RJ45 en volume 2 = à vérifier ; contour des volumes pour repousser les boîtes", () => {
+  const r1 = VOL.volumeRule("PC16", 1), r2 = VOL.volumeRule("INT", 2), r3 = VOL.volumeRule("RJ45", 2), r4 = VOL.volumeRule("RJ45", 1), r5 = VOL.volumeRule("APP", 2);
+  const Z = VOL.volumeZones([{ id: "b", t: "BAIG", x: 0.85, y: 0.375, lv: "rdc" }, { id: "w", t: "WC", x: 2, y: 2, lv: "rdc" }], { rdc: [{ poly: [{ x: 0, y: 0 }, { x: 3, y: 0 }, { x: 3, y: 2.5 }, { x: 0, y: 2.5 }] }] });
+  return /^SDE-07 · volume 1/.test(r1.text) && r1.bloquant && r2.code === "SDE-08" && r2.bloquant && r3.code === "SDE-15" && !r3.bloquant && r4.bloquant && !r5.bloquant && Z.rdc.length === 1 && Z.rdc[0].every((p) => p.x <= 2.31 && p.y <= 1.36);
 });
 console.log("Sanitaires (n° 9)");
 check("WC, lavabo, vasque, évier : sanitaires sans volume de salle de bain ni contrôle ; dessin tourné avec la rotation", () => {

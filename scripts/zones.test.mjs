@@ -5,7 +5,7 @@ import { computeCircuits } from "../src/cablage/circuits.js";
 import { computeWiring } from "../src/cablage/gaines.js";
 import { placeBoxes } from "../src/cablage/boites.js";
 import { isZone, zonePoly, detour, detourVia, pushOut, segHits, zonesByLevel, insideAny } from "../src/cablage/exclusion.js";
-import { sani3d, isSani } from "../src/cablage/volumes.js";
+import { sani3d, isSani, volumeZones } from "../src/cablage/volumes.js";
 
 let n = 0;
 const test = (name, f) => { f(); n++; console.log("  ✓ " + name); };
@@ -65,5 +65,14 @@ test("placement automatique : aucune boîte dans une zone", () => {
   const r = placeBoxes([...its, zp], [], C, { rdc: its[0] }, S, {});
   const ZL = zonesByLevel([zp]);
   assert.ok(r.boxes.length && r.boxes.every((b) => !insideAny(b, ZL.rdc)), JSON.stringify(r.boxes.map((b) => [b.x, b.y])));
+});
+test("MAJ norme n° 3 : aucune boîte de pieuvre dans les volumes d'une salle d'eau (SDE-07, SDE-08)", () => {
+  const its = [{ id: "tab", t: "TAB", x: -6, y: 0, lv: "rdc" }, ...[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([x, y], i) => ({ id: "q" + i, t: "PC16", x, y, h: 30, lv: "rdc", rep: "P" + i }))];
+  const C = computeCircuits(its, [], S);
+  const free = placeBoxes(its, [], C, { rdc: its[0] }, S, {}), bath = { id: "bb", t: "RECV", x: free.boxes[0].x, y: free.boxes[0].y, lv: "rdc" };
+  const r = placeBoxes([...its, bath], [], C, { rdc: its[0] }, S, {});
+  const VZ = volumeZones([bath]);
+  assert.ok(VZ.rdc.length === 1 && insideAny(free.boxes[0], VZ.rdc), "la boîte libre était dans le volume");
+  assert.ok(r.boxes.length && r.boxes.every((b) => !insideAny(b, VZ.rdc)), JSON.stringify(r.boxes.map((b) => [b.x, b.y])));
 });
 console.log(`zones : ${n} vérifications OK`);

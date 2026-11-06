@@ -36,7 +36,10 @@ export const SANI = {
 export const isMeuble = (t) => !!(SANI[t] && SANI[t].meuble);
 export const isSani = (t) => !!SANI[t];
 export const hasVolumes = (t) => !!(SANI[t] && SANI[t].vol);
-export const V1_H = 2.25, V2_H = 3, V2_W = 0.6, ITAL_R = 1.2;
+// MAJ norme n° 3 (06/11/2026) : alignés sur la NF C 15-100-10:2024 (10.1.3.23 à 10.1.3.25, bible SDE-02 à SDE-04) : le
+// volume 2 a la MÊME hauteur que le volume 1 (2,25 m) ; au-dessus, on est hors volume (avant : 3 m, ancienne règle).
+// Douche sans receveur : volume 0 = l'emprise du volume 1 jusqu'à 10 cm au-dessus du fond.
+export const V1_H = 2.25, V2_H = V1_H, V2_W = 0.6, ITAL_R = 1.2, ITAL_V0_H = 0.1;
 
 const dims = (a) => ({ w: a.sw > 0 ? a.sw : SANI[a.t].w, d: a.sd > 0 ? a.sd : SANI[a.t].d });
 // contour d'un sanitaire (rectangle tourné), en mètres
@@ -176,7 +179,7 @@ export function volumesOf(a, room) {
   if (!hasVolumes(a.t)) return null;
   const R = room && room.length >= 3 ? room : null;
   const cl = (shape) => (R ? clipConvex(R, shape) : ccw(shape));
-  if (a.t === "DITAL") return { v0: null, v1: cl(circle(a, ITAL_R)), v2: cl(circle(a, ITAL_R + V2_W, 64)) };
+  if (a.t === "DITAL") { const v1 = cl(circle(a, ITAL_R)); return { v0: v1, v0h: ITAL_V0_H, v1, v2: cl(circle(a, ITAL_R + V2_W, 64)) }; }
   const S = saniRect(a);
   return { v0: cl(S), v1: cl(S), v2: cl(offsetRect(S, V2_W)) };
 }
@@ -185,29 +188,44 @@ export function volumeAt(x, y, h, V) {
   const hm = h == null ? 2.5 : h / 100;
   // un appareil mural est posé sur la face du mur, souvent pile au bord du volume : 3 cm de tolérance
   const inV = (P) => P && (pointIn(x, y, P) || distPoly(x, y, P) < 0.03);
-  if (inV(V.v0) && hm <= 0.6) return 0;
+  if (inV(V.v0) && hm <= (V.v0h ?? 0.6)) return 0;
   if (inV(V.v1) && hm <= V1_H) return 1;
-  if (inV(V.v2) && hm <= V2_H && !(inV(V.v1) && hm <= V1_H)) return 2;
-  if (inV(V.v1) && hm > V1_H && hm <= V2_H) return 2;   // au-dessus du volume 1 et jusqu'à 3 m : traité comme le volume 2
-  return null;
+  if (inV(V.v2) && hm <= V2_H) return 2;
+  return null;   // au-dessus de 2,25 m : hors volume (2024)
 }
-// règles simplifiées (à valider avec le BE) : rien en volume 0 ; en volume 1, aucune prise, commande, chauffage
-// (lumière seulement en TBTS 12 V) ; en volume 2, aucune prise ni commande (lumière et sèche-serviette classe II).
-const PRISE = (t) => /^(PC|PLAQ|RJ45|TV|PCEXT|PC32)/.test(t);
+// MAJ norme n° 3 : règles de la NF C 15-100-10:2024 (10.1.6.10.2, bible SDE-07, SDE-08, SDE-15), textes avec le code de la
+// règle. « bloquant » = alerte forte (rouge) ; rien n'empêche l'impression (décision de Kévin : alertes simples).
+const PRISE = (t) => /^(PC|PLAQ|PCEXT|PC32)/.test(t);
+const COM = (t) => ["RJ45", "TV"].includes(t);
 const CMD = (t) => /^(INT|VV|BP|CVR|CVMC|DET)/.test(t);
 const LIGHT = (t) => ["LUM", "APP", "SPOT", "APPE"].includes(t);
 const HEAT = (t) => ["RAD", "SS"].includes(t);
 export function volumeRule(t, v) {
   if (v == null || isSani(t) || ["TAB", "VEX", "VREJ", "EQL", "INCONNU"].includes(t)) return null;
-  if (v === 0) return { bloquant: true, text: "volume 0 : aucun appareil électrique (sauf TBTS 12 V)" };
+  if (v === 0) return { bloquant: true, code: "SDE-07", text: "SDE-07 · volume 0 : aucun appareil électrique (sauf très basse tension 12 V)" };
   if (v === 1) {
-    if (LIGHT(t)) return { bloquant: false, text: "volume 1 : luminaire en TBTS 12 V seulement (IPX4)" };
-    if (PRISE(t) || CMD(t) || HEAT(t)) return { bloquant: true, text: "volume 1 : prise, commande et chauffage interdits" };
-    return { bloquant: false, text: "volume 1 : seulement du matériel prévu pour ce volume (TBTS 12 V, IPX4)" };
+    if (LIGHT(t)) return { bloquant: false, code: "SDE-07", text: "SDE-07 · volume 1 : luminaire en très basse tension 12 V seulement (IPX4)" };
+    if (COM(t)) return { bloquant: true, code: "SDE-15", text: "SDE-15 · volume 1 : prise RJ45 / TV interdite" };
+    if (PRISE(t) || CMD(t) || HEAT(t)) return { bloquant: true, code: "SDE-07", text: "SDE-07 · volume 1 : ni prise, ni commande, ni chauffage (sauf très basse tension)" };
+    return { bloquant: false, code: "SDE-07", text: "SDE-07 · volume 1 : seulement du matériel en très basse tension, IPX4" };
   }
-  if (PRISE(t) || CMD(t)) return { bloquant: true, text: "volume 2 : prise et commande interdites (sauf prise rasoir)" };
-  if (LIGHT(t) || HEAT(t)) return { bloquant: false, text: "volume 2 : matériel classe II, IPX4" };
+  if (COM(t)) return { bloquant: false, code: "SDE-15", text: "SDE-15 · volume 2 : prise RJ45 / TV seulement en très basse tension (à vérifier)" };
+  if (PRISE(t) || CMD(t)) return { bloquant: true, code: "SDE-08", text: "SDE-08 · volume 2 : ni prise ni commande (sauf prise rasoir à transformateur)" };
+  if (LIGHT(t) || HEAT(t)) return { bloquant: false, code: "SDE-08", text: "SDE-08 · volume 2 : matériel de classe II protégé par 30 mA, IPX4" };
   return null;
+}
+// MAJ norme n° 3 : contour extérieur des volumes de chaque sanitaire, par niveau ({niveau: [polygone]}) : les boîtes de
+// pieuvre (boîtes de connexion) n'y sont jamais posées (SDE-07, SDE-08 : seule la boîte d'un appareil du volume 2 y est
+// admise). rooms = {niveau: [{poly}]} (contours intérieurs) pour couper les volumes aux murs.
+export function volumeZones(items, rooms = {}) {
+  const out = {};
+  for (const a of items || []) {
+    if (!hasVolumes(a.t)) continue;
+    const polys = ((rooms || {})[a.lv] || []).map((r) => (r && r.poly) || r).filter((p) => Array.isArray(p) && p.length > 2);
+    const V = volumesOf(a, roomFor(a, polys)), P = V && (V.v2 || V.v1);
+    if (P && P.length > 2) (out[a.lv] = out[a.lv] || []).push(P);
+  }
+  return out;
 }
 // contrôle d'un niveau : sanis + appareils + contours des pièces → [{id, sani, v, bloquant, text}]
 export function checkVolumes(apps, rooms) {

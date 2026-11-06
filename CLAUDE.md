@@ -461,6 +461,9 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `src/ext/norme-ui.js` (`okteoExt.norme`) : section « Norme » du panneau Étapes (`#nm-host`), Voir / Question au
   pavillonneur (`cab.questions`) / Voulu (`cab.decisions[key].choix = "garde"`) ; après un relevé IA, la ligne d'aide
   annonce les points sous le minimum (lecture du plan avant dessin).
+- n° 3 : volumes.js aligné sur 2024 (volume 2 = même hauteur que le volume 1, 2,25 m ; volume 0 de la douche à
+  l'italienne jusqu'à 10 cm), textes `volumeRule` avec code SDE, `volumeZones` → `placeBoxes` repousse les boîtes hors des
+  volumes 0 à 2.
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (42 vérifications : relevé des murs, des pièces et des
