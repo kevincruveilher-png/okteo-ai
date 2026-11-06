@@ -96,7 +96,7 @@ test('lot 2 : mémoire des symboles commune (lecture et ajout par tout compte, p
  assert.equal((await f.call('/api/admin/users',{login:'Operator',role:'operator',password:'Temporary-other-123'},c)).status,201);
  const op=await f.login('Operator','Temporary-other-123');await f.call('/api/password',{current:'Temporary-other-123',password:'Permanent-other-123'},op);
  const img='data:image/jpeg;base64,'+'A'.repeat(200);
- const a=await (await f.call('/api/symbol-memory',{type:'LUM',pav:'Maisons Aliénor',desc:'Cercle barré en croix',chantier:'COURIAUT',image:img,lu:'XYZ',inscription:'ALIM'},op)).json();
+ const a=await (await f.call('/api/symbol-memory',{type:'LUM',pav:'Maisons Aliénor',desc:'Cercle barré en croix',chantier:'COURIAUT',image:img,lu:'XYZ',inscription:'ALIM',tous:true},op)).json();
  assert.ok(a.id);
  const again=await (await f.call('/api/symbol-memory',{type:'LUM',pav:'maisons aliénor ',desc:'cercle barré en croix'},c)).json();
  assert.equal(again.id,a.id);assert.equal(again.updated,true);
@@ -104,7 +104,7 @@ test('lot 2 : mémoire des symboles commune (lecture et ajout par tout compte, p
  assert.equal((await f.call('/api/symbol-memory',{type:'LUM',pav:'X',image:'https://evil/x.png'},op)).status,400);
  await f.call('/api/symbol-memory',{type:'PC16',pav:'Autre',desc:'prise'},c);
  const all=await (await f.call('/api/symbol-memory',undefined,op)).json(),mine=await (await f.call('/api/symbol-memory?pav=MAISONS%20ALI%C3%89NOR',undefined,op)).json();
- assert.equal(all.length,2);assert.equal(mine.length,1);assert.equal(mine[0].type,'LUM');assert.equal(mine[0].image,img);assert.equal(mine[0].lu,'XYZ');assert.equal(mine[0].inscription,'ALIM');
+ assert.equal(all.length,2);assert.equal(mine.length,1);assert.equal(mine[0].type,'LUM');assert.equal(mine[0].image,img);assert.equal(mine[0].lu,'XYZ');assert.equal(mine[0].inscription,'ALIM');assert.equal(mine[0].tous,false,'2e envoi sans « tous » : décoché');
  const other=all.find((e)=>e.type==='PC16');
  assert.equal((await f.call('/api/symbol-memory/delete',{id:other.id},op)).status,403);
  assert.equal((await f.call('/api/symbol-memory/delete',{id:other.id},c)).status,200);

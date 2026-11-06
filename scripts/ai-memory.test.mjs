@@ -41,4 +41,11 @@ await test("outil « legende » : la mémoire avec « lu comme » et les dessins
   assert.match(r.text, /lu comme « XYZ »/); assert.match(r.text, /\[image 1\]/);
   assert.deepEqual(r.images, ["AAAA"]);
 });
+await test("MAJ « tous » : la variante du pavillonneur passe avant une variante « tous les pavillonneurs » plus récente ; la note dit d'où vient la variante", () => {
+  const M = [{ type: "SC", lu: "ZZ", own: false, tous: true, pav: "Autre", at: "2026-11-06T10:00:00Z" }, { type: "LUM", lu: "ZZ", own: true, at: "2026-11-01T10:00:00Z" }];
+  assert.equal(memoryFixes([{ t: "INCONNU", aiType: "ZZ" }], M).devices[0].t, "LUM");
+  const F = memoryFixes([{ t: "INCONNU", aiType: "ZZ" }], [M[0]]);
+  assert.equal(F.devices[0].t, "SC"); assert.match(F.devices[0].aiNote, /tous les pavillonneurs, appris chez Autre/);
+  assert.match(memoryPrompt([M[0]]), /\(tous les pavillonneurs\) dessin lu comme « ZZ »/);
+});
 console.log(`mémoire des symboles : ${n} vérifications OK`);

@@ -3,7 +3,7 @@ import { GROUPS, loadSymbols, saveSymbols, symbolEntries, filterSymbols, deviceI
 import { getJournal, CERTS, STATUTS } from "../cablage/regles.js";
 import { esc } from "./util.js";
 import { downloadBlob } from "./dossier.js";
-import { variantsOf, forget, syncMemory } from "./symbol-memory.js";
+import { variantsOf, forget, syncMemory, setTous } from "./symbol-memory.js";
 
 export function mountSymbols(el, { api }) {
   let data = loadSymbols(), selected = "PC16", editing = false, image = "", message = "";
@@ -63,10 +63,11 @@ export function mountSymbols(el, { api }) {
     const V = variantsOf(d.type), by = new Map();
     V.forEach((v) => { const k = v.pav || "Sans pavillonneur"; if (!by.has(k)) by.set(k, []); by.get(k).push(v); });
     return `<h4>Variantes enregistrées <span class="sy-tag">${V.length}</span></h4>
-      <p class="mut sy-small">Dessins rencontrés sur les plans et rattachés à ce symbole par un opérateur (« Pourquoi ça clignote ? » ou Propriétés). L'IA s'en sert pour les prochaines analyses du même pavillonneur.</p>
+      <p class="mut sy-small">Dessins rencontrés sur les plans et rattachés à ce symbole par un opérateur (« Pourquoi ça clignote ? » ou Propriétés). Chaque dessin sert aux prochaines analyses de son pavillonneur ; coché « Tous les pavillonneurs », il sert partout (la variante du pavillonneur reste prioritaire).</p>
       ${V.length ? [...by.entries()].map(([pav, L]) => `<div class="sy-vgrp"><p class="sy-vpav"><b>${esc(pav)}</b> · ${L.length}</p><div class="sy-vars">${L.map((v) => `<figure class="sy-var" data-var="${esc(v.id)}">
         ${v.image ? `<img src="${esc(v.image)}" alt="Dessin du plan : ${esc(v.desc)}">` : `<span class="sy-missing" aria-label="Pas d'extrait">?</span>`}
         <figcaption>${esc(v.desc)}<br><span class="mut">${esc(v.chantier || "")}${v.by ? ` · ${esc(v.by)}` : ""}${v.at ? ` · ${esc(String(v.at).slice(0, 10))}` : ""}${v.pending ? " · en attente d'envoi" : ""}</span></figcaption>
+        <label class="sm sy-tous" title="Coché : ce dessin sert aussi aux plans des autres pavillonneurs (la variante propre à un pavillonneur reste prioritaire)"><input type="checkbox" data-tous="${esc(v.id)}" data-pav="${esc(v.pav || "")}" ${v.tous ? "checked" : ""}> Tous les pavillonneurs</label>
         <button class="mini" data-forget="${esc(v.id)}" data-pav="${esc(v.pav || "")}" title="Retire ce dessin de la mémoire (son auteur ou un administrateur)">Oublier</button></figure>`).join("")}</div></div>`).join("")
         : `<p class="mut">Aucune variante pour l'instant. Quand un symbole du plan n'est pas reconnu, « Pourquoi ça clignote ? » → « Enregistrer comme variante » le rattache ici.</p>`}`;
   }
@@ -118,6 +119,8 @@ export function mountSymbols(el, { api }) {
   el.addEventListener("click", (e) => {
     const card = e.target.closest("[data-symbol]");
     if (card) { if (editing) { tell("Enregistrez ou annulez la fiche avant de changer de symbole."); return; } selected = card.dataset.symbol; renderGrid(); renderDetail(); return; }
+    const tg = e.target.closest("[data-tous]");
+    if (tg) { setTous(tg.dataset.pav, tg.dataset.tous, tg.checked); tell(tg.checked ? "Ce dessin sert maintenant pour tous les pavillonneurs." : "Ce dessin ne sert plus que pour son pavillonneur."); return; }
     const fg = e.target.closest("[data-forget]");
     if (fg) { forget(fg.dataset.pav, fg.dataset.forget).then(() => { tell("Variante retirée de la mémoire."); render(); }).catch((err) => { tell("Retrait impossible : " + err.message); render(); }); render(); return; }
     const action = e.target.closest("[data-action]")?.dataset.action, d = entry();

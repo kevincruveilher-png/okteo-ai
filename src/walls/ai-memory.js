@@ -11,7 +11,8 @@ export const learned = (memory) => (memory || []).filter((m) => m && m.type && m
 // devices : appareils d'un relevé {t, aiType?, aiStatus?, aiNote?, inscription?} ; memory : fiches du pavillonneur
 // → { devices (copies), fixed: [{i, from, to, by, at}] }
 export function memoryFixes(devices, memory) {
-  const M = learned(memory).slice().sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+  // fiches du pavillonneur d'abord (`own`), puis celles valables pour tous ; les plus récentes d'abord
+  const M = learned(memory).slice().sort((a, b) => (b.own === false ? 0 : 1) - (a.own === false ? 0 : 1) || String(b.at || "").localeCompare(String(a.at || "")));
   const fixed = [];
   const out = (devices || []).map((d, i) => {
     const raw = d.aiType || d.t, doubt = d.t === "INCONNU" || DOUBT.has(d.aiStatus) || (d.aiType && d.aiType !== d.t);
@@ -19,7 +20,7 @@ export function memoryFixes(devices, memory) {
     const m = M.find((e) => norm(e.lu) === norm(raw) && (!e.inscription || norm(e.inscription) === norm(d.inscription)));
     if (!m) return d;
     fixed.push({ i, from: raw, to: m.type, by: m.by || "", at: m.at || "" });
-    const note = `reconnu par la mémoire des symboles : « ${raw} » = ${m.type}${m.by ? ` (validé par ${m.by}${m.at ? ", " + String(m.at).slice(0, 10) : ""})` : ""}`;
+    const note = `reconnu par la mémoire des symboles${m.own === false ? " (valable pour tous les pavillonneurs" + (m.pav ? ", appris chez " + m.pav : "") + ")" : ""} : « ${raw} » = ${m.type}${m.by ? ` (validé par ${m.by}${m.at ? ", " + String(m.at).slice(0, 10) : ""})` : ""}`;
     return { ...d, t: m.type, aiType: raw, aiStatus: "lu", aiNote: note, memoire: true };
   });
   return { devices: out, fixed };
@@ -29,5 +30,5 @@ export function memoryFixes(devices, memory) {
 export function memoryPrompt(memory, names = {}) {
   const L = learned(memory).slice(0, 40);
   if (!L.length) return "";
-  return `Symboles déjà validés par le bureau d'études pour ce pavillonneur (sur ses plans précédents) : quand tu reconnais ce dessin, donne directement le type validé, sans doute.\n${L.map((m) => `- dessin lu comme « ${m.lu} »${m.inscription ? ` (inscription « ${m.inscription} »)` : ""} = ${m.type}${names[m.type] ? " (" + names[m.type] + ")" : ""}${m.desc ? " — " + m.desc : ""}`).join("\n")}`;
+  return `Symboles déjà validés par le bureau d'études pour ce pavillonneur (sur ses plans précédents) et pour tous les pavillonneurs : quand tu reconnais ce dessin, donne directement le type validé, sans doute.\n${L.map((m) => `- ${m.own === false ? "(tous les pavillonneurs) " : ""}dessin lu comme « ${m.lu} »${m.inscription ? ` (inscription « ${m.inscription} »)` : ""} = ${m.type}${names[m.type] ? " (" + names[m.type] + ")" : ""}${m.desc ? " — " + m.desc : ""}`).join("\n")}`;
 }

@@ -1,3 +1,16 @@
+## 06/11/2026 — MAJ mémoire « par pavillonneur, ou pour tous » (go de Kévin, 11:55)
+
+- Par défaut, une variante ne sert qu'aux plans de son pavillonneur (décision du 04/11, gardée). Case « Valable pour tous
+  les pavillonneurs » (`#why-tous` dans « Pourquoi ça clignote ? », `[data-tous]` sur chaque variante de la bibliothèque) :
+  la variante sert partout ; celle du pavillonneur reste prioritaire (`own` passe avant, ai-memory.js), la note et la
+  consigne copiée disent « tous les pavillonneurs ».
+- Défaut corrigé : une variante enregistrée sans pavillonneur n'était jamais réutilisée (clé « (sans pavillonneur) » à
+  l'écriture, clé vide à la lecture : `keyOf`). Et le pavillonneur est maintenant demandé avant d'enregistrer
+  (`#why-pav`), puis rangé dans la fiche du chantier (`api.setClient`, événement `okteo:chantier`).
+- Serveur : colonne `tous` (ajoutée à la table existante), renvoyée par `/api/symbol-memory` ; symbol-memory.js `setTous`.
+- Pas compris : relecture de la mémoire du serveur avant chaque analyse (attend le go de Kévin).
+- Tests : ai-memory.test.mjs (6), web.test.mjs (`tous`), smoke (pavillonneur demandé, case « tous », priorité).
+
 ## 05/11/2026 — MAJ affichage fusionnée dans `main`
 
 - `npm run check` vert sur GitHub Actions (run 42038694694). Corrigé avant fusion : « ressources hors ligne prêtes » ne

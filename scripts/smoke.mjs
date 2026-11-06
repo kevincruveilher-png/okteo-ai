@@ -1226,6 +1226,35 @@ try {
     if (!(/« QWE » = LUM/.test(cons) && r.t === "LUM:lu,INCONNU:a_identifier" && /1 symbole reconnu par la mémoire/.test(r.txt))) throw new Error(JSON.stringify({ r: { ...r, txt: r.txt.slice(0, 300) }, cons: /QWE/.test(cons) }));
     return true;
   });
+  await check("MAJ « tous » : variante par défaut pour le pavillonneur ; pavillonneur demandé s'il manque ; case « Valable pour tous les pavillonneurs » = reconnue chez un autre pavillonneur ; la variante du pavillonneur reste prioritaire", async () => {
+    const keepV = await ev(() => ({ on: Object.keys(okteo.layers).filter((k) => okteo.layers[k].on), circ: okteo.showCircuits, client: okteo.ch.client || "" }));
+    await ev(() => { okteoExt.panel.close("assistant"); okteo.setTab("plan"); okteo.viewPreset("impl"); });
+    await ev(async () => { const C = await import("/src/chantiers.js"); Object.assign(okteo.ch, C.update(okteo.ch.id, { client: "" })); });
+    const ids = await ev(() => { const S = okteo.state, X = Math.max(0, ...S.nodes.map((n) => n.x)) + 3, Y = Math.min(0, ...S.nodes.map((n) => n.y)) + 10;
+      return okteo.importDevices([{ t: "INCONNU", x: X, y: Y, aiStatus: "a_identifier", aiOrigin: "plan", aiNote: "symbole inconnu", aiType: "WWQ" }], [], { stay: true }).ids; });
+    await page.waitForTimeout(250);
+    await ev((i) => okteoExt.whyBlink.open(i), ids[0]);
+    await page.waitForSelector(".whyb:not([hidden]) #why-pav", { timeout: 10000 });
+    await page.selectOption("#why-type", "SC");
+    await page.click("#why-var");
+    const asked = await ev(() => /Indiquez d'abord le pavillonneur/.test(document.querySelector(".whyb").textContent));
+    await page.fill("#why-pav", "Essai Tous SARL");
+    await page.check("#why-tous");
+    await page.click("#why-var");
+    await page.waitForFunction(() => /Variante enregistrée/.test(document.querySelector(".whyb").textContent), null, { timeout: 10000 });
+    const r = await ev(async () => { const m = await import("/src/ext/symbol-memory.js"), W = await import("/src/walls/ai-memory.js");
+      const v = okteoExt.whyBlink.lastVariant, other = m.symbolMemory("Autre Constructeur"), own = m.symbolMemory("Essai Tous SARL");
+      const fx = W.memoryFixes([{ t: "INCONNU", aiType: "WWQ" }], other).devices[0];
+      m.remember({ pav: "Autre Constructeur", type: "LUM", desc: "propre à Autre", lu: "WWQ", by: "essai" });
+      const fx2 = W.memoryFixes([{ t: "INCONNU", aiType: "WWQ" }], m.symbolMemory("Autre Constructeur")).devices[0];
+      const out = { client: okteo.ch.client, tous: v.tous, pav: v.pav, other: fx.t, note: fx.aiNote, own: own.some((e) => e.id === v.id && e.own), prio: fx2.t };
+      for (const [p, L] of Object.entries(m.memoAll())) for (const e of L) if (/^(essai)$/.test(e.by) || e.id === v.id) await m.forget(e.pav || p, e.id);
+      return out; });
+    await ev((V) => { okteo.undo(); okteo.undo(); okteo.clearSel(); document.querySelector(".whyb").hidden = true; Object.keys(okteo.layers).forEach((k) => okteo.toggleView(k, V.on.includes(k))); okteo.showCircuits = V.circ; }, keepV);
+    await ev(async (c) => { const C = await import("/src/chantiers.js"); Object.assign(okteo.ch, C.update(okteo.ch.id, { client: c })); }, keepV.client);
+    if (!(asked && r.client === "Essai Tous SARL" && r.tous === true && r.pav === "Essai Tous SARL" && r.own && r.other === "SC" && /tous les pavillonneurs/.test(r.note) && r.prio === "LUM")) throw new Error(JSON.stringify({ asked, r }));
+    return true;
+  });
   await check("relevé IA sans clé (v55.1) : « Copier la consigne » (ref, 40 types, hauteurs, CVR) ; réponse avec radiateur, volet + CVR, hauteur lue", async () => {
     await ev(() => okteoExt.aiReleve.pastePanel());
     await page.click("#ai-copy");
