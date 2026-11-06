@@ -207,6 +207,7 @@ export function mountChantiers(el, { api }) {
   let lastThumb = { p: 0, t: 0 };
   function pickPage(p) { pick.page = p; pick.roles = setRole(pick.roles, p, targetRole()); refreshFond(); }
   function changeRole(p, v) {
+    lastThumb = { p: 0, t: 0 }; // un changement de rôle entre deux clics : ce n'est pas un double-clic
     pick.roles = setRole(pick.roles, p, v);
     if (v === targetRole()) pick.page = p;
     else if (p === pick.page) { const o = pick.roles.find((x) => x.role === targetRole()); if (o) pick.page = o.page; }
