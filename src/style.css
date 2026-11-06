@@ -1496,3 +1496,12 @@ body.page-full #params .pset-sec h3{font-size:21px;font-family:var(--fd);margin-
 #pref-sp{width:100%;box-sizing:border-box;font-family:"JetBrains Mono",monospace;font-size:12px;padding:6px 8px}
 #pref-sp-ex.err{color:#7a0d0d;font-weight:600}
 #ch-sp{display:inline-block;margin-top:3px}
+/* lot 10 (CH-04, CH-02) : pièces du dossier et finitions dans la fiche du chantier */
+.ch-dos{margin:10px 0;border:1px solid var(--line, rgba(0,0,0,.15));border-radius:8px;padding:6px 10px}
+.ch-dos summary{cursor:pointer;font-weight:600}
+.ch-pcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 14px;margin:8px 0 4px}
+.ch-pcs .opt{opacity:.8}
+.ch-fin{border-collapse:collapse;margin:6px 0;font-size:13px}
+.ch-fin th{text-align:left;font-weight:600;padding:3px 8px}
+.ch-fin td{padding:2px 4px}
+.ch-fin input{width:120px;text-transform:uppercase}

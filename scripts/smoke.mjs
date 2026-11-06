@@ -3354,6 +3354,28 @@ try {
     if (!(tab.rows >= 10 && /Ctrl\+8/.test(tab.porte) && /Ctrl\+Alt\+P/.test(after) && !refus.ok && o1 === !o0 && t1 === "porte" && t2 === "fenetre")) throw new Error(JSON.stringify({ tab, after, refus, o0, o1, t1, t2 }));
     return true;
   });
+  await check("lot 9 (FA-05) : outil « Nuage » : deux clics = nuage rouge avec l'indice A ; Propriétés → indice B ; sur le plan, dans la géométrie d'impression ; Suppr et Ctrl+Z", async () => {
+    await ev(() => { okteo.setTab("plan"); okteoExt.panel.close("assistant"); okteo.clearSel(); });
+    await page.click('#tools [data-tool="nuage"]');
+    const z = await ev(() => { const S = okteo.state, xs = S.nodes.map((n) => n.x), ys = S.nodes.map((n) => n.y), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2; okteo.zoomToBox(cx - 3, cy - 3, cx + 3, cy + 3); return { cx, cy, n0: (S.nuages || []).length }; });
+    await page.waitForTimeout(200);
+    const a = await ev((z) => okteo.toClient(z.cx - 1, z.cy - 0.8), z), b = await ev((z) => okteo.toClient(z.cx + 1, z.cy + 0.8), z);
+    await page.mouse.click(a.x, a.y); await page.mouse.move(b.x, b.y); await page.mouse.click(b.x, b.y);
+    const r1 = await ev(() => { const Q = okteo.state.nuages; const q = Q[Q.length - 1]; return { n: Q.length, ind: q && q.ind, w: q && +(q.x1 - q.x0).toFixed(1), dom: !!document.querySelector("#sv g.nuage text"), sel: (okteo.selection[0] || "").split(":")[0] }; });
+    await page.waitForSelector("#f_ind", { state: "attached", timeout: 5000 });
+    await ev(() => { const i = document.querySelector("#f_ind"); i.value = "b"; i.dispatchEvent(new Event("change")); });
+    const r2 = await ev(() => ({ ind: okteo.state.nuages.at(-1).ind, txt: [...document.querySelectorAll("#sv g.nuage text")].map((t) => t.textContent).join(), geo: (okteo.exportGeometry().nuages || []).map((q) => q.ind).join() }));
+    await ev(() => okteo.setTool("sel"));
+    await page.keyboard.press("Delete");
+    const gone = await ev((n0) => okteo.state.nuages.length === n0, z.n0);
+    await page.keyboard.press("Control+z");
+    const back = await ev((n0) => okteo.state.nuages.length === n0 + 1, z.n0);
+    for (let k = 0; k < 2; k++) await page.keyboard.press("Control+z");
+    const clean = await ev((n0) => okteo.state.nuages.length === n0, z.n0);
+    await ev(() => okteo.clearSel());
+    if (!(r1.n === z.n0 + 1 && r1.ind === "A" && r1.w === 2 && r1.dom && r1.sel === "nuage" && r2.ind === "B" && /B/.test(r2.txt) && /B/.test(r2.geo) && gone && back && clean)) throw new Error(JSON.stringify({ z, r1, r2, gone, back, clean }));
+    return true;
+  });
   await check("lot 5 : « Groupes ▾ » (17 groupes du BE) ; « SA+VV » posé d'un clic sur un mur = interrupteur + va-et-vient côte à côte (8 cm) sur le même mur, un seul Ctrl+Z", async () => {
     await ev(() => { okteo.setTab("plan"); okteoExt.panel.close("assistant"); okteo.clearSel(); });
     await page.click('#tools [data-tool="__groupes"]');
@@ -3670,6 +3692,19 @@ try {
     await page.fill('input[data-f="affaire"]', a0); await ev(() => document.querySelector('input[data-f="affaire"]').dispatchEvent(new Event("change")));
     await ev(() => { localStorage.setItem("okteo.prefs.v1", JSON.stringify({ ...JSON.parse(localStorage.getItem("okteo.prefs.v1") || "{}"), sharepoint: "" })); okteo.setTab("plan"); });
     if (!(/AF26000001/.test(ex) && h0 && !l1.hidden && l1.href === "https://exemple.sharepoint.com/sites/BE/AF26000042")) throw new Error(JSON.stringify({ ex, h0, l1 }));
+    return true;
+  });
+  await check("lot 10 (CH-04, CH-02) : fiche du chantier → « Pièces du dossier » (compte, case à la main gardée) et « Finitions commandées » (majuscules sans accents), enregistrées dans le chantier", async () => {
+    await page.evaluate(() => okteo.setTab("chantiers"));
+    await page.waitForSelector("#ch-pieces", { state: "attached", timeout: 15000 });
+    const n0 = await ev(() => document.querySelector("#ch-pieces-n").textContent);
+    await ev(() => { const c = document.querySelector('[data-piece="photos"]'); c.checked = !c.checked; c.dispatchEvent(new Event("change")); });
+    const n1 = await ev(() => document.querySelector("#ch-pieces-n").textContent);
+    await ev(() => { const i = document.querySelector('[data-fin="appareillage.marque"]'); i.value = "schnéider"; i.dispatchEvent(new Event("change")); });
+    const saved = await ev(() => { const L = JSON.parse(localStorage.getItem("okteo.chantiers.v1") || "[]"), cur = localStorage.getItem("okteo.current"), c = L.find((x) => x.id === cur) || {}; return { photos: (c.pieces || {}).photos, fin: ((c.finitions || {}).appareillage || {}).marque, shown: document.querySelector('[data-fin="appareillage.marque"]').value }; });
+    await ev(() => { const c = document.querySelector('[data-piece="photos"]'); c.checked = !c.checked; c.dispatchEvent(new Event("change")); const i = document.querySelector('[data-fin="appareillage.marque"]'); i.value = ""; i.dispatchEvent(new Event("change")); okteo.setTab("plan"); });
+    const a = +n0.split("/")[0], b = +n1.split("/")[0];
+    if (!(/^\d+ \/ \d+$/.test(n0) && Math.abs(b - a) === 1 && typeof saved.photos === "boolean" && saved.fin === "SCHNEIDER" && saved.shown === "SCHNEIDER")) throw new Error(JSON.stringify({ n0, n1, saved }));
     return true;
   });
   await check("n° 15 : dossier PDF de 3 pages (plan RDC, plan R+1, devis) → nouveau chantier avec ses 2 niveaux et leur fond ; le devis est joint à l'analyse (mode 4)", async () => {

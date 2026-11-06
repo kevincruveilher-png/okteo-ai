@@ -1,7 +1,8 @@
 // Oktéo AI — cœur : Mesures sur mur et interactions souris / clavier sur le plan.
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
 import { K } from "./k.js";
-import { TYPES, cornerHalf, hDefault, dist, epOf, layers, node, nodeById, segById, segDir, segLen, state, uidA, uidD, uidO, uidR, uidS } from "./model.js";
+import { TYPES, cornerHalf, hDefault, dist, epOf, layers, node, nodeById, segById, segDir, segLen, state, uidA, uidD, uidO, uidQ, uidR, uidS } from "./model.js";
+import { nearCloud, rectOf } from "../print/nuage.js";
 import { markDirty, save, snapshot } from "./persist.js";
 import { applyOrtho, evWorld, pxPerVB, repMap, snapWorld, tolM } from "./view.js";
 import { draw, drawSoon, hitBox, hitGaineEnd, hitLock, hitPort, hitRoute, sv } from "./render.js";
@@ -155,6 +156,8 @@ export function hitAny(wx, wy) {
       obj: s.seg
     };
   }
+  // lot 9 (FA-05) : nuage de révision = on le prend par son contour
+  for (const q of state.nuages || []) if (Math.abs(nearCloud(q, wx, wy)) < tolM() * 1.2) return { kind: "nuage", id: q.id, obj: q };
   if (layers.cotes.on && !layers.cotes.lock) {
     for (const d of state.dims) {
       if (segDistPt(wx, wy, d.a, d.b).d < tolM()) return {
@@ -622,6 +625,22 @@ sv.addEventListener("pointerdown", e => {
     }
     return;
   }
+  // lot 9 (FA-05) : nuage de révision = deux coins opposés ; indice = celui du chantier (dernier utilisé)
+  if (K.tool === "nuage") {
+    if (!K.cloudDraft) { K.cloudDraft = { x0: wx, y0: wy, x1: wx, y1: wy }; setHint("Cliquez le coin opposé de la zone modifiée."); }
+    else {
+      const R = rectOf({ ...K.cloudDraft, x1: wx, y1: wy });
+      K.cloudDraft = null;
+      if (R.x1 - R.x0 < 0.2 || R.y1 - R.y0 < 0.2) { setHint("Nuage trop petit : cliquez deux coins plus éloignés."); draw(); return; }
+      snapshot();
+      const q = { id: uidQ(), ...Object.fromEntries(Object.entries(R).map(([k, v]) => [k, +v.toFixed(3)])), ind: K.CAB.indice || "A" };
+      state.nuages.push(q);
+      setSingle("nuage", q.id);
+      markDirty(); draw(); showSide();
+      setHint(hintFor("nuage"));
+    }
+    return;
+  }
   if (K.tool === "sel") {
     if (K.testMode) {
       // mode essai (v45) : un clic sur une commande l'actionne ; sur une lumière, actionne sa commande
@@ -679,6 +698,13 @@ sv.addEventListener("pointerdown", e => {
         a: hit.obj,
         dx: hit.obj.x - wx,
         dy: hit.obj.y - wy,
+        sx: wx,
+        sy: wy,
+        moved: false
+      };else if (hit.kind === "nuage") K.drag = {
+        kind: "nuage",
+        q: hit.obj,
+        o: { ...hit.obj },
         sx: wx,
         sy: wy,
         moved: false
@@ -927,6 +953,10 @@ sv.addEventListener("pointermove", e => {
       moveGroup(wx, wy, e.shiftKey);
       drawSoon();
       showSide();
+    } else if (K.drag.kind === "nuage") {
+      const { q, o } = K.drag, dx = wx - K.drag.sx, dy = wy - K.drag.sy;
+      q.x0 = +(o.x0 + dx).toFixed(3); q.x1 = +(o.x1 + dx).toFixed(3); q.y0 = +(o.y0 + dy).toFixed(3); q.y1 = +(o.y1 + dy).toFixed(3);
+      drawSoon();
     } else if (K.drag.kind === "node") {
       const p = snapWorld(wx, wy, K.drag.n.id);
       K.drag.n.x = p.x;
@@ -1005,6 +1035,9 @@ sv.addEventListener("pointermove", e => {
       const f = nodeById(K.draftFrom);
       showReadout(dist(f.x, f.y, p.x, p.y), Math.atan2(-(p.y - f.y), p.x - f.x));
     }
+    drawSoon();
+  } else if (K.tool === "nuage" && K.cloudDraft) {
+    K.cloudDraft.x1 = wx; K.cloudDraft.y1 = wy;
     drawSoon();
   } else if (K.tool === "cote" && K.dimDraft) {
     const p = snapWorld(wx, wy);

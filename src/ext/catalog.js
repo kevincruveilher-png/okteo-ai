@@ -72,6 +72,7 @@ export function buildCatalog(api, hooks) {
   add("Dessiner", "help.limite", "Limite de pièce (séparer deux pièces sans mur)", "", "Pour séparer un dégagement, une cuisine ouverte… du séjour sans mur : dessiner un mur à l'endroit voulu, le sélectionner, cocher « Limite de pièce » dans son menu (pointillés, pas imprimé comme un mur). La détection des pièces en propose automatiquement aux étranglements quand deux noms du plan tombent dans la même pièce.");
   add("Dessiner", "help.epmur", "Épaisseur d'un mur", "", "Sélectionner le mur : champ « ép. » (cm) dans son menu flottant. Les murs relevés du PDF gardent leur épaisseur réelle.");
   add("Dessiner", "tool.offset", "Cloison parallèle", "", "Cliquer un mur du côté voulu, puis indiquer la distance : crée un mur parallèle.", T("offset"));
+  add("Dessiner", "tool.nuage", "Nuage de révision (indice de révision)", "", "Bouton « Nuage » de la barre bâti : deux clics autour de la zone modifiée. Le nuage rouge porte l'indice de révision dans un triangle (A, B, C… : mots du BE, comme dans FTZ). Propriétés : changer l'indice ; le prochain nuage le reprend. Imprimé sur le plan.", T("nuage"));
   add("Dessiner", "tool.cote", "Coter", "C", "Cliquer deux points pour poser une cote mesurée.", T("cote"));
   add("Dessiner", "help.angles", "Angles droits", "", "Case « Angles droits » en haut : force les murs à l'horizontale ou à la verticale.", () => api.toggle("ortho"));
 

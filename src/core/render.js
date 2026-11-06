@@ -1,5 +1,6 @@
 import { arrowPoints, wallLook, wavePoints } from "../plan-style.js";
 import { planWiring } from "./plan-wiring.js";
+import { cloudPoints, indiceMark, rectOf } from "../print/nuage.js";
 import {ductPath} from '../cablage/vmc.js';
 // Oktéo AI — cœur : Dessin du plan (SVG) : fond, murs, ouvertures, pièces, appareils, étiquettes sans chevauchement.
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
@@ -335,6 +336,12 @@ export function draw() {
   }
   if (K.tool === "cote" && K.dimDraft && K.draftPt) {
     h += `<line x1="${K.dimDraft.x}" y1="${K.dimDraft.y}" x2="${K.draftPt.x}" y2="${K.draftPt.y}" stroke="var(--dimc)" stroke-width="0.05" stroke-dasharray="0.2 0.15"/>`;
+  }
+  // lot 9 (FA-05) : nuages de révision (festons rouges) et triangle de l'indice ; brouillon en pointillés
+  {
+    const one = (q, cls, sel) => { const P = cloudPoints(q, 0.18), M = indiceMark(q); return `<g class="${cls}" data-id="${q.id || ""}"><path d="M${P.map(p => p[0].toFixed(3) + " " + p[1].toFixed(3)).join("L")}Z" fill="none" stroke="${sel ? "var(--sel)" : "#d33"}" stroke-width="${sel ? 2.4 : 1.6}" vector-effect="non-scaling-stroke"${cls === "nuage draft" ? ' stroke-dasharray="6 4"' : ""}/>` + (q.ind ? `<path d="M${M.pts.map(p => p.join(" ")).join("L")}Z" fill="#fff" stroke="${sel ? "var(--sel)" : "#d33"}" stroke-width="1.4" vector-effect="non-scaling-stroke"/><text x="${M.tx}" y="${M.ty}" font-size="${M.size}" text-anchor="middle" dominant-baseline="middle" fill="#d33" font-weight="700">${String(q.ind).replace(/[<>&"]/g, "")}</text>` : "") + `</g>`; };
+    for (const q of state.nuages || []) h += one(q, "nuage", isSel("nuage", q.id));
+    if (K.tool === "nuage" && K.cloudDraft) { const R = rectOf(K.cloudDraft); if (R.x1 - R.x0 > 0.05 && R.y1 - R.y0 > 0.05) h += one(R, "nuage draft", false); }
   }
   // cotes libres (le texte est placé avec les autres étiquettes)
   const dimTexts = [];

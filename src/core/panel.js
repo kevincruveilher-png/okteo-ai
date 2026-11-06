@@ -265,6 +265,19 @@ export function showSide() {
     };
     return;
   }
+  // lot 9 (FA-05) : nuage de révision : indice, suppression
+  if (K.sel && K.sel.kind === "nuage") {
+    const q = (state.nuages || []).find(x => x.id === K.sel.id);
+    if (q) {
+      b.innerHTML = `<h3>Nuage de révision</h3><p class="mut sm">Entoure la zone modifiée ; le triangle porte l'indice de révision (mots du BE). Glisser le contour pour le déplacer.</p>
+       <div class="field"><label>Indice de révision</label><input id="f_ind" value="${String(q.ind || "").replace(/"/g, "&quot;")}" maxlength="3" title="A, B, C… Le prochain nuage prend cet indice."></div>
+       <div class="kv"><span>Zone</span><span class="num">${(q.x1 - q.x0).toFixed(2)} × ${(q.y1 - q.y0).toFixed(2)} m</span></div>
+       <div style="margin-top:12px"><button id="delq" class="danger">Supprimer</button></div>`;
+      b.querySelector("#f_ind").onchange = e => { const v = e.target.value.trim().toUpperCase().slice(0, 3); snapshot(); q.ind = v; K.CAB.indice = v || K.CAB.indice; markDirty(); draw(); showSide(); };
+      b.querySelector("#delq").onclick = () => { snapshot(); state.nuages = state.nuages.filter(x => x.id !== q.id); K.sel = null; markDirty(); draw(); showSide(); };
+      return;
+    }
+  }
   if (K.sel && K.sel.kind === "dim") {
     const d = state.dims.find(x => x.id === K.sel.id);
     const L = dist(d.a.x, d.a.y, d.b.x, d.b.y);
@@ -592,6 +605,9 @@ export function delSel() {
   } else if (K.sel.kind === "dim") {
     snapshot();
     state.dims = state.dims.filter(x => x.id !== K.sel.id);
+  } else if (K.sel.kind === "nuage") {
+    snapshot();
+    state.nuages = state.nuages.filter(x => x.id !== K.sel.id);
   } else return;
   K.sel = null;
   markDirty();

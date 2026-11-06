@@ -16,7 +16,7 @@ vérité, celle-ci, et tenir `docs/journal.md` à jour à CHAQUE modification (e
   `public/assets/fond-evrard-04949.jpg`). Décision de Kévin attendue (dépôt privé ou retrait des plans). N'en ajouter aucun.
 - Ne lancer une mise à jour que sur ordre de Kévin ; ne rien pousser sur `main` sans son « go ». Branches de travail :
   `feat/…`, vérification par GitHub Actions sur une branche `verification-…` supprimée après usage.
-- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854 ; lot C : smoke 202/202, run 41904201702 ; bloc D : smoke 207/207, run 41913594686 ; confirmation d'emplacement : smoke 208/208, run 41990372145 ; interrupteurs au mur : smoke 209/209, run 41993507221 ; plan fluide : smoke 210/210, run 42002250587 ; grosse mise à jour du 05/11 (lots 1 à 6) : smoke 218/218, run 42019579696 ; MAJ norme n° 1 à 6 du 06/11 : smoke 224/224, run 42225339450 ; parafoudre : smoke 225/225, run 42227973132 ; page Paramètres : smoke 225/225, run 42273573467 ; lots 2 et 3 (câblage du BE, options des appareils) : run 42278123819 ; lots 4 et 5 (.spv Counter, groupes) : run 42280434989 ; lots 6 à 8 (raccourcis FTZ, LE menuiserie, SharePoint) : smoke 230/230, run 42285792088). Sans navigateur en local : faire tourner les
+- `npm run check` entièrement vert (03/11/2026, v76 : smoke 184/184, run 41669930082 ; branche 3D (3D-1 à 3D-8, 3D-10) : smoke 193/193, run 41735764026 ; lot A : smoke 199/199, run 41893797352 ; lot B : smoke 200/200, run 41900550854 ; lot C : smoke 202/202, run 41904201702 ; bloc D : smoke 207/207, run 41913594686 ; confirmation d'emplacement : smoke 208/208, run 41990372145 ; interrupteurs au mur : smoke 209/209, run 41993507221 ; plan fluide : smoke 210/210, run 42002250587 ; grosse mise à jour du 05/11 (lots 1 à 6) : smoke 218/218, run 42019579696 ; MAJ norme n° 1 à 6 du 06/11 : smoke 224/224, run 42225339450 ; parafoudre : smoke 225/225, run 42227973132 ; page Paramètres : smoke 225/225, run 42273573467 ; lots 2 et 3 (câblage du BE, options des appareils) : run 42278123819 ; lots 4 et 5 (.spv Counter, groupes) : run 42280434989 ; lots 6 à 8 (raccourcis FTZ, LE menuiserie, SharePoint) : smoke 230/230, run 42285792088 ; lots 9 et 10 (nuage, dossier) : smoke 232/232, run 42288253656). Sans navigateur en local : faire tourner les
   tests sur GitHub Actions (workflow temporaire sur une branche `verification-…`, voir journal v72.1).
 
 # Oktéo AI — consignes pour Claude
@@ -509,6 +509,12 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
 - Type `LEM` (LE menuiserie) ; toujours tester une liaison équipotentielle avec `isEq(t)` (appareils.js), jamais `=== "EQL"`.
   spv.js `pieceDefaut` (GARAGE / EXTERIEUR / CELLIER si pièce inconnue).
 - `src/referentiel/sharepoint.js` `sharepointUrl` ; préférence `sharepoint` (`#pref-sp`) ; lien `#ch-sp` dans la fiche du chantier.
+
+### Nuage de révision, pièces du dossier, finitions — lots 9 et 10 (06/11/2026)
+- `src/print/nuage.js` (pur) ; `state.nuages` (LKEYS, annulable, `uidQ`), outil `nuage` (`K.cloudDraft`), sélection kind
+  `nuage` (contour), Propriétés `#f_ind`, indice courant `K.CAB.indice`, `exportGeometry().nuages`, print.js (option `nuages`).
+- `src/referentiel/dossier.js` (`PIECES`, `piecesOf`, `piecesResume`, `FAMILLES`, `CHAMPS`, `finition`) ; fiche du chantier
+  `#ch-pieces` (`meta.pieces`, auto d'après `meta.dossier` / `meta.pmr`) et `#ch-fins` (`meta.finitions`).
 
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (42 vérifications : relevé des murs, des pièces et des

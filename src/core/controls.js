@@ -27,6 +27,7 @@ export const TI = {
   fenetre: '<path d="M3 9h18v6H3z"/>',
   offset: '<path d="M7 5v14M12 5v14M17 5v14"/>',
   cote: '<path d="M3 12h18M3 8v8M21 8v8"/>',
+  nuage: '<path d="M6 18a3 3 0 0 1 0-6a4 4 0 0 1 7-3a3.5 3.5 0 0 1 5 3a3 3 0 0 1 0 6z"/>',
   pan: '<path d="M9 11V5a1.5 1.5 0 0 1 3 0v6M12 11V3.5a1.5 1.5 0 0 1 3 0V11M15 11V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7 6 6 0 0 1-5-3L4 14a1.5 1.5 0 0 1 2.5-1.5L9 15"/>',
   lien: '<path d="M4 18C4 9 12 15 20 6"/>',
   calib: '<path d="M4 20L20 4M7 17l2 2M11 13l2 2M15 9l2 2"/>',
@@ -40,7 +41,7 @@ export const icon = k => `<svg class="ti" viewBox="0 0 24 24" aria-hidden="true"
 export function buildTools() {
   const t = document.getElementById("tools");
   const btn = (k, n, tip) => `<button data-tool="${k}" class="tb ${K.tool === k ? 'on' : ''}" title="${tip}">${icon(k)}<span class="tl">${n}</span></button>`;
-  const bati = [["sel", "Sélection", "Sélection (V) : cliquer, glisser un cadre, déplacer"], ["piece", "Pièce", "Pièce (E) : un rectangle de murs"], ["mur", "Mur", "Mur (B) : murs enchaînés"], ["porte", "Porte", "Porte : cliquer sur un mur"], ["fenetre", "Fenêtre", "Fenêtre : cliquer sur un mur"], ["offset", "Cloison", "Cloison parallèle à un mur"], ["cote", "Cote", "Cote : deux points"], ["calib", "Échelle", "Échelle du plan : deux points d'une cote connue, ou 1/50"], ["pan", "Main", "Main : déplacer la vue"]];
+  const bati = [["sel", "Sélection", "Sélection (V) : cliquer, glisser un cadre, déplacer"], ["piece", "Pièce", "Pièce (E) : un rectangle de murs"], ["mur", "Mur", "Mur (B) : murs enchaînés"], ["porte", "Porte", "Porte : cliquer sur un mur"], ["fenetre", "Fenêtre", "Fenêtre : cliquer sur un mur"], ["offset", "Cloison", "Cloison parallèle à un mur"], ["cote", "Cote", "Cote : deux points"], ["nuage", "Nuage", "Nuage de révision : deux coins autour de la zone modifiée, avec l'indice de révision (comme dans FTZ)"], ["calib", "Échelle", "Échelle du plan : deux points d'une cote connue, ou 1/50"], ["pan", "Main", "Main : déplacer la vue"]];
   let h = `<div class="trow bati" role="toolbar" aria-label="Implantation bâti"><span class="tlab" title="Outils pour dessiner le bâtiment">Implantation<b>bâti</b></span>` + bati.map(([k, n, tip]) => btn(k, n, tip)).join("") + `</div>`;
   h += `<div class="trow appa" role="toolbar" aria-label="Implantation appareils"><span class="tlab" title="Outils pour poser l'appareillage et ses liaisons">Implantation<b>appareils</b></span>` + btn("lien", "Liaison", "Liaison : une commande puis ses lumières") +
     `<button data-tool="__test" class="tb ${K.testMode ? 'on' : ''}" title="Essai : cliquer un interrupteur allume ou éteint ses lumières, comme dans la maison (va-et-vient, télérupteur, disjoncteurs)">${icon("__test")}<span class="tl">Essai</span></button><span class="sep"></span>`;
@@ -216,6 +217,7 @@ export function resetTransient() {
   K.typed = "";
   K.roomDraft = null;
   K.dimDraft = null;
+  K.cloudDraft = null;
   K.marquee = null;
   K.seriesMode = null;
   K.seriesPrev = null;
@@ -236,6 +238,7 @@ export function hintFor(v) {
     offset: "Cliquez un mur, du côté voulu, puis indiquez la distance de la cloison parallèle.",
     calib: "Échelle du fond : zoomez sur une cote connue du plan (ex. 13,00), cliquez ses deux extrémités, puis tapez sa longueur réelle.",
     cote: "Cliquez deux points pour poser une cote mesurée.",
+    nuage: "Nuage de révision : cliquez deux coins opposés autour de la zone modifiée. L'indice (A, B, C…) se change dans Propriétés.",
     pan: "Faites glisser pour déplacer la vue.",
     lien: linkSummary() + ". Cliquez une commande pour voir ses lumières, puis une lumière pour la relier ou la détacher ; cliquez une liaison pour la choisir (Suppr la retire)."
   };
@@ -480,6 +483,11 @@ document.addEventListener("keydown", e => {
       K.draftFrom = null;
       K.draftPt = null;
       hideReadout();
+      draw();
+      return;
+    }
+    if (K.cloudDraft) {
+      K.cloudDraft = null;
       draw();
       return;
     }

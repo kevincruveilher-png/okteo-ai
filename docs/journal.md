@@ -1,3 +1,27 @@
+## 06/11/2026 — Lot 10 de la reprise des paramètres du BE : pièces du dossier, finitions (fusionné dans `main`, run 42288253656 vert, smoke 232/232)
+
+- CH-04 « Appliquée » : `src/referentiel/dossier.js` (pur : `PIECES` (10, PMR facultatif), `piecesOf(meta)` = case à la
+  main (`meta.pieces`) sinon déduite du rôle des pages du PDF (`meta.dossier` : plan, devis, plan cuisine) ou de
+  `meta.pmr`, `piecesResume` → {ok, n, manque}). Fiche du chantier : `#ch-pieces` (`[data-piece]`, `#ch-pieces-n`
+  « 7 / 9 », pièces manquantes), ouvert tant qu'il manque une pièce.
+- CH-02 (reste « À intégrer » : lecture du fichier passerelle ALTIOR à faire) : `FAMILLES` (6), `CHAMPS` (marque,
+  gamme, couleur, plaque), `finition` (majuscules sans accents), `finitionTexte`, `finitionsOf` ; fiche du chantier
+  `#ch-fins` (`[data-fin="famille.champ"]`) → `meta.finitions`. Chaque changement est noté dans l'historique du chantier.
+- Tests : `scripts/dossier.test.mjs` (5) dans `npm run check`, smoke « lot 10 (CH-04, CH-02) ».
+
+## 06/11/2026 — Lot 9 de la reprise des paramètres du BE : nuage et indice de révision (fusionné dans `main`, run 42288253656 vert, smoke 232/232)
+
+- FA-05 « Appliquée » : `src/print/nuage.js` (pur : `rectOf`, `scallops`, `cloudPoints` (festons vers l'extérieur, mêmes
+  points écran et papier), `indiceMark` (triangle sur l'angle haut droit), `nextIndice`, `nearCloud`).
+- Modèle : `state.nuages` [{id "q…", x0, y0, x1, y1, ind}] par niveau (`LKEYS`, `packState`, annulable), `uidQ` / `K.QID` ;
+  `exportGeometry().nuages`. Indice courant du chantier : `K.CAB.indice` (le prochain nuage le reprend).
+- Outil `nuage` (barre bâti, icône nuage) : deux clics = deux coins (brouillon en pointillés `K.cloudDraft`, Échap
+  annule) ; sélection par le contour (`hitAny` → kind `nuage`), glisser = déplacer, Suppr, HUD « Supprimer le nuage » ;
+  Propriétés `#f_ind` (indice), `#delq`. Rendu `g.nuage` (rouge, trait fixe à l'écran).
+- Impression : print.js trace les festons et le triangle avec l'indice (option `nuages`, vrai par défaut) ; `rotateGeo`
+  tourne les points.
+- Tests : `scripts/nuage.test.mjs` (6) dans `npm run check`, smoke « lot 9 (FA-05) ».
+
 ## 06/11/2026 — Lot 8 de la reprise des paramètres du BE : dossier SharePoint de l'affaire (fusionné dans `main`, run 42285792088 vert, smoke 230/230)
 
 - CH-08 « Appliquée » : `src/referentiel/sharepoint.js` (pur : `sharepointUrl(modèle, affaire)` — {affaire} remplacé
