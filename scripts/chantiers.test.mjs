@@ -1,6 +1,7 @@
 // Câblage d'Oktéo sur 4 chantiers réels (v52) : contenu relevé sur les bandes FTZ (scripts/fixtures/chantiers-ftz.mjs),
 // câblé par Oktéo dans les 3 modes de pieuvre, puis contrôle des règles vérifiées à la main par Kévin sur ces chantiers
 // (journal des règles, note de passation section 3). On ne compare PAS le nombre de boîtes à FTZ (16 départs chez nous, v56).
+import { placeFils, placeCable } from "../src/cablage/gaine.js";
 import { CHANTIERS_FTZ, buildChantier } from "./fixtures/chantiers-ftz.mjs";
 import { computeCircuits, circuitsByBox } from "../src/cablage/circuits.js";
 import { placeBoxes } from "../src/cablage/boites.js";
@@ -36,9 +37,10 @@ for (const name of Object.keys(CHANTIERS_FTZ)) {
       [...P.issues, ...W.doutes.map((d) => d.text)].join(" ; "));
     // 1. R-001 : 16 départs (sans l'alimentation, v56), 6 gaines par face (alimentation comprise)
     check(tag + "R-001 : ≤ 16 départs par boîte, ≤ 6 gaines par face", B.every((b) => b.gaines.filter((g) => g.kind === "app").length <= 16 && FACES.every((f) => b.gaines.filter((g) => g.face === f).length <= 6) && b.gaines.every((g) => FACES.includes(g.face))));
-    // 2. R-074 : diamètre par la somme des sections
-    check(tag + "R-074 : ≤ 7,5 mm² → ICTA 16, ≤ 13,5 mm² → ICTA 20", G.every((g) => g.diam === (g.sum <= 7.5 + 1e-9 ? 16 : g.sum <= 13.5 + 1e-9 ? 20 : null) && g.diam != null),
-      G.filter((g) => g.diam == null).map((g) => g.no + " " + g.sum).join(", "));
+    // 2. R-074 (lot 2, 06/11/2026) : diamètre par la place occupée (méthode du BE : fil 1,5 = 8,6 ; ICTA 16 = 44, ICTA 20 = 90)
+    const placeOf = (g) => g.cable ? placeCable(g.cable) : placeFils(g.wires.filter((w) => w.fn !== "isole").map((w) => w.section));
+    check(tag + "R-074 : place ≤ 44 → ICTA 16, ≤ 90 → ICTA 20", G.every((g) => g.diam === (placeOf(g) <= 44 + 1e-9 ? 16 : placeOf(g) <= 90 + 1e-9 ? 20 : null) && g.diam != null),
+      G.filter((g) => g.diam !== (placeOf(g) <= 44 ? 16 : placeOf(g) <= 90 ? 20 : null)).map((g) => g.no + " " + placeOf(g) + " " + g.diam).join(", "));
     // 3. R-075 : une terre dans l'alimentation, de la plus forte section de la gaine
     check(tag + "R-075 : une seule terre par boîte, dans l'alimentation, à la plus forte section", B.every((b) => {
       const A = b.gaines.filter((g) => g.kind === "alim"), T = A.flatMap((g) => g.wires.filter((w) => w.fn === "terre"));

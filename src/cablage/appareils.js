@@ -22,7 +22,7 @@ export const GROUPES = ["Chauffage et ventilation", "Cuisine et spécialisés", 
 
 export const APPAREILS = {
   PC32: { n: "Prise / sortie 32 A (usage à préciser)", r: "P", h: 30, lab: "32", groupe: "Cuisine et spécialisés", mural: true, racc: "direct", lignes: [{ fils: "6 R+B+V/J", gaine: 20 }], circuit: { section: 6, prot: 32 } },
-  RAD: { n: "Radiateur (convecteur, fil pilote)", r: "C", h: 30, lab: "RAD", groupe: "Chauffage et ventilation", mural: true, racc: "direct", lignes: [{ fils: "1,5 B+N+M+V/J", gaine: 16 }], circuit: { section: 1.5, prot: 16 } },
+  RAD: { n: "Radiateur (convecteur, fil pilote)", r: "C", h: 30, lab: "RAD", groupe: "Chauffage et ventilation", mural: true, racc: "direct", lignes: [{ fils: "1,5 B+N+M+V/J", gaine: 16 }], circuit: { section: 1.5, prot: 10 } },   // lot 2 : convecteur seul 10 A (BE)
   SS: { n: "Sèche-serviette", r: "SS", h: 30, lab: "SS", groupe: "Chauffage et ventilation", mural: true, racc: "direct", lignes: [{ fils: "1,5 BF+M+V/J", gaine: 16 }], circuit: { section: 1.5, prot: 10 } },
   // v74 MAJ 3 : sanitaires (pas électriques) : ils servent à tracer les volumes de la salle de bain (volumes.js)
   BAIG: { n: "Baignoire", r: "SANI", h: 0, lab: "BAIG", groupe: "Sanitaires", racc: "aucun", lignes: [], sani: true },

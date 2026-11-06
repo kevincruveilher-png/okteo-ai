@@ -5,14 +5,14 @@ import fs from "node:fs";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import { extractSegments } from "../src/walls/extract.js";
 import { detectDevices, pageTexts } from "../src/walls/devices.js";
-import { gaineFor } from "../src/cablage/gaine.js";
+import { gaineFor, placeFils, placeFil } from "../src/cablage/gaine.js";
 import { computeCircuits, checkCircuits, circuitsByBox, isCuisine } from "../src/cablage/circuits.js";
 import { CAB_DEFAULTS as S } from "../src/cablage/settings.js";
 import { placeBoxes, buildUnits, faceToward, portLayout, portXY, minBoxes, wiresOf, MODES, zonesOf, zoneOfName } from "../src/cablage/boites.js";
 import { intrusions, noter, mesures, POIDS } from "../src/cablage/qualite.js";
 import { pointInPoly } from "../src/walls/rooms.js";
 import { PACK_DEFAULTS, packFor, missing, placePack, prisesNorme } from "../src/cablage/packs.js";
-import { computeWiring, gaineLength, cableColors } from "../src/cablage/gaines.js";
+import { computeWiring, gaineLength, cableColors, coupeFils } from "../src/cablage/gaines.js";
 import { connectorsFor, boxSteps, boxMaterial, boxChecks, parseSizes, schemaSVG, tranchesSVG, trancheOrder, overlaps } from "../src/cablage/schema.js";
 import { autoTableau, syncTableau, tableauIssues, protections, moveItem, suggestModel, addBreaker, addModular, MODELS, idCalibre, nbIdCommuns, needsF, isIrve, isExt } from "../src/cablage/tableau.js";
 import { packSheet, unpackSheet, encodeSheet, decodeSheet, sheetUrl } from "../src/cablage/bande-code.js";
@@ -20,12 +20,12 @@ import { packSheet, unpackSheet, encodeSheet, decodeSheet, sheetUrl } from "../s
 let ok = 0; const fails = [];
 const check = (name, cond, info = "") => { if (cond) { ok++; console.log("  ✓ " + name); } else { fails.push(name); console.log("  ✗ " + name + (info ? " : " + info : "")); } };
 
-console.log("Diamètre des gaines : somme des sections (R-074)");
+console.log("Diamètre des gaines : place occupée par les fils, méthode du BE (R-074, lot 2 du 06/11/2026)");
 const f = (n, sec) => Array(n).fill(sec);
-check("5 fils de 1,5 mm² (7,5) → ICTA 16 ; 3 fils de 2,5 (7,5) → ICTA 16", gaineFor(f(5, 1.5), S) === 16 && gaineFor(f(3, 2.5), S) === 16);
-check("6 fils de 1,5 (9) → ICTA 20 ; 4 × 1,5 + 2,5 (8,5) → ICTA 20", gaineFor(f(6, 1.5), S) === 20 && gaineFor([...f(4, 1.5), 2.5], S) === 20);
-check("9 fils de 1,5 (13,5, maximum vu sur 4 chantiers) → ICTA 20", gaineFor(f(9, 1.5), S) === 20);
-check("au-delà de 13,5 mm² : pas de diamètre (doute), capacités réglables", gaineFor(f(10, 1.5), S) === null && gaineFor(f(4, 6), S) === null && gaineFor(f(10, 1.5), { ...S, icta20: 16 }) === 20);
+check("5 fils de 1,5 (43) → ICTA 16 ; 3 fils de 2,5 (35,7) → ICTA 16", gaineFor(f(5, 1.5), S) === 16 && gaineFor(f(3, 2.5), S) === 16);
+check("6 fils de 1,5 (51,6) → ICTA 20 ; 4 × 1,5 + 2,5 (46,3) → ICTA 20", gaineFor(f(6, 1.5), S) === 20 && gaineFor([...f(4, 1.5), 2.5], S) === 20);
+check("10 fils de 1,5 (86) → ICTA 20 ; câble 3G1,5 → ICTA 16, 4G1,5 → ICTA 20", gaineFor(f(10, 1.5), S) === 20 && gaineFor([], S, { cable: "3G1,5" }) === 16 && gaineFor([], S, { cable: "4G1,5" }) === 20);
+check("au-delà de 90 : pas de diamètre (doute), capacités réglables", gaineFor(f(11, 1.5), S) === null && gaineFor(f(4, 6), S) === null && gaineFor(f(11, 1.5), { ...S, icta20: 100 }) === 20);
 check("exceptions R-074 (Q-79, Q-81) : B + R + V/J 6 mm² → ICTA 20 ; 10 mm² → ICTA 25", gaineFor(f(3, 6), S) === 20 && gaineFor(f(3, 10), S) === 25);
 
 console.log("Circuits NF C 15-100 sur EVRARD (appareils relevés du PDF)");
@@ -43,7 +43,7 @@ const powered = items.filter((a) => !["TAB", "VMC"].includes(a.t));
 check("chaque appareil est dans exactement un circuit", powered.every((a) => (where.get(a.id) || []).length === 1), powered.filter((a) => (where.get(a.id) || []).length !== 1).map((a) => a.t).join(","));
 const ecl = C.filter((c) => c.kind === "eclairage"), pr = C.filter((c) => c.kind === "prises");
 const L = new Set(["LUM", "SPOT", "APP"]), byId = new Map(items.map((a) => [a.id, a]));
-check("éclairage : au plus 8 points par circuit, en 1,5 mm² / 16 A", ecl.length >= 3 && ecl.every((c) => c.apps.filter((id) => L.has(byId.get(id).t)).length <= 8 && c.section === 1.5 && c.prot === 16), ecl.map((c) => c.apps.length).join(","));
+check("éclairage : au plus 8 points par circuit, en 1,5 mm² / 10 A (calibre du BE)", ecl.length >= 3 && ecl.every((c) => c.apps.filter((id) => L.has(byId.get(id).t)).length <= 8 && c.section === 1.5 && c.prot === 10), ecl.map((c) => c.apps.length).join(","));
 check("prises 16 A : au plus 8 par circuit, en 1,5 mm² / 16 A (règle KiTéOHM)", pr.length === Math.ceil(T("PC16").length / 8) && pr.every((c) => c.apps.length <= 8 && c.section === 1.5 && c.prot === 16), pr.map((c) => c.apps.length).join(","));
 check("prises 20/32 A et sorties de câble : un circuit spécialisé chacune (ligne directe)", [...T("PC20"), ...T("SC")].every((a) => where.get(a.id)[0].kind === "specialise" && where.get(a.id)[0].apps.length === 1 && where.get(a.id)[0].direct));
 check("RJ45 : lignes directes de communication", T("RJ45").every((a) => where.get(a.id)[0].kind === "comm"));
@@ -58,7 +58,7 @@ check("numérotation C1, C2… puis COM", C.filter((c) => c.kind !== "comm").eve
 check("contrôle : aucun dépassement, aucun appareil oublié", (() => { const r = checkCircuits(C, items, S); return !r.issues.length && !r.orphans.length; })());
 
 console.log("Boîtes (v29) et gaines (v30) sur EVRARD");
-check("longueur : 3 m dans les combles, prise à 30 cm → 3×1,10 + 0,30 + 2,20 + 0,30 + 0,20 = 6,30 m", gaineLength({ horiz: 3, downA: 0.3 + 2.2 }, S) === 6.3, String(gaineLength({ horiz: 3, downA: 2.5 }, S)));
+check("longueur : 3 m dans les combles, prise à 30 cm → 3×1,10 + 0,30 + 2,20 = 5,80 m (pas de surlongueur de gaine) ; fils coupés à 6,20 m", gaineLength({ horiz: 3, downA: 0.3 + 2.2 }, S) === 5.8 && coupeFils(5.8, S) === 6.2, String(gaineLength({ horiz: 3, downA: 2.5 }, S)));
 check("faces : vers le haut du plan = A, droite = B, bas = C, gauche = D", faceToward({ x: 0, y: 0 }, { x: 0.2, y: -2 }) === "A" && faceToward({ x: 0, y: 0 }, { x: 2, y: 0.5 }) === "B" && faceToward({ x: 0, y: 0 }, { x: 0, y: 3 }) === "C" && faceToward({ x: 0, y: 0 }, { x: -1, y: 0 }) === "D");
 const k2 = 13 / 550 * 1.056;
 items.push({ id: "tab", t: "TAB", x: 293 * k2, y: 410 * k2, h: null, lv: "rdc", lvName: "RDC", room: "Garage", rep: "TD1" });
@@ -98,7 +98,7 @@ check("alimentation : une seule gaine par boîte (phase + neutre de chaque circu
   W.boxes.every((b) => { const A = b.gaines.filter((x) => x.kind === "alim");
     const usesN = (cn) => b.gaines.some((g) => g.kind === "app" && g.wires.some((w) => w.fn === "neutre" && w.circuit === cn));
     return b.circuits.every((cn) => A.some((x) => x.circuits.includes(cn) && x.wires.some((w) => w.fn === "phase" && w.circuit === cn) && (!usesN(cn) || x.wires.some((w) => w.fn === "neutre" && w.circuit === cn))))
-      && A.reduce((s, x) => s + x.wires.filter((w) => w.fn === "terre").length, 0) === 1 && A[0].wires.some((w) => w.fn === "terre") && A.every((x) => x.diam === 16 || x.diam === 20) && (A.length === 1 || A[0].sum + A[1].wires[0].section * 2 > 13.5); }),
+      && A.reduce((s, x) => s + x.wires.filter((w) => w.fn === "terre").length, 0) === 1 && A[0].wires.some((w) => w.fn === "terre") && A.every((x) => x.diam === 16 || x.diam === 20) && (A.length === 1 || placeFils(A[0].wires.map((w) => w.section)) + 2 * placeFil(A[1].wires[0].section) > 90); }),
   W.boxes.map((b) => b.gaines.filter((x) => x.kind === "alim").map((x) => `${x.circuit} Ø${x.diam} (${x.wires.length} fils)`).join(" | ")).join(" ; "));
 check("lignes directes : prises spécialisées, sorties de câble et RJ45 (tableau → appareil)", W.direct.length === T("PC20").length + T("SC").length + T("RJ45").length && W.direct.every((x) => x.length > 2));
 
@@ -154,18 +154,18 @@ console.log("Règles KiTéOHM (v38) : circuits par boîte, ronde harmonisée, t�
   const its = [...ck, ...cmd2, ...lamps], lk = [...lamps.slice(0, 5).map((l) => ({ c: "m1", l: l.id })), ...lamps.slice(5).map((l) => ({ c: "m2", l: l.id }))];
   const CK = circuitsByBox(its, lk, [{ id: "bk", n: "LI09", lv: "rdc", x: 55, y: 55, apps: its.map((a) => a.id) }], S);
   const cu = CK.find((c) => c.kind === "cuisine"), circOfId = (id) => CK.find((c) => c.apps.includes(id));
-  check("prises de cuisine : circuit à part en 2,5 mm² / 20 A ; deux commandes au même endroit sur le même circuit (phase commune), même au-delà de 8 points",
-    cu && cu.section === 2.5 && cu.prot === 20 && cu.apps.length === 3 && circOfId("m1") === circOfId("m2"), CK.map((c) => `${c.kind}:${c.apps.length}`).join(" "));
+  check("prises de cuisine : circuit à part en 2,5 mm² / 16 A (calibre du BE) ; deux commandes au même endroit sur le même circuit (phase commune), même au-delà de 8 points",
+    cu && cu.section === 2.5 && cu.prot === 16 && cu.apps.length === 3 && circOfId("m1") === circOfId("m2"), CK.map((c) => `${c.kind}:${c.apps.length}`).join(" "));
   // R-073 (v56) : commande et prise au même endroit partagent une gaine, sauf si elle devrait passer en ICTA 25
   {
     const V = [];
     const its3 = [{ id: "p", t: "PC16", x: 0, y: 0, lv: "rdc", rep: "P1" }, { id: "tb", t: "TAB", x: -3, y: 0, lv: "rdc" }];
-    for (let k = 0; k < 3; k++) { its3.push({ id: "va" + k, t: "VV", x: 0.05 * k, y: 0.05, lv: "rdc", rep: "VV" + k }, { id: "vb" + k, t: "VV", x: 5, y: k, lv: "rdc", rep: "VV" + k + "A" }, { id: "l" + k, t: "LUM", x: 3, y: k, lv: "rdc", rep: "L" + k }); V.push({ c: "va" + k, l: "l" + k }, { c: "vb" + k, l: "l" + k }); }
+    for (let k = 0; k < 4; k++) { its3.push({ id: "va" + k, t: "VV", x: 0.05 * k, y: 0.05, lv: "rdc", rep: "VV" + k }, { id: "vb" + k, t: "VV", x: 5, y: k, lv: "rdc", rep: "VV" + k + "A" }, { id: "l" + k, t: "LUM", x: 3, y: k, lv: "rdc", rep: "L" + k }); V.push({ c: "va" + k, l: "l" + k }, { c: "vb" + k, l: "l" + k }); }
     const its4 = its3.slice(0, 2).concat([{ id: "i1", t: "INT", x: 0.05, y: 0.05, lv: "rdc", rep: "I1" }, { id: "l9", t: "LUM", x: 3, y: 3, lv: "rdc", rep: "L9" }]);
     const one = (its, lk) => { const Cc = computeCircuits(its, lk, S); return computeWiring({ items: its, links: lk, circuits: Cc, boxes: [{ id: "bb", n: "LI09", lv: "rdc", x: 1.5, y: 1, apps: its.filter((a) => a.t !== "TAB").map((a) => a.id) }], levels: ["rdc"], S }).boxes[0].gaines; };
     const big = one(its3, V), small = one(its4, [{ c: "i1", l: "l9" }]);
     const gP = big.find((g) => (g.appIds || []).includes("p")), gS = small.find((g) => (g.appIds || []).includes("p"));
-    check("R-073 : prise + 3 va-et-vient au même endroit → gaines séparées (pas d'ICTA 25 en boîte) ; prise + interrupteur → une gaine",
+    check("R-073 : prise + 4 va-et-vient au même endroit (plus de 90) → gaines séparées (pas d'ICTA 25 en boîte) ; prise + interrupteur → une gaine",
       gP && !gP.appIds.includes("va0") && big.every((g) => g.diam <= 20) && gS && gS.appIds.includes("i1"), JSON.stringify(big.map((g) => [g.appIds, g.diam])));
   }
   // v56 : volets connectés (R-096), sonnette sur l'éclairage, îlot, bouton de sonnette, total des lignes directes (R-099)

@@ -2815,7 +2815,7 @@ try {
     await page.waitForTimeout(200);
     const f2 = await ev(() => document.querySelector("#ps-regles .rg-row.on")?.dataset.id + "|" + (document.querySelector("#ps-regles .rg-fiche")?.textContent || ""));
     const ok = conform && /departs_max = 16/.test(f) && /Départs par boîte \(sans l'alimentation\) : 18 \(journal : 16\)/.test(f) && /R-088/.test(f) && /Bande DUCOURNEAU/.test(f) && /Q-50/.test(f) && /H-020/.test(f)
-      && /R-001.*16.*18/.test(ec) && /^R-074\|/.test(f2) && /icta20_mm2 = 13,5/.test(f2) && /bloquer/.test(f2);
+      && /R-001.*16.*18/.test(ec) && /^R-074\|/.test(f2) && /icta20_place = 90/.test(f2) && /bloquer/.test(f2);
     if (!ok) throw new Error(JSON.stringify({ f: f.slice(0, 300), ec, f2: f2.slice(0, 200) }));
     return true;
   });
