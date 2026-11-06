@@ -1,3 +1,13 @@
+## 06/11/2026 — MAJ mémoire (pavillonneur / tous) et MAJ pose fusionnées dans `main`
+
+- `npm run check` vert sur GitHub Actions : mémoire run 42207276115, pose run 42207333809. Workflow temporaire retiré.
+
+## 06/11/2026 — MAJ « pose » : plus d'alerte battant de porte ni embrasure (go de Kévin, 12:01)
+
+- check.js `POSE_OFF` (battant, embrasure) : ces deux contrôles de pose (3D-6, `src/3d/pose.js`) ne sont plus signalés,
+  ni sur le plan (halo orange) ni en 3D (la 3D lit `okteo.control`). Les fonctions pures restent (v3d.test.mjs).
+- Restent en orange : appareil hors de son mur, volumes de salle de bains, zones d'exclusion, hauteur de pose.
+- Smoke : l'essai 3D-6 vérifie maintenant qu'aucune de ces deux alertes n'apparaît.
 ## 06/11/2026 — MAJ mémoire « par pavillonneur, ou pour tous » (go de Kévin, 11:55)
 
 - Par défaut, une variante ne sert qu'aux plans de son pavillonneur (décision du 04/11, gardée). Case « Valable pour tous

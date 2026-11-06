@@ -444,6 +444,12 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
   `memoryStep` ; consigne copiée `pastePrompt({memory})` ; outil « legende » avec images (`out.images`).
 - Affichage : bandeau 1 toujours visible sur une ligne (`#web-dot`, pas de jauge), bandeau 2 seulement plan et 3D.
 
+### MAJ du 06/11/2026 (mémoire par pavillonneur ou pour tous, pose)
+- symbol-memory.js `keyOf` (pavillonneur vide = « (sans pavillonneur) »), fiches `tous` (case `#why-tous`, `[data-tous]`,
+  `setTous`, colonne serveur `tous`), `own` prioritaire ; `freshMemory` (avant collage / analyse avec outils),
+  `startMemoryTimer` (5 min) ; ai-memory.js `doubtKey` / `readKey` (hésitation « A ou B ») ; `api.setClient`.
+- check.js `POSE_OFF` : plus d'alerte battant ni embrasure (pose.js garde les fonctions).
+
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (42 vérifications : relevé des murs, des pièces et des
 appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (87 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (14 : chantier de référence MAILLARD comparé au BE) + `scripts/v3d.test.mjs` (vue 3D) + `scripts/smoke.mjs` (171 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`

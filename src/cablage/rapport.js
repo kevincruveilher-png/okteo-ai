@@ -6,7 +6,7 @@
 export const FAMILLES = {
   ia: { label: "L'IA hésite", color: "#2f6fe0", aide: "Information du plan mal lue ou deux types possibles : à trancher en regardant le plan." },
   montage: { label: "Montage faux", color: "#d33a2c", aide: "Ce qui est dessiné ne peut pas marcher tel quel (commande sans lumière, va-et-vient seul…)." },
-  pose: { label: "Pose", color: "#f28c1b", aide: "L'appareil est mal placé (dans un mur, derrière un battant, dans un volume de salle de bain…)." },
+  pose: { label: "Pose", color: "#f28c1b", aide: "L'appareil est mal placé (hors de son mur, dans un volume de salle de bain, dans une zone d'exclusion, à une hauteur anormale)." },
   cablage: { label: "Câblage", color: "#0b8a7a", aide: "Raccordement à revoir : boîte, circuit, allumage coupé, parcours VMC." },
 };
 const FAM = {
