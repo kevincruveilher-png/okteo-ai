@@ -1,0 +1,400 @@
+  ✓ FALGUA piece : R-096 : volet filaire = mêmes deux fils de commande dans la gaine du CVR et dans celle du moteur
+  ✓ FALGUA piece : R-080 / R-075 : équipotentielle locale = un fil V/J 2,5 dans sa gaine ; terre de l'alimentation de sa boîte en 2,5
+  ✓ FALGUA piece : longueur totale de chaque boîte = somme de ses gaines
+BATELIER (MAISONS LARA), pieuvre proximite : 88 appareils → 8 boîtes (FTZ : 7 sans les volets), 86 gaines, 445.2 m de gaine
+    LI01 16+1 (A5 B6 C3 D3) 83.5 m · LI02 11+1 (A3 B3 C4 D2) 73.5 m · LI03 6+1 (A2 B2 C2 D1) 26.1 m · LI04 13+1 (A2 B4 C3 D5) 81.1 m · LI05 6+1 (A2 B2 C2 D1) 28.4 m · LI06 9+1 (A3 B3 C3 D1) 60 m · LI07 8+1 (A2 B3 C3 D1) 32.3 m · LI08 9+1 (A3 B2 C3 D2) 60.3 m
+  ✓ BATELIER proximite : chaque appareil dans exactement une boîte, aucun allumage coupé, aucun doute bloquant
+  ✓ BATELIER proximite : R-001 : ≤ 16 départs par boîte, ≤ 6 gaines par face
+  ✓ BATELIER proximite : R-074 : place ≤ 44 → ICTA 16, ≤ 90 → ICTA 20
+  ✓ BATELIER proximite : R-075 : une seule terre par boîte, dans l'alimentation, à la plus forte section
+  ✓ BATELIER proximite : R-081 : circuits C1…Cn dans l'ordre des boîtes, éclairage puis prises puis cuisine
+  ✓ BATELIER proximite : R-021 / R-022 : ≤ 8 prises par circuit, ≤ 6 en cuisine
+  ✓ BATELIER proximite : R-077 : .01 = alimentation, numéros strictement dans le sens anti-horaire
+  ✓ BATELIER proximite : R-072 : dans chaque gaine, une couleur de la ronde = un seul allumage ; couleur répétée dans la boîte = bague
+  ✓ BATELIER proximite : R-020 / R-021 : phase rouge 1,5 seulement pour l'éclairage (et la cuisine 2,5), phase grise seulement pour les prises (et les volets, R-021 / R-079)
+  ✓ BATELIER proximite : R-014 / R-095 : lumière extérieure en câble 3G avec bouchon ; son allumage est marron
+  ✓ BATELIER proximite : R-079 / R-087 : volets sur un circuit dédié 1,5 mm² 10 A (≤ 2 300 W de moteurs), phase grise et neutre bleu clair
+  ✓ BATELIER proximite : R-096 : volet filaire = mêmes deux fils de commande dans la gaine du CVR et dans celle du moteur
+  ✓ BATELIER proximite : R-080 / R-075 : équipotentielle locale = un fil V/J 2,5 dans sa gaine ; terre de l'alimentation de sa boîte en 2,5
+  ✓ BATELIER proximite : longueur totale de chaque boîte = somme de ses gaines
+BATELIER (MAISONS LARA), pieuvre equilibre : 88 appareils → 6 boîtes (FTZ : 7 sans les volets), 87 gaines, 506.9 m de gaine
+    LI01 14+1 (A3 B4 C3 D5) 67.8 m · LI02 15+1 (A3 B4 C4 D5) 79.4 m · LI03 15+1 (A2 B6 C2 D6) 114.7 m · LI04 15+1 (A6 B4 C4 D2) 102.2 m · LI05 13+1 (A5 B2 C5 D2) 82.8 m · LI06 9+1 (A3 B3 C2 D2) 60 m
+  ✓ BATELIER equilibre : chaque appareil dans exactement une boîte, aucun allumage coupé, aucun doute bloquant
+  ✓ BATELIER equilibre : R-001 : ≤ 16 départs par boîte, ≤ 6 gaines par face
+  ✓ BATELIER equilibre : R-074 : place ≤ 44 → ICTA 16, ≤ 90 → ICTA 20
+  ✓ BATELIER equilibre : R-075 : une seule terre par boîte, dans l'alimentation, à la plus forte section
+  ✓ BATELIER equilibre : R-081 : circuits C1…Cn dans l'ordre des boîtes, éclairage puis prises puis cuisine
+  ✓ BATELIER equilibre : R-021 / R-022 : ≤ 8 prises par circuit, ≤ 6 en cuisine
+  ✓ BATELIER equilibre : R-077 : .01 = alimentation, numéros strictement dans le sens anti-horaire
+  ✓ BATELIER equilibre : R-072 : dans chaque gaine, une couleur de la ronde = un seul allumage ; couleur répétée dans la boîte = bague
+  ✓ BATELIER equilibre : R-020 / R-021 : phase rouge 1,5 seulement pour l'éclairage (et la cuisine 2,5), phase grise seulement pour les prises (et les volets, R-021 / R-079)
+  ✓ BATELIER equilibre : R-014 / R-095 : lumière extérieure en câble 3G avec bouchon ; son allumage est marron
+  ✓ BATELIER equilibre : R-079 / R-087 : volets sur un circuit dédié 1,5 mm² 10 A (≤ 2 300 W de moteurs), phase grise et neutre bleu clair
+  ✓ BATELIER equilibre : R-096 : volet filaire = mêmes deux fils de commande dans la gaine du CVR et dans celle du moteur
+  ✓ BATELIER equilibre : R-094 : pieuvre équilibrée → une seule boîte pour tous les volets, sans autre appareil
+  ✓ BATELIER equilibre : R-080 / R-075 : équipotentielle locale = un fil V/J 2,5 dans sa gaine ; terre de l'alimentation de sa boîte en 2,5
+  ✓ BATELIER equilibre : longueur totale de chaque boîte = somme de ses gaines
+BATELIER (MAISONS LARA), pieuvre piece : 88 appareils → 8 boîtes (FTZ : 7 sans les volets), 86 gaines, 449 m de gaine
+    LI01 13+1 (A2 B5 C2 D5) 59.4 m · LI02 5+1 (A1 B1 C1 D3) 24.8 m · LI03 16+1 (A3 B5 C4 D5) 82.1 m · LI04 7+1 (A3 B1 C2 D2) 44 m · LI05 10+1 (A2 B3 C2 D4) 61.6 m · LI06 9+1 (A3 B3 C2 D2) 57.8 m · LI07 9+1 (A3 B3 C2 D2) 59.3 m · LI08 9+1 (A3 B3 C2 D2) 60 m
+  ✓ BATELIER piece : chaque appareil dans exactement une boîte, aucun allumage coupé, aucun doute bloquant
+  ✓ BATELIER piece : R-001 : ≤ 16 départs par boîte, ≤ 6 gaines par face
+  ✓ BATELIER piece : R-074 : place ≤ 44 → ICTA 16, ≤ 90 → ICTA 20
+  ✓ BATELIER piece : R-075 : une seule terre par boîte, dans l'alimentation, à la plus forte section
+  ✓ BATELIER piece : R-081 : circuits C1…Cn dans l'ordre des boîtes, éclairage puis prises puis cuisine
+  ✓ BATELIER piece : R-021 / R-022 : ≤ 8 prises par circuit, ≤ 6 en cuisine
+  ✓ BATELIER piece : R-077 : .01 = alimentation, numéros strictement dans le sens anti-horaire
+  ✓ BATELIER piece : R-072 : dans chaque gaine, une couleur de la ronde = un seul allumage ; couleur répétée dans la boîte = bague
+  ✓ BATELIER piece : R-020 / R-021 : phase rouge 1,5 seulement pour l'éclairage (et la cuisine 2,5), phase grise seulement pour les prises (et les volets, R-021 / R-079)
+  ✓ BATELIER piece : R-014 / R-095 : lumière extérieure en câble 3G avec bouchon ; son allumage est marron
+  ✓ BATELIER piece : R-079 / R-087 : volets sur un circuit dédié 1,5 mm² 10 A (≤ 2 300 W de moteurs), phase grise et neutre bleu clair
+  ✓ BATELIER piece : R-096 : volet filaire = mêmes deux fils de commande dans la gaine du CVR et dans celle du moteur
+  ✓ BATELIER piece : R-080 / R-075 : équipotentielle locale = un fil V/J 2,5 dans sa gaine ; terre de l'alimentation de sa boîte en 2,5
+  ✓ BATELIER piece : longueur totale de chaque boîte = somme de ses gaines
+FONTES (POLYGONE 46), pieuvre proximite : 53 appareils → 5 boîtes (FTZ : 4 sans les volets), 48 gaines, 228.3 m de gaine
+    LI01 11+1 (A2 B3 C5 D2) 52 m · LI02 10+1 (A3 B3 C3 D2) 56.8 m · LI03 12+1 (A2 B4 C4 D3) 57.3 m · LI04 6+1 (A1 B3 C1 D2) 33.1 m · LI05 4+1 (A1 B1 C1 D2) 29.1 m
+  ✓ FONTES proximite : chaque appareil dans exactement une boîte, aucun allumage coupé, aucun doute bloquant
+  ✓ FONTES proximite : R-001 : ≤ 16 départs par boîte, ≤ 6 gaines par face
+  ✓ FONTES proximite : R-074 : place ≤ 44 → ICTA 16, ≤ 90 → ICTA 20
+  ✓ FONTES proximite : R-075 : une seule terre par boîte, dans l'alimentation, à la plus forte section
+  ✓ FONTES proximite : R-081 : circuits C1…Cn dans l'ordre des boîtes, éclairage puis prises puis cuisine
+  ✓ FONTES proximite : R-021 / R-022 : ≤ 8 prises par circuit, ≤ 6 en cuisine
+  ✓ FONTES proximite : R-077 : .01 = alimentation, numéros strictement dans le sens anti-horaire
+  ✓ FONTES proximite : R-072 : dans chaque gaine, une couleur de la ronde = un seul allumage ; couleur répétée dans la boîte = bague
+  ✓ FONTES proximite : R-020 / R-021 : phase rouge 1,5 seulement pour l'éclairage (et la cuisine 2,5), phase grise seulement pour les prises (et les volets, R-021 / R-079)
+  ✓ FONTES proximite : R-014 / R-095 : lumière extérieure en câble 3G avec bouchon ; son allumage est marron
+  ✓ FONTES proximite : R-079 / R-087 : volets sur un circuit dédié 1,5 mm² 10 A (≤ 2 300 W de moteurs), phase grise et neutre bleu clair
+  ✓ FONTES proximite : R-096 : volet filaire = mêmes deux fils de commande dans la gaine du CVR et dans celle du moteur
+  ✓ FONTES proximite : R-080 / R-075 : équipotentielle locale = un fil V/J 2,5 dans sa gaine ; terre de l'alimentation de sa boîte en 2,5
+  ✓ FONTES proximite : longueur totale de chaque boîte = somme de ses gaines
+FONTES (POLYGONE 46), pieuvre equilibre : 53 appareils → 4 boîtes (FTZ : 4 sans les volets), 49 gaines, 280.8 m de gaine
+    LI01 14+1 (A6 B2 C6 D1) 84 m · LI02 13+1 (A2 B4 C2 D6) 79 m · LI03 14+1 (A5 B2 C4 D4) 88 m · LI04 4+1 (A1 B1 C1 D2) 29.8 m
+  ✓ FONTES equilibre : chaque appareil dans exactement une boîte, aucun allumage coupé, aucun doute bloquant
+  ✓ FONTES equilibre : R-001 : ≤ 16 départs par boîte, ≤ 6 gaines par face
+  ✓ FONTES equilibre : R-074 : place ≤ 44 → ICTA 16, ≤ 90 → ICTA 20
+  ✓ FONTES equilibre : R-075 : une seule terre par boîte, dans l'alimentation, à la plus forte section
+  ✓ FONTES equilibre : R-081 : circuits C1…Cn dans l'ordre des boîtes, éclairage puis prises puis cuisine
+  ✓ FONTES equilibre : R-021 / R-022 : ≤ 8 prises par circuit, ≤ 6 en cuisine
+  ✓ FONTES equilibre : R-077 : .01 = alimentation, numéros strictement dans le sens anti-horaire
+  ✓ FONTES equilibre : R-072 : dans chaque gaine, une couleur de la ronde = un seul allumage ; couleur répétée dans la boîte = bague
+  ✓ FONTES equilibre : R-020 / R-021 : phase rouge 1,5 seulement pour l'éclairage (et la cuisine 2,5), phase grise seulement pour les prises (et les volets, R-021 / R-079)
+  ✓ FONTES equilibre : R-014 / R-095 : lumière extérieure en câble 3G avec bouchon ; son allumage est marron
+  ✓ FONTES equilibre : R-079 / R-087 : volets sur un circuit dédié 1,5 mm² 10 A (≤ 2 300 W de moteurs), phase grise et neutre bleu clair
+  ✓ FONTES equilibre : R-096 : volet filaire = mêmes deux fils de commande dans la gaine du CVR et dans celle du moteur
+  ✓ FONTES equilibre : R-094 : pieuvre équilibrée → une seule boîte pour tous les volets, sans autre appareil
+  ✓ FONTES equilibre : R-080 / R-075 : équipotentielle locale = un fil V/J 2,5 dans sa gaine ; terre de l'alimentation de sa boîte en 2,5
+  ✓ FONTES equilibre : longueur totale de chaque boîte = somme de ses gaines
+FONTES (POLYGONE 46), pieuvre piece : 53 appareils → 5 boîtes (FTZ : 4 sans les volets), 49 gaines, 237.5 m de gaine
+    LI01 12+1 (A3 B3 C3 D4) 61.8 m · LI02 10+1 (A2 B3 C2 D4) 55.8 m · LI03 14+1 (A5 B3 C4 D3) 68.3 m · LI04 4+1 (A3 B0 C2 D0) 21.8 m · LI05 4+1 (A1 B1 C1 D2) 29.8 m
+  ✓ FONTES piece : chaque appareil dans exactement une boîte, aucun allumage coupé, aucun doute bloquant
+  ✓ FONTES piece : R-001 : ≤ 16 départs par boîte, ≤ 6 gaines par face
+  ✓ FONTES piece : R-074 : place ≤ 44 → ICTA 16, ≤ 90 → ICTA 20
+  ✓ FONTES piece : R-075 : une seule terre par boîte, dans l'alimentation, à la plus forte section
+  ✓ FONTES piece : R-081 : circuits C1…Cn dans l'ordre des boîtes, éclairage puis prises puis cuisine
+  ✓ FONTES piece : R-021 / R-022 : ≤ 8 prises par circuit, ≤ 6 en cuisine
+  ✓ FONTES piece : R-077 : .01 = alimentation, numéros strictement dans le sens anti-horaire
+  ✓ FONTES piece : R-072 : dans chaque gaine, une couleur de la ronde = un seul allumage ; couleur répétée dans la boîte = bague
+  ✓ FONTES piece : R-020 / R-021 : phase rouge 1,5 seulement pour l'éclairage (et la cuisine 2,5), phase grise seulement pour les prises (et les volets, R-021 / R-079)
+  ✓ FONTES piece : R-014 / R-095 : lumière extérieure en câble 3G avec bouchon ; son allumage est marron
+  ✓ FONTES piece : R-079 / R-087 : volets sur un circuit dédié 1,5 mm² 10 A (≤ 2 300 W de moteurs), phase grise et neutre bleu clair
+  ✓ FONTES piece : R-096 : volet filaire = mêmes deux fils de commande dans la gaine du CVR et dans celle du moteur
+  ✓ FONTES piece : R-080 / R-075 : équipotentielle locale = un fil V/J 2,5 dans sa gaine ; terre de l'alimentation de sa boîte en 2,5
+  ✓ FONTES piece : longueur totale de chaque boîte = somme de ses gaines
+Lignes directes DUCOURNEAU : 28 lignes · 11 × ICTA 16 · 16 × ICTA 20 · 1 × ICTA 40
+  ✓ DUCOURNEAU : les 28 lignes directes ont la gaine et le fil de la feuille FTZ (sauf la couleur du fil pilote de C4 : ivoire chez FTZ, question Q-83)
+  ✓ DUCOURNEAU : total par gaine identique à FTZ (11 ICTA 16, 16 ICTA 20 dont les vertes, R-099 ; 1 gaine aiguillée)
+  ✓ courant faible jamais dans une boîte ni avec le courant fort (R-003) : TV, antenne, RJ45 en gaine verte
+  ✓ schémas de boîte (v60) : sur les 4 chantiers, aucun retour ni navette tracé ne recouvre un autre fil
+
+176 vérifications réussies, 0 en échec.
+MAILLARD recâblé (v56) : LI02 9 · LI03 13 · LI04 15 · LI05 14 · LI06 11 · LI07 8 départs ; BE : 11 · 15 · 13 · 15 · 14 · 8
+  ✓ 6 boîtes comme le BE, dont une seule pour les 8 volets (mode Équilibrée, volets connectés)
+  ✓ boîte des volets : 8 moteurs, chacun en gris + bleu clair + vert/jaune ICTA 16, aucune commande de volet câblée (R-079, R-096)
+  ✓ R-001 : au plus 16 départs par boîte et 6 gaines par face
+  ✓ R-077 : .01 = alimentation dans chaque boîte
+  ✓ prises : gris + bleu foncé + vert/jaune 1,5 (comme le BE)
+  ✓ lumières : bleu + retour + vert/jaune (comme le BE)
+  ✓ commandes : sans terre (comme le BE)
+  ✓ appliques extérieures : câble 3G1,5 avec le marron (comme L1, L1A, L3 du BE)
+  ✓ pas de gaine ICTA 25 dans les boîtes (R-073)
+  ✓ lignes directes communes au BE : RJ1 à RJ7 en gaine verte (grade 3 TV), interphone 4G1,5 ICTA 20, moteur 1,5 GR+BF+V/J ICTA 16, TV en 17 VATC
+  ✓ R-099 : total des lignes directes, gaines vertes comptées avec les ICTA 20
+  ✓ v59 / v61.1 : gaines tracées boîte par boîte : au plus 1 croisement dans une même boîte (entre deux boîtes : permis, Kévin 28/10)
+  ✓ aucun doute bloquant
+MAILLARD Économique : LI02 9 · LI03 13 · LI04 8 · LI05 10 · LI06 13 · LI07 16 départs ; fil 1371.3 m (Équilibrée 1411.1 m)
+  ✓ v62 Économique : moins de cuivre que l'Équilibrée, au plus une boîte de plus que le BE, aucune boîte de moins de 3 départs, aucun croisement dans une boîte
+
+14 vérifications réussies, 0 en échec.
+Premiers pas (v27)
+  ✓ première ouverture : invitation à la visite guidée (non bloquante)
+  ✓ visite guidée : 28 étapes, zone éclairée (onglet Chantiers), flèches du clavier, fin = onglet Étapes
+Dessin
+  ✓ une pièce tracée = 4 murs
+Appareils attachés aux murs
+  ✓ prise posée à 30 cm de l'angle : position le long du mur mémorisée
+  ✓ déplacer le mur : la prise suit (50 cm) et reste à 30 cm de l'angle
+  ✓ allonger le mur par l'autre bout : la prise ne bouge pas
+  ✓ déplacer le mur d'angle : la prise garde ses 30 cm
+  ✓ épaissir le mur d'angle (20 → 30 cm) : toujours 30 cm de sa face
+  ✓ supprimer le mur : Oktéo demande ; « garder » laisse la prise détachée
+  ✓ Ctrl+Z puis « supprimer avec ses appareils » : la prise part avec le mur
+  ✓ tourner puis symétriser la pièce : la prise reste sur son mur, côté intérieur, à 30 cm
+Fonctions (Ctrl+K) et infobulles
+  ✓ infobulle de l'outil Pièce avec raccourci
+  ✓ Ctrl+K ouvre la palette
+  ✓ recherche « fenetre » + Entrée active l'outil Fenêtre
+  ✓ le catalogue couvre tous les outils de la barre
+Assistant sans clé
+  ✓ touche A ouvre l'assistant
+  ✓ sans clé : recherche locale dans les fonctions
+Paramètres et relais IA
+  ✓ onglet Paramètres remplace la zone de dessin
+  ✓ clé Claude : test de connexion réussi via le relais local
+  ✓ mauvaise clé : message clair en français
+  ✓ clé NVIDIA : test réussi (en-tête Bearer)
+  ✓ les clés ne sont pas dans la sauvegarde du chantier
+  ✓ choix du fournisseur Claude
+Assistant avec IA
+  ✓ « Active l'outil pièce » : l'assistant agit seul
+  ✓ « Analyser le plan » envoie une image + les données
+  ✓ repère [r…] cliquable → sélectionne la pièce
+  ✓ bouton proposé « Voir la pièce »
+  ✓ historique conservé après rechargement
+  ✓ le panneau rouvre l'assistant là où on l'avait laissé
+  ✓ image IA : tout le fond de plan est cadré
+Nemotron (NVIDIA)
+  ✓ Nemotron par défaut, réponse directe, brouillon masqué
+  ✓ analyse avec Nemotron : réflexion activée, image allégée (< 180 Ko)
+  ✓ modèle retiré (410) : remplacé automatiquement par un Nemotron qui voit les images
+  ✓ « Charger les modèles » lit la liste du compte NVIDIA
+Chantiers
+  ✓ EVRARD repris comme chantier ouvert (ancienne sauvegarde conservée)
+  ✓ nouveau chantier avec le PDF : vignettes des pages, choix de la page 3
+  ✓ n° 15 : rôle proposé pour chaque page (plan du RDC en page 3, pages sans plan « à ignorer »), modifiable ; un seul plan par niveau
+  ✓ création : chantier ouvert, fond haute définition chargé, échelle à régler
+  ✓ sans échelle : « Relevé → 1. Murs » règle l'échelle tout seul d'après les cotes du plan (à 1,5 % près)
+  ✓ échelle saisie « 1 / 50 » : fond = largeur de la feuille × 50 ; les cotes signalent qu'EVRARD est un A3 réduit en A4 (√2)
+  ✓ mise à l'échelle 2 points : la cote mesure exactement 10,00 m
+Relevé automatique des murs
+  ✓ après l'échelle, Oktéo propose de relever les murs
+  ✓ aperçu : murs grisés du PDF, épaisseurs, ouvertures (rien n'est encore ajouté)
+  ✓ échelle contrôlée par les cotes du plan ; « Corriger l'échelle » la remet juste
+  ✓ épaisseur max. réglable : le relevé se recalcule
+  ✓ ajout au dessin : murs reliés, épaisseurs réelles gardées, un seul Ctrl+Z
+Détection des pièces
+  ✓ après le relevé, les pièces sont proposées avec leurs noms lus sur le plan
+  ✓ ajout des pièces : WC fermé par sa porte, Dgt séparé par une limite, un seul Ctrl+Z
+  ✓ la surface d'une pièce détectée suit ses murs
+  ✓ un appareil posé dans une pièce détectée sait dans quelle pièce il est
+Surfaces des pièces (v42)
+  ✓ surfaces masquées par défaut (plan, Propriétés) ; Paramètres → Affichage les remet, puis les retire
+  ✓ Paramètres (06/11/2026) : page à part sur fond corail (bandeau, onglets et panneau masqués), rubriques « Règles KiTéOHM » / « Ce poste », une rubrique à la fois, fiches avec leur état, recherche « couleur » dans toutes les rubriques, thème gardé, export du catalogue, retour au plan
+Relevé des appareils
+  ✓ après les pièces, les appareils du PDF sont proposés (aperçu, rien d'ajouté)
+  ✓ ajout : prises et interrupteurs collés à leur mur, liaisons reprises, un seul Ctrl+Z
+  ✓ hauteurs lues sur le plan (police codée) : prises à 110, 120, 65 cm ; affichées dans la carte
+  ✓ une prise relevée mesure sa distance à l'angle et suit son mur
+Lisibilité (v23)
+  ✓ textes à taille fixe à l'écran : nom de pièce ≈ 13 px en vue d'ensemble comme en zoom
+  ✓ aucune étiquette ne se chevauche (noms, surfaces, repères, cotes) en vue d'ensemble et en zoom
+  ✓ liaisons : celles de l'appareil sélectionné ressortent, les autres s'effacent
+Liaisons et relevés (v31)
+  ✓ outil Liaison : toutes les liaisons en trait épais, compteur, appareils sans liaison cerclés en orange
+  ✓ outil Liaison : clic sur une commande = ses lumières ressortent ; clic sur une de ses lumières = détachée (Ctrl+Z)
+  ✓ outil Liaison : clic sur une liaison = elle est choisie (les deux appareils nommés) ; Suppr la retire
+  ✓ menu Relevé : 3 relevés séparés + relevé par l'IA, chacun ouvre sa fenêtre
+  ✓ v73 : page d'attente des analyses IA (charte) : cachée si la réponse est rapide, jeux, clavier isolé du plan, « Ouvrir le chantier »
+  ✓ v76 : « Analyse IA » ouvre l'écran des 4 modes (maquette page 8) : référence du dossier, Lancer grisé sans choix, carte choisie (aria-pressed), documents à recouper pour le mode 4, Échap ferme
+  ✓ v76 : l'écran des modes tient sur une page (1500 × 900, 1366 × 768, 1280 × 720, 1100 × 800, tablette 820 × 1180, mode 4 et ses documents compris) ; le texte trop long défile dans la carte ; Entrée choisit une carte
+  ✓ v76 : recommandation d'un mode d'après le plan (bandeau + « Recommandé » sur la carte, l'opérateur accepte ou choisit un autre mode) ; escalade proposée après une relecture
+  ✓ relevé par l'IA (v76 : par « Analyse IA » → mode 1, flux v75 inchangé) : image envoyée, aperçu par-dessus le dessin, on coche ce qu'on garde, un seul Ctrl+Z
+  ✓ v76 étape 2 : mode 2 « Analyse renforcée » — lecture globale + tuiles (3 × 3, consigne en cache), zoom demandé puis rendu, fusion, écarts à vérifier, journal ; ajout en un seul Ctrl+Z
+  ✓ v76 étape 3 : mode 3 sur un PDF vectoriel (EVRARD) — aucun nettoyage d'image (règle : pas de prétraitement raster d'un PDF lisible), textes de chaque tuile pris dans le PDF et donnés à l'IA
+  ✓ v76 étape 4 : mode 4 « Analyse approfondie » — devis joint, seconde lecture complète, contrôle croisé avec les documents, liste d'écarts à vérifier
+  ✓ n° 3 + lot 1 : « Analyse IA » n'affiche que le mode 4 (choisi d'office), sans bouton pour afficher les autres, même avec l'ancien réglage « tous » ; échelle non réglée = analyse bloquée
+  ✓ n° 16 : « Mémoriser ce symbole » (appareil relevé par l'IA) → mémoire du pavillonneur, lue par l'outil « legende » de l'IA
+  ✓ lot 1 : « Question au pavillonneur » montre la question (modifiable), l'ajoute au rapport avec une confirmation visible ; « Rapport d'analyse » s'ouvre au premier plan
+  ✓ lot 2 : « Pourquoi ça clignote ? » : changer le type, enregistrer le dessin comme variante d'un symbole (bibliothèque), « Je ne sais pas » → suivant, précédent / suivant
+  ✓ lot 3 : logo Oktéo = accueil (plus d'onglet Chantiers) ; accueil, Paramètres et Bibliothèque en pages entières (MAJ affichage : bandeau 1 gardé, sans bandeau 2 ni panneau de droite) ; flèches « classeur » = retour au plan ; bandeau de la version en ligne rangé à l'accueil, avertissement signalé sur le plan
+  ✓ lot 5 : 9 étapes du dossier (surtout des vérifications validées par l'opérateur), jauge d'avancement en tête du panneau Étapes (MAJ affichage : plus dans le bandeau) ; « C'est vérifié » fait avancer la jauge, Ctrl+Z l'annule
+  ✓ MAJ affichage : bandeau 1 sur une seule ligne, toujours visible (Étude, Pieuvre, Tableau, Symboles, accueil ; masqué dans Paramètres, page à part) ; bandeau 2 seulement sur le plan et la 3D ; Imprimer et Fonctions en icônes ; voyant « Connecté »
+  ✓ 05/11 : « Je confirme l'emplacement » arrête le clignotement (même après un déplacement), noté dans le rapport pour le BE ; Ctrl+Z le rallume ; « Modifier » garde l'appareil sélectionné
+  ✓ n° 5 : halo à la couleur de sa famille ; « Pourquoi ça clignote ? » : explication, preuves, choix (et conséquence), question au pavillonneur ; rapport par famille copié pour le BE
+  ✓ v64.1 : consigne du relevé avec méthode imposée (200 dpi, légende, quarts, décompte) ; image de moins de 3 000 px signalée au collage
+  ✓ relevé IA sans clé : réponse collée (coordonnées en fraction de page ; v64.1 : petite image signalée), aperçu orange, ajout, un seul Ctrl+Z
+  ✓ v77 : réponse collée avec « ref » en minuscules et calibre en texte (« 20 A ») acceptée ; 4 murs = pas de recalage sur le PDF (garde-fou affiché)
+  ✓ lot 1 : carte de la réponse collée sur un petit écran (1280 × 620, 60 appareils) : la carte tient dans la zone du plan, la liste défile dedans, « Ajouter la sélection » et « Annuler » restent visibles
+  ✓ lot 1 : échelle mesurée par l'IA à plus de 10 % de celle du fond → collage bloqué ; « Régler l'échelle d'après la réponse » règle le fond puis colle
+  ✓ lot 1 : échelle écrite sur le plan (« Ech : 1:50 ») et cotes en centimètres reconnues ; plausibilité (1/20 à 1/200)
+  ✓ MAJ mémoire : un symbole appris (lu « QWE » = point lumineux) est reconnu à la réponse collée suivante, sans doute ; la consigne copiée contient la liste des symboles appris
+  ✓ MAJ « tous » : variante par défaut pour le pavillonneur ; pavillonneur demandé s'il manque ; case « Valable pour tous les pavillonneurs » = reconnue chez un autre pavillonneur ; la variante du pavillonneur reste prioritaire
+  ✓ relevé IA sans clé (v55.1) : « Copier la consigne » (ref, 40 types, hauteurs, CVR) ; réponse avec radiateur, volet + CVR, hauteur lue
+  ✓ relecture étendue (v61) : pièce non fermée, type vague, ouverture perdue, porte sans sens, doutes de l'IA → corrections de chaque sorte, rapport avec % de réussite (onglet Étude), un Ctrl+Z
+  ✓ relecture étendue (v61) : mur qui manque donné par l'IA → la pièce se ferme et prend son nom (jonctions recollées), un Ctrl+Z
+  ✓ relecture ciblée sans clé (v57) : points du contrôle → « Copier la relecture » ; corrections collées → aperçu → appliquées en un seul Ctrl+Z
+  ✓ relecture ciblée avec clé (v57) : image + consigne envoyées, corrections appliquées, arrêt quand plus rien à revoir, jetons comptés ; introuvable jamais redemandé
+  ✓ porte de garage (v57) : sans battant sur le plan et à l'impression, type choisi dans Propriétés
+  ✓ équipements hors plan (v57, R-100) : liste du panneau Câblage, posés dans la bonne pièce en violet « à vérifier avec le devis », registre, un seul Ctrl+Z
+  ✓ version en ligne : Claude appelé directement depuis le navigateur ; NVIDIA refusé avec un message clair
+Fiabilité (v21)
+  ✓ repères fixes : supprimer P2 ne renumérote pas les autres ; une copie reçoit un nouveau numéro
+  ✓ « Renuméroter les repères » (Ctrl+K) : numéros continus, pièce par pièce, un seul Ctrl+Z
+  ✓ enregistrement impossible : alerte visible + « Enregistrer en fichier » ; disparaît quand ça remarche
+  ✓ sauvegarde automatique dans un dossier : copie .okteo écrite, état affiché en haut
+  ✓ panneau Propriétés : aucun champ ne dépasse ; menu Affichage ; appareils dessinés avec leur symbole
+Niveaux (v24)
+  ✓ « ＋ Niveau » : R+1 créé avec les murs extérieurs, RDC visible en transparence, sans fond
+  ✓ chaque niveau garde son dessin : Page ↓ / Page ↑, puis rechargement de la page
+  ✓ fond du R+1 : autre page du même PDF → position et échelle reprises du RDC
+  ✓ renommer (double-clic), supprimer avec confirmation dans la barre, Ctrl+Z rend le niveau
+  ✓ liaison entre niveaux : interrupteur du RDC → lumière de l'étage, affichée des deux côtés
+  ✓ impression de tous les niveaux : une page par niveau + nomenclature commune, liaison inter-niveaux écrite
+Câblage : circuits (v28)
+  ✓ onglet Câblage : « Répartir automatiquement » couvre tous les appareils de tous les niveaux, couleurs sur le plan
+  ✓ changer un appareil de circuit (sélection → « ← Sélection »), section modifiable, un Ctrl+Z chacun
+  ✓ réglages du câblage (Paramètres) : 4 points par circuit → la répartition suit ; valeurs de base rétablies
+Câblage : boîtes et gaines (v29–v30)
+  ✓ sans tableau : alerte « Poser le tableau » ; avec : boîtes placées (≤ 16 départs sans l'alimentation, ≤ 6 gaines par face), dessinées sur le plan
+  ✓ glisser une boîte la déplace (longueurs recalculées), un Ctrl+Z la remet
+  ✓ onglet Boîtes : gaines de chaque boîte (face, longueur, Ø, fils couleur/section/n°) et raccordements
+Repères par allumage, tracé des gaines, cadenas (v32)
+  ✓ repères par allumage : commande et lumières reliées ont le même numéro, A/B pour le 2e/3e du même type ; prises inchangées
+  ✓ gaine tirée sur le plan : point de passage (distance au mur affichée), longueur recalculée, boîte verrouillée ; Maj = tronçon droit ; double-clic le supprime
+  ✓ gaines sans croisement (v59) : courbures choisies pour le niveau, moins de croisements qu'avec un seul arc ; recalculées quand on déplace une boîte
+  ✓ cadenas : clic sur le cadenas du plan ; recalcul : on coche les boîtes, les verrouillées gardent place, appareils et tracés
+Boîtes à la main, fenêtre de réglage (v35)
+  ✓ la fenêtre de réglage d'un appareil se ferme quand on saisit une boîte, et par sa croix
+  ✓ bout de gaine tiré sur une autre boîte : l'appareil (et son allumage) y est raccordé, alimentation complétée, Ctrl+Z
+  ✓ supprimer une boîte (clic puis Suppr) : ses appareils vont dans les boîtes voisines, aucun appareil perdu, Ctrl+Z
+  ✓ recalcul des boîtes cochées (mode Bureau d'études, lot 4 : plus de nombre imposé)
+  ✓ dessin : liaisons en ligne droite, gaines en arc
+Symboles, filtre de vue, boîtes (v37)
+  ✓ symboles : carrés sauf lumières (spot avec éclat) ; couleur du circuit sur le symbole, rouge sans circuit sauf ligne directe
+  ✓ applique : tournée pour avoir le dos à son mur (mur vertical = ±90°, horizontal = 0 ou 180°)
+  ✓ filtre de vue : Bâti / Implantation / Câblage (Alt+1/2/3), boutons par élément, quadrillage masqué par défaut (v45.1) puis fin 10 cm / 1 m à la demande
+  ✓ boîte : taille fixe sur le plan au zoom ; points d'accroche = réglage par face ; gaine épinglée sur un point (sans croisement), Ctrl+Z
+Schémas de boîte pour le câbleur (v33)
+  ✓ onglet Bandes : boîte carrée (faces A–D, gaines, connecteurs), orientation, matériel, raccordements dans l'ordre à cocher
+  ✓ règles KiTéOHM (v38) : circuits par boîte (prises gris/bleu foncé 1,5, éclairage rouge/bleu), bagues sur l'alimentation
+  ✓ allumage coupé entre deux boîtes : alerte rouge sur le plan + « Ramener dans la même boîte » (tout l'allumage, Ctrl+Z)
+  ✓ lot 4 : un seul mode d'implantation des boîtes (Bureau d'études) : plus de choix de mode ni de comparaison dans le panneau Câblage ; « ⚡ Implantation rapide des pieuvres »
+  ✓ packs (v40) : pièce reconnue, « Compléter » pose ce qui manque (commande près de la porte, lumière, prises dans la pièce), « Pieuvre type » = boîte verrouillée de la pièce ; Ctrl+Z
+  ✓ feuille de boîte (v47) : étiquette (pavillonneur, chantier, n° d'affaire, flèche du tableau), ordre de câblage, couvercle, code barre
+  ✓ QR code de la bande (v49) : affiché dans l'onglet Bandes ; la page téléphone l'ouvre (en-tête, schéma, ordre, raccordements), cases gardées
+  ✓ impression des schémas : une feuille par boîte + raccordements à cocher, texte lisible (PDF relu)
+  ✓ étiquettes de boîte (v50) : 4 par A4 paysage, nom, en-tête, code, longueur totale et « à vérifier » (v52) ; dossier PDF : garde + plan + tableau + documents à remettre (norme n° 6) + bandes détaillées
+  ✓ lot 4 : Bandes → « Fichier .spv (Counter) » : une ligne par gaine au format du BE (24 champs, ASCII, CRLF, tout ACTIVE), nom « AF…_NOM-.spv » ; « Totaux du planning » (gaines, boîtes)
+  ✓ couleurs par circuit et gaines partagées : une gaine « P… + P… » ; deux circuits 1,5 d'une boîte en rouge/bleu et gris/bleu foncé
+  ✓ circuits et boîtes enregistrés avec le chantier (rechargement)
+Impression PDF
+  ✓ Ctrl+P : aperçu du PDF, format et échelle choisis automatiquement
+  ✓ téléchargement : PDF de 2 pages (plan + nomenclature) avec cartouche et noms de pièces
+  ✓ préparation d'impression (v74) : A3 du BE recto boîtes / verso lignes directes, légende, cartouche, encart texte
+  ✓ n° 2 : légende de la feuille A3 placée sans chevaucher le plan (place libre, colonnes, réduction, plan décalé ou page à part)
+  ✓ bâti du BE (v74 MAJ 2) : type de mur, style gris, noms abrégés bleus, cotes des boîtes sur la feuille A3
+  ✓ n° 14 : Relevé → Murs d'équerre : une maison relevée de travers (2 à 3°) remise d'équerre, angles joints, compte rendu, un Ctrl+Z
+  ✓ n° 13 + 8 : symboles muraux hors du mur et dans le sens de leur mur ; appareil dans un mur signalé puis recollé ; repère glissé à la main (gardé, un Ctrl+Z)
+  ✓ 05/11 : interrupteurs et va-et-vient muraux : rond collé à la face du mur, trait perpendiculaire vers la pièce (symboles Oktéo et symboles FTZ du BE, écran et papier)
+  ✓ 05/11 : plan fluide : 40 crans de molette = au plus un dessin par image ; le fond n'est pas recréé à chaque dessin
+  ✓ v77 : murs dessinés avec un seul contour d'ensemble (pas de trait en travers des angles ni des T)
+  ✓ plan du BE (v74 MAJ 4) : symboles FTZ à l'écran (préférence), gaines à la couleur de la boîte, PMR, feuille A3 (repères Courier, plaques)
+  ✓ assistant (v75) : bouton micro 🎤 avec son aide, Alt+V ouvre l'assistant et lance la dictée (ou explique pourquoi elle est impossible)
+  ✓ IA (v75, v76) : conversation de l'assistant avec Sonnet, analyse du plan / relevé / relectures avec Opus 5.5 verrouillé (constante unique)
+  ✓ salle de bain (v74 MAJ 3) : douche à l'italienne posée, volumes dessinés, luminaire dedans signalé, annulable
+  ✓ onglet Étapes (lot 5) : import, boîtes, câblage, impression cochés tout seuls ; les vérifications attendent l'opérateur
+  ✓ échelle exacte : la largeur des murs dans le PDF = largeur réelle × 1000 / échelle
+  ✓ format et échelle imposés (A3, 1:100) : pris en compte
+  ✓ impression en vue Câblage : boîtes (nom, faces A–D, n° de gaine), gaines couleur du circuit, cases des calques cochées d'après la vue
+  ✓ impression : décocher « Boîtes » et « Gaines » les retire du PDF ; « = écran » les remet ; vue Bâti → ni appareils ni boîtes
+  ✓ l'épaisseur d'un mur relevé se modifie dans son menu
+  ✓ chaque chantier garde son propre dessin
+  ✓ fichier .okteo : enregistrer (dessin + fond + PDF) puis rouvrir
+  ✓ dupliquer puis supprimer un chantier (avec confirmation)
+  ✓ le chantier ouvert ne peut pas être supprimé
+Contrôle permanent (v43)
+  ✓ contrôle : une commande seule et une lumière seule comptées, halos animés, clic sur le compteur = cas suivant
+  ✓ contrôle (v45.1) : deux interrupteurs simples sur une lampe signalés ; lampes en chaîne sans commande signalées toutes les deux
+Pack depuis le bandeau de la pièce (v44)
+  ✓ pièce sélectionnée sans nom de pack : « Implantation rapide » ouvre la liste des packs, Maj+P + chiffre = pack posé et pièce renommée, un seul Ctrl+Z
+  ✓ lot 4 : pièce nommée « Chambre » : « ⚡ Implantation rapide » pose son pack tout de suite (sans liste à choisir), un seul Ctrl+Z ; les packs se règlent dans Paramètres
+Mode essai (v45)
+  ✓ essai : interrupteur allume puis éteint (lumière animée), va-et-vient en inversion, poussoir = télérupteur, disjoncteur, Tester tout, Échap
+Tableau (v46)
+  ✓ tableau (v49) : clic sur le tableau du plan = onglet Tableau ; coffret Legrand Drivia avec sa marque ; prise modulaire ajoutée puis retirée
+  ✓ tableau v66.1 : recalcul conserve le contacteur ; revue et Ctrl+Z
+  ✓ tableau v66.1 : réserve seule propose un coffret ; aucune solution sans plantage
+  ✓ onglet Tableau : coffret Resi9 dessiné, disjoncteurs glissés d'une rangée à l'autre (un Ctrl+Z), manette = circuit coupé pour l'essai
+Panneau extension
+  ✓ panneau élargissable en tirant le bord
+  ✓ panneau fermé par sa croix, rouvert par son bouton du bandeau, refermé par un 2e clic (v41)
+Journal des règles de câblage (v51)
+  ✓ bibliothèque : pagination, domaines, recherche, filtres de validation et application
+  ✓ Tableau → Règles du tableau : accès ciblé, fiche au clavier, retour tous domaines
+  ✓ journal : « ⏳ En attente » = questions en suspens (collègue, chantier) et règles qui en dépendent ; « Tout afficher » revient
+  ✓ fiche d'une règle : paramètres, écart avec le logiciel (18 / 16), utilisée par, preuves, questions, historique ; lien depuis un réglage Câblage
+  ✓ choix du chantier : volets, appareils à choix enregistrés dans le chantier (lot 4 : mode de pieuvre = Bureau d'études, sans choix)
+  ✓ modifier une règle par l'assistant : avant / après, Valider = journal + historique ; proposition invalide refusée
+  ✓ journal : export JSON puis import (entrée « Import » dans l'historique), retour à la base
+Étude du câblage (v53)
+  ✓ onglet Étude : précontrôle, 9 étapes avec leur état, modes comparés (gaine, boîtes, départs), où ça coince
+  ✓ « Câbler le chantier » : boîtes et circuits recalculés, étude enregistrée dans le chantier, statistiques ; un seul Ctrl+Z
+  ✓ précontrôle : une règle bloquante inconnue → « Je ne peux pas câbler : il manque 1 règle » (rien ne change) ; l'assistant peut lancer le câblage
+  ✓ doutes sur le plan : pastille ✕ près de la boîte ; v64 : comptés dans le seul compteur « à vérifier » (rouge ✕ si bloquant), un clic va au doute
+  ✓ « Pourquoi ? » : clic sur une boîte (R-001, mode, faces) puis sur sa gaine d'alimentation (R-074, R-075) et un fil (R-031)
+  ✓ rapport de câblage (PDF) : étapes, modes, où ça coince
+Appareils du journal, volets, lignes directes (v54)
+  ✓ barre d'outils : « Autres ▾ » ouvre les appareils par groupe ; choisir le radiateur l'active (symbole dans le bouton)
+  ✓ nouveaux appareils : radiateur, TV, hotte (choix du raccordement dans Propriétés), volet + CVR reliés, équipotentielle locale
+  ✓ lignes directes (feuille FTZ) : étiquette, longueur, gaine, fil, aboutissant ; courant faible à part en gaine verte ; total par gaine
+Câblage aligné sur le BE (v56)
+  ✓ prise de plan de travail (R-098) : Propriétés « Automatique : oui » pour une prise à 1,10 m près d'une plaque ; « Non » la retire du circuit cuisine
+  ✓ volets (R-096) : choix « connectés » dans le panneau Câblage → commandes de volet hors des circuits ; doute tant que rien n'est choisi
+  ✓ n° 6 : pontage coché dans le panneau Câblage → prises / lumières reliées de proche en proche (moins de départs), tronçons sur le plan ; association toujours active ; un Ctrl+Z
+  ✓ n° 10 : zone d'exclusion posée entre une boîte et un appareil → gaine qui la contourne (plus longue, tracé brisé), zone hachurée, bloc rouge en 3D ; un Ctrl+Z
+Plan lisible (v58)
+  ✓ taille des symboles d'après le dessin (12 à 26 cm, « Auto ») ; le curseur la règle à la main, « Auto » la recalcule
+  ✓ deux appareils au même endroit : affichage décalé le long du mur, trait de rappel ; un clic sur le symbole décalé le sélectionne
+  ✓ nom de pièce : glissé à la souris (position gardée, un Ctrl+Z) ; taille commune à toutes les pièces
+  ✓ tourner la vue d'un quart de tour : fond et dessin tournent ensemble, textes droits, le clic vise toujours le bon appareil ; 0° remet la vue
+  ✓ v62 : impression dans le sens de la vue (case cochée d'office si la vue est tournée) : plan tourné d'un quart de tour, textes droits
+Bandeau en encarts, assistant en bas à droite (v41)
+  ✓ bandeau : encarts Actions, Vues, Panneaux (Propriétés, Câblage, Étapes ; lot 4 : plus de bouton Packs), sans bouton Assistant en haut
+  ✓ assistant : encart réduit en bas à droite, agrandi au clic, réduit par « — » et par Échap
+Mode IA et coûts du chantier (v63)
+  ✓ Mode IA : bascule par le bouton et Alt+M, parcours à droite, bandeau BE masqué, retour au Mode BE
+  ✓ Mode IA sans clé : « Copier la consigne / coller la réponse » ouvre la carte du relevé par copier / coller
+  ✓ Mode IA : câbler, alertes listées, note « belle pieuvre », dossier PDF complet
+  ✓ coûts : jetons IA (relevé avec clé) et temps BE chiffrés d'après les prix et le coût horaire de Paramètres
+  ✓ Paramètres : section « Coûts d'un chantier » (prix des jetons, coût horaire)
+Ergonomie du Mode BE (v64)
+  ✓ onglet « Pieuvre » : sous-onglets Boîtes / Bandes / Lignes directes, l'onglet reste allumé, retour au dernier sous-onglet
+  ✓ une seule fenêtre de travail : ouvrir le relevé des pièces ferme le relevé des murs ; la comparaison des modes ferme les deux
+  ✓ panneau Câblage allégé : avec des boîtes, les Boîtes en premier, la liste des circuits repliée (ouvrable), aides en ⓘ
+  ✓ MAJ 3/4 : équipements accessibles dans Étude et catalogue ; propositions sans doublon, détecteur confirmé seulement
+  ✓ MAJ 5/6 : VMC et comparaison accessibles avec diagnostics séparés
+Vue 3D (3D-1, 3D-2)
+  ✓ onglet 3D (Alt+4) : maquette construite depuis le dessin (murs, appareils, boîtes), clic sur un appareil → fiche → « Voir sur le plan » ; coupe et calques ; défauts de géométrie listés
+  ✓ n° 9 : WC, lavabo, vasque, évier posés : trait gris pointillé, sans repère ni circuit, imprimés, en volume dans la vue 3D, un Ctrl+Z
+  ✓ notice : « ? Aide » ouvre la notice (sommaire, étapes 1 à 7), la recherche « nuage » ne garde que les parties qui en parlent, Échap ferme
+  ✓ lot 6 (PO-01) : Paramètres → Raccourcis = touches de FTZ ; F6 bascule les angles droits, Ctrl+8 prend la porte ; une touche changée (Ctrl+Alt+P) sert tout de suite ; Ctrl+W refusée (gardée par le navigateur)
+  ✓ lot 9 (FA-05) : outil « Nuage » : deux clics = nuage rouge avec l'indice A ; Propriétés → indice B ; sur le plan, dans la géométrie d'impression ; Suppr et Ctrl+Z
+  ✓ lot 5 : « Groupes ▾ » (17 groupes du BE) ; « SA+VV » posé d'un clic sur un mur = interrupteur + va-et-vient côte à côte (8 cm) sur le même mur, un seul Ctrl+Z
+  ✓ n° 11 : bouton « Mobilier ▾ » (10 meubles) ; canapé et table posés : gris clair, sans repère, en volume dans la vue 3D, un Ctrl+Z
+  ✓ 3D-3 : hauteurs de départ dans Paramètres → Vue 3D, allège / linteau d'une fenêtre et hauteur sous plafond d'une pièce dans Propriétés → la 3D suit
+  ✓ 3D-4 : visite à pied (ZQSD) : marcher sans traverser les murs, poser une prise au viseur (vrai appareil du chantier, rattaché à son mur, on reste en 3D), Ctrl+Z l'annule, la gomme retire un appareil
+  ✓ 3D-5 : gaines en 3D (tracé du plan en traits droits, descente dans le mur), fiche de la gaine (n° et longueur de la bande), propriété « passage par le sol » qui rallonge la gaine ; Ctrl+Z
+  ✓ MAJ pose : interrupteur derrière le battant d'une porte et commande dans une fenêtre ne sont plus signalés (ni sur le plan ni en 3D) ; Ctrl+Z
+    (clic sur le mur non atteint dans ce cadrage : élévation ouverte par l'API)
+  ✓ 3D-7 : clic sur un mur en 3D → élévation de la face touchée (appareil coté depuis l'angle, hauteur), autre face, PDF du mur à l'échelle ; Ctrl+Z
+  ✓ 3D-10 : « Tous les niveaux » : les étages empilés au-dessus du niveau ouvert (hauteur + dalle), liaison entre niveaux en pointillés ; « Niveau ouvert » le retire
+  ✓ 3D-8 : QR « maquette 3D » sur chaque face du plan A3 (recto boîtes, verso lignes directes), sans nom de client ni de chantier ; la page téléphone l'ouvre (murs, gaines, fiche au toucher, visite à la manette)
+  ✓ 3D-2 : jonction oubliée et mur en double signalés dans la vue 3D, un clic montre l'endroit sur le plan
+  ✓ norme n° 1 : date de dépôt du permis dans la fiche du chantier → version de la NF C 15-100 (2015 avant le 01/09/2025, 2024 après)
+  ✓ norme n° 2 : pièce nommée sous le minimum → alerte simple dans Étapes (code, article), question au pavillonneur, « Voulu »
+  ✓ norme n° 4 : réglage plus large que la norme (10 prises en 1,5 mm²) → message CIR-01 dans Paramètres, rien de bloqué ; valeurs de base rétablies
+  ✓ lot 3 (reprise du BE) : Propriétés d'une prise → « Étanche (IP) » et hauteurs rapides 120 / 110 / 40 ; d'un interrupteur → « Lumineux / témoin » ; un Ctrl+Z par réglage
+  ✓ parafoudre : code postal → Nk (AQ2) ; Étapes → Norme → Parafoudre : ligne aérienne = obligatoire ; choix « sans » du BE noté au rapport (étude initiale / modifications humaines)
+  ✓ lot 8 (CH-08) : Paramètres → Chantier, modèle d'adresse SharePoint avec {affaire} ; la fiche du chantier montre « Dossier SharePoint ↗ » vers le dossier de l'affaire (caché sans n°)
+  ✓ lot 10 (CH-04, CH-02) : fiche du chantier → « Pièces du dossier » (compte, case à la main gardée) et « Finitions commandées » (majuscules sans accents), enregistrées dans le chantier
+  ✓ n° 15 : dossier PDF de 3 pages (plan RDC, plan R+1, devis) → nouveau chantier avec ses 2 niveaux et leur fond ; le devis est joint à l'analyse (mode 4)
+
+233 vérifications réussies, 0 en échec.

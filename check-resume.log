@@ -1,0 +1,37 @@
+échelle et garde-fous : 17/17 vérifications
+norme : 14 groupes de vérifications réussis.
+15 vérifications réussies, 0 en échec.
+8 vérifications réussies, 0 en échec.
+10 vérifications réussies, 0 en échec.
+7 vérifications réussies, 0 en échec.
+6 vérifications réussies, 0 en échec.
+5 vérifications réussies, 0 en échec.
+6 vérifications réussies, 0 en échec.
+mémoire des symboles : 7 vérifications OK
+21/21 vérifications (modes d'analyse IA, journal)
+26 vérifications réussies, 0 en échec.
+3 vérifications réussies, 0 en échec.
+15 vérifications VMC/comparaison réussies.
+13 vérifications équipements/détecteurs réussies.
+12 vérifications de lecture IA réussies.
+ai-align : 12 vérifications OK
+squaring : 9 vérifications OK
+placement : 6 vérifications OK
+pontage : 7 vérifications OK
+mode BE : 12 vérifications OK
+zones : 8 vérifications OK
+mobilier : 4 vérifications OK
+rôles des pages : 4 vérifications OK
+outils de l'IA : 5 vérifications OK
+rapport : 4 vérifications OK
+Bibliothèque : 14 vérifications des données réussies.
+8 vérifications de la bibliothèque réussies.
+52 vérifications réussies, 0 échec(s)
+42 vérifications réussies, 0 en échec.
+  ✓ note : sur 100 ; 10 % de cuivre en plus = note plus basse ; un croisement dans une boîte = ✗ et 40 au plus
+89 vérifications réussies, 0 en échec.
+176 vérifications réussies, 0 en échec.
+14 vérifications réussies, 0 en échec.
+  ✓ lot 5 : 9 étapes du dossier (surtout des vérifications validées par l'opérateur), jauge d'avancement en tête du panneau Étapes (MAJ affichage : plus dans le bandeau) ; « C'est vérifié » fait avancer la jauge, Ctrl+Z l'annule
+  ✓ onglet Étapes (lot 5) : import, boîtes, câblage, impression cochés tout seuls ; les vérifications attendent l'opérateur
+233 vérifications réussies, 0 en échec.
