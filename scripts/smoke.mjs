@@ -589,7 +589,7 @@ try {
     const look = await ev(() => ({ top: getComputedStyle(document.querySelector(".top")).display, tabs: getComputedStyle(document.querySelector("#tabs")).display, bg: getComputedStyle(document.querySelector("#params")).backgroundColor,
       g: [...document.querySelectorAll("#params .pset-nav .pn-g")].map((x) => x.textContent).join("|"), rubs: document.querySelectorAll("#params .pset-nav a[data-rub]").length,
       shown: [...document.querySelectorAll("#params .pset-sec")].filter((x) => x.offsetParent).map((x) => x.dataset.rub).join("|"), fiches: document.querySelectorAll("#rb-chantier .rf-card").length,
-      etat: document.querySelector('#fi-CH-01 .rf-e')?.textContent || "", back: !!document.querySelector("#pp-back") }));
+      etat: document.querySelector('#fi-CH-02 .rf-e')?.textContent || "", back: !!document.querySelector("#pp-back") }));
     await page.click('#params .pset-nav a[data-rub="cablage"]');
     const cab = await ev(() => ({ shown: [...document.querySelectorAll("#params .pset-sec")].filter((x) => x.offsetParent).map((x) => x.dataset.rub).join("|"), reset: !!document.querySelector("#cab-set #cab-reset"), cur: document.querySelector('#fi-CB-01 [data-goto-cab="couleursCommande"] b')?.textContent || "" }));
     await page.fill(".pset-find", "couleur");
