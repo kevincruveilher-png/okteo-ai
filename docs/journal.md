@@ -1,3 +1,19 @@
+## 06/11/2026 — MAJ norme n° 2 : minimums par pièce + lecture du plan avant dessin (go de Kévin, 13:55)
+
+- `src/norme/pieces.js` (pur) : `roomKind(nom)` (chambre, séjour, séjour_cuisine, cuisine, sdb, wc, dégagement, garage,
+  bureau, service, placard, extérieur), `prisesSejour(A)` (1 / 4 m², 5 au moins jusqu'à 28 m², 7 au-delà),
+  `checkPieces(rooms, apps, {v, near})` → [{key « norme:CODE:pièce », code, ref, lv, roomId, room, need, have, text,
+  question}] : PC-01 à PC-06 (séjour + cuisine ouverte = séjour (S − 8 m²) + 6), 4 prises de plan de travail (seulement si
+  des prises sont marquées « plan de travail » ou un îlot), ECL-01, COM-01 (2 RJ45 au séjour ; 1 ou 2 dans les autres pièces
+  principales), COM-02 (RJ45 sans prise 16 A à 1 m : « à proximité » = choix du BE). Placards et extérieurs exclus ; pièce
+  sans surface : pas de calcul de séjour. `questionsOf`.
+- `src/ext/norme-ui.js` (`createNorme`, `okteoExt.norme` : `issues`, `all`, `mount`, `ask`, `show`) : section « Norme »
+  du panneau Étapes (`#nm-host`, `#nm-sec-d`, `#nm-n`, `.nm-list`, `[data-see]` Voir, `[data-q]` Question au pavillonneur
+  → `cab.questions` {key}, `[data-keep]` Voulu → `cab.decisions[key] = {choix: "garde"}` : le point ne s'affiche plus,
+  `#nm-ask` = toutes les questions). Lecture du plan avant dessin : après `okteo:ai-releve` avec appareils, la ligne d'aide
+  ajoute « Norme : N points sous le minimum » (événement `okteo:norme-lecture`). Aucune alerte bloquante, aucun halo.
+- Catalogue `norme.pieces`. Tests : norme.test.mjs (sortes de pièce, séjour, maison type, RJ45) + smoke.
+
 ## 06/11/2026 — MAJ norme n° 1 : socle des règles de la NF C 15-100 (go de Kévin, 13:55)
 
 Contexte : « Bible des règles Oktéo — NF C 15-100 (2024) » (document du projet claude.ai, 91 règles résumées avec nos

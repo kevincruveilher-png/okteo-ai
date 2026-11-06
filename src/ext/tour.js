@@ -159,15 +159,17 @@ export function createTour({ api, panel, hooks }) {
         <div class="mut sm">${esc(x.how)}</div>
         ${x.done && x.by ? `<div class="ok sm">Vérifié par ${esc(x.by.by || "")}${x.by.at ? ", " + esc(String(x.by.at).slice(0, 16).replace("T", " ")) : ""} <button class="lnk" data-undo="${x.k}" title="Annuler cette validation">annuler</button></div>` : ""}
         ${!x.done ? `<button data-k="${k}" class="${k === nxt ? "on" : ""}" ${x.off ? "disabled title=\"Faites d'abord l'étape précédente\"" : ""}>${esc(x.act)}</button>` : ""}</div></li>`).join("")}</ol>
+      <div id="nm-host"></div>
       <button id="st-tour" title="Présentation de l'écran, étape par étape">▶ Visite guidée (2 min)</button>
     </div>`;
     el.querySelectorAll("button[data-k]").forEach((b) => (b.onclick = () => { const x = L[+b.dataset.k]; if (api.tab !== "plan" && !/accueil|dossier/i.test(x.act)) api.setTab("plan"); x.run(); later(); }));
     el.querySelectorAll("[data-undo]").forEach((b) => (b.onclick = () => { validate(b.dataset.undo, false); later(); }));
     el.querySelector("#st-tour").onclick = start;
+    if (hooks.norme) hooks.norme.mount(el.querySelector("#nm-host"));   // MAJ norme n° 2 : minimums par pièce
   }
   let t = null;
   const later = () => { clearTimeout(t); t = setTimeout(renderSteps, 120); };
-  ["okteo:saved", "okteo:level", "okteo:fond", "okteo:calibrated", "okteo:tab", "okteo:printed", "okteo:control"].forEach((ev) => document.addEventListener(ev, later));
+  ["okteo:saved", "okteo:level", "okteo:fond", "okteo:calibrated", "okteo:tab", "okteo:printed", "okteo:control", "okteo:norme"].forEach((ev) => document.addEventListener(ev, later));
   panel.onChange((s) => { if (s.pane === "steps") later(); });
   document.addEventListener("okteo:printed", () => { const p = store(PRINTED, {}); p[printedKey()] = Date.now(); storeSet(PRINTED, p); });
   renderSteps();
