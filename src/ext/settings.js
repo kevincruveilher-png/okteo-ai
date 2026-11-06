@@ -47,7 +47,7 @@ export const settings = {
 };
 
 // ---------- page Paramètres ----------
-export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, openPacks, api, askRule }) {
+export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, openPacks, api, askRule, raccourcis }) {
   let regles = null;
   const card = (p) => {
     if (globalThis.okteoSession) return p === "anthropic" ? `<div class="enterprise-ia"><b>Claude entreprise</b><p>Clé et modèle gérés par les administrateurs. Aucun secret sur ce poste. Le collage d’une analyse reste disponible.</p></div>` : "";
@@ -144,8 +144,14 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
     if (r.id === "norme") return head + `<p class="mut sm">Version appliquée à un chantier : ${esc(VERSIONS["2024"].label)} si le permis est déposé après le ${BASCULE.split("-").reverse().join("/")}, sinon ${esc(VERSIONS["2015"].label)} (date du permis dans la fiche du chantier).</p>` + normeHTML();
     if (r.id === "questions") return head + `<div class="rf-list">${QUESTIONS.map(([ref, q, pour]) => `<article class="rf-card e-question q-row"><div class="rf-h"><span class="rf-id">${ref}</span><b class="rf-t">${esc(q)}</b></div><p class="rf-m">Pour : ${esc(pour)}</p></article>`).join("")}</div>`;
     if (r.id === "historique") return head + `<div id="pp-hist">${histHTML()}</div>`;
-    if (r.id === "clavier") return head + list;
+    if (r.id === "clavier") return head + keysHTML() + list;
     return head + list + groups;
+  }
+  // lot 6 (PO-01) : touches du BE, une ligne par action
+  function keysHTML() {
+    if (!raccourcis) return "";
+    const rows = raccourcis.keymap().map((a) => `<tr class="kb-row${a.perso ? " chg" : ""}" data-kb="${a.id}"><td>${esc(a.label)}${a.note ? `<div class="mut sm">${esc(a.note)}</div>` : ""}</td><td><kbd>${esc([a.be, a.alt].filter(Boolean).join(" / "))}</kbd></td><td>${a.cmd ? (a.keys.length ? a.keys.map((k) => `<kbd>${esc(k)}</kbd>`).join(" ") : `<span class="mut">aucune</span>`) : `<span class="mut">pas d'équivalent</span>`}</td><td>${a.cmd ? `<button data-kb-set="${a.id}" title="Appuyez ensuite sur la nouvelle touche (Échap = annuler)">Changer</button>${a.perso ? ` <button data-kb-reset="${a.id}" title="Revenir à la touche du BE">Touche du BE</button>` : ""}` : ""}</td></tr>`).join("");
+    return `<h4 class="pp-sub">Touches du bureau d'études</h4><p class="mut sm">Sur le plan, les touches de FTZ marchent dans Oktéo. Ctrl+W, Ctrl+N et Ctrl+T sont gardées par le navigateur : elles ne peuvent pas servir. Les autres raccourcis d'Oktéo restent dans la palette (Ctrl+K).</p><p class="kb-msg" id="kb-msg" role="status"></p><table class="kb-tab" id="kb-tab"><thead><tr><th>Action</th><th>FTZ</th><th>Oktéo</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
   }
   function normeWarn() { const N = normeSettings(getCab()); return N.length ? `<p class="nm-warn" id="cab-norme">Au-delà de la norme (alerte simple, rien n'est bloqué) : ${N.map((x) => esc(x.msg)).join(" ; ")}.</p>` : ""; }
   // contenu des rubriques « Ce poste » (réglages existants, même id qu'avant)
@@ -300,6 +306,15 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
       setPref("theme", t); applyTheme(t); noteChangement("Thème de l'écran", before, t, "affichage");
       el.querySelectorAll("[data-theme-set]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.themeSet === t)));
     }));
+    el.querySelectorAll("[data-kb-set]").forEach((b) => (b.onclick = () => {
+      const id = b.dataset.kbSet, msg = el.querySelector("#kb-msg");
+      b.textContent = "Appuyez sur une touche…"; b.classList.add("wait");
+      raccourcis.capture((k) => {
+        if (k) { const before = raccourcis.keymap().find((a) => a.id === id).keys.join(" / "); const r = raccourcis.setKey(id, k); if (r.ok) noteChangement(`Touche « ${raccourcis.keymap().find((a) => a.id === id).label} »`, before, k, "clavier"); msg.textContent = r.msg; msg.classList.toggle("err", !r.ok); }
+        render(); setActive("clavier"); const m2 = el.querySelector("#kb-msg"); if (m2 && msg.textContent) { m2.textContent = msg.textContent; m2.classList.toggle("err", msg.classList.contains("err")); }
+      });
+    }));
+    el.querySelectorAll("[data-kb-reset]").forEach((b) => (b.onclick = () => { raccourcis.resetKey(b.dataset.kbReset); render(); setActive("clavier"); }));
     el.querySelector("#pp-back").onclick = () => api.setTab("plan");
     el.querySelector("#pp-export").onclick = () => {
       const d = new Date(), txt = catalogueTexte({ cab: getCab(), labels: CAB_LABEL, date: d.toLocaleDateString("fr-FR"), normes: REGLES });

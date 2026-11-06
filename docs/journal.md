@@ -1,3 +1,19 @@
+## 06/11/2026 — Lot 6 de la reprise des paramètres du BE : raccourcis de FTZ, appareils par départ (branche `feat/maj-lot6-raccourcis`)
+
+- PO-01 « Appliquée » : `src/ext/raccourcis.js` (`ACTIONS` = touches de FTZ (custom.gr) → commande du catalogue :
+  F6 / F7 angles droits, Ctrl+8 porte, Ctrl+9 fenêtre, Ctrl+G liaison, Ctrl+7 défaire, Ctrl+R rotation 90°, Ctrl+Y copier
+  (= dupliquer ; Ctrl+Maj+Z rétablit toujours), F5 étiquettes (repères), F2 / F9 vue Câblage ; Ctrl+J association et
+  Ctrl+6 câble direct sans équivalent : Oktéo les calcule). `keyName(e)` lit la touche physique (Ctrl+8 sur AZERTY) ;
+  `INTERDITES` (Ctrl+W, Ctrl+N, Ctrl+T…) refusées avec une autre touche proposée ; une touche ne sert qu'à une action.
+  Écoute en phase de capture, seulement sur le plan, jamais pendant une saisie. Réglage par poste : localStorage
+  `okteo.raccourcis.v1`. `okteoExt.raccourcis` {keymap, setKey, resetKey, capture, last}.
+- Paramètres → Raccourcis : tableau `#kb-tab` (action, touche FTZ, touche Oktéo, « Changer » `[data-kb-set]` = appuyer
+  sur la nouvelle touche, « Touche du BE » `[data-kb-reset]`), changements notés dans l'historique. Catalogue
+  `params.raccourcis`.
+- TA-02 « Appliquée » : `checkCircuits` — circuit spécialisé = 1 appareil ; convecteurs / sèche-serviettes = 2 au plus
+  (alerte simple sur un circuit modifié à la main).
+- Tests : `scripts/raccourcis.test.mjs` (7) dans `npm run check`, smoke « lot 6 (PO-01) ».
+
 ## 06/11/2026 — Lots 4 et 5 de la reprise des paramètres du BE (fusionnés dans `main`, run 42280434989 vert)
 
 Lot 4 — fabrication (fiches FA-01, FA-04, CH-01 « Appliquée ») :

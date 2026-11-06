@@ -169,8 +169,8 @@ export const FICHES = [
   F("TA-01", "tableau", "actif", "Calibres par défaut", "Éclairage 10 A · prises 16 A (8 en 1,5, 12 en 2,5) · prises de cuisine 16 A en 2,5 · four, lave-linge, sèche-linge, lave-vaisselle 20 A · plaques 32 A en 6 mm² · convecteur seul 10 A, deux convecteurs 16 A · sèche-serviette 10 A · volets 10 A · VMC 2 A · chauffe-eau 16 A · CETH 20 A.",
     "Appliqué depuis le 06/11/2026 (lot 2) : l'éclairage est passé de 16 à 10 A, les prises de cuisine de 20 à 16 A en 2,5, le convecteur seul de 16 à 10 A.",
     { n: [11], source: FTZ, usage: "Circuits, tableau", cab: ["protEclairage", "protPrises", "protCuisine", "protSpecialise", "protVolets"] }),
-  F("TA-02", "tableau", "decide", "Appareils par départ", "Un seul appareil par circuit spécialisé ; deux convecteurs ou sèche-serviettes au plus.",
-    "Comme au BE.",
+  F("TA-02", "tableau", "actif", "Appareils par départ", "Un seul appareil par circuit spécialisé ; deux convecteurs ou sèche-serviettes au plus.",
+    "Comme au BE. Appliqué le 06/11/2026 (lot 6) : Oktéo fait un circuit par appareil spécialisé ; un circuit modifié à la main qui dépasse est signalé (alerte simple).",
     { n: [12], source: FTZ, usage: "Circuits" }),
   F("TA-03", "tableau", "decide", "Modulaires et domotique", "Télérupteurs (1 à 4), relais, variateurs, contacteurs, horloge, interrupteur crépusculaire, comptage, box domotique, BAES, coupure générale, différentiels 2 modules, triphasé, tableau annexe ; départs recharge, photovoltaïque, PAC, spa, piscine, pompe, portail, store, poêle, attentes.",
     "Tous les appareils du tableau du BE (Oktéo en a 9 aujourd'hui).",
@@ -215,8 +215,8 @@ export const FICHES = [
     { n: [56, 57], source: "Proposition", usage: "Tests" }),
 
   // ---- Poste : raccourcis
-  F("PO-01", "clavier", "decide", "Raccourcis du BE", "Murs orthogonaux, porte, fenêtre, liaison, association, défaire, câble direct, rotation de 90°, copier, gaine, étiquettes… ; les touches interdites par le navigateur (Ctrl+W, Ctrl+N, Ctrl+T) auront un remplacement.",
-    "Une page pour voir et changer chaque touche.",
+  F("PO-01", "clavier", "actif", "Raccourcis du BE", "Murs orthogonaux, porte, fenêtre, liaison, association, défaire, câble direct, rotation de 90°, copier, gaine, étiquettes… ; les touches interdites par le navigateur (Ctrl+W, Ctrl+N, Ctrl+T) auront un remplacement.",
+    "Une page pour voir et changer chaque touche. Appliqué le 06/11/2026 (lot 6) : sur le plan, F6 / F7, Ctrl+8, Ctrl+9, Ctrl+G, Ctrl+7, Ctrl+R, Ctrl+Y, F5 et F2 / F9 font comme dans FTZ ; chaque poste peut changer ses touches ici. Association (Ctrl+J) et câble direct (Ctrl+6) n'ont pas d'équivalent : Oktéo les calcule.",
     { n: [23], source: FTZ, usage: "Tout le logiciel" }),
   F("PO-02", "clavier", "decide", "Stream Deck", "Les touches du Stream Deck envoient les raccourcis d'Oktéo ; Oktéo fournit les icônes.",
     "Par le logiciel d'Elgato d'abord ; un module direct plus tard si besoin.",

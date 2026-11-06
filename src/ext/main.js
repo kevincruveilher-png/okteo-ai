@@ -2,6 +2,7 @@
 // Le cœur du logiciel (src/app.js) expose window.okteo ; tout ce qui est ici passe par cette interface.
 import { mountSymbols } from "./symbols-ui.js";
 import { buildCatalog, tooltipFor } from "./catalog.js";
+import { createRaccourcis } from "./raccourcis.js";
 import { createPalette } from "./palette.js";
 import { createSidePanel } from "./panel.js";
 import { createAssistant } from "./assistant.js";
@@ -109,6 +110,8 @@ function start() {
   document.addEventListener("okteo:devices", () => devices.open());
   const catalog = buildCatalog(api, hooks);
   const getCatalog = () => catalog;
+  // lot 6 (PO-01) : touches du BE (FTZ), modifiables dans Paramètres → Raccourcis
+  const raccourcis = createRaccourcis({ catalog: getCatalog, tab: () => api.tab });
 
   palette = createPalette({ getCatalog, onAsk: (t) => { panel.show("assistant"); if (t.trim()) assistant.ask(t); else assistant.focus(); } });
   const asEl = panel.register({ id: "assistant", label: "Assistant", icon: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="#E8534A" stroke="none" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c.6 5.5 4.5 9.4 10 10-5.5.6-9.4 4.5-10 10-.6-5.5-4.5-9.4-10-10 5.5-.6 9.4-4.5 10-10z"/></svg>', dock: true });
@@ -120,7 +123,7 @@ function start() {
   const stage = document.querySelector(".stage");
   const pages = {
     bibliotheque: { el: document.getElementById("bibliotheque"), mount: (el) => mountSymbols(el, { api }), ui: null },
-    params: { el: document.getElementById("params"), mount: (el) => mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, openPacks: Object.assign(() => { api.setTab("plan"); panel.show("packs"); }, { mount: (box) => window.okteoExt?.packs?.mountEditor(box) }), api,
+    params: { el: document.getElementById("params"), mount: (el) => mountParams(el, { PROVIDERS, testProvider, serverStatus, listModels, raccourcis, openPacks: Object.assign(() => { api.setTab("plan"); panel.show("packs"); }, { mount: (box) => window.okteoExt?.packs?.mountEditor(box) }), api,
       askRule }), ui: null },
     etude: { el: document.getElementById("etude"), mount: (el) => mountEtudePage(el, { api, askRule }), ui: null },
     chantiers: { el: document.getElementById("chantiers"), mount: (el) => mountChantiers(el, { api }), ui: null },
@@ -216,7 +219,7 @@ function start() {
   const home = createHomeShell({ api });   // lot 3 : logo = accueil, pages entières « en classeur »
   hooks.modeIa = () => iaMode.setMode(iaMode.mode === "ia" ? "be" : "ia");
   hooks.cabler = () => { const r = cabler(api); api.setHint(r.text); if (pages.etude.ui) pages.etude.ui.render(); return r.text; };
-  window.okteoExt = { home, norme, whyBlink, doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, aiRunner, recheck, iaMode, temps, oneCard, pages, backup: null };
+  window.okteoExt = { home, norme, whyBlink, doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, raccourcis, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, aiRunner, recheck, iaMode, temps, oneCard, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 

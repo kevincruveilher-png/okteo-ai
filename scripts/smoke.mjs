@@ -3331,6 +3331,29 @@ try {
     if (!(r.added === 4 && r.dashed && r.inGeo === 4 && r.asApp === 0 && r.vol === 0 && r.reps === 0 && r.pdf && z > 0.79 && back === 0)) throw new Error(JSON.stringify({ r, z, back }));
     return true;
   });
+  await check("lot 6 (PO-01) : Paramètres → Raccourcis = touches de FTZ ; F6 bascule les angles droits, Ctrl+8 prend la porte ; une touche changée (Ctrl+Alt+P) sert tout de suite ; Ctrl+W refusée (gardée par le navigateur)", async () => {
+    await openParams("clavier");
+    const tab = await ev(() => ({ rows: document.querySelectorAll("#kb-tab tr[data-kb]").length, porte: document.querySelector('#kb-tab tr[data-kb="porte"] td:nth-child(3)')?.textContent }));
+    await page.click('[data-kb-set="porte"]');
+    await page.keyboard.press("Control+Alt+KeyP");
+    await page.waitForTimeout(100);
+    const after = await ev(() => document.querySelector('#kb-tab tr[data-kb="porte"] td:nth-child(3)')?.textContent);
+    const refus = await ev(() => okteoExt.raccourcis.setKey("fenetre", "Ctrl+W"));
+    await toPlan();
+    await ev(() => { okteoExt.panel.close("assistant"); okteo.setTool("sel"); document.activeElement?.blur?.(); });
+    const o0 = await ev(() => document.getElementById("ortho").checked);
+    await page.keyboard.press("F6");
+    const o1 = await ev(() => document.getElementById("ortho").checked);
+    await page.keyboard.press("F6");
+    await page.keyboard.press("Control+Alt+KeyP");
+    const t1 = await ev(() => okteo.tool);
+    await ev(() => okteo.setTool("sel"));
+    await page.keyboard.press("Control+Digit9");
+    const t2 = await ev(() => okteo.tool);
+    await ev(() => { okteo.setTool("sel"); okteoExt.raccourcis.resetKey(); });
+    if (!(tab.rows >= 10 && /Ctrl\+8/.test(tab.porte) && /Ctrl\+Alt\+P/.test(after) && !refus.ok && o1 === !o0 && t1 === "porte" && t2 === "fenetre")) throw new Error(JSON.stringify({ tab, after, refus, o0, o1, t1, t2 }));
+    return true;
+  });
   await check("lot 5 : « Groupes ▾ » (17 groupes du BE) ; « SA+VV » posé d'un clic sur un mur = interrupteur + va-et-vient côte à côte (8 cm) sur le même mur, un seul Ctrl+Z", async () => {
     await ev(() => { okteo.setTab("plan"); okteoExt.panel.close("assistant"); okteo.clearSel(); });
     await page.click('#tools [data-tool="__groupes"]');
