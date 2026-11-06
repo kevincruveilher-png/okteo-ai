@@ -7,7 +7,7 @@
   et boutons − / Ajuster / +, glisser = déplacer, double-clic = page entière, ← → = page précédente / suivante, rôle
   `.pgl-role`, bouton `.pgl-pick` « Prendre cette page comme plan » (désactivé si déjà prise), Échap / ✕ / clic sur le fond.
 - `chantiers-page.js` : bouton `.thumb-zoom` 🔍 sur chaque vignette ; double-clic suivi à la main (`lastThumb`, 450 ms :
-  le 1er clic redessine les vignettes) ; `pickPage` / `changeRole` partagés par les vignettes et la loupe (même logique
+  le 1er clic redessine les vignettes ; remis à zéro par un changement de rôle) ; `pickPage` / `changeRole` partagés par les vignettes et la loupe (même logique
   qu'avant : un seul plan par niveau).
 - Test smoke « loupe des pages ». Catalogue `help.dossier` et notice (`src/aide/notice.md`) complétés.
 - Notice à mettre à jour : document du projet « Oktéo — Notice et support de formation », partie « Nouveau chantier »
