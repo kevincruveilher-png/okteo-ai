@@ -18,7 +18,7 @@ import { esc } from "./util.js";
 import { recordReleve } from "./ai-recheck-ui.js";
 import { createAttente } from "./attente.js";
 import { memoryFixes, memoryPrompt } from "../walls/ai-memory.js";
-import { symbolMemory } from "./symbol-memory.js";
+import { symbolMemory, freshMemory } from "./symbol-memory.js";
 
 const SYSTEM = AI_SYSTEM;
 
@@ -274,6 +274,7 @@ export function createAiReleve({ api, openParams }) {
     const map = { x0: f2.x, y0: f2.y, sx: f2.w / ref.W, sy: f2.h / ref.H };
     const c = scaleOf(raw, map);
     if (c && c.ecart > ECART_MAX) return askScale(c, text);
+    await freshMemory();   // MAJ mémoire : symboles appris sur un autre poste
     lastMode = "paste"; lastUsage = null; lastMs = 0; run = { id: newAnalyseId(), mode: 1 };
     // v64.1 : image trop petite = symboles de quelques pixels, appareils oubliés (essai MAILLARD : 1 654 px, 63 appareils sur 102)
     const low = Math.max(ref.W, ref.H) < MIN_REF_W ? ` · ⚠ image de ${ref.W} px seulement : relevé fait en basse définition, des appareils sont probablement oubliés (la consigne demande ${MIN_REF_W} px au moins : redemandez-le)` : "";

@@ -8,8 +8,12 @@
   l'écriture, clé vide à la lecture : `keyOf`). Et le pavillonneur est maintenant demandé avant d'enregistrer
   (`#why-pav`), puis rangé dans la fiche du chantier (`api.setClient`, événement `okteo:chantier`).
 - Serveur : colonne `tous` (ajoutée à la table existante), renvoyée par `/api/symbol-memory` ; symbol-memory.js `setTous`.
-- Pas compris : relecture de la mémoire du serveur avant chaque analyse (attend le go de Kévin).
-- Tests : ai-memory.test.mjs (6), web.test.mjs (`tous`), smoke (pavillonneur demandé, case « tous », priorité).
+- Ajouté (go de Kévin, 12:01) : mémoire relue sur le serveur juste avant une réponse collée et avant l'analyse avec
+  outils (`freshMemory`, 3 s au plus), et toutes les 5 minutes (`startMemoryTimer`) : un symbole appris sur un autre PC
+  sert sans recharger. Hésitation entre deux types (« INT ou VV ? », souvent deux symboles qui se chevauchent) : la
+  lecture apprise est la paire (`doubtKey` / `readKey`, ordre indifférent) ; consigne copiée et outil « legende » :
+  comparer d'abord avec la mémoire en cas d'hésitation ou de chevauchement.
+- Tests : ai-memory.test.mjs (7), web.test.mjs (`tous`), smoke (pavillonneur demandé, case « tous », priorité).
 
 ## 05/11/2026 — MAJ affichage fusionnée dans `main`
 

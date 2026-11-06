@@ -31,6 +31,7 @@ import { createAiModes } from "./ai-modes-ui.js";
 import { createModeRunner } from "./ai-modes-run.js";
 import { createOneCard } from "./one-card.js";
 import { createHomeShell } from "./home-shell.js";
+import { readKey } from "../walls/ai-memory.js";
 import { createTemps } from "./temps.js";
 import { ensurePaperW, chantierScaleCheck } from "./pdf-page.js";
 import { mountBandsPage } from "./cablage-bandes.js";
@@ -89,7 +90,7 @@ function start() {
   hooks.aiReleve = () => aiModes.open();
   const whyBlink = createWhyBlink({ api });   // n° 5 : « Pourquoi ça clignote ? » et rapport d'analyse
   // lot 2 (05/11/2026) : mémoire des symboles commune (version en ligne) rapatriée au démarrage
-  import("./symbol-memory.js").then((m) => m.syncMemory()).catch(() => { /* hors ligne : mémoire du poste */ });
+  import("./symbol-memory.js").then((m) => { m.startMemoryTimer(); return m.syncMemory(); }).catch(() => { /* hors ligne : mémoire du poste */ });
   hooks.rapport = () => whyBlink.openRapport();
   hooks.aiPaste = () => aiReleve.pastePanel();
   document.addEventListener("okteo:walls", () => walls.open());
@@ -99,7 +100,7 @@ function start() {
     const { remember, cropAround } = await import("./symbol-memory.js");
     const image = await cropAround(api, a).catch(() => "");
     const desc = [api.TYPES[a.t]?.n || a.t, a.inscription ? `inscription « ${a.inscription} »` : "", a.aiType && a.aiType !== a.t ? `lu par l'IA comme ${a.aiType}` : ""].filter(Boolean).join(", ");
-    const r = remember({ pav: api.ch.client || "", type: a.t, desc, chantier: [api.ch.nom, api.ch.numero].filter(Boolean).join(" "), by: (window.okteoSession && window.okteoSession.user && window.okteoSession.user.login) || "", image, lu: a.aiType || (a.aiOrigin ? a.t : ""), inscription: a.inscription || "" });
+    const r = remember({ pav: api.ch.client || "", type: a.t, desc, chantier: [api.ch.nom, api.ch.numero].filter(Boolean).join(" "), by: (window.okteoSession && window.okteoSession.user && window.okteoSession.user.login) || "", image, lu: a.aiOrigin || a.aiType ? readKey(a) : "", inscription: a.inscription || "" });
     api.setHint(r ? `Symbole mémorisé pour ${api.ch.client || "ce pavillonneur (fiche du chantier sans pavillonneur)"} : ${r.type}. L'IA s'en servira (outil « légende ») sur les prochains plans.` : "Symbole non mémorisé.");
     document.dispatchEvent(new CustomEvent("okteo:symbol-memorized", { detail: r }));
   });

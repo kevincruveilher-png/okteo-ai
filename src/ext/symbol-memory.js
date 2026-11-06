@@ -92,3 +92,14 @@ export async function cropAround(api, a, side = 1.2) {
   const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, x, y, w, h, 0, 0, c.width, c.height);
   return c.toDataURL("image/jpeg", 0.8);
 }
+
+// MAJ mémoire (06/11/2026) : relue sur le serveur juste avant une analyse ou une réponse collée (3 s au plus, sinon la
+// copie du poste), et toutes les 5 minutes : un symbole appris sur un autre PC sert sans recharger la page
+export function freshMemory(ms = 3000) {
+  if (!online()) return Promise.resolve({ ok: false, offline: true });
+  return Promise.race([syncMemory().catch(() => ({ ok: false })), new Promise((r) => setTimeout(() => r({ ok: false, late: true }), ms))]);
+}
+export function startMemoryTimer(every = 5 * 60000) {
+  if (startMemoryTimer.t || !online()) return;
+  startMemoryTimer.t = setInterval(() => { if (!document.hidden) syncMemory().catch(() => {}); }, every);
+}

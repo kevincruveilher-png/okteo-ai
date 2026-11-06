@@ -1,7 +1,7 @@
 // MAJ mémoire (05/11/2026) : un symbole appris n'est plus réappris (correction après l'analyse, consigne copiée,
 // images envoyées à l'IA par l'outil « legende »). Données synthétiques, aucun plan client.
 import assert from "node:assert/strict";
-import { memoryFixes, memoryPrompt, learned } from "../src/walls/ai-memory.js";
+import { memoryFixes, memoryPrompt, learned, doubtKey, readKey } from "../src/walls/ai-memory.js";
 import { runTool } from "../src/walls/ai-tools.js";
 import { pastePrompt } from "../src/walls/ai-plan.js";
 
@@ -47,5 +47,14 @@ await test("MAJ « tous » : la variante du pavillonneur passe avant une variant
   const F = memoryFixes([{ t: "INCONNU", aiType: "ZZ" }], [M[0]]);
   assert.equal(F.devices[0].t, "SC"); assert.match(F.devices[0].aiNote, /tous les pavillonneurs, appris chez Autre/);
   assert.match(memoryPrompt([M[0]]), /\(tous les pavillonneurs\) dessin lu comme « ZZ »/);
+});
+await test("hésitation entre deux types (symboles qui se chevauchent) : « VV ou INT » apprise une fois = tranchée de la même façon ensuite, dans n'importe quel ordre", () => {
+  const a = { t: "INT", aiStatus: "a_confirmer", aiNote: "INT ou VV ? deux symboles se chevauchent" };
+  assert.equal(doubtKey(a), "INT ou VV"); assert.equal(readKey(a), "INT ou VV"); assert.equal(readKey({ t: "LUM", aiType: "XYZ" }), "XYZ");
+  const M = [{ type: "VV", lu: "INT ou VV", by: "kevin", own: true }];
+  const F = memoryFixes([{ t: "INT", aiStatus: "a_confirmer", aiNote: "VV ou INT ?" }, { t: "INT", aiStatus: "a_confirmer", aiNote: "INT ou BP ?" }], M);
+  assert.equal(F.devices[0].t, "VV"); assert.equal(F.devices[0].aiStatus, "lu");
+  assert.equal(F.devices[1].t, "INT", "autre hésitation : pas tranchée");
+  assert.match(memoryPrompt(M), /deux symboles se chevauchent/);
 });
 console.log(`mémoire des symboles : ${n} vérifications OK`);

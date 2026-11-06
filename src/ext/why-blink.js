@@ -4,6 +4,7 @@
 // technicien BE ; ce que le plan ne dit pas devient une question au pavillonneur. Passe par l'API seulement.
 import { explain, buildRapport, rapportText, FAMILLES, confirmable, isConfirmed } from "../cablage/rapport.js";
 import { cropAround, remember } from "./symbol-memory.js";
+import { readKey } from "../walls/ai-memory.js";
 import { esc } from "./util.js";
 
 export function createWhyBlink({ api }) {
@@ -109,7 +110,7 @@ export function createWhyBlink({ api }) {
       vb.disabled = true; say("Enregistrement du dessin…");
       const image = await cropAround(api, a).catch(() => "");
       const desc = [`dessin du plan pour ${api.TYPES[t].n || t}`, a.inscription ? `inscription « ${a.inscription} »` : "", a.aiType && a.aiType !== t ? `lu par l'IA comme ${a.aiType}` : ""].filter(Boolean).join(", ");
-      const r = remember({ pav: api.ch.client || "", type: t, desc, chantier: [api.ch.nom, api.ch.numero].filter(Boolean).join(" "), by: who(), image, lu: a.aiType || a.t, inscription: a.inscription || "", tous });
+      const r = remember({ pav: api.ch.client || "", type: t, desc, chantier: [api.ch.nom, api.ch.numero].filter(Boolean).join(" "), by: who(), image, lu: readKey(a), inscription: a.inscription || "", tous });
       const p = cur.pts.find((x) => confirmable(x.kind)) || cur.pts[0];
       api.batch(() => { if (a.t !== t || a.aiStatus !== "lu") api.updateApps([{ id: a.id, t, aiStatus: "lu" }]); if (p) decide(p, { choix: "variante", label: `dessin enregistré comme variante de ${api.TYPES[t].n || t}`, type: t }); });
       document.dispatchEvent(new CustomEvent("okteo:symbol-memorized", { detail: r }));
