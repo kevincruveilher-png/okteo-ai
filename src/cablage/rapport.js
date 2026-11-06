@@ -118,7 +118,16 @@ export function buildRapport(issues, byId, types = {}, decisions = {}, questions
   const Q = [...questions.map((q) => q.text), ...points.filter((p) => p.question && p.decision && p.decision.choix === "pavillonneur").map((p) => p.question)];
   return { points, parFamille, questions: [...new Set(Q)], validations, decided: points.filter((p) => p.decision).length, total: points.length };
 }
-export function rapportText(R, { chantier = "", norme = "" } = {}) {
+// MAJ parafoudre (06/11/2026) : écarts entre l'étude initiale d'Oktéo (norme) et les choix humains du BE : minimums de la
+// norme non retenus (« Voulu », clés « norme:… ») + écarts fournis par l'appelant (parafoudre…) → [{sujet, code, initial,
+// choix, motif, by, at}]
+export function ecartsHumains(decisions = {}, extra = []) {
+  const out = Object.entries(decisions || {}).filter(([k, d]) => k.startsWith("norme:") && d && d.choix === "garde")
+    .map(([k, d]) => ({ sujet: d.rep || k.split(":")[2] || "", code: k.split(":")[1] || "", initial: d.alerte || "", choix: d.label || "non retenu (voulu)", motif: d.motif || "", by: d.by || "", at: d.at || "" }));
+  return [...(extra || []).filter(Boolean), ...out].sort((a, b) => String(a.at).localeCompare(String(b.at)));
+}
+const whoAt = (v) => (v.by ? " (" + v.by + (v.at ? ", " + v.at.slice(0, 16).replace("T", " ") : "") + ")" : "");
+export function rapportText(R, { chantier = "", norme = "", ecarts = [] } = {}) {
   const L = [`Rapport d'analyse${chantier ? " — " + chantier : ""} : ${R.total} point(s), ${R.decided} décidé(s)`];
   if (norme) L.push(`Référence : ${norme}`);   // MAJ norme n° 6 (DOC-05)
   for (const g of R.parFamille) {
@@ -128,6 +137,10 @@ export function rapportText(R, { chantier = "", norme = "" } = {}) {
   if ((R.validations || []).length) {
     L.push("", `Emplacements confirmés et corrections (${R.validations.length})`);
     for (const v of R.validations) L.push(`- ${v.rep} : ${v.alerte} → ${v.label}${v.by ? " (" + v.by + (v.at ? ", " + v.at.slice(0, 16).replace("T", " ") : "") + ")" : ""}`);
+  }
+  if ((ecarts || []).length) {
+    L.push("", `Étude initiale et modifications humaines (${ecarts.length})`);
+    for (const e of ecarts) L.push(`- ${e.sujet}${e.code ? " [" + e.code + "]" : ""} : étude initiale « ${e.initial} » → ${e.choix}${e.motif ? " — motif : " + e.motif : ""}${whoAt(e)}`);
   }
   if (R.questions.length) { L.push("", "Questions au pavillonneur"); R.questions.forEach((q, i) => L.push(`${i + 1}. ${q}`)); }
   return L.join("\n");

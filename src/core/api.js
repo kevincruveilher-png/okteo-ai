@@ -1,5 +1,6 @@
 // Oktéo AI — cœur : Interface publique window.okteo (extensions, assistant, tests).
 import { versionFor } from "../norme/nfc15100.js";
+import { etudeParafoudre } from "../norme/parafoudre.js";
 // Module issu du découpage de app.js (v26). L'état partagé est dans K (core/k.js).
 import { readingData } from "../walls/ai-data.js";
 import { K } from "./k.js";
@@ -776,6 +777,12 @@ window.okteo = {
     const m = CHS.get(CH.id);   // la fiche du chantier peut avoir été modifiée par la page Chantiers (autre copie)
     if (m && m.permis !== CH.permis) CH.permis = m.permis;
     return versionFor(CH);
+  },
+  // MAJ parafoudre : étude d'après le code postal du chantier, le choix du chantier (cab.choix.parafoudre) et la norme
+  parafoudre() {
+    const m = CHS.get(CH.id);
+    if (m) { if (m.cp !== CH.cp) CH.cp = m.cp; if (m.permis !== CH.permis) CH.permis = m.permis; }
+    return etudeParafoudre(CH, ((K.CAB && K.CAB.choix) || {}).parafoudre, versionFor(CH).v);
   },
   setClient(name) {
     const v = String(name || "").trim().slice(0, 100);

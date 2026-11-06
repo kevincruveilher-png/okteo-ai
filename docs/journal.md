@@ -1,3 +1,34 @@
+## 06/11/2026 — MAJ parafoudre (accord de Kévin : « adapter par rapport à la loi, modifiable par le BE, visible au rapport »)
+
+- `src/norme/parafoudre.js` (pur) : `NK` = niveau kéraunique par département (96 départements, Corse 2A / 2B, outre-mer),
+  relevé sur la carte de l'annexe 10A de la NF C 15-100-10 (2024) — valeurs seules, aucun texte de la norme ; 29 en zone
+  AQ2 (Nk > 25). Val-d'Oise : valeur non imprimée, prise à 15 (AQ1 comme ses voisins). `depOf(cp)` (code postal ou n° de
+  département ; Corse 20000–20199 = 2A, sinon 2B ; DOM 97x), `nkOf`, `etudeParafoudre(meta, choix, v)` → {etat obligatoire
+  | recommande | non | inconnu, type 1 (paratonnerre) ou 2, raisons, manque, auto, avec, ecart, com (PF-03, 2024),
+  distance (PF-02 : 10 m en 2024, 30 m avant), ref}, `withParafoudre(rows, on, type)` (parafoudre + disjoncteur de
+  déconnexion en tête de la 1re rangée, en amont des différentiels, marqués `auto` ; seuls ceux-là sont retirés),
+  `parafoudreIssues` (PF-01 à poser, disjoncteur manquant, type 1 si paratonnerre ; PF-04 en aval d'un 30 mA ; PF-02
+  tableau divisionnaire au-delà de la distance ; PF-03 communication), `ecartParafoudre`.
+- Cas retenus (tableau 10-1H, R-150 / R-151) : paratonnerre (sur la maison ou à moins de 50 m) = obligatoire type 1 ;
+  ligne aérienne (même en partie) en AQ2 = obligatoire ; souterraine = non ; sécurité des personnes (matériel médical,
+  alarme) = obligatoire en AQ2, recommandé (analyse de risque) en AQ1. Sans code postal, ou AQ2 sans arrivée connue :
+  « données à préciser ».
+- Fiche du chantier : champ « Code postal » `input[data-f="cp"]` (`meta.cp`) + `#ch-nk` (département, Nk, zone).
+  API : `okteo.parafoudre()` (relit la fiche). Choix du chantier `cab.choix.parafoudre` {arrivee, paratonnerre, securite,
+  comCuivre, be auto | oui | non, by, at, initial, motif}.
+- Étapes → Norme : bloc `#nm-pf` (`#pf-etat`, `#pf-arr`, `#pf-para`, `#pf-secu`, `#pf-com`, `#pf-be`, `#pf-motif`,
+  `#pf-ecart`) ; chaque changement = un Ctrl+Z (`api.batch`) et met à jour le tableau enregistré (`withParafoudre`).
+  Le BE garde toujours la main (« avec » / « sans ») ; alerte simple, rien n'est bloqué.
+- Tableau : `MODS.pf1` (type 1) ; `autoTableau(..., {parafoudre})` ; `tableauIssues(..., {pf, tabs})` ; `tabCtx(api)` rend
+  `pf` et `tabs` (autres TAB, distance au tableau principal), `pfOf(api)` ; dossier idem.
+- Rapport d'analyse : rubrique « Étude initiale et modifications humaines » (carte `.rap-ecarts` + texte copié) =
+  `ecartsHumains(decisions, extra)` (rapport.js : minimums de la norme « voulus » + parafoudre) ; `okteoExt.whyBlink.ecarts()`.
+- Fiche d'autocontrôle : PF-01 passe dans « Vérifié sur le plan » (R / NR / SO d'après l'étude et le tableau), PF-03 à
+  vérifier sur le chantier si un parafoudre de communication est prévu. Catalogue `norme.parafoudre`.
+- Tests : `scripts/norme.test.mjs` (3 groupes de plus : 14) ; smoke « parafoudre ».
+- Reste : arrivée aérienne / souterraine non lue sur le plan (question au BE) ; parafoudre de communication non dessiné
+  (tableau de communication) ; distance PF-02 à vol d'oiseau, pas en longueur de câble.
+
 ## 06/11/2026 — MAJ norme n° 6 fusionnée dans `main`
 
 - `npm run check` vert sur GitHub Actions (run 42225339450 : smoke 224/224 dont le dossier en 4 parties et les documents seuls, cablage 89, chantiers 176, MAILLARD 14). Workflow temporaire retiré.
