@@ -3331,6 +3331,18 @@ try {
     if (!(r.added === 4 && r.dashed && r.inGeo === 4 && r.asApp === 0 && r.vol === 0 && r.reps === 0 && r.pdf && z > 0.79 && back === 0)) throw new Error(JSON.stringify({ r, z, back }));
     return true;
   });
+  await check("notice : « ? Aide » ouvre la notice (sommaire, étapes 1 à 7), la recherche « nuage » ne garde que les parties qui en parlent, Échap ferme", async () => {
+    await ev(() => { okteo.setTab("plan"); okteoExt.panel.close("assistant"); });
+    await page.click("#btn-aide");
+    await page.waitForSelector("#aide:not([hidden])", { timeout: 5000 });
+    const r = await ev(() => ({ toc: document.querySelectorAll("#aide .aide-toc a").length, steps: [...document.querySelectorAll("#aide-doc h2")].filter((h) => /^Étape \d/.test(h.textContent)).length }));
+    await page.fill("#aide-find", "nuage");
+    const f = await ev(() => ({ shown: document.querySelectorAll("#aide-doc section:not([hidden])").length, all: document.querySelectorAll("#aide-doc section").length, n: document.getElementById("aide-n").textContent }));
+    await page.keyboard.press("Escape");
+    const closed = await ev(() => document.getElementById("aide").hidden && okteo.tab === "plan");
+    if (!(r.toc >= 12 && r.steps === 7 && f.shown >= 1 && f.shown < f.all && /partie/.test(f.n) && closed)) throw new Error(JSON.stringify({ r, f, closed }));
+    return true;
+  });
   await check("lot 6 (PO-01) : Paramètres → Raccourcis = touches de FTZ ; F6 bascule les angles droits, Ctrl+8 prend la porte ; une touche changée (Ctrl+Alt+P) sert tout de suite ; Ctrl+W refusée (gardée par le navigateur)", async () => {
     await openParams("clavier");
     const tab = await ev(() => ({ rows: document.querySelectorAll("#kb-tab tr[data-kb]").length, porte: document.querySelector('#kb-tab tr[data-kb="porte"] td:nth-child(3)')?.textContent }));

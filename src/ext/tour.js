@@ -37,7 +37,7 @@ const TOUR = [
   { t: "#ctl", title: "À vérifier", text: "Un seul compteur, toujours actif : « ⚠ n à vérifier » compte les commandes sans lumière, lumières sans commande, va-et-vient incomplets, appareils sans circuit, allumages coupés entre deux boîtes (halo orange sur le plan) et les doutes du câblage (règle manquante ou cas non prévu ; rouge ✕ s'il y en a un bloquant). Un clic va au cas suivant ; la liste est dans le panneau Câblage, les doutes dans l'onglet Étude." },
   { t: "#savedot", title: "10. Enregistrement", text: "Tout s'enregistre seul. Pour ne jamais rien perdre : page Chantiers → « Sauvegarde automatique » dans un dossier du PC. Ctrl+Z / Ctrl+Y : annuler / rétablir." },
   { t: "#btn-print", title: "11. Imprimer", text: "Plan PDF à l'échelle exacte (1:50…), avec légende, cartouche et nomenclature. Les calques imprimés suivent la vue : en mode Câblage, boîtes, gaines et couleurs des circuits. Ctrl+P." },
-  { t: "#btn-palette", title: "12. Trouver une fonction", text: "Ctrl+K (ou F1) : toutes les fonctions avec une recherche. Tapez par ex. « niveau », « échelle » ou « renuméroter »." },
+  { t: "#btn-palette", title: "12. Trouver une fonction", text: "Ctrl+K (ou F1) : toutes les fonctions avec une recherche. Tapez par ex. « niveau », « échelle » ou « renuméroter ». Le bouton « ? Aide », juste à côté, ouvre la notice et le support de formation." },
   { t: "#as-dock", title: "13. L'assistant", text: "En bas à droite du plan : un clic l'agrandit, « — » le réduit (touche A pour l'ouvrir). L'assistant IA répond aux questions sur le logiciel et peut analyser le plan (clé Claude ou NVIDIA dans Paramètres). Cette visite se relance par Ctrl+K → « Visite guidée »." },
 ];
 

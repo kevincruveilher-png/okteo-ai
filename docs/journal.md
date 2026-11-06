@@ -1,3 +1,14 @@
+## 06/11/2026 — Notice dans le logiciel (bouton « ? Aide ») (fusionné dans `main`, run 42295122476 vert)
+
+- Demande de Kévin (commentaire sur la notice) : la notice aussi dans le logiciel.
+- `src/aide/notice.md` = la notice (même contenu que le document du projet, noms exacts des boutons : menu Relevé
+  « 1. Murs… ✦ Relecture ciblée », « ✓ Contrôle ») ; À TENIR À JOUR à chaque version, avec le document du projet.
+- `src/aide/markdown.js` (pur : `renderNotice` → {html, toc} avec une `<section data-s>` par partie, `inline` (texte
+  échappé, liens https seuls), `matches`, `slug`) ; `src/ext/aide.js` (`createAide` : fenêtre `#aide`, sommaire
+  `.aide-toc`, recherche `#aide-find` / `#aide-n`, Échap ou ✕ `#aide-x`) ; bouton `#btn-aide` « ? Aide » du bandeau
+  (index.html), `okteoExt.aide`, catalogue `aide.notice`, étape 12 de la visite complétée.
+- Tests : `scripts/aide.test.mjs` (6) dans `npm run check`, smoke « notice ».
+
 ## 06/11/2026 — Notice et support de formation
 
 - Création du document « Oktéo — Notice et support de formation » (doc Claude du projet,

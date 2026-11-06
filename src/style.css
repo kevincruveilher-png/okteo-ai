@@ -1505,3 +1505,28 @@ body.page-full #params .pset-sec h3{font-size:21px;font-family:var(--fd);margin-
 .ch-fin th{text-align:left;font-weight:600;padding:3px 8px}
 .ch-fin td{padding:2px 4px}
 .ch-fin input{width:120px;text-transform:uppercase}
+/* 06/11/2026 : notice dans le logiciel (bouton « ? Aide ») */
+.btn-aide{font-weight:600}
+.aide{position:fixed;inset:0;z-index:900;background:rgba(10,18,40,.55);display:flex;align-items:stretch;justify-content:center;padding:24px}
+.aide[hidden]{display:none}
+.aide-in{background:#fff;color:#1d2433;width:min(1100px,100%);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.aide-head{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #e3e6ee;background:#E8534A;color:#fff}
+.aide-head b{font-size:16px;white-space:nowrap}
+.aide-find{flex:1;min-width:120px;padding:7px 10px;border-radius:8px;border:0;font-size:14px;color:#1d2433;background:#fff}
+.aide-n{color:#fff;opacity:.9;font-size:13px;white-space:nowrap}
+.aide-x{background:transparent;border:0;color:#fff;font-size:20px;cursor:pointer;padding:2px 6px}
+.aide-body{display:flex;flex:1;min-height:0}
+.aide-toc{width:240px;flex:none;overflow:auto;padding:12px 8px;border-right:1px solid #e3e6ee;background:#f6f7fa}
+.aide-toc a{display:block;padding:6px 10px;border-radius:6px;color:#1d2433;text-decoration:none;font-size:13.5px}
+.aide-toc a:hover{background:#ffe4e1}
+.aide-toc a[hidden]{display:none}
+.aide-doc{flex:1;overflow:auto;padding:12px 28px 40px;font-size:14.5px;line-height:1.55}
+.aide-doc h1{font-size:22px;margin:8px 0 6px}
+.aide-doc h2{font-size:18px;margin:26px 0 8px;padding-top:6px;border-top:1px solid #eef0f4;color:#1d2a4a}
+.aide-doc h3{font-size:15px;margin:16px 0 6px}
+.aide-doc table{border-collapse:collapse;margin:8px 0 14px;font-size:13.5px;width:100%}
+.aide-doc th,.aide-doc td{border:1px solid #e3e6ee;padding:5px 8px;text-align:left;vertical-align:top}
+.aide-doc th{background:#f6f7fa}
+.aide-doc section[hidden]{display:none}
+.aide-doc a{color:#c2352d}
+@media (max-width:760px){.aide{padding:0}.aide-toc{display:none}.aide-in{border-radius:0}}
