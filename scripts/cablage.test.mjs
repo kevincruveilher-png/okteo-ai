@@ -98,7 +98,11 @@ check("alimentation : une seule gaine par boîte (phase + neutre de chaque circu
   W.boxes.every((b) => { const A = b.gaines.filter((x) => x.kind === "alim");
     const usesN = (cn) => b.gaines.some((g) => g.kind === "app" && g.wires.some((w) => w.fn === "neutre" && w.circuit === cn));
     return b.circuits.every((cn) => A.some((x) => x.circuits.includes(cn) && x.wires.some((w) => w.fn === "phase" && w.circuit === cn) && (!usesN(cn) || x.wires.some((w) => w.fn === "neutre" && w.circuit === cn))))
-      && A.reduce((s, x) => s + x.wires.filter((w) => w.fn === "terre").length, 0) === 1 && A[0].wires.some((w) => w.fn === "terre") && A.every((x) => x.diam === 16 || x.diam === 20) && (A.length === 1 || placeFils(A[0].wires.map((w) => w.section)) + 2 * placeFil(A[1].wires[0].section) > 90); }),
+      && A.reduce((s, x) => s + x.wires.filter((w) => w.fn === "terre").length, 0) === 1 && A[0].wires.some((w) => w.fn === "terre") && A.every((x) => x.diam === 16 || x.diam === 20) && (A.length === 1 || (() => {
+      // estimation de packAlim (gaine.js) : 2 fils par circuit + fils du télérupteur + une terre de la plus forte section
+      const secC = (cn) => (b.gaines.flatMap((g) => g.wires).find((w) => w.circuit === cn && w.fn === "phase") || { section: 1.5 }).section;
+      const cs = [...A[0].circuits, A[1].circuits[0]], extra = A[0].wires.filter((w) => !["phase", "neutre", "terre"].includes(w.fn)).length;
+      return cs.reduce((t, cn) => t + 2 * placeFil(secC(cn)), 0) + extra * placeFil(1.5) + placeFil(Math.max(...cs.map(secC))) > 90; })()); }),
   W.boxes.map((b) => b.gaines.filter((x) => x.kind === "alim").map((x) => `${x.circuit} Ø${x.diam} (${x.wires.length} fils)`).join(" | ")).join(" ; "));
 check("lignes directes : prises spécialisées, sorties de câble et RJ45 (tableau → appareil)", W.direct.length === T("PC20").length + T("SC").length + T("RJ45").length && W.direct.every((x) => x.length > 2));
 
@@ -211,8 +215,8 @@ console.log("Règles KiTéOHM (v38) : circuits par boîte, ronde harmonisée, t�
   const retOf = (id) => HW.boxes.flatMap((b) => b.gaines).find((g) => g.appIds && g.appIds.includes(id)).wires.find((w) => w.fn === "retour").color;
   const vvG = HW.boxes[0].gaines.find((g) => g.appIds && g.appIds.includes("hv1"));
   const navOf = (g) => g.wires.find((w) => w.fn === "nav1").color;
-  check("ronde R-072 : va-et-vient d'abord (navettes orange, retour violet), puis l'allumage simple (noir) ; une boîte qui n'a qu'un allumage simple : orange",
-    retOf("hl0") === "noir" && retOf("hl1") === "orange" && retOf("hl2") === "orange" && retOf("hvl") === "violet" && navOf(vvG) === "orange" && vvG.wires.filter((w) => w.fn === "nav1" || w.fn === "nav2").every((w) => w.color === "orange"),
+  check("ronde R-072 (ordre du BE : orange, ivoire, marron, noir, violet) : va-et-vient d'abord (navettes orange, retour ivoire), puis l'allumage simple (noir : le marron est gardé pour les câbles) ; une boîte qui n'a qu'un allumage simple : orange",
+    retOf("hl0") === "noir" && retOf("hl1") === "orange" && retOf("hl2") === "orange" && retOf("hvl") === "ivoire" && navOf(vvG) === "orange" && vvG.wires.filter((w) => w.fn === "nav1" || w.fn === "nav2").every((w) => w.color === "orange"),
     ["hl0", "hl1", "hl2", "hvl"].map(retOf).join(" ") + " nav " + navOf(vvG));
   // 7 allumages simples dans une boîte, une lumière extérieure en câble : marron imposé, puis pas de répétition tant
   // qu'une couleur est libre, puis réutilisation avec bague au n° de l'allumage (gaines séparées)
