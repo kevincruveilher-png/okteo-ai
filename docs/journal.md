@@ -1,3 +1,16 @@
+## 06/11/2026 — Lot 9 de la reprise des paramètres du BE : nuage et indice de révision (branche `feat/maj-lot9-nuage`)
+
+- FA-05 « Appliquée » : `src/print/nuage.js` (pur : `rectOf`, `scallops`, `cloudPoints` (festons vers l'extérieur, mêmes
+  points écran et papier), `indiceMark` (triangle sur l'angle haut droit), `nextIndice`, `nearCloud`).
+- Modèle : `state.nuages` [{id "q…", x0, y0, x1, y1, ind}] par niveau (`LKEYS`, `packState`, annulable), `uidQ` / `K.QID` ;
+  `exportGeometry().nuages`. Indice courant du chantier : `K.CAB.indice` (le prochain nuage le reprend).
+- Outil `nuage` (barre bâti, icône nuage) : deux clics = deux coins (brouillon en pointillés `K.cloudDraft`, Échap
+  annule) ; sélection par le contour (`hitAny` → kind `nuage`), glisser = déplacer, Suppr, HUD « Supprimer le nuage » ;
+  Propriétés `#f_ind` (indice), `#delq`. Rendu `g.nuage` (rouge, trait fixe à l'écran).
+- Impression : print.js trace les festons et le triangle avec l'indice (option `nuages`, vrai par défaut) ; `rotateGeo`
+  tourne les points.
+- Tests : `scripts/nuage.test.mjs` (6) dans `npm run check`, smoke « lot 9 (FA-05) ».
+
 ## 06/11/2026 — Lot 8 de la reprise des paramètres du BE : dossier SharePoint de l'affaire (fusionné dans `main`, run 42285792088 vert, smoke 230/230)
 
 - CH-08 « Appliquée » : `src/referentiel/sharepoint.js` (pur : `sharepointUrl(modèle, affaire)` — {affaire} remplacé

@@ -10,7 +10,7 @@ import { roomAt } from "./groups.js";
 // Un seul chantier est chargé à la fois ; changer de chantier recharge la page (état propre, annuler/rétablir compris).
 export const CH = CHS.current();
 
-export const LKEYS = ["nodes", "segs", "rooms", "app", "lia", "openings", "dims"];
+export const LKEYS = ["nodes", "segs", "rooms", "app", "lia", "openings", "dims", "nuages"];  // lot 9 : nuages de révision
 
 // aperçu d'un relevé automatique : {nodes, walls, openings} | {rooms} | {devices, links, unknown}
 export const PLAN = {
@@ -26,6 +26,7 @@ export const state = {
   lia: [],
   openings: [],
   dims: [],
+  nuages: [], // lot 9 (FA-05) : {id, x0, y0, x1, y1, ind} = zone modifiée + indice de révision
   wallEp: 0.20
 };
 
@@ -161,7 +162,8 @@ export const uidN = () => "n" + ++K.NID,
   uidA = () => "a" + ++K.AID,
   uidR = () => "r" + ++K.RID,
   uidO = () => "o" + ++K.OID,
-  uidD = () => "d" + ++K.DID;
+  uidD = () => "d" + ++K.DID,
+  uidQ = () => "q" + ++K.QID;
 
 export function node(x, y) {
   const n = {
@@ -279,6 +281,7 @@ K.AID = 0;
 K.RID = 0;
 K.OID = 0;
 K.DID = 0;
+K.QID = 0;
 K.tool = "piece";
 K.sel = null;
 K.testMode = false;

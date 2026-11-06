@@ -18,6 +18,7 @@ export function packState() {
     lia: state.lia,
     openings: state.openings,
     dims: state.dims,
+    nuages: state.nuages,
     wallEp: state.wallEp,
     level: K.LV.cur,
     other,
@@ -160,6 +161,7 @@ export function bumpIds() {
     K.RID = mx(d.rooms, K.RID);
     K.OID = mx(d.openings, K.OID);
     K.DID = mx(d.dims, K.DID);
+    K.QID = mx(d.nuages, K.QID);
   });
 }
 

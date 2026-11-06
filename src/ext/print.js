@@ -4,6 +4,7 @@ import { drawSymbol, drawText as ftzText } from "../print/ftz-sheet.js";
 import { boxColor, ftzSymbol, plaques, symIndex } from "../print/ftz-symbols.js";
 import { Placer, roomCandidates, spreadSymbols, pushOff, wallBoxes, repCandidates, lineBoxes, glueToWall, switchParts, WALL_SWITCH, SWITCH_R } from "../place.js";
 import { pref } from "../prefs.js";
+import { cloudPoints, indiceMark } from "../print/nuage.js";
 import { logoData, LOGO_RATIO } from "./logo.js";
 // Sortie PDF imprimable du plan (vectorielle, à l'échelle exacte) : page 1 = plan + légende + échelle graphique
 // + cartouche ; page 2 = nomenclature (appareils par pièce, surfaces) et liste des appareils.
@@ -59,6 +60,9 @@ export function rotateGeo(geo, deg) {
   });
   g.links = (geo.links || []).map((l) => ({ a: R(l.a), b: R(l.b) }));
   g.dims = (geo.dims || []).map((x) => ({ ...x, a: R(x.a), b: R(x.b) }));
+  // lot 9 : nuages tournés point par point (le rectangle ne reste pas droit)
+  const RP = ([x, y]) => { const r = R({ x, y }); return [r.x, r.y]; };
+  g.nuages = (geo.nuages || []).map((q) => { const M = indiceMark(q), T = R({ x: M.tx, y: M.ty }); return { ...q, pts: cloudPoints(q).map(RP), mk: { pts: M.pts.map(RP), tx: T.x, ty: T.y, size: M.size } }; });
   g.boxes = (geo.boxes || []).map((b) => ({ ...R(b), rot: d, deps: b.deps.map((dp) => ({ ...dp, ends: dp.ends.map((e) => ({ ...R(e), route: RL(e.route) })), ponts: (dp.ponts || []).map((p) => ({ ...p, a: R(p.a), b: R(p.b) })) })) }));
   if (geo.fond) {
     const F = geo.fond, P = [{ x: F.x, y: F.y }, { x: F.x + F.w, y: F.y }, { x: F.x, y: F.y + F.h }, { x: F.x + F.w, y: F.y + F.h }].map(R);
@@ -385,6 +389,19 @@ export async function buildPlanPdf(geoIn, opts = {}) {
       const t = 0.12;
       [d.a, d.b].forEach((p) => line({ x: p.x - uy * t, y: p.y + ux * t }, { x: p.x + uy * t, y: p.y - ux * t }));
       doc.text(fr(d.L), x, y, { align: "center", baseline: "middle", angle: ang });
+    });
+    // lot 9 (FA-05) : nuages de révision (festons rouges) et indice de révision dans son triangle
+    if (o.nuages !== false) (geo.nuages || []).forEach((q) => {
+      const P = q.pts || cloudPoints(q), M = q.mk || indiceMark(q);
+      doc.setDrawColor(210, 40, 40); doc.setLineWidth(0.3);
+      for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length]; line({ x: a[0], y: a[1] }, { x: b[0], y: b[1] }); }
+      if (q.ind) {
+        doc.setFillColor(255, 255, 255);
+        doc.triangle(X(M.pts[0][0]), Y(M.pts[0][1]), X(M.pts[1][0]), Y(M.pts[1][1]), X(M.pts[2][0]), Y(M.pts[2][1]), "FD");
+        doc.setTextColor(210, 40, 40); doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(6, Math.min(12, pt(Math.abs(X(M.size) - X(0))) * 0.9)));
+        doc.text(String(q.ind), X(M.tx), Y(M.ty), { align: "center", baseline: "middle" });
+        doc.setFont("helvetica", "normal");
+      }
     });
     doc.setTextColor(30, 30, 30);
     roomLabels.forEach(({ r, name, surf, x, y, h, w }) => {

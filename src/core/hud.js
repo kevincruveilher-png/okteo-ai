@@ -65,6 +65,10 @@ export function selCenter() {
       y: Math.min(r.y0, r.y1)
     };
   }
+  if (K.sel.kind === "nuage") {
+    const q = (state.nuages || []).find(x => x.id === K.sel.id);
+    return q && { x: (q.x0 + q.x1) / 2, y: Math.min(q.y0, q.y1) };
+  }
   if (K.sel.kind === "dim") {
     const d = state.dims.find(x => x.id === K.sel.id);
     return d && {
@@ -121,6 +125,7 @@ export function hudHTML() {
   }
   if (K.sel.kind === "node") return `<button data-h="del">Supprimer le sommet</button>`;
   if (K.sel.kind === "dim") return `<button data-h="del">Supprimer la cote</button>`;
+  if (K.sel.kind === "nuage") return `<button data-h="del">Supprimer le nuage</button>`;
   return "";
 }
 
@@ -237,7 +242,7 @@ export function wireHud() {
 }
 
 export function placeHud() {
-  const kinds = ["open", "app", "seg", "room", "node", "dim"];
+  const kinds = ["open", "app", "seg", "room", "node", "dim", "nuage"];
   const active = multi.size > 1 || K.sel && kinds.includes(K.sel.kind);
   if (!active || K.drag || K.pan || K.roomDraft || K.marquee || K.seriesMode) {
     hudEl.hidden = true;

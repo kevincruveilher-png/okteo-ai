@@ -502,6 +502,7 @@ export function okteoGeo() {
     apps,
     links,
     dims,
+    nuages: (state.nuages || []).map(q => ({ ...q })),
     boxes,
     symU: symScaleOf(),
     roomTxt: K.roomTxt || 1,
