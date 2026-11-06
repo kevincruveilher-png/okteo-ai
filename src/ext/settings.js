@@ -7,6 +7,7 @@
 
 import { normeSettings } from "../norme/circuits.js";
 import { ABREV_DEFAUT, abrevRoom, parseAbrev } from "../print/abrev.js";
+import { sharepointUrl, sharepointOk } from "../referentiel/sharepoint.js";
 import { CAB_DEFAULTS, CAB_FIELDS, PROTS, SECTIONS, getCab, resetCab, setCab } from "../cablage/settings.js";
 import { esc, store, storeSet } from "./util.js";
 import { getPrefs, setPref, applyTheme, PREFS_DEFAULTS } from "../prefs.js";
@@ -99,6 +100,14 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
         ${[["dark", "Sombre"], ["light", "Clair"], ["auto", "Comme l'ordinateur"]].map(([k, l]) => `<button data-theme-set="${k}" aria-pressed="${th === k}">${l}</button>`).join("")}</div>
       <div class="pset-rows">${PREF_FIELDS.map(([k, label, help]) => `<label class="cab-row pref-row${v[k] !== PREFS_DEFAULTS[k] ? " chg" : ""}" title="${esc(help)}"><span>${esc(label)}<small class="mut">${esc(help)}</small></span><span class="cab-ctl"><input type="checkbox" data-pref="${k}" ${v[k] ? "checked" : ""}></span></label>`).join("")}</div>`;
   }
+  // lot 8 (CH-08) : modèle d'adresse du dossier SharePoint
+  function spHTML() {
+    const v = getPrefs().sharepoint || "";
+    return `<div class="pset-grp" id="ps-sp-g"><h4 id="ps-sp">Dossier SharePoint des affaires</h4>
+      <p class="mut sm">Collez l'adresse d'un dossier d'affaire en remplaçant le n° par <code>{affaire}</code>. La fiche du chantier montre alors « Dossier SharePoint ↗ ». Réglage de ce poste.</p>
+      <input id="pref-sp" class="pp-wide" spellcheck="false" placeholder="https://…sharepoint.com/…/{affaire}" value="${esc(v)}" aria-label="Modèle d'adresse SharePoint">
+      <p class="mut sm" id="pref-sp-ex" role="status"></p></div>`;
+  }
   function abrevHTML() {
     const v = getPrefs();
     return `<div class="pset-grp" id="ps-abrev-g"><h4 id="ps-abrev">Table des abréviations des pièces</h4>
@@ -139,7 +148,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
     const list = fiches.length ? `${countHTML(r.id)}<div class="rf-list">${fiches.map(ficheHTML).join("")}</div>` : "";
     const groups = CAB_RUB[r.id] ? cabGroupsHTML(CAB_RUB[r.id]) : "";
     if (r.id === "cablage") return `<div class="pset-h"><div>${head}</div><button id="cab-reset" title="Remettre toutes les valeurs de base du câblage (toutes rubriques)">Valeurs de base</button></div>${normeWarn()}${list}${groups ? `<h4 class="pp-sub">Réglages du câblage</h4>${groups}` : ""}`;
-    if (r.id === "chantier") return head + list + abrevHTML();
+    if (r.id === "chantier") return head + list + spHTML() + abrevHTML();
     if (r.id === "appareils") return head + list + `<div class="pp-packs" id="ps-packs"><h4 class="pp-sub">Implantation type des pièces (packs)</h4><p class="mut sm">L'appareillage type de chaque pièce (chambre, séjour, cuisine…). Sur le plan : sélectionnez une pièce nommée, puis « ⚡ Implantation rapide » (ou Maj+P) pose son pack.</p><div id="ps-packs-ed"></div></div>`;
     if (r.id === "norme") return head + `<p class="mut sm">Version appliquée à un chantier : ${esc(VERSIONS["2024"].label)} si le permis est déposé après le ${BASCULE.split("-").reverse().join("/")}, sinon ${esc(VERSIONS["2015"].label)} (date du permis dans la fiche du chantier).</p>` + normeHTML();
     if (r.id === "questions") return head + `<div class="rf-list">${QUESTIONS.map(([ref, q, pour]) => `<article class="rf-card e-question q-row"><div class="rf-h"><span class="rf-id">${ref}</span><b class="rf-t">${esc(q)}</b></div><p class="rf-m">Pour : ${esc(pour)}</p></article>`).join("")}</div>`;
@@ -278,6 +287,8 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
 
   function wire() {
     wireCab();
+    { const sp = el.querySelector("#pref-sp"), ex = el.querySelector("#pref-sp-ex"), show = () => { const u = sharepointUrl(sp.value, "AF26000001"); ex.textContent = !sp.value.trim() ? "" : !sharepointOk(sp.value) ? "Adresse à corriger : elle doit commencer par https://" : "Exemple : " + u; ex.classList.toggle("err", !sharepointOk(sp.value)); };
+      if (sp) { show(); sp.oninput = show; sp.onchange = () => { if (!sharepointOk(sp.value)) return; const before = getPrefs().sharepoint || ""; setPref("sharepoint", sp.value.trim()); noteChangement("Dossier SharePoint des affaires", before, sp.value.trim(), "chantier"); }; } }
     const abx = el.querySelector("#pref-abrev"), abEx = () => { const R = parseAbrev(abx.value); el.querySelector("#pref-abrev-ex").textContent = "Exemples : " + ["Pièce de vie", "Chambre 1", "Salle de bains", "Dégagement", "Dressing"].map((n) => `${n} → ${abrevRoom(n, R)}`).join(" · "); };
     if (abx) {
       abEx();

@@ -24,6 +24,7 @@ export const PREFS_DEFAULTS = {
   // au-delà duquel le mur corrigé est signalé (cm)
   equerreTol: 10, equerre45: 10, equerreMax: 15,
   theme: "auto", // page Paramètres (06/11/2026) : thème de l'écran « sombre », « clair » ou « auto » (celui de l'ordinateur)
+  sharepoint: "", // lot 8 (CH-08) : modèle d'adresse du dossier SharePoint de l'affaire, {affaire} = n° d'affaire
   abrev: "", // v74 : abréviations des noms de pièces du plan imprimé (vide = table par défaut, src/print/abrev.js)
 };
 

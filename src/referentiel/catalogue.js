@@ -72,8 +72,8 @@ export const FICHES = [
   F("CH-07", "chantier", "actif", "Pièce par défaut", "Cellier, garage, extérieur… selon le type de départ.",
     "Seulement quand la pièce d'un appareil est inconnue. Sinon Oktéo garde la pièce lue sur le plan. Appliqué le 06/11/2026 (lot 7) dans le .spv : moteur de porte de garage → GARAGE, appareil dehors → EXTERIEUR, le reste → CELLIER.",
     { n: [15], source: FTZ, usage: "Circuits, .spv" }),
-  F("CH-08", "chantier", "decide", "Dossier SharePoint du chantier", "Un lien vers le dossier de l'affaire, construit d'après le n° d'affaire.",
-    "Le BE l'ouvre depuis le logiciel au lieu de le chercher.",
+  F("CH-08", "chantier", "actif", "Dossier SharePoint du chantier", "Un lien vers le dossier de l'affaire, construit d'après le n° d'affaire.",
+    "Le BE l'ouvre depuis le logiciel au lieu de le chercher. Appliqué le 06/11/2026 (lot 8) : modèle d'adresse avec {affaire} ci-dessous (réglage du poste) ; la fiche du chantier montre « Dossier SharePoint ↗ » dès qu'il y a un n° d'affaire.",
     { n: [33], source: FTZ, usage: "Fiche du chantier" }),
 
   // ---- Appareils

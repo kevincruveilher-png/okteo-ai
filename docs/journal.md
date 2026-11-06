@@ -1,3 +1,11 @@
+## 06/11/2026 — Lot 8 de la reprise des paramètres du BE : dossier SharePoint de l'affaire (branche `feat/maj-lot6-raccourcis`)
+
+- CH-08 « Appliquée » : `src/referentiel/sharepoint.js` (pur : `sharepointUrl(modèle, affaire)` — {affaire} remplacé
+  par le n° encodé, sinon ajouté à la fin ; https seulement ; `sharepointOk`). Préférence `sharepoint` (prefs.js, poste) ;
+  Paramètres → Chantier `#pref-sp` (exemple affiché, historique). Fiche du chantier : lien `#ch-sp` « Dossier SharePoint ↗ »
+  sous le n° d'affaire, caché sans modèle ou sans n°. Aucune adresse de l'entreprise dans le dépôt.
+- Tests : referentiel.test (15), smoke « lot 8 (CH-08) ».
+
 ## 06/11/2026 — Lot 7 de la reprise des paramètres du BE : LE menuiserie, pièce par défaut (branche `feat/maj-lot6-raccourcis`)
 
 - AP-07 « Appliquée » : type `LEM` « Liaison équipotentielle menuiserie » (groupe Terre et attentes, mural, repère LE) ;

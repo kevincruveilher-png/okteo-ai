@@ -1492,3 +1492,7 @@ body.page-full #params .pset-sec h3{font-size:21px;font-family:var(--fd);margin-
 .kb-tab button.wait{outline:2px solid #1d2a4a}
 .kb-msg{min-height:1.2em;margin:4px 0}
 .kb-msg.err{color:#7a0d0d;font-weight:600}
+/* lot 8 (CH-08) : modèle d'adresse SharePoint, lien de la fiche du chantier */
+#pref-sp{width:100%;box-sizing:border-box;font-family:"JetBrains Mono",monospace;font-size:12px;padding:6px 8px}
+#pref-sp-ex.err{color:#7a0d0d;font-weight:600}
+#ch-sp{display:inline-block;margin-top:3px}

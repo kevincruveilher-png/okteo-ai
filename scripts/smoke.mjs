@@ -3655,6 +3655,23 @@ try {
     if (!(/dép\. 84 · Nk 40 · zone AQ2/.test(nk) && /à préciser/.test(e0) && /obligatoire/.test(e1.t) && e1.avec && !e2.avec && e2.ecart && e2.E.includes("PF-01:parafoudre retiré par le BE") && back === "auto")) throw new Error(JSON.stringify({ nk, e0, e1, e2, back }));
     return true;
   });
+  await check("lot 8 (CH-08) : Paramètres → Chantier, modèle d'adresse SharePoint avec {affaire} ; la fiche du chantier montre « Dossier SharePoint ↗ » vers le dossier de l'affaire (caché sans n°)", async () => {
+    await openParams("chantier");
+    await page.fill("#pref-sp", "https://exemple.sharepoint.com/sites/BE/{affaire}"); await ev(() => document.querySelector("#pref-sp").dispatchEvent(new Event("change")));
+    const ex = await ev(() => document.querySelector("#pref-sp-ex").textContent);
+    await toPlan();
+    await page.evaluate(() => okteo.setTab("chantiers"));
+    await page.waitForSelector('input[data-f="affaire"]', { timeout: 15000 });
+    const a0 = await ev(() => document.querySelector('input[data-f="affaire"]').value);
+    await page.fill('input[data-f="affaire"]', ""); await ev(() => document.querySelector('input[data-f="affaire"]').dispatchEvent(new Event("change")));
+    const h0 = await ev(() => document.querySelector("#ch-sp").hidden);
+    await page.fill('input[data-f="affaire"]', "AF26000042"); await ev(() => document.querySelector('input[data-f="affaire"]').dispatchEvent(new Event("change")));
+    const l1 = await ev(() => ({ hidden: document.querySelector("#ch-sp").hidden, href: document.querySelector("#ch-sp").getAttribute("href") }));
+    await page.fill('input[data-f="affaire"]', a0); await ev(() => document.querySelector('input[data-f="affaire"]').dispatchEvent(new Event("change")));
+    await ev(() => { localStorage.setItem("okteo.prefs.v1", JSON.stringify({ ...JSON.parse(localStorage.getItem("okteo.prefs.v1") || "{}"), sharepoint: "" })); okteo.setTab("plan"); });
+    if (!(/AF26000001/.test(ex) && h0 && !l1.hidden && l1.href === "https://exemple.sharepoint.com/sites/BE/AF26000042")) throw new Error(JSON.stringify({ ex, h0, l1 }));
+    return true;
+  });
   await check("n° 15 : dossier PDF de 3 pages (plan RDC, plan R+1, devis) → nouveau chantier avec ses 2 niveaux et leur fond ; le devis est joint à l'analyse (mode 4)", async () => {
     const { jsPDF } = await import("jspdf");
     const d = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });

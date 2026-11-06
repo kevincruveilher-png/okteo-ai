@@ -10,7 +10,11 @@ import { ROLES, roleLabel, proposeRoles, setRole, dossierOf } from "../walls/pag
 import { esc, norm } from "./util.js";
 import { nkOf } from "../norme/parafoudre.js";
 import { versionFor } from "../norme/nfc15100.js";
+import { sharepointUrl } from "../referentiel/sharepoint.js";
+import { getPrefs } from "../prefs.js";
 // MAJ norme n° 1 : version de la norme d'après la date de dépôt du permis (champ de la fiche du chantier)
+// lot 8 (CH-08) : lien vers le dossier SharePoint de l'affaire (caché sans modèle d'adresse ou sans n° d'affaire)
+const spHref = (m) => { const u = sharepointUrl(getPrefs().sharepoint, m.affaire); return u ? ` href="${esc(u)}"` : " hidden"; };
 const nkLabel = (m) => { const Z = nkOf(m.cp); return Z ? `dép. ${Z.dep} · Nk ${String(Z.nk).replace(".", ",")} · ${Z.aq2 ? "zone AQ2 (foudre forte)" : "zone AQ1"}` : (m.cp ? "département inconnu" : ""); };
 const normeLabel = (m) => { const V = versionFor(m); return V.sure ? V.court : `${V.court} (date du permis à renseigner)`; };
 import { buildOkteo, dataURLToBlob, download, fileName } from "./okteo-file.js";
@@ -92,7 +96,7 @@ export function mountChantiers(el, { api }) {
           <label class="f">N° de dossier<input data-f="numero" value="${esc(cur.numero || "")}"></label>
           <label class="f">Pavillonneur<input data-f="client" value="${esc(cur.client || "")}"></label>
           <label class="f" title="Champ « Client » du cartouche du plan : le constructeur ou l'entreprise qui commande l'étude (vide = le pavillonneur)">Client du BE (cartouche)<input data-f="clientBE" value="${esc(cur.clientBE || "")}" placeholder="${esc(cur.client || "ex. MENUISERIE ISOLATION DU CENTRE (MIDC)")}"></label>
-          <label class="f" title="Champ « N° » du cartouche du plan">N° d'affaire<input data-f="affaire" value="${esc(cur.affaire || "")}" placeholder="ex. AF26074879"></label>
+          <label class="f" title="Champ « N° » du cartouche du plan">N° d'affaire<input data-f="affaire" value="${esc(cur.affaire || "")}" placeholder="ex. AF26074879"><a id="ch-sp" class="mut sm" target="_blank" rel="noopener" title="Dossier de l'affaire sur SharePoint (modèle d'adresse : Paramètres → Chantier)"${spHref(cur)}>Dossier SharePoint ↗</a></label>
           <label class="f" title="Champ « Dess. » du cartouche du plan (initiales)">Dessinateur<input data-f="dessinateur" value="${esc(cur.dessinateur || "")}" placeholder="ex. GS / ACR"></label>
           <label class="f" title="Date de dépôt de la demande de permis (à défaut : déclaration préalable, marché ou commande). Après le 31/08/2025 : série NF C 15-100 de 2024 ; avant : 2002 + A5. Sert aux contrôles de la norme, au rapport et au cartouche.">Dépôt du permis<input type="date" data-f="permis" value="${esc(cur.permis || "")}"><span class="nm-ver mut sm" id="ch-norme">${esc(normeLabel(cur))}</span></label>
           <label class="f" title="Code postal du chantier (ou n° de département) : donne le niveau de foudre (Nk) de la NF C 15-100, qui décide du parafoudre (zone AQ2 au-delà de 25). Le choix final reste au BE (panneau Étapes → Norme).">Code postal<input data-f="cp" value="${esc(cur.cp || "")}" placeholder="ex. 69300" inputmode="numeric"><span class="nm-ver mut sm" id="ch-nk">${esc(nkLabel(cur))}</span></label>
@@ -135,6 +139,7 @@ export function mountChantiers(el, { api }) {
       const v = inp.value.trim(); if (inp.dataset.f === "nom" && !v) { inp.value = cur.nom; return; }
       event(cur.id,"identite",{element:inp.dataset.f,before:cur[inp.dataset.f],after:v});
       cur[inp.dataset.f] = v; CHS.update(cur.id, { [inp.dataset.f]: v });
+      if (inp.dataset.f === "affaire") { const a = el.querySelector("#ch-sp"); if (a) { const u = sharepointUrl(getPrefs().sharepoint, cur.affaire); a.hidden = !u; if (u) a.href = u; else a.removeAttribute("href"); } }
       if (inp.dataset.f === "cp") { const nv = el.querySelector("#ch-nk"); if (nv) nv.textContent = nkLabel(cur); document.dispatchEvent(new CustomEvent("okteo:norme", { detail: versionFor(cur) })); }
       if (inp.dataset.f === "permis") { const nv = el.querySelector("#ch-norme"); if (nv) nv.textContent = normeLabel(cur); document.dispatchEvent(new CustomEvent("okteo:norme", { detail: versionFor(cur) })); }
       const bd = document.querySelector(".badge"); if (bd) bd.textContent = cur.nom + (cur.numero ? " · " + cur.numero : "");
