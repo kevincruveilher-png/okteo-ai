@@ -516,6 +516,13 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
 - `src/referentiel/dossier.js` (`PIECES`, `piecesOf`, `piecesResume`, `FAMILLES`, `CHAMPS`, `finition`) ; fiche du chantier
   `#ch-pieces` (`meta.pieces`, auto d'après `meta.dossier` / `meta.pmr`) et `#ch-fins` (`meta.finitions`).
 
+## Notice et support de formation (depuis le 06/11/2026)
+Document « Oktéo — Notice et support de formation » (doc Claude du projet : https://claude.ai/artifact/D8CmppPqNbhV4WuZogqL78).
+À CHAQUE mise à jour qui change ce que voit l'opérateur : mettre à jour la partie concernée de la notice (mots de
+l'écran, touches, boutons), signaler « bientôt » ce qui n'est pas encore là, et ajouter une ligne à son « Historique de
+la notice ». Une IA qui ne peut pas modifier ce document note les changements à reporter dans l'entrée du journal
+(rubrique « Notice à mettre à jour »).
+
 ## Vérification obligatoire
 Après chaque modification : `npm run check` = `scripts/syntax.mjs` (syntaxe de tous les fichiers) + `scripts/walls.test.mjs` (42 vérifications : relevé des murs, des pièces et des
 appareils sur le vrai PDF EVRARD) + `scripts/cablage.test.mjs` (87 : gaines, circuits, boîtes, fils, tracés, schémas) + `scripts/chantiers.test.mjs` (176 : règles du journal sur 4 chantiers réels) + `scripts/maillard.test.mjs` (14 : chantier de référence MAILLARD comparé au BE) + `scripts/v3d.test.mjs` (vue 3D) + `scripts/smoke.mjs` (171 vérifications Playwright ; faux serveur IA, aucune vraie clé). Ajouter un test dans `scripts/smoke.mjs`

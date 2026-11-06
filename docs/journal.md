@@ -1,3 +1,10 @@
+## 06/11/2026 — Notice et support de formation
+
+- Création du document « Oktéo — Notice et support de formation » (doc Claude du projet,
+  https://claude.ai/artifact/D8CmppPqNbhV4WuZogqL78) : prise en main, étapes 1 à 7 d'une étude, paramètres et touches du
+  BE, parcours de formation en 6 modules, questions fréquentes, historique. Règle ajoutée dans CLAUDE.md : la notice est
+  mise à jour à chaque version qui change l'écran.
+
 ## 06/11/2026 — Lot 10 de la reprise des paramètres du BE : pièces du dossier, finitions (fusionné dans `main`, run 42288253656 vert, smoke 232/232)
 
 - CH-04 « Appliquée » : `src/referentiel/dossier.js` (pur : `PIECES` (10, PMR facultatif), `piecesOf(meta)` = case à la
