@@ -231,6 +231,9 @@ window.okteo = {
       ...(a.pt === true || a.pt === false ? { pt: a.pt } : {}),
       // v57 : équipement hors plan (ajouté d'après le devis, à vérifier) ; point que l'IA n'a pas trouvé en relecture
       ...(a.hp ? { hp: true } : {}),
+      // lot 3 (06/11/2026) : options du BE
+      ...(a.et ? { et: true } : {}),
+      ...(a.temoin ? { temoin: true } : {}),
       ...(a.aiNo ? { aiNo: a.aiNo } : {}),
       ...(a.hNo ? { hNo: true } : {}),
       ...readingData(a)

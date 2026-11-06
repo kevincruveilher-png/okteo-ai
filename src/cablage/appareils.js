@@ -36,6 +36,11 @@ export const APPAREILS = {
   // n° 10 : zones d'exclusion (pas électriques, sans repère) : boîtes, gaines, appareils et lignes directes les évitent
   ZONE: { n: "Zone d'exclusion (rectangle)", r: "SANI", h: 0, lab: "ZEX", groupe: "Zones d'exclusion", racc: "aucun", lignes: [], sani: true },
   ZONEC: { n: "Zone d'exclusion (cercle)", r: "SANI", h: 0, lab: "ZEX", groupe: "Zones d'exclusion", racc: "aucun", lignes: [], sani: true },
+  TR50: { n: "Trémie 50 × 50 cm", r: "SANI", h: 0, lab: "T50", groupe: "Zones d'exclusion", racc: "aucun", lignes: [], sani: true },
+  TR100: { n: "Trémie 100 × 100 cm", r: "SANI", h: 0, lab: "T100", groupe: "Zones d'exclusion", racc: "aucun", lignes: [], sani: true },
+  TR200: { n: "Trémie 200 × 150 cm", r: "SANI", h: 0, lab: "T200", groupe: "Zones d'exclusion", racc: "aucun", lignes: [], sani: true },
+  RS50: { n: "Réservation ronde Ø50 mm", r: "SANI", h: 0, lab: "R50", groupe: "Zones d'exclusion", racc: "aucun", lignes: [], sani: true },
+  RS100: { n: "Réservation ronde Ø100 mm", r: "SANI", h: 0, lab: "R100", groupe: "Zones d'exclusion", racc: "aucun", lignes: [], sani: true },
   // n° 11 : mobilier (bouton « Mobilier ▾ » de la barre des appareils ; pas dans « Autres ») : sans électricité ni repère
   ...Object.fromEntries([["CANAPE", "Canapé", "CAN"], ["FAUTEUIL", "Fauteuil", "FAU"], ["TABLE", "Table", "TAB."], ["CHAISE", "Chaise", "CH."], ["LIT2", "Lit double", "LIT"], ["LIT1", "Lit simple", "LIT"], ["MTV", "Meuble TV", "MTV"], ["ARMOIRE", "Armoire / rangement", "ARM"], ["MBUREAU", "Bureau (meuble)", "BUR"], ["PLANTE", "Plante", "PL."]].map(([k, n, lab]) => [k, { n, r: "SANI", h: 0, lab, groupe: "Mobilier", racc: "aucun", lignes: [], sani: true }])),
   VEX: { n: "Bouche extraction VMC", r: "EX", h: null, lab: "EX", groupe: "Chauffage et ventilation", racc: "aucun", lignes: [] },

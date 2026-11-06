@@ -8,6 +8,7 @@
 // on place donc des « unités » indivisibles (un allumage complet, ou une prise seule).
 
 import { packAlim } from "./gaine.js";
+import { assocOK } from "./association.js";
 import { isVolet, sansCvr, lignesOf, parseFils } from "./appareils.js";
 import { intrusions } from "./qualite.js";
 import { pointInPoly, labelPoint } from "../walls/rooms.js";
@@ -133,7 +134,7 @@ export function buildUnits(items, links, circuits) {
   boxed.forEach((a) => { const r = find(a.id); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(a); });
   return [...groups.values()].map((g) => ({
     ids: g.map((a) => a.id), lv: g[0].lv, x: g.reduce((s, a) => s + a.x, 0) / g.length, y: g.reduce((s, a) => s + a.y, 0) / g.length,
-    pts: g.map((a) => ({ x: a.x, y: a.y, f: wiresOf(a) })), circuits: [...new Set(g.map((a) => circOf.get(a.id)?.id).filter(Boolean))],
+    pts: g.map((a) => ({ x: a.x, y: a.y, f: wiresOf(a), t: a.t })), circuits: [...new Set(g.map((a) => circOf.get(a.id)?.id).filter(Boolean))],
     volet: g.every((a) => isVolet(a.t)),
     prises: g.every((a) => /^PC/.test(a.t)),   // n° 7 : unité faite seulement de prises (« PC du séjour » vers la cuisine)
     // pièce de l'unité (mode « par pièce ») : celle de la majorité de ses lumières, sinon de ses appareils
@@ -175,8 +176,9 @@ function median(pts, start) {
 function spotPts(units, near = 0.3, cu = false) {
   const out = [];
   for (const u of units) for (const p of u.pts) {
-    const q = out.find((o) => d2(p, o) <= near + 1e-9);
-    if (q) { if (cu) q.w = Math.max(q.w, p.f || 3); } else out.push(cu ? { x: p.x, y: p.y, w: p.f || 3 } : { x: p.x, y: p.y });
+    // lot 2 : même règle d'association que le câblage (association.js) ; un point sans type (ancien appel) s'associe
+    const q = out.find((o) => d2(p, o) <= near + 1e-9 && (!p.t || o.ts.every((t) => !t || assocOK(t, p.t))));
+    if (q) { q.ts.push(p.t); if (cu) q.w = Math.max(q.w, p.f || 3); } else out.push(cu ? { x: p.x, y: p.y, w: p.f || 3, ts: [p.t] } : { x: p.x, y: p.y, ts: [p.t] });
   }
   return out;
 }

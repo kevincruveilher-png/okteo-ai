@@ -33,16 +33,14 @@
 // Appareil à l'extérieur : câble du stock (3G1,5…) choisi selon les fils nécessaires, âmes repérées à la couleur de leur
 // fonction (ex. marron repéré orange), âme en trop isolée.
 import { gaineFor, packAlim, placeFil, placeFils } from "./gaine.js";
+import { assocOK } from "./association.js";
 import { FACES, portLayout } from "./boites.js";
 import { permanentDetector, manuallyControlledLights } from "./detecteur.js";
 import { APPAREILS, lignesOf, parseFils, gaineLabel, raccOf, isFaible, sansCvr } from "./appareils.js";
 import { zonesByLevel, detour, detourVia } from "./exclusion.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
-// association au même endroit (lot 2, décision n° 4, liste CAT_PROX du BE) : catégorie de l'appareil
-const ASSOC = { PC16: "prise", INT: "cmd", VV: "cmd", BP: "cmd", CVR: "cmd", CVMC: "cmd", EQL: "le" };
-const ASSOC_OK = new Set(["prise|prise", "prise|le", "le|prise", "prise|cmd", "cmd|prise", "cmd|cmd"]);
-export const assocOK = (t1, t2) => ASSOC_OK.has(`${ASSOC[t1] || "-"}|${ASSOC[t2] || "-"}`);
+export { assocOK };
 const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const list = (v) => String(v || "").split(",").map((x) => x.trim()).filter(Boolean);
 // « rouge/bleu, gris/bleu foncé » → [{phase, neutre}]
@@ -250,6 +248,8 @@ export function computeWiring({ items: items0, links, circuits, boxes, levels = 
       if (!vs.length) issues.push(`${b.n} : commande de volet ${cv.rep || ""} reliée à aucun volet de la boîte`);
     });
     // équipotentielle locale (R-080) : un fil vert/jaune sur la terre de la boîte
+    // lot 3 (06/11/2026, décision n° 2) : interrupteur lumineux / à témoin : le neutre de son circuit en plus dans sa gaine
+    apps.filter((a) => CMD.has(a.t) && a.temoin && role.has(a.id)).forEach((a) => { const r = role.get(a.id), c = circOf.get(a.id); if (c && !r.some(([fn]) => fn === "neutre")) r.push(["neutre", "N" + c.id]); });
     apps.filter((a) => a.t === "EQL").forEach((a) => role.set(a.id, [["terre", "T"]]));
     // prises, sorties de câble, volets connectés
     apps.filter((a) => !LIGHT.has(a.t) && !CMD.has(a.t) && !role.has(a.id)).forEach((a) => { const c = circOf.get(a.id); if (c) role.set(a.id, [["phase", "P" + c.id], ["neutre", "N" + c.id], ["terre", "T"]]); });

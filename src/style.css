@@ -1473,3 +1473,8 @@ body.page-full #params .pset-sec h3{font-size:21px;font-family:var(--fd);margin-
 #params .pp-hist th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
 #params input,#params select,#params textarea{color:#14273A;background:#FFFFFF;border-color:#D9C4BF}
 @media (max-width:900px){body.page-full #params .pset-wrap{grid-template-columns:1fr}#params .rf-list{grid-template-columns:1fr}#params .pset-nav{position:static}}
+/* lot 3 (06/11/2026) : hauteurs rapides et options du BE dans Propriétés */
+.field .hq{display:inline-flex;gap:4px;margin-left:6px;vertical-align:middle}
+.field .hq button{padding:2px 7px;font-size:11.5px;border-radius:6px}
+.field .hq button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.opt-row{display:flex;gap:14px;flex-wrap:wrap}

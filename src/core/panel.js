@@ -448,7 +448,7 @@ export function showSide() {
       <div class="field"><label>Depuis l'angle B <span class="u">cm</span></label><input id="f_dB" type="number" step="1" value="${Math.round(m.dB * 100)}"></div>` : ""}
       <div class="field"><label>X plan <span class="u">m</span></label><input id="f_x" type="number" step="0.01" value="${a.x}"></div>
       <div class="field"><label>Y plan <span class="u">m</span></label><input id="f_y" type="number" step="0.01" value="${a.y}"></div>
-      ${isSani(a.t) ? saniHTML(a) : `<div class="field full"><label>Hauteur <span class="u">cm</span></label><input id="f_h" type="number" step="1" value="${a.h ?? ""}" ${a.h == null ? 'placeholder="— plafond —"' : ''}></div>${raccHTML(a)}${ptHTML(a)}`}</div>
+      ${isSani(a.t) ? saniHTML(a) : `<div class="field full"><label>Hauteur <span class="u">cm</span></label><input id="f_h" type="number" step="1" value="${a.h ?? ""}" ${a.h == null ? 'placeholder="— plafond —"' : ''}><span class="hq" title="Hauteurs rapides du BE (lot 3, 06/11/2026)">${[120, 110, 40].map((v) => `<button type="button" data-hq="${v}" class="${a.h === v ? "on" : ""}">${v}</button>`).join("")}</span></div>${raccHTML(a)}${ptHTML(a)}${optHTML(a)}`}</div>
      ${a.hp ? `<p class="note hp-note" id="f_hp">Équipement hors plan, posé d'après le devis : <b>à vérifier avec le devis</b> et à mettre à sa vraie place. <button id="f_hpok" title="Vérifié avec le devis : retire la marque violette">Vérifié</button></p>` : ""}
      ${a.rpx != null ? `<p class="note" id="f_repm">Repère placé à la main. <button id="f_rep0" title="Le repère revient à sa place automatique (à côté du symbole, sans gêner)">Replacer le repère</button></p>` : `<p class="note" id="f_repm">Glissez le repère de l'appareil (P1, L2…) sur le plan pour le mettre exactement où vous voulez.</p>`}
      ${a.aiNo ? `<p class="note" id="f_aino">Relecture IA : ${esc0(a.aiNo)} — ce point ne sera plus redemandé. <button id="f_ainox" title="Le redemander à la prochaine relecture">Redemander</button></p>` : ""}
@@ -499,6 +499,10 @@ export function showSide() {
     const hok = b.querySelector("#f_hpok"); if (hok) hok.onclick = () => { snapshot(); delete a.hp; markDirty(); re(); };
     const aix = b.querySelector("#f_ainox"); if (aix) aix.onclick = () => { snapshot(); delete a.aiNo; markDirty(); re(); };
     const fpt = b.querySelector("#f_pt"); if (fpt) fpt.onchange = e => set("pt", e.target.value === "" ? "" : e.target.value === "oui");
+    // lot 3 (06/11/2026) : options du BE — étanche (IP), interrupteur lumineux / à témoin (neutre en plus) ; hauteurs rapides
+    const fet = b.querySelector("#f_et"); if (fet) fet.onchange = e => set("et", e.target.checked || "");
+    const ftm = b.querySelector("#f_tem"); if (ftm) ftm.onchange = e => set("temoin", e.target.checked || "");
+    b.querySelectorAll("[data-hq]").forEach((q) => (q.onclick = () => set("h", +q.dataset.hq)));
     b.querySelector("#f_x").onchange = e => {
       snapshot();
       a.x = +(+e.target.value).toFixed(2);
@@ -603,6 +607,14 @@ export function delSel() {
 // choix boîte / ligne directe de la hotte (R-086), puissance d'un moteur de volet (R-087)
 // v56 (R-098) : prise de plan de travail (circuit cuisine 2,5 mm²) : automatique (hauteur 1,00–1,30 m, cuisine ou près
 // d'un appareil de cuisine), ou choisie à la main
+// lot 3 (06/11/2026, décisions n° 2 et 19 de Kévin) : options d'un appareil reprises du BE
+export const ETANCHE = new Set(["APP", "PC16", "PC20", "INT", "VV", "BP", "SC", "PC32", "PCEXT"]);
+export const TEMOIN = new Set(["INT", "VV", "BP"]);
+function optHTML(a) {
+  const et = ETANCHE.has(a.t), tm = TEMOIN.has(a.t);
+  if (!et && !tm) return "";
+  return `<div class="field full opt-row">${et ? `<label class="ck" title="Appareil étanche (IP) : même symbole et même câblage, matériel étanche (kit matériel, export ALTIOR)"><input type="checkbox" id="f_et" ${a.et ? "checked" : ""}> Étanche (IP)</label>` : ""}${tm ? `<label class="ck" title="Interrupteur lumineux ou à témoin : un neutre bleu en plus dans sa gaine"><input type="checkbox" id="f_tem" ${a.temoin ? "checked" : ""}> Lumineux / témoin (neutre en plus)</label>` : ""}</div>`;
+}
 function ptHTML(a) {
   if (a.t !== "PC16") return "";
   const items = state.app.map(o => o.id === a.id ? { ...o, room: (roomAt(o.x, o.y) || {}).name || null } : o);
