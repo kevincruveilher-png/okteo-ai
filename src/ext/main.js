@@ -3,6 +3,7 @@
 import { mountSymbols } from "./symbols-ui.js";
 import { buildCatalog, tooltipFor } from "./catalog.js";
 import { createRaccourcis } from "./raccourcis.js";
+import { createAide } from "./aide.js";
 import { createPalette } from "./palette.js";
 import { createSidePanel } from "./panel.js";
 import { createAssistant } from "./assistant.js";
@@ -159,6 +160,9 @@ function start() {
 
   // ---------- barre du haut ----------
   document.getElementById("btn-palette").onclick = () => palette.open();
+  // 06/11/2026 : notice et support de formation dans le logiciel
+  const aide = createAide();
+  document.getElementById("btn-aide").onclick = () => aide.open();
   // menus « Affichage » et « Relevé » : s'ouvrent au clic, se ferment au clic ailleurs ou avec Échap
   const popMenu = (id, btnId) => {
     const pop = document.getElementById(id), btn = document.getElementById(btnId), body = pop.querySelector(".pop-body");
@@ -219,7 +223,7 @@ function start() {
   const home = createHomeShell({ api });   // lot 3 : logo = accueil, pages entières « en classeur »
   hooks.modeIa = () => iaMode.setMode(iaMode.mode === "ia" ? "be" : "ia");
   hooks.cabler = () => { const r = cabler(api); api.setHint(r.text); if (pages.etude.ui) pages.etude.ui.render(); return r.text; };
-  window.okteoExt = { home, norme, whyBlink, doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, raccourcis, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, aiRunner, recheck, iaMode, temps, oneCard, pages, backup: null };
+  window.okteoExt = { home, norme, whyBlink, doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, raccourcis, aide, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, aiRunner, recheck, iaMode, temps, oneCard, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 

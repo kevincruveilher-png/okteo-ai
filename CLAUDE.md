@@ -518,6 +518,7 @@ Kévin, responsable chez KiTéOHM. Spécialiste pieuvre et câblage, **pas** du 
 
 ## Notice et support de formation (depuis le 06/11/2026)
 Document « Oktéo — Notice et support de formation » (doc Claude du projet : https://claude.ai/artifact/D8CmppPqNbhV4WuZogqL78).
+Copie dans le logiciel : `src/aide/notice.md` (bouton « ? Aide », `src/ext/aide.js`) : les deux sont mis à jour ensemble.
 À CHAQUE mise à jour qui change ce que voit l'opérateur : mettre à jour la partie concernée de la notice (mots de
 l'écran, touches, boutons), signaler « bientôt » ce qui n'est pas encore là, et ajouter une ligne à son « Historique de
 la notice ». Une IA qui ne peut pas modifier ce document note les changements à reporter dans l'entrée du journal
