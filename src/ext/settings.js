@@ -119,7 +119,7 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
       <p class="rf-m">Source : ${esc(f.source || "—")}${f.n && f.n.length ? ` · décision${f.n.length > 1 ? "s" : ""} n° ${f.n.join(", ")}` : ""} · Sert à : ${esc(f.usage || "—")}${(f.regles || []).map((id) => ` · <a href="#" class="rg-link" data-rule="${id}">${id}</a>`).join("")}</p>
     </article>`;
   }
-  const countHTML = (rub) => { const C = compte(rub); return `<div class="rf-count">${Object.entries(C).filter(([, n]) => n).map(([k, n]) => `<span class="rf-e e-${k}" title="${esc(ETATS[k].label)}">${ETATS[k].sym} ${n} ${esc(ETATS[k].court.toLowerCase())}</span>`).join("")}</div>`; };
+  const countHTML = (rub) => { const C = compte(rub); return `<div class="rf-count">${Object.entries(C).filter(([, n]) => n).map(([k, n]) => `<span class="rf-e e-${k}" title="${esc(ETATS[k].label)}">${ETATS[k].sym} ${n} ${esc(((t) => n > 1 && /[en]$/.test(t) ? t + "s" : t)(ETATS[k].court.toLowerCase()))}</span>`).join("")}</div>`; };
   function normeHTML() {
     const lv = { O: "obligatoire", R: "recommandé", BE: "choix KiTéOHM" };
     return Object.entries(THEMES).map(([t, nom]) => {
