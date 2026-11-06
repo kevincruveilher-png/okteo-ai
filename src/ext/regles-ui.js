@@ -226,5 +226,6 @@ export function mountRegles(el, { api, ask }) {
 // Accès depuis le tableau : on laisse Paramètres se monter avant d'appliquer le domaine.
 export function openRulesLibrary(api, domain = "") {
   api.setTab("params");
+  document.dispatchEvent(new CustomEvent("okteo:params-goto", { detail: "ps-regles" }));   // page Paramètres : rubrique Journal
   if (cur?.el.isConnected) cur.browse(domain);
 }

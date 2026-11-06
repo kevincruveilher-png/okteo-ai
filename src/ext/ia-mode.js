@@ -124,7 +124,7 @@ export function createIaMode({ api, aiReleve, recheck, ctl, aiModes = null }) {
       finally { busy = ""; render(); }
     });
     on("#ia-rep", () => showReport());
-    on("#ia-prix", (e) => { e.preventDefault(); api.setTab("params"); setTimeout(() => document.getElementById("ps-couts")?.scrollIntoView({ block: "start" }), 150); });
+    on("#ia-prix", (e) => { e.preventDefault(); api.setTab("params"); setTimeout(() => document.dispatchEvent(new CustomEvent("okteo:params-goto", { detail: "ps-couts" })), 150); });
     pane.querySelectorAll("#ia-alerts li[data-i]").forEach((li) => (li.onclick = (e) => { if (e.target.closest("button")) return; goTo(list[+li.dataset.i]); }));
     pane.querySelectorAll("#ia-alerts button[data-a]").forEach((b) => (b.onclick = () => {
       const a = list[+b.dataset.i];

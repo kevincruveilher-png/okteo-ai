@@ -224,7 +224,7 @@ export function mountVue3d(el, { api }) {
   function noteHeights(H) {
     const n = $(".v3d-note");
     n.innerHTML = `Hauteurs absentes du dessin : sous plafond ${fr(H.plafond)} m, allège ${fr(H.allege)} m, fenêtre ${fr(H.linteau)} m, porte ${fr(H.porte)} m. <button type="button" class="v3d-link" title="Paramètres → Vue 3D : changer ces hauteurs de départ">Régler…</button> Une pièce ou une ouverture se règle aussi dans Propriétés.`;
-    n.querySelector(".v3d-link").onclick = () => { api.setTab("params"); setTimeout(() => document.getElementById("ps-3d")?.scrollIntoView({ block: "start" }), 150); };
+    n.querySelector(".v3d-link").onclick = () => { api.setTab("params"); setTimeout(() => document.dispatchEvent(new CustomEvent("okteo:params-goto", { detail: "ps-3d" })), 150); };
   }
   // ---------- points de vue ----------
   function view(k, now) {

@@ -1,6 +1,7 @@
-// Paramètres (onglet « Paramètres »), v42 : sommaire à gauche et une section par thème —
-// Affichage (préférences de ce PC), Assistant et relevé IA (clés, fournisseur, modèles), Câblage (règles de la pieuvre),
-// Packs (renvoi vers le panneau Packs) ; champ « Chercher un réglage ».
+// Paramètres : depuis le 06/11/2026, une interface à part, plein écran, fond corail (demande de Kévin) :
+// « Règles KiTéOHM » = catalogue des règles de l'entreprise (fiches de src/referentiel/catalogue.js + réglages du câblage
+// + norme + journal des règles + questions au BE + historique) et « Ce poste » = réglages de ce PC (affichage et thème,
+// IA, relevé, 3D, raccourcis). Une rubrique à la fois, recherche dans toutes.
 // Les clés sont rangées dans le navigateur de CE PC (localStorage), jamais dans le chantier ni dans l'export.
 // Une clé placée dans le fichier .env du projet est aussi acceptée (le serveur local l'ajoute lui-même).
 
@@ -8,7 +9,9 @@ import { normeSettings } from "../norme/circuits.js";
 import { ABREV_DEFAUT, abrevRoom, parseAbrev } from "../print/abrev.js";
 import { CAB_DEFAULTS, CAB_FIELDS, PROTS, SECTIONS, getCab, resetCab, setCab } from "../cablage/settings.js";
 import { esc, store, storeSet } from "./util.js";
-import { getPrefs, setPref, PREFS_DEFAULTS } from "../prefs.js";
+import { getPrefs, setPref, applyTheme, PREFS_DEFAULTS } from "../prefs.js";
+import { ETATS, RUBRIQUES, FICHES, QUESTIONS, fichesOf, compte, catalogueTexte, historique, noteChangement } from "../referentiel/catalogue.js";
+import { REGLES, THEMES, VERSIONS, BASCULE, art2015 } from "../norme/nfc15100.js";
 import { mountRegles } from "./regles-ui.js";
 import { CAB_RULES } from "../cablage/regles.js";
 
@@ -74,32 +77,92 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
     box.querySelectorAll('input[name="prov"]').forEach((r) => (r.onchange = () => settings.set({ provider: r.value })));
   }
 
-  const SECS = () => [
-    ["ps-aff", "Affichage"], ["ps-ia", "Assistant et relevé IA"],
-    ["ps-regles", "Bibliothèque des règles"], ["ps-murs", "Murs : équerre"], ["ps-3d", "Vue 3D"], ["cab-set", "Câblage"], ...CAB_FIELDS.map(([g], i) => ["ps-cab-" + i, g, true]), ["ps-packs", "Packs"],
-  ];
-  function prefHTML() {
-    const v = getPrefs();
-    return `<h3>Affichage</h3>
-      <p class="mut">Préférences de ce PC, pour tous les chantiers. Cotes, repères, fond, taille des symboles et thème : menu <b>Affichage</b> en haut de l'écran.</p>
-      <div class="pset-rows">${PREF_FIELDS.map(([k, label, help]) => `<label class="cab-row pref-row${v[k] !== PREFS_DEFAULTS[k] ? " chg" : ""}" title="${esc(help)}"><span>${esc(label)}<small class="mut">${esc(help)}</small></span><span class="cab-ctl"><input type="checkbox" data-pref="${k}" ${v[k] ? "checked" : ""}></span></label>`).join("")}</div>
-      <h4 id="ps-abrev">Noms de pièces sur le plan du BE</h4>
-      <p class="mut sm">Préparation d'impression (A3 BE) : les noms de pièces sont abrégés comme sur les plans FTZ. Une règle par ligne : <code>mot ou expression = ABRÉVIATION</code>. Le numéro suit : « Chambre 2 » → CH2. Mot entier seulement ; l'expression la plus longue gagne. Nom sans règle : en majuscules, sans accents.</p>
-      <textarea id="pref-abrev" rows="10" spellcheck="false" aria-label="Abréviations des noms de pièces">${esc(v.abrev || ABREV_DEFAUT)}</textarea>
-      <div class="trow"><button class="sm" id="pref-abrev-def" title="Remettre la table d'origine">Table d'origine</button><span class="mut sm" id="pref-abrev-ex"></span></div>`;
-  }
+  // ---------- page Paramètres (06/11/2026) : interface à part, plein écran, fond corail ----------
+  // À gauche : « Règles KiTéOHM » (catalogue des règles de l'entreprise, src/referentiel/catalogue.js) et « Ce poste »
+  // (réglages de ce PC). Une rubrique à la fois ; la recherche parcourt toutes les rubriques.
+  // Les anciennes sections gardent leur id (ps-aff, ps-ia, ps-regles, ps-murs, ps-3d, cab-set, ps-packs).
+  const SEC_ID = { affichage: "ps-aff", ia: "ps-ia", releve: "ps-murs", v3d: "ps-3d", journal: "ps-regles", cablage: "cab-set" };
+  const secId = (rub) => SEC_ID[rub] || "rb-" + rub;
+  // groupes des réglages du câblage (CAB_FIELDS, par indice) rangés dans les rubriques du catalogue
+  const CAB_RUB = { cablage: [0, 1], pieuvres: [2], conducteurs: [3, 4] };
+  const CAB_LABEL = Object.fromEntries(CAB_FIELDS.flatMap(([, rows]) => rows.map(([k, l]) => [k, l])));
+  const cabRubOf = (k) => { const i = CAB_FIELDS.findIndex(([, rows]) => rows.some((r) => r[0] === k)); return Object.keys(CAB_RUB).find((r) => CAB_RUB[r].includes(i)) || "cablage"; };
+  const RKEY = "okteo.params.rub";
+  let active = (() => { try { const r = localStorage.getItem(RKEY); return RUBRIQUES.some((x) => x.id === r) ? r : "chantier"; } catch { return "chantier"; } })();
+  const fmtVal = (v) => typeof v === "boolean" ? (v ? "oui" : "non") : String(v).replace(/(\d)\.(\d)/g, "$1,$2");
 
-  function render() {
-    const q = el.querySelector(".pset-find")?.value || ""; // la recherche en cours survit à un nouvel affichage
-    el.innerHTML = `<div class="params-in pset">
-      <div class="pset-head"><h2>Paramètres</h2><input type="search" class="pset-find" placeholder="Chercher un réglage… (ex. couleur, prise, gaine)" aria-label="Chercher un réglage"></div>
-      <div class="pset-wrap">
-        <nav class="pset-nav" aria-label="Sommaire des paramètres">${SECS().map(([id, t, sub]) => `<a href="#${id}" data-to="${id}" class="${sub ? "sub" : ""}">${esc(t)}</a>`).join("")}</nav>
-        <div class="pset-body">
-      <section class="pset-sec" id="ps-aff">${prefHTML()}</section>
-      <section class="pset-sec" id="ps-ia">
-        <h3>Assistant et relevé IA</h3>
-        <p class="mut">Une seule clé suffit. Elle sert à l'assistant (encart en bas à droite du plan), à l'analyse du plan et au relevé par l'IA.
+  function prefHTML() {
+    const v = getPrefs(), th = v.theme || "auto";
+    return `<h3>Affichage</h3>
+      <p class="mut rub-intro">Réglages de ce PC, pour tous les chantiers. Cotes, repères, fond de plan, taille des symboles et rotation de la vue restent dans le menu <b>Affichage</b> au-dessus du plan, à portée de main pendant le travail.</p>
+      <div class="pp-theme" role="group" aria-label="Thème de l'écran"><span class="pp-theme-l">Thème de l'écran</span>
+        ${[["dark", "Sombre"], ["light", "Clair"], ["auto", "Comme l'ordinateur"]].map(([k, l]) => `<button data-theme-set="${k}" aria-pressed="${th === k}">${l}</button>`).join("")}</div>
+      <div class="pset-rows">${PREF_FIELDS.map(([k, label, help]) => `<label class="cab-row pref-row${v[k] !== PREFS_DEFAULTS[k] ? " chg" : ""}" title="${esc(help)}"><span>${esc(label)}<small class="mut">${esc(help)}</small></span><span class="cab-ctl"><input type="checkbox" data-pref="${k}" ${v[k] ? "checked" : ""}></span></label>`).join("")}</div>`;
+  }
+  function abrevHTML() {
+    const v = getPrefs();
+    return `<div class="pset-grp" id="ps-abrev-g"><h4 id="ps-abrev">Table des abréviations des pièces</h4>
+      <p class="mut sm">Une règle par ligne : <code>mot ou expression = ABRÉVIATION</code>. Le numéro suit : « Chambre 2 » → CH2. Mot entier seulement ; l'expression la plus longue gagne. Nom sans règle : en majuscules, sans accents. Réglage de ce PC pour l'instant.</p>
+      <textarea id="pref-abrev" rows="10" spellcheck="false" aria-label="Abréviations des noms de pièces">${esc(v.abrev || ABREV_DEFAUT)}</textarea>
+      <div class="trow"><button class="sm" id="pref-abrev-def" title="Remettre la table d'origine">Table d'origine</button><span class="mut sm" id="pref-abrev-ex"></span></div></div>`;
+  }
+  // une fiche du catalogue
+  function ficheHTML(f) {
+    const E = ETATS[f.etat], v = getCab();
+    const cab = (f.cab || []).filter((k) => k in CAB_DEFAULTS);
+    return `<article class="rf-card e-${f.etat}" id="fi-${f.id}" data-id="${f.id}">
+      <div class="rf-h"><span class="rf-id">${f.id}</span><b class="rf-t">${esc(f.titre)}</b><span class="rf-e e-${f.etat}" title="${esc(E.label)}">${E.sym} ${esc(E.court)}</span></div>
+      <p class="rf-v"><span class="rf-l">Ce qu'Oktéo fait</span>${esc(f.valeur)}</p>
+      <p class="rf-p"><span class="rf-l">Pourquoi</span>${esc(f.pourquoi)}</p>
+      ${cab.length ? `<p class="rf-cab"><span class="rf-l">Réglage actuel</span>${cab.map((k) => `<a href="#" data-goto-cab="${k}" title="Aller au réglage">${esc(CAB_LABEL[k] || k)} : <b>${esc(fmtVal(v[k]))}</b></a>`).join(" · ")}</p>` : ""}
+      ${f.ancre ? `<p class="rf-cab"><a href="#" data-goto-id="${f.ancre}">Régler plus bas ›</a></p>` : ""}
+      <p class="rf-m">Source : ${esc(f.source || "—")}${f.n && f.n.length ? ` · décision${f.n.length > 1 ? "s" : ""} n° ${f.n.join(", ")}` : ""} · Sert à : ${esc(f.usage || "—")}${(f.regles || []).map((id) => ` · <a href="#" class="rg-link" data-rule="${id}">${id}</a>`).join("")}</p>
+    </article>`;
+  }
+  const countHTML = (rub) => { const C = compte(rub); return `<div class="rf-count">${Object.entries(C).filter(([, n]) => n).map(([k, n]) => `<span class="rf-e e-${k}" title="${esc(ETATS[k].label)}">${ETATS[k].sym} ${n} ${esc(ETATS[k].court.toLowerCase())}</span>`).join("")}</div>`; };
+  function normeHTML() {
+    const lv = { O: "obligatoire", R: "recommandé", BE: "choix KiTéOHM" };
+    return Object.entries(THEMES).map(([t, nom]) => {
+      const L = REGLES.filter((r) => r.theme === t); if (!L.length) return "";
+      return `<div class="pset-grp nm-grp"><h4>${esc(nom)}</h4>${L.map((r) => `<div class="nm-row cab-row" data-code="${r.code}"><span><b class="rf-id">${r.code}</b> ${esc(r.texte)}<small class="mut">${lv[r.niveau] || r.niveau} · article ${esc(r.art)} (2024)${art2015(r.art) !== r.art ? ` · ${esc(art2015(r.art))} (2015)` : ""}${r.R.length ? " · " + r.R.map((id) => `<a href="#" class="rg-link" data-rule="${id}">${id}</a>`).join(" ") : ""}</small></span></div>`).join("")}</div>`;
+    }).join("");
+  }
+  function histHTML() {
+    const H = historique();
+    if (!H.length) return `<p class="mut">Aucun réglage changé sur ce poste pour l'instant.</p>`;
+    return `<table class="pp-hist"><thead><tr><th>Quand</th><th>Réglage</th><th>Avant</th><th>Après</th></tr></thead><tbody>${H.slice(0, 120).map((h) => `<tr><td>${esc(new Date(h.at).toLocaleString("fr-FR"))}</td><td>${esc(h.quoi)}</td><td>${esc(fmtVal(h.avant))}</td><td>${esc(fmtVal(h.apres))}</td></tr>`).join("")}</tbody></table>`;
+  }
+  // contenu d'une rubrique du catalogue
+  function rubHTML(r) {
+    const head = `<h3>${esc(r.titre)}</h3><p class="mut rub-intro">${esc(r.intro)}</p>`;
+    const fiches = fichesOf(r.id);
+    const list = fiches.length ? `${countHTML(r.id)}<div class="rf-list">${fiches.map(ficheHTML).join("")}</div>` : "";
+    const groups = CAB_RUB[r.id] ? cabGroupsHTML(CAB_RUB[r.id]) : "";
+    if (r.id === "cablage") return `<div class="pset-h">${head.replace("</h3>", "</h3>")}<button id="cab-reset" title="Remettre toutes les valeurs de base du câblage (toutes rubriques)">Valeurs de base</button></div>${normeWarn()}${list}${groups ? `<h4 class="pp-sub">Réglages du câblage</h4>${groups}` : ""}`;
+    if (r.id === "chantier") return head + list + abrevHTML();
+    if (r.id === "appareils") return head + list + `<div class="pp-packs" id="ps-packs"><h4 class="pp-sub">Implantation type des pièces (packs)</h4><p class="mut sm">L'appareillage type de chaque pièce (chambre, séjour, cuisine…). Sur le plan : sélectionnez une pièce nommée, puis « ⚡ Implantation rapide » (ou Maj+P) pose son pack.</p><div id="ps-packs-ed"></div></div>`;
+    if (r.id === "norme") return head + `<p class="mut sm">Version appliquée à un chantier : ${esc(VERSIONS["2024"].label)} si le permis est déposé après le ${BASCULE.split("-").reverse().join("/")}, sinon ${esc(VERSIONS["2015"].label)} (date du permis dans la fiche du chantier).</p>` + normeHTML();
+    if (r.id === "questions") return head + `<div class="rf-list">${QUESTIONS.map(([ref, q, pour]) => `<article class="rf-card e-question q-row"><div class="rf-h"><span class="rf-id">${ref}</span><b class="rf-t">${esc(q)}</b></div><p class="rf-m">Pour : ${esc(pour)}</p></article>`).join("")}</div>`;
+    if (r.id === "historique") return head + `<div id="pp-hist">${histHTML()}</div>`;
+    if (r.id === "clavier") return head + list;
+    return head + list + groups;
+  }
+  function normeWarn() { const N = normeSettings(getCab()); return N.length ? `<p class="nm-warn" id="cab-norme">Au-delà de la norme (alerte simple, rien n'est bloqué) : ${N.map((x) => esc(x.msg)).join(" ; ")}.</p>` : ""; }
+  // contenu des rubriques « Ce poste » (réglages existants, même id qu'avant)
+  function posteHTML(r) {
+    if (r.id === "affichage") return prefHTML();
+    if (r.id === "ia") return iaHTML();
+    if (r.id === "releve") return `<h3>Murs : mise d'équerre automatique</h3>
+        <p class="mut rub-intro">Après chaque relevé (IA, automatique, réponse collée) et avec Relevé → Murs d'équerre, Oktéo remet d'équerre les murs presque droits dans le sens de la maison ; les angles restent joints. Mettre 0 pour ne rien corriger. Préférences de ce PC.</p>
+        ${[["equerreTol", "Angle léger mis d'équerre", "Un mur à moins de ces degrés d'un angle droit est remis à 0° ou 90°", "°", 20], ["equerre45", "Tolérance autour de 45°", "Un mur à moins de ces degrés de 45° est remis à 45° exact", "°", 20], ["equerreMax", "Déplacement signalé au-delà de", "Un mur corrigé dont un bout bouge de plus que ça est signalé « à vérifier »", "cm", 100]].map(([k, l, h, u, mx]) => `<label class="cab-row" title="${esc(h)}"><span>${esc(l)}<small class="mut">${esc(h)} · ${u}</small></span><span class="cab-ctl"><input type="number" min="0" max="${mx}" step="1" data-eq="${k}" data-max="${mx}" value="${getPrefs()[k]}"></span></label>`).join("")}`;
+    if (r.id === "v3d") return `<h3>Vue 3D : hauteurs de départ</h3>
+        <p class="mut rub-intro">Utilisées par l'onglet 3D quand le dessin ne donne pas la hauteur. Une pièce (hauteur sous plafond) ou une ouverture (allège, linteau) se règle aussi une par une dans Propriétés. Préférences de ce PC, pour tous les chantiers.</p>
+        ${[["h3dPlafond", "Hauteur sous plafond", "Hauteur des murs et des plafonds"], ["h3dAllege", "Allège des fenêtres", "Du sol au bas de la fenêtre"], ["h3dLinteau", "Haut des fenêtres", "Du sol au dessous du linteau"], ["h3dPorte", "Haut des portes", "Porte de 1,20 m de large au plus"], ["h3dBaie", "Haut des baies", "Porte-fenêtre ou passage de plus de 1,20 m"], ["h3dGarage", "Haut des portes de garage", ""]].map(([k, l, h]) => `<label class="cab-row" title="${esc(h)}"><span>${esc(l)}<small class="mut">${esc(h || "cm")}${h ? " · cm" : ""}</small></span><span class="cab-ctl"><input type="number" min="0" max="600" step="1" data-h3d="${k}" value="${getPrefs()[k]}"></span></label>`).join("")}`;
+    return rubHTML(r);
+  }
+  function iaHTML() {
+    return `<h3>Assistant et relevé IA</h3>
+        <p class="mut rub-intro">Une seule clé suffit. Elle sert à l'assistant (encart en bas à droite du plan), à l'analyse du plan et au relevé par l'IA.
         La clé reste sur ce PC ; elle passe par le serveur local lancé avec <code>npm run dev</code>, puis directement chez le fournisseur.</p>
         ${!envKeys.checked || envKeys.online ? "" : `<p class="warn">Serveur local introuvable : lancez le logiciel avec <code>npm run dev</code> (l'IA ne marche pas en ouvrant le fichier directement).</p>`}
         <div class="pcards">${card("anthropic")}${card("nvidia")}</div>
@@ -114,26 +177,30 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
         <label class="cab-row" title="Prix de votre fournisseur IA pour 1 million de jetons envoyés (image + consigne). Voir sa grille tarifaire : les prix changent selon le modèle."><span>Prix des jetons d'entrée<small class="mut">€ par million de jetons</small></span><span class="cab-ctl"><input type="number" min="0" step="0.01" data-cost="prixIn" value="${getPrefs().prixIn}"></span></label>
         <label class="cab-row" title="Prix pour 1 million de jetons de réponse de l'IA"><span>Prix des jetons de sortie<small class="mut">€ par million de jetons</small></span><span class="cab-ctl"><input type="number" min="0" step="0.01" data-cost="prixOut" value="${getPrefs().prixOut}"></span></label>
         <label class="cab-row" title="Coût horaire chargé du technicien BE : multiplié par le temps de travail compté sur le chantier"><span>Coût horaire du technicien BE<small class="mut">€ / h</small></span><span class="cab-ctl"><input type="number" min="0" step="0.5" data-cost="tauxHoraire" value="${getPrefs().tauxHoraire}"></span></label>
-        <p class="mut">Conseil : Claude pour l'analyse du plan (meilleure lecture des images). NVIDIA : Nemotron 3.5 Super VL par défaut (gratuit dans la limite des crédits, voit le plan). Si NVIDIA retire un modèle, Oktéo en choisit un autre tout seul. Un modèle sans « VL » ou « vision » ne lit que la liste des objets, pas l'image.</p>
-      </section>
-      <section class="pset-sec" id="ps-regles"></section>
-      <section class="pset-sec" id="ps-murs">
-        <h3>Murs : mise d'équerre automatique</h3>
-        <p class="mut">Après chaque relevé (IA, automatique, réponse collée) et avec Relevé → Murs d'équerre, Oktéo remet d'équerre les murs presque droits dans le sens de la maison ; les angles restent joints. Mettre 0 pour ne rien corriger. Préférences de ce PC.</p>
-        ${[["equerreTol", "Angle léger mis d'équerre", "Un mur à moins de ces degrés d'un angle droit est remis à 0° ou 90°", "°", 20], ["equerre45", "Tolérance autour de 45°", "Un mur à moins de ces degrés de 45° est remis à 45° exact", "°", 20], ["equerreMax", "Déplacement signalé au-delà de", "Un mur corrigé dont un bout bouge de plus que ça est signalé « à vérifier »", "cm", 100]].map(([k, l, h, u, mx]) => `<label class="cab-row" title="${esc(h)}"><span>${esc(l)}<small class="mut">${esc(h)} · ${u}</small></span><span class="cab-ctl"><input type="number" min="0" max="${mx}" step="1" data-eq="${k}" data-max="${mx}" value="${getPrefs()[k]}"></span></label>`).join("")}
-      </section>
-      <section class="pset-sec" id="ps-3d">
-        <h3>Vue 3D : hauteurs de départ</h3>
-        <p class="mut">Utilisées par l'onglet 3D quand le dessin ne donne pas la hauteur. Une pièce (hauteur sous plafond) ou une ouverture (allège, linteau) se règle aussi une par une dans Propriétés. Préférences de ce PC, pour tous les chantiers.</p>
-        ${[["h3dPlafond", "Hauteur sous plafond", "Hauteur des murs et des plafonds"], ["h3dAllege", "Allège des fenêtres", "Du sol au bas de la fenêtre"], ["h3dLinteau", "Haut des fenêtres", "Du sol au dessous du linteau"], ["h3dPorte", "Haut des portes", "Porte de 1,20 m de large au plus"], ["h3dBaie", "Haut des baies", "Porte-fenêtre ou passage de plus de 1,20 m"], ["h3dGarage", "Haut des portes de garage", ""]].map(([k, l, h]) => `<label class="cab-row" title="${esc(h)}"><span>${esc(l)}<small class="mut">${esc(h || "cm")}${h ? " · cm" : ""}</small></span><span class="cab-ctl"><input type="number" min="0" max="600" step="1" data-h3d="${k}" value="${getPrefs()[k]}"></span></label>`).join("")}
-      </section>
-      <section class="pset-sec cab-set" id="cab-set">${cabHTML()}</section>
-      <section class="pset-sec" id="ps-packs">
-        <h3>Packs</h3>
-        <p class="mut">L'appareillage type de chaque pièce (chambre, séjour, cuisine…). Sur le plan : sélectionnez une pièce nommée, puis « ⚡ Implantation rapide » (ou Maj+P) pose son pack.</p>
-        <div id="ps-packs-ed"></div>
-      </section>
-      <p class="pset-none mut" hidden>Aucun réglage ne correspond à cette recherche.</p>
+        <p class="mut">Conseil : Claude pour l'analyse du plan (meilleure lecture des images). NVIDIA : Nemotron 3.5 Super VL par défaut (gratuit dans la limite des crédits, voit le plan). Si NVIDIA retire un modèle, Oktéo en choisit un autre tout seul. Un modèle sans « VL » ou « vision » ne lit que la liste des objets, pas l'image.</p>`;
+  }
+  const LOGO = () => (document.querySelector(".top .brand .brand-mark") || {}).outerHTML || "";
+  function navHTML() {
+    const grp = (g, t) => `<div class="pn-g">${t}</div>` + RUBRIQUES.filter((r) => r.g === g).map((r) => { const n = fichesOf(r.id).filter((f) => f.etat === "decide" || f.etat === "question").length; return `<a href="#${secId(r.id)}" data-to="${secId(r.id)}" data-rub="${r.id}" class="${r.id === active ? "on" : ""}">${esc(r.titre)}${n ? `<span class="pn-n" title="${n} règle(s) à intégrer ou en question">${n}</span>` : ""}</a>`; }).join("");
+    return grp("kiteohm", "Règles KiTéOHM") + grp("poste", "Ce poste");
+  }
+
+  function render() {
+    const q = el.querySelector(".pset-find")?.value || ""; // la recherche en cours survit à un nouvel affichage
+    const all = compte();
+    el.innerHTML = `<div class="params-in pset pp">
+      <header class="pp-head">
+        <div class="pp-brand" aria-hidden="true">${LOGO()}</div>
+        <div class="pset-head pp-title"><h2>Paramètres</h2><p>Catalogue des règles KiTéOHM et réglages de ce poste · ${FICHES.length} fiches, dont ${all.actif} appliquées et ${all.decide} à intégrer</p></div>
+        <input type="search" class="pset-find" placeholder="Chercher une règle ou un réglage… (ex. couleur, prise, gaine, calibre)" aria-label="Chercher une règle ou un réglage">
+        <button id="pp-export" title="Le catalogue complet en texte (Markdown), à lire ou à transmettre hors du logiciel">Exporter le catalogue</button>
+        <button id="pp-back" class="pp-back" title="Revenir au plan (Échap)">‹ Revenir au logiciel</button>
+      </header>
+      <div class="pset-wrap">
+        <nav class="pset-nav" aria-label="Rubriques des paramètres">${navHTML()}</nav>
+        <div class="pset-body">
+          ${RUBRIQUES.map((r) => `<section class="pset-sec${r.id === "cablage" ? " cab-set" : ""}${r.id === active ? " on" : ""}" id="${secId(r.id)}" data-rub="${r.id}">${r.id === "journal" ? "" : r.g === "poste" ? posteHTML(r) : rubHTML(r)}</section>`).join("")}
+          <p class="pset-none mut" hidden>Aucune règle ni aucun réglage ne correspond à cette recherche.</p>
         </div>
       </div>
     </div>`;
@@ -141,9 +208,17 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
     wire();
     if (q) { el.querySelector(".pset-find").value = q; find(q); }
   }
+  function setActive(rub) {
+    if (!RUBRIQUES.some((r) => r.id === rub)) return;
+    active = rub; try { localStorage.setItem(RKEY, rub); } catch { /* */ }
+    el.querySelectorAll(".pset-sec").forEach((s) => s.classList.toggle("on", s.dataset.rub === rub));
+    el.querySelectorAll(".pset-nav a").forEach((a) => a.classList.toggle("on", a.dataset.rub === rub));
+    if (rub === "historique") { const h = el.querySelector("#pp-hist"); if (h) h.innerHTML = histHTML(); }
+    el.querySelector(".pset-body")?.scrollTo?.({ top: 0 });
+  }
 
   // ---------- réglages du câblage ----------
-  function cabHTML() {
+  function cabGroupsHTML(idx) {
     const v = getCab();
     const input = ([k, label, unit, type]) => {
       const val = v[k], d = CAB_DEFAULTS[k], changed = val !== d ? " chg" : "";
@@ -155,37 +230,40 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
       const rg = (CAB_RULES[k] || []).map((id) => `<a href="#" class="rg-link" data-rule="${id}" title="Voir la règle ${id} dans le journal">${id}</a>`).join("");
       return `<label class="cab-row${changed}" title="Valeur de base : ${esc(String(d).replace(".", ","))} ${esc(unit)}"><span>${esc(label)}${rg ? ` <span class="rg-links">${rg}</span>` : ""}</span><span class="cab-ctl">${ctl}<span class="mut">${esc(unit)}</span></span></label>`;
     };
-    return `<div class="pset-h"><h3>Câblage</h3><button id="cab-reset" title="Remettre toutes les valeurs de base du câblage">Valeurs de base</button></div>
-      <p class="mut">Règles de la pieuvre décidées avec le bureau d'études : circuits, couleurs, boîtes, gaines. Une valeur modifiée est surlignée ; l'infobulle donne la valeur de base.</p>
-      ${(() => { const N = normeSettings(v); return N.length ? `<p class="nm-warn" id="cab-norme">Au-delà de la norme (alerte simple, rien n'est bloqué) : ${N.map((x) => esc(x.msg)).join(" ; ")}.</p>` : ""; })()}
-      ${CAB_FIELDS.map(([g, rows, help], i) => `<div class="pset-grp" id="ps-cab-${i}"><h4>${esc(g)}</h4>${help ? `<p class="mut sm">${esc(help)}</p>` : ""}<div class="pset-rows">${rows.map(input).join("")}</div></div>`).join("")}`;
+    return idx.map((i) => { const [g, rows, help] = CAB_FIELDS[i]; return `<div class="pset-grp" id="ps-cab-${i}"><h4>${esc(g)}</h4>${help ? `<p class="mut sm">${esc(help)}</p>` : ""}<div class="pset-rows">${rows.map(input).join("")}</div></div>`; }).join("");
   }
   function wireCab() {
-    const box = el.querySelector("#cab-set"); if (!box) return;
-    box.querySelectorAll("[data-cab]").forEach((c) => (c.onchange = () => {
-      const k = c.dataset.cab, t = typeof CAB_DEFAULTS[k];
+    el.querySelectorAll("[data-cab]").forEach((c) => (c.onchange = () => {
+      const k = c.dataset.cab, t = typeof CAB_DEFAULTS[k], before = getCab()[k];
       const v = c.type === "checkbox" ? c.checked : t === "number" ? parseFloat(String(c.value).replace(",", ".")) : c.value.trim();
       if (t === "number" && !(v >= 0)) { c.value = getCab()[k]; return; }
       setCab({ [k]: v }); c.closest(".cab-row").classList.toggle("chg", v !== CAB_DEFAULTS[k]);
+      noteChangement(CAB_LABEL[k] || k, before, v, cabRubOf(k));
       // MAJ norme n° 4 : réglage plus large que la NF C 15-100 → message sous le titre (sans rien bloquer)
-      { const N = normeSettings(getCab()), w = box.querySelector("#cab-norme"), html = N.length ? `Au-delà de la norme (alerte simple, rien n'est bloqué) : ${N.map((x) => esc(x.msg)).join(" ; ")}.` : "";
+      { const box = el.querySelector("#cab-set"), w = box.querySelector("#cab-norme"), html = normeWarn().replace(/^<p[^>]*>|<\/p>$/g, "");
         if (w && !html) w.remove(); else if (w) w.innerHTML = html; else if (html) box.querySelector(".pset-h").insertAdjacentHTML("afterend", `<p class="nm-warn" id="cab-norme">${html}</p>`); }
+      // la valeur affichée dans les fiches suit
+      el.querySelectorAll(`[data-goto-cab="${k}"] b`).forEach((b) => (b.textContent = fmtVal(v)));
     }));
-    box.querySelectorAll(".rg-link").forEach((a) => (a.onclick = (e) => { e.preventDefault(); e.stopPropagation(); regles && regles.open(a.dataset.rule); }));
-    box.querySelector("#cab-reset").onclick = () => { resetCab(); box.innerHTML = cabHTML(); wireCab(); };
+    el.querySelectorAll(".rg-link").forEach((a) => (a.onclick = (e) => { e.preventDefault(); e.stopPropagation(); setActive("journal"); regles && regles.open(a.dataset.rule); }));
+    const rs = el.querySelector("#cab-reset"); if (rs) rs.onclick = () => { const b = getCab(); resetCab(); const a = getCab(); Object.keys(a).forEach((k) => { if (k in CAB_LABEL) noteChangement(CAB_LABEL[k], b[k], a[k], cabRubOf(k)); }); render(); };
   }
 
-  // recherche : garde les lignes dont le libellé contient tous les mots tapés ; masque les groupes vides
-  const norm = (t) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // recherche : garde les lignes et les fiches qui contiennent tous les mots tapés, dans toutes les rubriques ;
+  // masque les groupes vides ; sans recherche, seule la rubrique choisie est montrée
+  const norm = (t) => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   function find(q) {
     const words = norm(q).split(/\s+/).filter(Boolean), hit = (t) => words.every((w) => norm(t).includes(w));
     let any = false;
+    el.querySelector(".pset")?.classList.toggle("searching", !!words.length);
     el.querySelectorAll(".pset-sec").forEach((sec) => {
-      const rows = [...sec.querySelectorAll(".cab-row")];
+      const rows = [...sec.querySelectorAll(".cab-row, .rf-card")];
       let n = 0;
       if (rows.length) {
         rows.forEach((r) => { const ok = !words.length || hit(r.textContent + " " + (r.title || "") + " " + (r.closest(".pset-grp")?.querySelector("h4")?.textContent || "")); r.hidden = !ok; if (ok) n++; });
-        sec.querySelectorAll(".pset-grp").forEach((g) => { g.hidden = !g.querySelector(".cab-row:not([hidden])"); });
+        sec.querySelectorAll(".pset-grp").forEach((g) => { g.hidden = !!words.length && !g.querySelector(".cab-row:not([hidden])"); });
+        sec.querySelectorAll(".rf-count").forEach((c) => { c.hidden = !!words.length; });
+        if (!n && words.length && hit(sec.textContent)) n = 1;
       } else n = !words.length || hit(sec.textContent) ? 1 : 0;
       sec.hidden = !n; if (n) any = true;
     });
@@ -209,10 +287,26 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
     const zo = el.querySelector("#pref-zooms"); if (zo) { zo.value = getPrefs().zoomsIA; zo.onchange = () => { const v = Math.max(0, Math.min(40, Math.round(+zo.value || 0))); zo.value = v; setPref("zoomsIA", v); }; }
     el.querySelectorAll("[data-eq]").forEach((c) => (c.onchange = () => { const v = Math.max(0, Math.min(+c.dataset.max, Math.round(+c.value || 0))); c.value = v; setPref(c.dataset.eq, v); }));
     const rl = el.querySelector("#pref-relect"); if (rl) rl.onchange = () => { const v = Math.max(0, Math.min(3, Math.round(+rl.value || 0))); rl.value = v; setPref("relectures", v); };
-    el.querySelectorAll("[data-pref]").forEach((c) => (c.onchange = () => { setPref(c.dataset.pref, c.checked); c.closest(".cab-row").classList.toggle("chg", c.checked !== PREFS_DEFAULTS[c.dataset.pref]); }));
+    el.querySelectorAll("[data-pref]").forEach((c) => (c.onchange = () => { const k = c.dataset.pref; noteChangement((PREF_FIELDS.find((x) => x[0] === k) || [k, k])[1], getPrefs()[k], c.checked, "affichage"); setPref(k, c.checked); c.closest(".cab-row").classList.toggle("chg", c.checked !== PREFS_DEFAULTS[k]); }));
     const fi = el.querySelector(".pset-find");
     fi.oninput = () => find(fi.value);
-    el.querySelectorAll(".pset-nav a").forEach((a) => (a.onclick = (e) => { e.preventDefault(); if (fi.value) { fi.value = ""; find(""); } el.querySelector("#" + a.dataset.to)?.scrollIntoView({ behavior: "smooth", block: "start" }); }));
+    el.querySelectorAll(".pset-nav a").forEach((a) => (a.onclick = (e) => { e.preventDefault(); if (fi.value) { fi.value = ""; find(""); } setActive(a.dataset.rub); }));
+    // fiche → réglage lié (dans sa rubrique), ou bloc plus bas dans la même rubrique
+    el.querySelectorAll("[data-goto-cab]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); const k = a.dataset.gotoCab; if (fi.value) { fi.value = ""; find(""); } setActive(cabRubOf(k)); const c = el.querySelector(`[data-cab="${k}"]`); if (c) { c.closest(".cab-row")?.scrollIntoView({ block: "center" }); c.focus(); } }));
+    el.querySelectorAll("[data-goto-id]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); el.querySelector("#" + a.dataset.gotoId)?.scrollIntoView({ block: "start" }); }));
+    // thème de l'écran
+    el.querySelectorAll("[data-theme-set]").forEach((b) => (b.onclick = () => {
+      const t = b.dataset.themeSet, before = getPrefs().theme || "auto";
+      setPref("theme", t); applyTheme(t); noteChangement("Thème de l'écran", before, t, "affichage");
+      el.querySelectorAll("[data-theme-set]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.themeSet === t)));
+    }));
+    el.querySelector("#pp-back").onclick = () => api.setTab("plan");
+    el.querySelector("#pp-export").onclick = () => {
+      const d = new Date(), txt = catalogueTexte({ cab: getCab(), labels: CAB_LABEL, date: d.toLocaleDateString("fr-FR"), normes: REGLES });
+      lastExport = txt;
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([txt], { type: "text/markdown;charset=utf-8" }));
+      a.download = `catalogue-regles-okteo-${d.toISOString().slice(0, 10)}.md`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    };
     { const box = el.querySelector("#ps-packs-ed"); if (box && openPacks && openPacks.mount) openPacks.mount(box); }
     el.querySelectorAll(".pcard").forEach((c) => {
       const p = c.dataset.p, k = c.querySelector(".k"), m = c.querySelector(".m"), res = c.querySelector(".tres");
@@ -249,7 +343,17 @@ export function mountParams(el, { PROVIDERS, testProvider, serverStatus, listMod
     refreshProv();
   }
 
+  // ouvrir la rubrique qui contient un élément (id) : okteo:params-goto {detail: "ps-couts"} (catalogue, 3D, mode IA, tableau)
+  const onGoto = (e) => {
+    if (!el.isConnected) return document.removeEventListener("okteo:params-goto", onGoto);
+    const t = el.querySelector("#" + String(e.detail || "").replace(/[^\w-]/g, "")), sec = t && (t.classList.contains("pset-sec") ? t : t.closest(".pset-sec"));
+    if (!sec) return;
+    const fi = el.querySelector(".pset-find"); if (fi && fi.value) { fi.value = ""; find(""); }
+    setActive(sec.dataset.rub); if (t !== sec) t.scrollIntoView({ block: "start" });
+  };
+  document.addEventListener("okteo:params-goto", onGoto);
   serverStatus().then((st) => { settings.setEnv({ online: !!st.online, anthropic: !!st.anthropic, nvidia: !!st.nvidia }); render(); });
   render();
-  return { render, get regles() { return regles; } };
+  let lastExport = "";
+  return { render, setActive, get active() { return active; }, get lastExport() { return lastExport; }, get regles() { return regles; } };
 }
