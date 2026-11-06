@@ -51,7 +51,7 @@ const WHY = {
   vv: "Un va-et-vient ne marche qu'à deux (ou plus) sur la même lumière ; ici il est seul.",
   int2: "Un interrupteur simple et une autre commande sur la même lumière : il faut deux va-et-vient (ou un télérupteur).",
   detecteur: "Lumière à détecteur intégré mais une commande manuelle y est reliée : le fonctionnement est contradictoire.",
-  sdb: "L'appareil est dans un volume de la salle de bain où il est interdit ou limité (NF C 15-100, 7-701).",
+  sdb: "L'appareil est dans un volume de la salle de bain où il est interdit ou limité (NF C 15-100-10 § 10.1.6.10, règles SDE de la bible).",
   mur: "L'appareil est posé dans l'épaisseur d'un mur sans y être accroché.",
   zone: "L'appareil est dans une zone d'exclusion (rien ne doit y être posé).",
   battant: "La commande est derrière le battant d'une porte ouverte.",

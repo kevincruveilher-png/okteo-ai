@@ -12,6 +12,7 @@ import { isVolet, sansCvr, lignesOf, parseFils } from "./appareils.js";
 import { intrusions } from "./qualite.js";
 import { pointInPoly, labelPoint } from "../walls/rooms.js";
 import { zonesByLevel, pushOut } from "./exclusion.js";
+import { volumeZones } from "./volumes.js";
 
 const LIGHT = new Set(["LUM", "SPOT", "APP"]), CMD = new Set(["INT", "VV", "BP"]);
 const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -734,7 +735,8 @@ export function placeBoxes(items0, links, circuits, tabs, S0, { keep = [], count
     } else r = placeMode(L, lv, want[lv] || 0);
     if (!r) { issues.push(`Niveau ${lv} : impossible de respecter ${S.departsMax} départs par boîte (sans l'alimentation) et ${S.departsFace} gaines par face (une unité trop grosse ?)`); continue; }
     // n° 10 : jamais de boîte dans une zone d'exclusion : repoussée juste au-delà de son bord
-    const ZB = zonesByLevel(items0)[lv] || [];
+    // MAJ norme n° 3 : ni dans les volumes 0, 1, 2 d'une salle d'eau (boîte de connexion interdite, SDE-07 / SDE-08)
+    const ZB = [...(zonesByLevel(items0)[lv] || []), ...(volumeZones(items0, rooms)[lv] || [])];
     for (const b of r) { if (ZB.length) { const q = pushOut(b, ZB); b.x = q.x; b.y = q.y; } do n++; while (usedIds.has("b" + n)); usedIds.add("b" + n); out.push({ id: "b" + n, n: boxName(n), lv, x: +(Math.round(b.x / 0.05) * 0.05).toFixed(2), y: +(Math.round(b.y / 0.05) * 0.05).toFixed(2), apps: b.units.flatMap((u) => u.ids), ...(b.zone ? { zone: b.zone } : {}) }); }
   }
   out.sort((a, b) => (+String(a.n).replace(/\D/g, "") || 0) - (+String(b.n).replace(/\D/g, "") || 0));
