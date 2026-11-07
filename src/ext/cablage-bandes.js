@@ -17,6 +17,7 @@ import { spvLines, spvText, spvName, totaux } from "../cablage/spv.js";
 import { coupeFils } from "../cablage/gaines.js";
 import { abrevRoom, parseAbrev } from "../print/abrev.js";
 import { getPrefs } from "../prefs.js";
+import { numberFocus, connecteurCard } from "../cablage/connecteur.js";
 
 // lot 4 : fichier .spv du chantier ouvert (tous niveaux) + totaux du planning du BE
 export function spvNow(api) {
@@ -59,7 +60,7 @@ export function arrowSVG(ang, size = 70) {
 }
 
 export function mountBandsPage(el, { api }) {
-  let cur = null, busy = false, focusC = null;   // focusC : circuit mis en avant (les autres s'estompent)
+  let cur = null, busy = false, focusC = null, focusN = null;   // focusC : circuit mis en avant ; focusN (07/11) : n° de raccordement
   const done = new Map();          // cases cochées à l'écran (par boîte), le temps de la session
   const chip = (w) => `<span class="wchip"><i style="background:${wireCss(w.color)}"></i>${esc(w.color)} ${fr(w.section, 1)}</span>`;
 
@@ -120,8 +121,9 @@ export function mountBandsPage(el, { api }) {
       <p class="mut sm">${esc(S.level)}${sides.under ? ` · au-dessus de : ${esc(sides.under)}` : ""} · ${box.gaines.length} gaines · <b title="Somme des longueurs de toutes les gaines de la boîte">${fr(S.longueur, 2)} m de gaines</b> · ${steps.length} raccordements · ${fr(box.cuivre)} m de fil${S.bouchons ? ` · <b class="warn" title="R-095 : bouchon obligatoire dans la boîte sur les gaines qui amènent l'air extérieur">${S.bouchons} bouchon${S.bouchons > 1 ? "s" : ""}</b>` : ""}</p>
       ${S.verifier.length ? `<p class="sm bd-verif" title="Le logiciel applique ces règles du journal, mais Kévin ne les a pas encore confirmées : le résultat est à vérifier">À vérifier — règles non confirmées : ${S.verifier.map((r) => `<b>${esc(r.id)}</b> ${esc(r.titre)}`).join(" · ")}</p>` : ""}
       <div class="bd-grid">
-        <div class="bd-svgw"><div class="bd-calq" title="Cliquez un circuit (ou un fil du schéma) : les autres s'estompent, comme un calque">Circuits : <button data-cq="" class="${focusC ? "" : "on"}">Tous</button>${box.circuits.map((c) => `<button data-cq="${esc(c)}" class="${focusC === c ? "on" : ""}">${esc(c)}</button>`).join("")}</div>
-        <div class="bd-svg">${svg}</div></div>
+        <div class="bd-svgw"><div class="bd-calq" title="Boutons : un circuit en avant, les autres s'estompent. Dans le schéma : cliquez un numéro (ou un de ses fils) pour ne garder que lui et voir son connecteur">Circuits : <button data-cq="" class="${focusC ? "" : "on"}">Tous</button>${box.circuits.map((c) => `<button data-cq="${esc(c)}" class="${focusC === c ? "on" : ""}">${esc(c)}</button>`).join("")}</div>
+        <div class="bd-svg" title="Cliquez un numéro : seuls ses fils restent visibles, avec le connecteur à utiliser. Recliquez (ou cliquez à côté) pour tout revoir">${svg}</div>
+        <div class="bd-conn cn-card" hidden aria-live="polite"></div></div>
         <div class="bd-side">
           <div class="bd-label" title="Étiquette collée sur la boîte (en-tête de la feuille imprimée)">
             <div class="bl-l"><div><span class="mut">Pavillonneur</span><b>${esc(S.ch.client || "—")}</b></div><div><span class="mut">Chantier</span><b>${esc(S.ch.nom)}</b></div></div>
@@ -158,18 +160,29 @@ export function mountBandsPage(el, { api }) {
       <ul class="bd-ctl"><li>Chaque gaine : tous ses fils sont dans un connecteur (aucun fil libre).</li><li>Chaque connecteur : le nombre de fils indiqué, enfoncés jusqu'au bout (tirer légèrement pour vérifier).</li></ul>
       ${checks.length ? checks.map((c) => `<p class="warn sm">⚠ ${esc(c)}</p>`).join("") : `<p class="ok sm">✓ Chaque fil de chaque gaine a son raccordement, et chaque raccordement a au moins deux fils.</p>`}
     </div>`;
-    el.querySelectorAll("[data-b]").forEach((b) => (b.onclick = () => { cur = b.dataset.b; focusC = null; render(); }));
+    el.querySelectorAll("[data-b]").forEach((b) => (b.onclick = () => { cur = b.dataset.b; focusC = null; focusN = null; render(); }));
     // calque par circuit : boutons au-dessus du schéma, ou clic sur un fil / un point du schéma
     const sv = el.querySelector(".bd-svg svg");
+    // 07/11/2026 (Kévin) : clic sur un numéro (ou un de ses fils) : seuls ce n° et ses fils restent nets, le reste en fantôme,
+    // et la fiche du connecteur rapide à utiliser s'affiche ; les boutons « Circuits » gardent la mise en avant par circuit
+    const card = el.querySelector(".bd-conn");
     const applyFocus = () => {
-      sv.querySelectorAll("[data-c]").forEach((n) => { const cs = n.getAttribute("data-c").split(" ").filter(Boolean); n.style.opacity = !focusC || !cs.length || cs.includes(focusC) ? "" : "0.1"; });
-      el.querySelectorAll("[data-cq]").forEach((b) => b.classList.toggle("on", (b.dataset.cq || null) === focusC));
+      numberFocus(sv, null);
+      if (focusN != null) numberFocus(sv, focusN);
+      else sv.querySelectorAll("[data-c]").forEach((n) => { const cs = n.getAttribute("data-c").split(" ").filter(Boolean); n.style.opacity = !focusC || !cs.length || cs.includes(focusC) ? "" : "0.1"; });
+      el.querySelectorAll("[data-cq]").forEach((b) => b.classList.toggle("on", focusN == null && (b.dataset.cq || null) === focusC));
+      const st = focusN != null && steps.find((s) => String(s.n) === focusN);
+      card.hidden = !st;
+      card.innerHTML = st ? connecteurCard(st, { color: wireSolid, css: wireCss, esc, name: wireName, short: FN_SHORT, fr }) : "";
+      if (st) card.querySelector(".cn-x").onclick = () => { focusN = null; applyFocus(); };
     };
-    el.querySelectorAll("[data-cq]").forEach((b) => (b.onclick = () => { focusC = b.dataset.cq || null; applyFocus(); }));
+    el.querySelectorAll("[data-cq]").forEach((b) => (b.onclick = () => { focusC = b.dataset.cq || null; focusN = null; applyFocus(); }));
     sv.addEventListener("click", (e) => {
-      const n = e.target.closest("[data-c]"); if (!n) { focusC = null; applyFocus(); return; }
+      const t = e.target.closest("[data-n]"), num = t && t.getAttribute("data-n");
+      if (num) { focusN = focusN === num ? null : num; focusC = null; applyFocus(); return; }
+      const n = e.target.closest("[data-c]"); if (!n) { focusC = null; focusN = null; applyFocus(); return; }
       const cs = n.getAttribute("data-c").split(" ").filter(Boolean);
-      focusC = cs.length && focusC !== cs[0] ? cs[0] : null; applyFocus();
+      focusN = null; focusC = cs.length && focusC !== cs[0] ? cs[0] : null; applyFocus();
     });
     applyFocus();
     el.querySelectorAll("input[data-n]").forEach((c) => (c.onchange = () => { const s = done.get(box.id) || new Set(); c.checked ? s.add(+c.dataset.n) : s.delete(+c.dataset.n); done.set(box.id, s); c.closest("tr").classList.toggle("done", c.checked); }));

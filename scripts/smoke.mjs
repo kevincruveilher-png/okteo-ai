@@ -2165,6 +2165,37 @@ try {
     if (!ok) throw new Error(JSON.stringify({ noName, len: url.length, steps, bn, r, kept }));
     return true;
   });
+  await check("07/11 : bande, clic sur un numéro : ce n° et ses fils seuls (le reste en fantôme, gaines qui l'amènent gardées), fiche du connecteur rapide (places = fils) ; reclic = tout revient ; même chose sur la page du QR code", async () => {
+    await goSub("bandes"); await page.waitForSelector(".bands .bd-svg svg");
+    const pick = await ev(() => { const R = [...document.querySelectorAll(".bd-steps tbody tr")].map((tr) => ({ n: tr.querySelector("td.c b").textContent.trim(), w: tr.children[3].querySelectorAll(":scope > div").length })); return R.filter((r) => r.w >= 2 && r.w <= 12).sort((a, b) => b.w - a.w)[0] || null; });
+    if (!pick) throw new Error("aucun raccordement de 2 à 12 fils");
+    const clickN = (n) => ev((n) => { const t = document.querySelector(`.bands .bd-svg svg [data-n="${n}"]`); t.dispatchEvent(new MouseEvent("click", { bubbles: true })); }, n);
+    const state = (n) => ev((n) => {
+      const sv = document.querySelector(".bands .bd-svg svg"), A = [...sv.querySelectorAll("[data-n]")];
+      const mine = A.filter((x) => x.getAttribute("data-n") === n), other = A.filter((x) => x.getAttribute("data-n") !== n);
+      const gt = [...sv.querySelectorAll("g.gt[data-ns]")], gtKeep = gt.filter((g) => (" " + g.dataset.ns + " ").includes(" " + n + " "));
+      const card = document.querySelector(".bands .bd-conn");
+      return { mine: mine.length, mineOn: mine.every((x) => x.style.opacity === ""), otherGhost: other.every((x) => x.style.opacity === "0.1"), gtKeep: gtKeep.length && gtKeep.every((g) => g.style.opacity === ""), gtGhost: gt.filter((g) => !gtKeep.includes(g)).every((g) => g.style.opacity === "0.1"),
+        card: !card.hidden, txt: card.textContent, cw: card.querySelectorAll(".cn-svg .cw").length, places: [...card.querySelectorAll(".cn")].reduce((s, c) => s + +c.dataset.size, 0), rows: card.querySelectorAll(".cn-wires li").length, allOn: A.every((x) => x.style.opacity === "") };
+    }, n);
+    await clickN(pick.n); const on = await state(pick.n);
+    await clickN(pick.n); const off = await state(pick.n);
+    // page téléphone du QR code
+    await page.waitForSelector("#bd-qr svg", { timeout: 15000 });
+    const url = await ev(() => document.querySelector("#bd-qr").dataset.url);
+    const p2 = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    await p2.goto(`http://localhost:${APP_PORT}/bande.html` + url.slice(url.indexOf("#")));
+    await p2.waitForSelector(".sch svg");
+    await p2.evaluate((n) => document.querySelector(`.sch svg [data-n="${n}"]`).dispatchEvent(new MouseEvent("click", { bubbles: true })), pick.n);
+    const qr = await p2.evaluate((n) => { const A = [...document.querySelectorAll(".sch svg [data-n]")], c = document.querySelector(".cn-card"); return { ghost: A.filter((x) => x.getAttribute("data-n") !== n).every((x) => x.style.opacity === "0.1"), on: A.filter((x) => x.getAttribute("data-n") === n).every((x) => x.style.opacity === ""), card: !c.hidden, cw: c.querySelectorAll(".cn-svg .cw").length }; }, pick.n);
+    await p2.click(".cn-card .cn-x");
+    const qrOff = await p2.evaluate(() => document.querySelector(".cn-card").hidden && [...document.querySelectorAll(".sch svg [data-n]")].every((x) => x.style.opacity === ""));
+    await p2.close();
+    const ok = on.mine > 0 && on.mineOn && on.otherGhost && on.gtKeep && on.gtGhost && on.card && /places/.test(on.txt) && on.cw === pick.w && on.rows === pick.w && on.places >= pick.w
+      && !off.card && off.allOn && qr.ghost && qr.on && qr.card && qr.cw === pick.w && qrOff;
+    if (!ok) throw new Error(JSON.stringify({ pick, on, off, qr, qrOff }));
+    return true;
+  });
   await check("impression des schémas : une feuille par boîte + raccordements à cocher, texte lisible (PDF relu)", async () => {
     await goSub("bandes"); await page.waitForSelector(".bands .bd-svg svg");
     await page.click("#bd-all");

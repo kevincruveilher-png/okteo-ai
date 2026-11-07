@@ -120,6 +120,8 @@ export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font =
     let pos = (S - tot * L) / 2 + X0;
     G.forEach((g) => {
       const gc = circOfG(g), n = g.wires.length, start = pos + L * 1.1;
+      // 07/11/2026 : n° des fils de la gaine (clic sur un n° : la gaine reste nette si elle en amène un fil, connecteur.js)
+      const nsOf = (W) => [...new Set(W.map((w) => w.n).filter((v) => v != null))].join(" "), NS = nsOf(g.wires);
       g.wires.forEach((w, i) => {
         const t = start + i * L, wc = w.circuit ? [w.circuit] : gc, col = color(w.color);
         const out = 58;    // longueur du fil dessiné hors de la boîte
@@ -149,7 +151,7 @@ export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font =
       if (g.cable) {
         const a0 = start - L * 0.55, a1 = start + (n - 1) * L + L * 0.55;
         const sh = vert ? { x: a0, y: f === "A" ? X0 - 58 : X1 + 26, w: a1 - a0, h: 32 } : { x: f === "B" ? X1 + 26 : X0 - 58, y: a0, w: 32, h: a1 - a0 };
-        h += `<g class="cable" data-c="${cAttr(gc)}"><rect x="${sh.x}" y="${sh.y}" width="${sh.w}" height="${sh.h}" rx="6" fill="#2b3440" fill-opacity="0.13" stroke="#2b3440" stroke-width="1.6"/>` +
+        h += `<g class="cable" data-c="${cAttr(gc)}" data-ns="${NS}"><rect x="${sh.x}" y="${sh.y}" width="${sh.w}" height="${sh.h}" rx="6" fill="#2b3440" fill-opacity="0.13" stroke="#2b3440" stroke-width="1.6"/>` +
           `<text x="${sh.x + sh.w / 2}" y="${sh.y + sh.h / 2 + 4}" text-anchor="middle" font-size="10" font-weight="700" fill="#2b3440"${vert ? "" : ` transform="rotate(-90 ${sh.x + sh.w / 2} ${sh.y + sh.h / 2 + 4})"`}>${esc(g.cable)}</text></g>`;
       }
       // bagues : une accolade par n° de bague sur les fils qui la portent (alimentation : n° du circuit, T1… ; gaine
@@ -161,14 +163,14 @@ export function schemaSVG(box, steps, { color = () => "#888", sides = {}, font =
           const a0 = start + r.i * L - 4, a1 = start + r.j * L + 4, m = (a0 + a1) / 2, o = vert ? (f === "A" ? X0 - 30 : X1 + 30) : (f === "B" ? X1 + 30 : X0 - 30), d = vert ? (f === "A" ? -8 : 8) : (f === "B" ? 8 : -8);
           const path = vert ? `M${a0} ${o} v${d} H${a1} v${-d} M${m} ${o + d} v${d}` : `M${o} ${a0} h${d} V${a1} h${-d} M${o + d} ${m} h${d}`;
           const tx = vert ? m : o + d * 2.6, ty = vert ? o + d * 2.6 + 4 : m + 4;
-          h += `<g class="bague" data-b="${esc(r.b)}"><path d="${path}" fill="none" stroke="#111" stroke-width="1.6"/><rect x="${tx - 14}" y="${ty - 14}" width="28" height="19" rx="9" fill="#fff" stroke="#111" stroke-width="1.6"/><text x="${tx}" y="${ty}" text-anchor="middle" font-size="13" font-weight="700" fill="#111">${esc(r.b)}</text></g>`;
+          h += `<g class="bague" data-b="${esc(r.b)}" data-ns="${nsOf(g.wires.slice(r.i, r.j + 1))}"><path d="${path}" fill="none" stroke="#111" stroke-width="1.6"/><rect x="${tx - 14}" y="${ty - 14}" width="28" height="19" rx="9" fill="#fff" stroke="#111" stroke-width="1.6"/><text x="${tx}" y="${ty}" text-anchor="middle" font-size="13" font-weight="700" fill="#111">${esc(r.b)}</text></g>`;
         }
       }
       // titre de la gaine (v47) : « LI01.10 » puis « P14 · 4,8 m · Ø16 » (alimentation : « Tableau · … »)
       const mid = start + (n - 1) * L / 2;
       const who = g.kind === "alim" ? "Tableau" : cut((g.reps && g.reps.length ? g.reps.join("+") : g.label), 16);
       const l1 = `${g.no}${g.serie > 1 ? ` ×${g.serie}` : ""}`, len = `${fr(g.length, 1)} m · Ø${g.diam ?? "?"}${g.cable ? " · " + g.cable : ""}${g.bouchon ? " · BOUCHON" : ""}`, l2 = `${who} · ${len}`;
-      const gAttr = `class="gt" data-c="${cAttr(gc)}"`;
+      const gAttr = `class="gt" data-c="${cAttr(gc)}" data-ns="${NS}"`;
       // faces A et C : titre tourné (comme sur les bandes FTZ), deux lignes côte à côte
       if (f === "A" || f === "C") {
         const y0 = f === "A" ? X0 - 74 : X1 + 74, anc = f === "A" ? "start" : "end";

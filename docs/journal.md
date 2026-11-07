@@ -1,3 +1,21 @@
+## 07/11/2026 — Bande : un numéro à la fois + connecteur rapide (petite MAJ, go de Kévin ; fusionné dans `main`, run 42322006598 vert, smoke 240/240)
+
+- Demande de Kévin : sur le schéma de boîte, un clic sur un n° (ex. 7) ne doit garder que les fils de ce n° (avant : tout
+  le circuit), le reste en fantôme (gaines et autres numéros) ; afficher le connecteur rapide correspondant (3 fils →
+  connecteur 3 places) ; même fonction dans la page du QR code.
+- `src/cablage/connecteur.js` (commun écran + téléphone) : `numberFocus(svg, n)` (fantôme 0,1 sur tout `[data-n]` d'un
+  autre n° et tout `[data-ns]` qui ne l'amène pas), `connectorPlaces(conn)` (cap = places pour les fils ; plusieurs
+  connecteurs : le pont prend une place de chaque côté, même règle que `connectorsFor`), `connecteurSVG(step)`
+  (connecteur dessiné : leviers, entrées, fils à leur couleur, vert/jaune en tirets, ponts), `connecteurCard(step, o)`.
+- schema.js : `data-ns` (n° des fils) sur les titres de gaine `g.gt`, gaines de câble `g.cable`, bagues `g.bague`.
+- cablage-bandes.js : `focusN` ; clic sur un `[data-n]` = n° seul + fiche `.bd-conn` (✕, reclic ou clic à côté = tout
+  revient) ; clic sur un titre de gaine et boutons « Circuits » = mise en avant par circuit comme avant.
+  bande-view.js : même chose au toucher, fiche en bas de l'écran (`.cn-card.sheet`, bande.css).
+- Dessin générique (leviers orange), pas de marque ni de photo : Kévin peut fournir une photo de ses connecteurs pour
+  l'ajuster. Impression des bandes inchangée.
+- Tests : `scripts/connecteur.test.mjs` (5, dans `npm run check`) ; smoke « clic sur un numéro » (onglet Bandes + page
+  téléphone).
+
 ## 07/11/2026 — Vue 3D : déplacer un appareil en visite à pied (petite MAJ 3/3, ordre de Kévin ; fusionné dans `main`, run 42319944345 vert sur les 3 lots, smoke 239/239)
 
 - Demande de Kévin : en visite ZQSD, attraper un objet (ex. un interrupteur) et mieux le placer sur le mur.

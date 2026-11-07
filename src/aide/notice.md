@@ -181,6 +181,7 @@ Onglet **Tableau** : Oktéo dispose différentiels et disjoncteurs d'après les 
 Une fois l'étude juste, l'onglet **Pieuvre** donne tout ce qui part à l'atelier. Il a trois sous-onglets : Boîtes, Bandes, Lignes directes.
 
 - **Bandes** : le schéma de câblage de chaque boîte, avec ses gaines, ses fils, ses connecteurs, le perçage des tranches et un QR code (la bande s'ouvre sur un téléphone). Boutons : étiquettes de boîte (4 par A4), bandes détaillées, dossier complet, documents à remettre.
+- **Un numéro à la fois** : cliquer un numéro du schéma (ou un de ses fils). Seuls ce numéro et ses fils restent visibles : les autres fils et numéros passent en fantôme, ainsi que les gaines qui n'amènent pas de fil de ce numéro. Une fiche montre alors le connecteur rapide à utiliser, avec autant de places que de fils et chaque fil à sa couleur ; au-delà de 12 fils, plusieurs connecteurs reliés par un pont. Elle donne aussi la gaine de chaque fil. Recliquer le numéro, cliquer à côté ou ✕ : tout revient. Sur le téléphone (QR code), même chose en touchant le numéro. Les boutons « Circuits » au-dessus du schéma gardent la mise en avant par circuit.
 - **Lignes directes** : les lignes qui partent du tableau sans boîte (prises spécialisées, RJ45, sorties de câble), avec leur gaine et leur longueur.
 - **Fichier .spv (Counter)** : un seul fichier pour tout le chantier, au format du BE. L'atelier le découpe lui-même.
 - **Totaux du planning** : surface, gaines, boîtes, copiés pour le planning.
@@ -268,6 +269,7 @@ Six modules, du plus simple au plus complet. Chaque module se fait sur MAILLARD,
 
 | Date | Mise à jour du logiciel | Ce qui a changé dans la notice |
 | --- | --- | --- |
+| 07/11/2026 | numéro seul sur la bande | Étape 7 : clic sur un numéro, fantôme et connecteur rapide (écran et téléphone) |
 | 07/11/2026 | déplacer en 3D | La vue 3D : outil « Déplacer » de la visite à pied |
 | 07/11/2026 | portes en 3D | nouvelle partie « La vue 3D » ; case Portes |
 | 07/11/2026 | tableau collé au mur | Étape 4 : le tableau se colle au mur et tourne avec lui |
