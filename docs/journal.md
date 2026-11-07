@@ -1,3 +1,11 @@
+## 07/11/2026 — Vue 3D : portes affichées ou masquées (petite MAJ 2/3, ordre de Kévin)
+
+- Demande de Kévin : pouvoir afficher ou non les portes dans la vue 3D.
+- scene.js `buildHouse(…, {doors})` : vantaux marqués `userData.door`, `setDoors(on)`, état gardé quand la coupe
+  reconstruit les murs (`doorsOn`). vue3d.js : case « Portes » (`[data-l="doors"]`) dans le panneau, appliquée au niveau
+  ouvert et aux niveaux empilés. Les passages restent ouverts ; le dessin ne change pas.
+- Notice : nouvelle partie « La vue 3D (Alt+4) ». Test smoke « case Portes » (cachées, coupe baissée, revenues).
+
 ## 07/11/2026 — Tableau collé au mur (petite MAJ 1/3, ordre de Kévin)
 
 - Demande de Kévin : le tableau restait figé dans un seul sens où qu'il soit ; il doit se coller à la paroi du mur et

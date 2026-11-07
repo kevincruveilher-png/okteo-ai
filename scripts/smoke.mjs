@@ -3559,6 +3559,22 @@ try {
     if (!(pref === 270 && r.top >= 2.7 - 1e-6 && (!oid || (Math.abs(r.o[0] - 1.2) < 1e-9 && Math.abs(r.o[1] - 2.3) < 1e-9 && fields.al && fields.li)) && /2,70 m/.test(r.note))) throw new Error(JSON.stringify({ pref, r, fields, oid }));
     return true;
   });
+  await check("07/11 : vue 3D, case « Portes » : décochée = vantaux cachés (passages ouverts), gardé quand on baisse la coupe ; recochée = portes revenues", async () => {
+    await ev(() => okteo.setTab("vue3d"));
+    await page.waitForFunction(() => okteoExt.pages.vue3d.ui.state.house, null, { timeout: 30000 });
+    const doors = () => ev(() => { const L = []; okteoExt.pages.vue3d.ui.state.house.walls.traverse((o) => { if (o.userData.door) L.push(o.visible); }); return { n: L.length, on: L.filter(Boolean).length }; });
+    const d0 = await doors();
+    if (!d0.n) { await ev(() => okteo.setTab("plan")); throw new Error("aucune porte en 3D sur le chantier d'essai : test impossible"); }
+    await page.uncheck('.v3d-pan [data-l="doors"]');
+    const d1 = await doors();
+    await ev(() => { const c = document.querySelector(".v3d-cut"); c.value = String(+c.max - 0.4); c.dispatchEvent(new Event("input")); });
+    const d2 = await doors();
+    await page.check('.v3d-pan [data-l="doors"]');
+    const d3 = await doors();
+    await ev(() => { const c = document.querySelector(".v3d-cut"); c.value = c.max; c.dispatchEvent(new Event("input")); okteo.setTab("plan"); });
+    if (!(d0.n > 0 && d0.on === d0.n && d1.on === 0 && d2.n > 0 && d2.on === 0 && d3.on === d3.n)) throw new Error(JSON.stringify({ d0, d1, d2, d3 }));
+    return true;
+  });
   await check("3D-4 : visite à pied (ZQSD) : marcher sans traverser les murs, poser une prise au viseur (vrai appareil du chantier, rattaché à son mur, on reste en 3D), Ctrl+Z l'annule, la gomme retire un appareil", async () => {
     await ev(() => okteo.setTab("vue3d"));
     await page.waitForFunction(() => okteoExt.pages.vue3d.ui.state.house, null, { timeout: 30000 });

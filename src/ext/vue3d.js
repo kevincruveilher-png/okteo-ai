@@ -59,6 +59,7 @@ export function mountVue3d(el, { api }) {
       <label class="v3d-row" title="Baisser la coupe pour voir dans les pièces (maison de poupée)">Coupe <input type="range" class="v3d-cut" min="0.9" max="${H3D.plafond}" step="0.05" value="${H3D.plafond}"><span class="v3d-cutv">${fr(H3D.plafond)} m</span></label>
       <div class="v3d-lay">
         <label title="Façades pierre, cloisons gris bleuté, plinthes : on distingue mieux les murs de l'intérieur"><input type="checkbox" data-l="contrast" checked> Murs contrastés</label>
+        <label title="Vantaux des portes : décochez pour les cacher et voir à travers les passages (le dessin ne change pas)"><input type="checkbox" data-l="doors" checked> Portes</label>
         <label><input type="checkbox" data-l="devices" checked> Appareils à leur hauteur</label>
         <label><input type="checkbox" data-l="boxes" checked> Boîtes de la pieuvre</label>
         <label title="Gaines de la pieuvre : tracé du plan en traits droits au-dessus du plafond (ou par le sol), descente dans le mur"><input type="checkbox" data-l="gaines" checked> Gaines</label>
@@ -136,7 +137,7 @@ export function mountVue3d(el, { api }) {
     });
     const topMax = Math.max(P.H.plafond, ...plan.walls.map((w) => w.top || 0));
     { const c = $(".v3d-cut"); c.max = String(+topMax.toFixed(2)); if (!S3.cutSet || S3.cut > topMax) { S3.cut = topMax; c.value = String(topMax); $(".v3d-cutv").textContent = fr(topMax) + " m"; } }
-    const house = buildHouse(T, { plan, rooms, devices: devs, boxes: P.boxes, sanis: P.sanis }, { cut: S3.cut, contrast: S3.contrast, H: P.H });
+    const house = buildHouse(T, { plan, rooms, devices: devs, boxes: P.boxes, sanis: P.sanis }, { cut: S3.cut, contrast: S3.contrast, H: P.H, doors: $('[data-l="doors"]').checked });
 
     house.devices.visible = $('[data-l="devices"]').checked; house.boxes.visible = $('[data-l="boxes"]').checked;
     scene.add(house.group);
@@ -156,7 +157,7 @@ export function mountVue3d(el, { api }) {
       built.forEach((b, i) => {
         b.y = off[i] - off[curI];
         if (i === curI || !b.plan.walls.length) return;
-        const h2 = buildHouse(T, { plan: b.plan, rooms: b.P.rooms, devices: b.devs, boxes: [], sanis: b.P.sanis }, { cut: Infinity, contrast: S3.contrast, H: b.P.H });
+        const h2 = buildHouse(T, { plan: b.plan, rooms: b.P.rooms, devices: b.devs, boxes: [], sanis: b.P.sanis }, { cut: Infinity, contrast: S3.contrast, H: b.P.H, doors: $('[data-l="doors"]').checked });
         h2.group.position.y = b.y; h2.devices.visible = house.devices.visible;
         scene.add(h2.group);
         S3.others.push({ id: b.id, name: b.name, y: b.y, house: h2, devs: b.devs });
@@ -248,6 +249,7 @@ export function mountVue3d(el, { api }) {
     if (S3.gaines) { S3.gaines.group.visible = $('[data-l="gaines"]').checked; S3.gaines.setXray($('[data-l="xray"]').checked); }
     if (S3.marks) S3.marks.vols.visible = $('[data-l="vol"]').checked;
     S3.others.forEach((o) => { o.house.devices.visible = S3.house.devices.visible; });
+    const dOn = $('[data-l="doors"]').checked; S3.house.setDoors(dOn); S3.others.forEach((o) => o.house.setDoors(dOn));
     if (!S3.house.devices.visible) showCard(null);
   }));
 
