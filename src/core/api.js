@@ -859,6 +859,10 @@ window.okteo = {
     const d = K.dispPos && K.dispPos.get(id);
     return a ? { x: d ? d.x : a.x, y: d ? d.y : a.y, moved: !!d } : null;
   },
+  // 07/11/2026 : appareil qui se pose contre un mur (vue 3D : outil « Déplacer » de la visite à pied)
+  wallMounted(t) {
+    return wallMounted(t);
+  },
   get symCm() {
     return K.symCm;
   },

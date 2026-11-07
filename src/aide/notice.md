@@ -174,6 +174,7 @@ Onglet **Tableau** : Oktéo dispose différentiels et disjoncteurs d'après les 
 - Glisser pour tourner, molette pour zoomer, clic droit pour déplacer la vue. Le curseur **Coupe** baisse les murs pour voir dans les pièces.
 - Les cases du panneau affichent ou cachent : murs contrastés, **Portes** (décochée : on voit à travers les passages), appareils, boîtes, gaines, volumes de la salle de bain.
 - **Visite à pied · ZQSD** : on marche dans la maison et on pose des appareils au viseur. Ctrl+Z annule.
+- **Déplacer un appareil en visite** : touche 7 (outil « Déplacer »). Viser l'appareil et cliquer pour l'attraper. Il suit alors le viseur sur les murs, ou au plafond pour un point lumineux. Un second clic le pose : il se recolle à son mur, et Ctrl+Z annule. Il garde sa hauteur ; la touche H permet de le poser à la hauteur visée. Échap le lâche sans le bouger.
 
 ## Étape 7 — Bandes, lignes directes et fichiers
 
@@ -267,6 +268,7 @@ Six modules, du plus simple au plus complet. Chaque module se fait sur MAILLARD,
 
 | Date | Mise à jour du logiciel | Ce qui a changé dans la notice |
 | --- | --- | --- |
+| 07/11/2026 | déplacer en 3D | La vue 3D : outil « Déplacer » de la visite à pied |
 | 07/11/2026 | portes en 3D | nouvelle partie « La vue 3D » ; case Portes |
 | 07/11/2026 | tableau collé au mur | Étape 4 : le tableau se colle au mur et tourne avec lui |
 | 07/11/2026 | animation des vues | L'écran de travail : chaque changement de vue glisse, le retour au plan arrive par la gauche |

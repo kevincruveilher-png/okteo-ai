@@ -1,13 +1,16 @@
 // 3D-4 : visite à pied dans la vue 3D (ZQSD = touches physiques, donc aussi WASD en QWERTY ; flèches) et pose
 // d'appareils au viseur. Chaque pose ou retrait passe par l'interface publique (api.importDevices / api.removeApps) :
 // c'est un vrai appareil du chantier, visible en 2D, rattaché à son mur, annulable d'un Ctrl+Z.
+// 07/11/2026 (Kévin) : outil « Déplacer » : un clic attrape un appareil, il suit le viseur (sur les murs, ou au plafond
+// pour un point lumineux), un clic le pose (api.updateApps : recollé à son mur, un seul Ctrl+Z) ; Échap le lâche sans
+// rien changer. Il garde sa hauteur (H : hauteur libre = celle visée).
 import { esc } from "./util.js";
 
 const fr = (v, d = 2) => Number(v).toFixed(d).replace(".", ",");
 const EYE = 1.62, RADIUS = 0.22;
 export const WALK_TOOLS = [
   { t: "PC16", n: "Prise" }, { t: "INT", n: "Interrupteur" }, { t: "RJ45", n: "RJ45" },
-  { t: "LUM", n: "Point lumineux" }, { t: "APP", n: "Applique" }, { t: null, n: "Gomme" },
+  { t: "LUM", n: "Point lumineux" }, { t: "APP", n: "Applique" }, { t: null, n: "Gomme" }, { t: null, move: true, n: "Déplacer" },
 ];
 const MOVE = ["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "ShiftLeft", "ShiftRight"];
 
@@ -20,11 +23,11 @@ export function createWalk({ api, S3, el, cv }) {
   ui.innerHTML = `<div class="v3w-cross"></div>
     <div class="v3w-bar"><div class="v3w-tools" role="group" aria-label="Outil à poser">${WALK_TOOLS.map((t, i) => `<button type="button" data-i="${i}" aria-pressed="${i === 0}"><kbd>${i + 1}</kbd>${esc(t.n)}</button>`).join("")}</div>
       <div class="v3w-aim" aria-live="polite"></div>
-      <div class="v3w-keys"><b>ZQSD</b> ou flèches : marcher · <b>Maj</b> : courir · <b>souris</b> : regarder · <b>clic</b> : poser · <b>1–6</b> ou molette : outil · <b>H</b> : hauteurs normalisées <b class="v3w-norm">oui</b> · <b>Ctrl+Z</b> : annuler · <b>Échap</b> : pause</div></div>
+      <div class="v3w-keys"><b>ZQSD</b> ou flèches : marcher · <b>Maj</b> : courir · <b>souris</b> : regarder · <b>clic</b> : poser · <b>7</b> : déplacer un appareil · <b>1–7</b> ou molette : outil · <b>H</b> : hauteurs normalisées / gardées <b class="v3w-norm">oui</b> · <b>Ctrl+Z</b> : annuler · <b>Échap</b> : pause</div></div>
     <div class="v3w-pause" hidden><div class="v3w-pcard"><span class="k">Visite en pause</span><button type="button" class="pri" data-w="go">Reprendre la visite</button><button type="button" data-w="quit">Quitter la visite</button><p>Les appareils posés sont dans le chantier (onglet Plan) ; Ctrl+Z annule la dernière pose.</p></div></div>`;
   el.querySelector(".v3d-stage").appendChild(ui);
   const $ = (s) => ui.querySelector(s), cross = $(".v3w-cross"), aimEl = $(".v3w-aim"), pause = $(".v3w-pause");
-  const setTool = (i) => { W.tool = (i + WALK_TOOLS.length) % WALK_TOOLS.length; ui.querySelectorAll(".v3w-tools button").forEach((b, j) => b.setAttribute("aria-pressed", String(j === W.tool))); };
+  const setTool = (i) => { W.tool = (i + WALK_TOOLS.length) % WALK_TOOLS.length; W.hold = null; ui.querySelectorAll(".v3w-tools button").forEach((b, j) => b.setAttribute("aria-pressed", String(j === W.tool))); };
   $(".v3w-tools").onclick = (e) => { const b = e.target.closest("button"); if (b) setTool(+b.dataset.i); };
   const flash = (m) => { W.msg = m; W.msgAt = performance.now(); };
 
@@ -71,7 +74,7 @@ export function createWalk({ api, S3, el, cv }) {
   }
   function exit() {
     if (!W.on) return;
-    W.on = false; S3.walking = false; W.keys.clear(); W.drag = null;
+    W.on = false; S3.walking = false; W.keys.clear(); W.drag = null; W.hold = null;
     if (document.pointerLockElement === cv) document.exitPointerLock();
     el.classList.remove("walking"); ui.hidden = true; pause.hidden = true;
     if (W.ghost) W.ghost.visible = false;
@@ -92,12 +95,13 @@ export function createWalk({ api, S3, el, cv }) {
   window.addEventListener("keydown", (e) => {
     if (!W.on || el.hidden) return;
     if (e.ctrlKey || e.metaKey) return;
+    if (e.key === "Escape" && W.hold && pause.hidden) { e.stopImmediatePropagation(); W.hold = null; flash("Appareil lâché, il n'a pas bougé"); return; }
     if (e.key === "Escape") { e.stopImmediatePropagation(); if (W.locked) { document.exitPointerLock(); showPause(); } else if (pause.hidden) showPause(); else exit(); return; }
     if (!pause.hidden) return;
     e.stopImmediatePropagation();
     if (MOVE.includes(e.code)) { W.keys.add(e.code); e.preventDefault(); return; }
-    const dg = /^Digit([1-6])$/.exec(e.code); if (dg) { setTool(+dg[1] - 1); e.preventDefault(); return; }
-    if (e.code === "KeyH") { W.norm = !W.norm; $(".v3w-norm").textContent = W.norm ? "oui" : "non"; flash(W.norm ? "Hauteurs normalisées (prise 0,30 m, interrupteur 1,10 m…)" : "Hauteur libre : l'appareil se pose à la hauteur visée"); }
+    const dg = /^Digit([1-7])$/.exec(e.code); if (dg) { setTool(+dg[1] - 1); e.preventDefault(); return; }
+    if (e.code === "KeyH") { W.norm = !W.norm; $(".v3w-norm").textContent = W.norm ? "oui" : "non"; flash(WALK_TOOLS[W.tool].move ? (W.norm ? "Déplacer : l'appareil garde sa hauteur" : "Déplacer : hauteur libre, l'appareil se pose à la hauteur visée") : W.norm ? "Hauteurs normalisées (prise 0,30 m, interrupteur 1,10 m…)" : "Hauteur libre : l'appareil se pose à la hauteur visée"); }
   }, true);
   window.addEventListener("keyup", (e) => W.keys.delete(e.code));
   window.addEventListener("blur", () => W.keys.clear());
@@ -109,6 +113,7 @@ export function createWalk({ api, S3, el, cv }) {
     const T = S3.T, ray = new T.Raycaster();
     ray.setFromCamera(new T.Vector2(0, 0), S3.cam); ray.far = 6;
     const tool = WALK_TOOLS[W.tool];
+    if (tool.move) return aimMove(T, ray);
     if (!tool.t) {
       const hit = ray.intersectObjects(S3.house.pick.filter((m) => m.userData.dev), false)[0];
       return hit ? { ok: true, del: hit.object.userData.dev, p: hit.point } : { ok: false, why: "Visez un appareil pour le retirer" };
@@ -130,6 +135,33 @@ export function createWalk({ api, S3, el, cv }) {
     const x = P.x + n.x * 0.008, y = P.z + n.z * 0.008;
     return { ok: true, t: tool.t, x, y, h, hcm: Math.round(h * 100), n: [n.x, n.z], gp: new T.Vector3(x, h, y) };
   }
+  // outil « Déplacer » : viser un appareil pour l'attraper, puis sa nouvelle place (mur ou plafond selon l'appareil)
+  function aimMove(T, ray) {
+    if (!W.hold) {
+      const hit = ray.intersectObjects(S3.house.pick.filter((m) => m.userData.dev), false)[0];
+      return hit ? { ok: true, grab: hit.object.userData.dev, p: hit.point } : { ok: false, why: "Visez un appareil pour l'attraper" };
+    }
+    const d = S3.devs.find((x) => x.id === W.hold.id);
+    if (!d) { W.hold = null; return { ok: false, why: "Appareil introuvable" }; }
+    const wh = ray.intersectObjects(wallMeshes(), false).find((h) => h.face && Math.abs(h.face.normal.y) < 0.5);
+    if (d.mount === "plafond") {
+      const o = ray.ray.origin, v = ray.ray.direction, H = (S3.H && S3.H.plafond) || 2.5;
+      if (v.y <= 0.05) return { ok: false, why: "Levez les yeux : il se déplace au plafond" };
+      const t = (H - o.y) / v.y;
+      if (t > 6 || (wh && wh.distance < t)) return { ok: false, why: "Visez le plafond" };
+      const x = o.x + v.x * t, y = o.z + v.z * t;
+      return { ok: true, move: d.id, t: d.t, x, y, h: d.h, hcm: null, gp: new T.Vector3(x, H - 0.08, y), ceil: true };
+    }
+    if (!api.wallMounted || !api.wallMounted(d.t)) return { ok: false, why: "Cet appareil se déplace sur le plan (onglet Plan)" };
+    if (!wh) return { ok: false, why: "Visez un mur (à moins de 6 m)" };
+    const n = wh.face.normal, P = wh.point;
+    const h = W.norm ? d.h : Math.min(2.3, Math.max(0.1, P.y));
+    const probe = new T.Raycaster(new T.Vector3(P.x + n.x * 0.1, h, P.z + n.z * 0.1), new T.Vector3(-n.x, 0, -n.z), 0, 0.2);
+    if (!probe.intersectObjects(wallMeshes(), false).length) return { ok: false, why: `Pas de mur à ${fr(h)} m à cet endroit (porte, fenêtre)` };
+    const x = P.x + n.x * 0.008, y = P.z + n.z * 0.008;
+    // hauteur gardée et jamais réglée dans le dessin (hauteur par défaut du type) : on ne l'écrit pas
+    return { ok: true, move: d.id, t: d.t, x, y, h, hcm: W.norm && d.defH ? null : Math.round(h * 100), n: [n.x, n.z], gp: new T.Vector3(x, h, y) };
+  }
   function ensureFx() {
     if (W.ghost) return;
     const T = S3.T, mat = new T.MeshBasicMaterial({ color: 0x3ddc97, transparent: true, opacity: 0.6, depthTest: false });
@@ -141,12 +173,13 @@ export function createWalk({ api, S3, el, cv }) {
   function updateAim(now) {
     ensureFx();
     const a = (W.last = aim()), tool = WALK_TOOLS[W.tool];
-    W.ghost.visible = a.ok && !a.del; W.halo.visible = !!a.del;
-    if (a.del) { const d = S3.devs.find((x) => x.id === a.del); if (d) W.halo.position.set(d.x, d.h, d.y); }
-    if (W.ghost.visible) { W.gPlate.visible = a.t !== "LUM"; W.gBall.visible = a.t === "LUM"; W.ghost.position.copy(a.gp); if (a.n) W.ghost.lookAt(a.gp.x + a.n[0], a.gp.y, a.gp.z + a.n[1]); }
+    const ring = a.del || a.grab || (W.hold && W.hold.id);
+    W.ghost.visible = a.ok && !a.del && !a.grab; W.halo.visible = !!ring;
+    if (ring) { const d = S3.devs.find((x) => x.id === ring); if (d) W.halo.position.set(d.x, d.h, d.y); W.halo.material.color.setHex(a.del ? 0xe8534a : 0x0b6e99); }
+    if (W.ghost.visible) { W.gPlate.visible = !a.ceil && a.t !== "LUM"; W.gBall.visible = !!a.ceil || a.t === "LUM"; W.ghost.position.copy(a.gp); if (a.n) W.ghost.lookAt(a.gp.x + a.n[0], a.gp.y, a.gp.z + a.n[1]); }
     cross.classList.toggle("ok", a.ok);
     const fresh = now - W.msgAt < 2600, rep = (id) => { const d = S3.devs.find((x) => x.id === id); return d ? `${d.rep || d.t} (${d.name.toLowerCase()})` : "l'appareil"; };
-    const txt = fresh ? W.msg : a.del ? `Gomme · clic pour retirer ${rep(a.del)}` : a.ok ? `${tool.n} · clic pour poser à ${fr(a.h)} m` : `${tool.n} · ${a.why}`;
+    const txt = fresh ? W.msg : a.del ? `Gomme · clic pour retirer ${rep(a.del)}` : a.grab ? `Déplacer · clic pour attraper ${rep(a.grab)}` : a.move ? `Déplacer ${rep(a.move)} · clic pour le poser ${a.ceil ? "ici au plafond" : `à ${fr(a.h)} m`} · Échap : lâcher` : a.ok ? `${tool.n} · clic pour poser à ${fr(a.h)} m` : `${tool.n} · ${a.why}`;
     if (txt !== W.aimTxt) { aimEl.textContent = txt; W.aimTxt = txt; aimEl.classList.toggle("bad", !a.ok && !fresh); }
   }
   // pose ou retrait : un seul pas d'annulation, comme dans le plan
@@ -154,6 +187,15 @@ export function createWalk({ api, S3, el, cv }) {
     const a = (W.last = aim());
     if (!a.ok) { flash(a.why); return null; }
     if (a.del) { const d = S3.devs.find((x) => x.id === a.del), r = d ? d.rep || d.t : "Appareil"; api.removeApps([a.del]); flash(`${r} retiré (Ctrl+Z pour annuler)`); return { removed: a.del }; }
+    if (a.grab) { const d = S3.devs.find((x) => x.id === a.grab); W.hold = { id: a.grab }; flash(`${d ? d.rep || d.t : "Appareil"} attrapé : visez sa nouvelle place, clic pour le poser (Échap : lâcher)`); return { grabbed: a.grab }; }
+    if (a.move) {
+      const d = S3.devs.find((x) => x.id === a.move), r = d ? d.rep || d.t : "Appareil";
+      W.hold = null;
+      api.updateApps([{ id: a.move, x: +a.x.toFixed(3), y: +a.y.toFixed(3), ...(a.hcm ? { h: a.hcm } : {}) }]);
+      const m = api.state.app.find((x) => x.id === a.move);
+      flash(`${r} déplacé${a.ceil ? "" : ` à ${fr(a.h)} m`}${m && m.seg ? ", rattaché à son mur" : ""} (Ctrl+Z pour annuler)`);
+      return { moved: a.move };
+    }
     const res = api.importDevices([{ t: a.t, x: a.x, y: a.y, ...(a.hcm ? { h: a.hcm } : {}) }], [], { stay: true });
     const id = res && res.ids && res.ids[0];
     const placed = id && api.state.app.find((x) => x.id === id);

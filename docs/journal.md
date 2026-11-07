@@ -1,3 +1,14 @@
+## 07/11/2026 — Vue 3D : déplacer un appareil en visite à pied (petite MAJ 3/3, ordre de Kévin)
+
+- Demande de Kévin : en visite ZQSD, attraper un objet (ex. un interrupteur) et mieux le placer sur le mur.
+- vue3d-walk.js : 7e outil « Déplacer » (touche 7, `WALK_TOOLS[6].move`) ; `aimMove` : sans appareil tenu, vise un
+  appareil (`grab`) ; appareil tenu (`W.hold`) : cible sur un mur à la hauteur gardée (`W.norm`, H = hauteur visée) ou
+  au plafond pour un appareil de plafond ; un appareil ni mural ni de plafond se déplace sur le plan. Clic = pose par
+  `api.updateApps([{id, x, y, h}])` (recollé à son mur, un seul Ctrl+Z ; hauteur par défaut non écrite si gardée).
+  Échap pendant qu'on le tient = lâché sans pause. Halo bleu sur l'appareil tenu, fantôme vert à la cible.
+- api.js : `okteo.wallMounted(t)`. Test smoke « outil Déplacer » (attraper, reposer à plus de 40 cm, recollé, même
+  hauteur, Ctrl+Z, Échap).
+
 ## 07/11/2026 — Vue 3D : portes affichées ou masquées (petite MAJ 2/3, ordre de Kévin)
 
 - Demande de Kévin : pouvoir afficher ou non les portes dans la vue 3D.
