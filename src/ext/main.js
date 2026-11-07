@@ -34,6 +34,7 @@ import { createAiModes } from "./ai-modes-ui.js";
 import { createModeRunner } from "./ai-modes-run.js";
 import { createOneCard } from "./one-card.js";
 import { createHomeShell } from "./home-shell.js";
+import { createTransitions } from "./transitions.js";
 import { readKey } from "../walls/ai-memory.js";
 import { createTemps } from "./temps.js";
 import { ensurePaperW, chantierScaleCheck } from "./pdf-page.js";
@@ -221,9 +222,10 @@ function start() {
   const iaMode = createIaMode({ api, aiReleve, recheck, ctl, aiModes });
   const oneCard = createOneCard();   // v64 : une seule fenêtre de travail à la fois
   const home = createHomeShell({ api });   // lot 3 : logo = accueil, pages entières « en classeur »
+  const transitions = createTransitions({ api });   // 07/11/2026 : animation à chaque changement de vue
   hooks.modeIa = () => iaMode.setMode(iaMode.mode === "ia" ? "be" : "ia");
   hooks.cabler = () => { const r = cabler(api); api.setHint(r.text); if (pages.etude.ui) pages.etude.ui.render(); return r.text; };
-  window.okteoExt = { home, norme, whyBlink, doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, raccourcis, aide, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, aiRunner, recheck, iaMode, temps, oneCard, pages, backup: null };
+  window.okteoExt = { home, transitions, norme, whyBlink, doubts, why, ctl, essai, cablage, packs, tour, panel, palette, assistant, catalog, raccourcis, aide, settings, walls, rooms, devices, printer, prep, levels, aiReleve, aiModes, aiRunner, recheck, iaMode, temps, oneCard, pages, backup: null };
   initBackup(api).then((b) => { window.okteoExt.backup = b; });
 }
 
