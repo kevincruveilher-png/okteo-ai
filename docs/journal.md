@@ -1,4 +1,4 @@
-## 07/11/2026 — Animation à chaque changement de vue (petite MAJ, ordre de Kévin)
+## 07/11/2026 — Animation à chaque changement de vue (petite MAJ, ordre de Kévin ; fusionné dans `main`, run 42316206983 vert, smoke 236/236)
 
 - Demande de Kévin : les Paramètres arrivent en glissant de droite à gauche ; il veut la même chose pour TOUTES les vues,
   et l'animation inverse (de gauche à droite) en revenant au plan.
