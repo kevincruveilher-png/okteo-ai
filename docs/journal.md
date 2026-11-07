@@ -1,4 +1,4 @@
-## 07/11/2026 — Bande : un numéro à la fois + connecteur rapide (petite MAJ, go de Kévin)
+## 07/11/2026 — Bande : un numéro à la fois + connecteur rapide (petite MAJ, go de Kévin ; fusionné dans `main`, run 42322006598 vert, smoke 240/240)
 
 - Demande de Kévin : sur le schéma de boîte, un clic sur un n° (ex. 7) ne doit garder que les fils de ce n° (avant : tout
   le circuit), le reste en fantôme (gaines et autres numéros) ; afficher le connecteur rapide correspondant (3 fils →
