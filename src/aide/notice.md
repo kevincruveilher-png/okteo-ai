@@ -35,6 +35,8 @@ Oktéo s'ouvre à l'adresse [okteo-ai.pages.dev](https://okteo-ai.pages.dev/), a
 | « ? Aide » | en haut à droite | cette notice |
 | Assistant | en bas à droite (touche A) | poser une question sur le logiciel ou le chantier |
 
+Chaque changement de vue glisse : la vue qu'on ouvre depuis le plan arrive par la droite, et le plan revient toujours par la gauche. Entre deux autres vues, le glissement suit l'ordre des onglets. Si Windows est réglé pour réduire les animations, rien ne glisse.
+
 ### Les gestes de base
 
 - **Molette** : zoomer, centré sur la souris. **Outil Main** : déplacer la vue.
@@ -259,6 +261,7 @@ Six modules, du plus simple au plus complet. Chaque module se fait sur MAILLARD,
 
 | Date | Mise à jour du logiciel | Ce qui a changé dans la notice |
 | --- | --- | --- |
+| 07/11/2026 | animation des vues | L'écran de travail : chaque changement de vue glisse, le retour au plan arrive par la gauche |
 | 07/11/2026 | gaines dans la maison | Étape 6 : une gaine ne sort jamais de la maison (contournement par l'intérieur, d'après les pièces) |
 | 06/11/2026 | loupe des pages du PDF | Nouveau chantier : loupe 🔍 / double-clic pour voir une page du dossier en grand |
 | 06/11/2026 | — | parcours de formation sur une copie de MAILLARD (choix de Kévin) |

@@ -1,3 +1,22 @@
+## 07/11/2026 — Animation à chaque changement de vue (petite MAJ, ordre de Kévin)
+
+- Demande de Kévin : les Paramètres arrivent en glissant de droite à gauche ; il veut la même chose pour TOUTES les vues,
+  et l'animation inverse (de gauche à droite) en revenant au plan.
+- `src/ext/transitions.js` (`createTransitions({api})`, `okteoExt.transitions` {last {from, to, dir, id, animated}, count} ;
+  `viewDirection(from, to)` pur) : sur `okteo:tab`, classe `.vt-in-right` / `.vt-in-left` (style.css, keyframes `vt-r` /
+  `vt-l`, 0,26 s, `.main.vt-run` sans barre de défilement) sur la vue qui entre : `.stage` pour le plan, `#pg-pieuvre` en
+  entrant dans Pieuvre, la section du sous-onglet entre Boîtes / Bandes / Lignes, la page sinon. Règle : vers le plan =
+  par la gauche ; depuis le plan = par la droite ; sinon sens de l'ordre `ORDER` (accueil, plan, 3D, Étude, Boîtes,
+  Bandes, Lignes, Tableau, Symboles, Paramètres).
+- home-shell.js : l'ancienne arrivée « classeur » (`cl-in`) des pages entières et la sortie `cl-out` (rangement de 0,24 s
+  avant le retour) sont remplacées par ce mécanisme commun ; `close()` revient au plan tout de suite (le plan glisse
+  depuis la gauche). Les classes `cl-in` / `cl-out` restent dans style.css sans être utilisées.
+- Aucune animation si `prefers-reduced-motion` ou `window.__okteoNoVT` (smoke : `addInitScript`, les tests cliquent à des
+  coordonnées calculées pendant que la vue glisserait). Test smoke « animation à chaque changement de vue » (12 changements,
+  bouton « Retour au plan », Échap).
+- Notice à mettre à jour : document du projet, « L'écran de travail » (même paragraphe que `src/aide/notice.md`) +
+  ligne d'historique.
+
 ## 07/11/2026 — Gaines toujours dans la maison (petite MAJ, ordre de Kévin ; fusionné dans `main`, run 42309404083 vert, smoke 235/235)
 
 - Constat de Kévin : maison en L, une pieuvre d'un côté du L trace une gaine droite qui sort de la maison et rentre de

@@ -1361,6 +1361,14 @@ body.page-full .main>.params:not([hidden]){position:relative;padding-right:46px}
 .params.cl-in{animation:cl-in .26s cubic-bezier(.2,.8,.2,1)}
 .params.cl-out{animation:cl-out .24s ease-in forwards;transform-origin:left center}
 @media (prefers-reduced-motion:reduce){.params.cl-in,.params.cl-out{animation:none}}
+/* 07/11/2026 : animation à chaque changement de vue (src/ext/transitions.js) : arrivée par la droite en quittant le plan,
+   par la gauche en revenant au plan ; entre deux vues, sens de l'ordre des onglets */
+@keyframes vt-r{from{transform:translateX(60%);opacity:0}to{transform:none;opacity:1}}
+@keyframes vt-l{from{transform:translateX(-60%);opacity:0}to{transform:none;opacity:1}}
+.vt-in-right{animation:vt-r .26s cubic-bezier(.2,.8,.2,1)}
+.vt-in-left{animation:vt-l .26s cubic-bezier(.2,.8,.2,1)}
+.main.vt-run{overflow:hidden}
+@media (prefers-reduced-motion:reduce){.vt-in-right,.vt-in-left{animation:none}}
 .web-warn{border:1px solid #d9822b;color:#d9822b;background:transparent;border-radius:999px;padding:2px 10px;font-size:12px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .web-warn[hidden]{display:none}
 /* Paramètres plus aérés en page entière */

@@ -103,6 +103,9 @@ const server = await createServer({ server: { port: APP_PORT, strictPort: true, 
 await server.listen();
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+// 07/11/2026 : pas de glissement des vues pendant les tests (clics à des coordonnées calculées) ; le test « animation à
+// chaque changement de vue » le remet le temps de sa vérification
+await page.addInitScript(() => { window.__okteoNoVT = true; });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 
@@ -1047,6 +1050,30 @@ try {
     const r = { ui0, v, nav, t2, lib, gone, back };
     if (!(ui0.prev && ui0.next && ui0.idk && ui0.set && v.n >= 1 && v.last && v.last.type === "LUM" && v.t === "LUM" && v.dec && nav.idk && nav.open && t2 === "PC16" && lib.white && lib.vars >= 1 && /variante/.test(lib.tag) && lib.svg > 20 && gone === v.n - 1 && back === 0)) throw new Error(JSON.stringify(r));
     return true;
+  });
+  await check("07/11 : animation à chaque changement de vue : quitter le plan = arrivée par la droite, revenir au plan = par la gauche, entre deux vues = sens des onglets (Pieuvre et accueil compris)", async () => {
+    await ev(() => { okteo.setTab("plan"); window.__okteoNoVT = false; });
+    const seq = [["params", "right", "params"], ["plan", "left", ""], ["vue3d", "right", "vue3d"], ["etude", "right", "etude"], ["boites", "right", "pg-pieuvre"], ["bandes", "right", "bandes"], ["boites", "left", "boites"], ["tableau", "right", "tableau"], ["etude", "left", "etude"], ["plan", "left", ""], ["chantiers", "right", "chantiers"], ["plan", "left", ""]];
+    const got = [];
+    try {
+      for (const [t, dir, id] of seq) {
+        const r = await ev((t) => { okteo.setTab(t); const L = okteoExt.transitions.last, el = document.querySelector(".vt-in-right, .vt-in-left"); return { t, dir: L && L.dir, anim: L && L.animated, cls: el ? (el.classList.contains("vt-in-right") ? "right" : "left") : null, id: el ? el.id : null, stage: !!(el && el.classList.contains("stage")), name: el ? getComputedStyle(el).animationName : null }; }, t);
+        got.push(r);
+        const okId = id ? r.id === id : r.stage;
+        if (!(r.dir === dir && r.anim && r.cls === dir && okId && r.name === (dir === "right" ? "vt-r" : "vt-l"))) throw new Error(JSON.stringify({ attendu: [t, dir, id], got: r }));
+      }
+      // bouton « Retour au plan » des Paramètres et Échap d'une page entière : même retour par la gauche
+      await ev(() => okteo.setTab("params")); await page.click("#pp-back");
+      const back = await ev(() => okteoExt.transitions.last);
+      await ev(() => okteo.setTab("bibliotheque")); await page.keyboard.press("Escape");
+      await page.waitForFunction(() => okteo.tab === "plan", null, { timeout: 3000 });
+      const esc = await ev(() => okteoExt.transitions.last);
+      if (!(back.to === "plan" && back.dir === "left" && back.animated && esc.to === "plan" && esc.dir === "left" && esc.animated)) throw new Error(JSON.stringify({ back, esc }));
+      await page.waitForTimeout(400);
+      const clean = await ev(() => !document.querySelector(".vt-in-right, .vt-in-left") && !document.querySelector(".main").classList.contains("vt-run"));
+      if (!clean) throw new Error("classes d'animation restées");
+      return true;
+    } finally { await ev(() => { window.__okteoNoVT = true; okteo.setTab("plan"); }); }
   });
   await check("lot 3 : logo Oktéo = accueil (plus d'onglet Chantiers) ; accueil, Paramètres et Bibliothèque en pages entières (MAJ affichage : bandeau 1 gardé, sans bandeau 2 ni panneau de droite) ; flèches « classeur » = retour au plan ; bandeau de la version en ligne rangé à l'accueil, avertissement signalé sur le plan", async () => {
     await ev(() => okteo.setTab("plan"));

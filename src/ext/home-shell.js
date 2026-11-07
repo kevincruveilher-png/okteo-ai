@@ -86,20 +86,14 @@ export function createHomeShell({ api }) {
       fold.title = `Ranger « ${TITLES[t]} » et revenir au plan`;
       fold.setAttribute("aria-label", fold.title);
       const ch = api.ch || {}; head.querySelector("#hh-cur").textContent = ch.nom ? `Chantier ouvert : ${ch.nom}${ch.numero ? " · " + ch.numero : ""}${ch.client ? " · " + ch.client : ""}` : "Aucun chantier ouvert";
-      const sec = document.getElementById(t);
-      if (sec && last !== t) { sec.classList.remove("cl-out"); sec.classList.remove("cl-in"); void sec.offsetWidth; sec.classList.add("cl-in"); }
+      // 07/11/2026 : l'animation d'arrivée est faite pour toutes les vues par transitions.js
     }
     last = t;
   }
-  // ranger la page : elle glisse vers la gauche (vers la colonne des onglets) puis le plan revient
+  // ranger la page : retour au plan, qui arrive par la gauche (transitions.js, 07/11/2026 : même animation que les
+  // onglets et le bouton « Retour au plan »)
   function close() {
-    const t = api.tab, sec = document.getElementById(t);
-    if (!FULL_PAGES.includes(t)) return;
-    const done = () => { if (api.tab === t) api.setTab("plan"); };
-    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!sec || reduce) return done();
-    sec.classList.remove("cl-in"); sec.classList.add("cl-out");
-    setTimeout(() => { sec.classList.remove("cl-out"); done(); }, 240);
+    if (FULL_PAGES.includes(api.tab)) api.setTab("plan");
   }
   document.addEventListener("okteo:tab", (e) => apply(e.detail));
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && FULL_PAGES.includes(api.tab) && !document.querySelector("dialog[open]") && !e.target.closest?.("input,textarea,select")) close(); });
