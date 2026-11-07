@@ -3153,6 +3153,35 @@ try {
     return true;
   });
 
+  await check("07/11 : le tableau se colle à la face du mur et tourne avec lui (quart de tour sur un mur perpendiculaire) ; loin d'un mur, il reste libre ; un Ctrl+Z", async () => {
+    const r = await ev(() => {
+      okteo.setTab("plan"); okteo.toggleView("appareils", true);
+      const S = okteo.state, N = new Map(S.nodes.map((n) => [n.id, n]));
+      const dir = (s) => { const A = N.get(s.a), B = N.get(s.b); const L = Math.hypot(B.x - A.x, B.y - A.y); return { A, B, L, ux: (B.x - A.x) / L, uy: (B.y - A.y) / L }; };
+      const walls = S.segs.filter((s) => !s.virt).map((s) => ({ s, d: dir(s) })).filter((w) => w.d.L > 2);
+      const hz = walls.find((w) => Math.abs(w.d.uy) < 0.05), vt = walls.find((w) => Math.abs(w.d.ux) < 0.05);
+      if (!hz || !vt) return { none: true };
+      const near = (w) => { const m = { x: (w.d.A.x + w.d.B.x) / 2, y: (w.d.A.y + w.d.B.y) / 2 }, ep = w.s.ep || S.wallEp; let nx = -w.d.uy, ny = w.d.ux; const p = { x: m.x + nx * (ep / 2 + 0.25), y: m.y + ny * (ep / 2 + 0.25) }; return p; };
+      const n0 = S.app.length, ext = okteo.extent ? null : null;
+      const res = okteo.importDevices([{ t: "TAB", ...near(hz) }, { t: "TAB", ...near(vt) }, { t: "TAB", x: -500, y: -500 }], [], { stay: true });
+      window.__okteo.draw();
+      const ids = res.ids || [], A = ids.map((id) => S.app.find((a) => a.id === id));
+      const rotOf = (id) => { const g = document.querySelector(`#sv g.dev[data-id="${id}"]`); const m = g && /rotate\(([-\d.]+)\)/.exec(g.getAttribute("transform")); return g ? (m ? +m[1] : 0) : null; };
+      const posOf = (id) => { const g = document.querySelector(`#sv g.dev[data-id="${id}"]`); const m = g && /translate\(([-\d.e]+) ([-\d.e]+)\)/.exec(g.getAttribute("transform")); return m ? { x: +m[1], y: +m[2] } : null; };
+      const gap = (id, w) => { const p = posOf(id), ep = w.s.ep || S.wallEp; return Math.abs((p.x - w.d.A.x) * -w.d.uy + (p.y - w.d.A.y) * w.d.ux) - ep / 2; };
+      const moved = ids.map((id) => !!document.querySelector(`#sv g.dev[data-id="${id}"][data-moved]`));
+      const out = { moved, added: S.app.length - n0, seg: A.map((a) => a && a.seg || null), wantSeg: [hz.s.id, vt.s.id], rot: ids.map(rotOf), gapH: gap(ids[0], hz), gapV: gap(ids[1], vt), half: 0.7 * okteo.symCm / 100 };
+      okteo.undo();
+      out.back = S.app.length === n0;
+      return out;
+    });
+    if (r.none) return true;
+    const quart = Math.abs(Math.abs(r.rot[1] - r.rot[0]) - 90) < 1;
+    const glued = r.moved[0] || r.moved[1] || (Math.abs(r.gapH - r.gapV) < 0.01 && r.gapH > 0 && r.gapH < 0.6);   // décalé par un voisin : trait de rappel, pas de mesure
+    if (!(r.added === 3 && r.seg[0] === r.wantSeg[0] && r.seg[1] === r.wantSeg[1] && !r.seg[2] && quart && glued && r.back)) throw new Error(JSON.stringify(r));
+    return true;
+  });
+
   console.log("Plan lisible (v58)");
   await check("taille des symboles d'après le dessin (12 à 26 cm, « Auto ») ; le curseur la règle à la main, « Auto » la recalcule", async () => {
     await toPlan();

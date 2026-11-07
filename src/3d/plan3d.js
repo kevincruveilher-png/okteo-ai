@@ -317,7 +317,7 @@ export function devicesOf(apps, data, H = H3D) {
       // appareil plaqué contre la face du mur (le dessin le pose sur la face ou sur l'axe selon les relevés)
       x = A.x + ux * t + nx * (ep / 2 + 0.008); y = A.y + uy * t + ny * (ep / 2 + 0.008);
       mount = "mur"; n = [nx, ny];
-      h = hcm != null ? hcm / 100 : 1.1;
+      h = hcm != null ? hcm / 100 : a.t === "TAB" ? 1.3 : 1.1;   // 07/11/2026 : tableau accroché au mur, même hauteur qu'avant
       return { ...a, x, y, h, n, mount, defH, axis: [A.x + ux * t, A.y + uy * t], seg: s.id };
     }
     if (hcm == null && PLAFOND_TYPES.has(a.t)) { mount = "plafond"; h = (a.hsp > 0 ? a.hsp : H.plafond) - 0.08; }

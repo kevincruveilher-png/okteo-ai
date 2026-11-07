@@ -243,7 +243,8 @@ export function snapAlign(x, y, exclId) {
   };
 }
 
-export const wallMounted = t => ["PC16", "PC20", "RJ45", "INT", "VV", "BP", "SC", "APP", ...muraux].includes(t);
+// 07/11/2026 (Kévin) : le tableau est un appareil mural : collé à la face du mur, il tourne avec lui (quart de tour)
+export const wallMounted = t => ["PC16", "PC20", "RJ45", "INT", "VV", "BP", "SC", "APP", "TAB", ...muraux].includes(t);
 
 // ---------- appareils attachés à leur mur ----------
 // a.wa = {e:"a"|"b", d, s} : distance d (m) depuis la FACE du mur d'angle côté e (le plus proche), côté s (±1) du mur.

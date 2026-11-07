@@ -1,3 +1,15 @@
+## 07/11/2026 — Tableau collé au mur (petite MAJ 1/3, ordre de Kévin)
+
+- Demande de Kévin : le tableau restait figé dans un seul sens où qu'il soit ; il doit se coller à la paroi du mur et
+  faire des quarts de tour selon le mur.
+- `attach.js` `wallMounted` : + `TAB` → accroché au mur le plus proche (≤ 60 cm) à la pose, au déplacement et à l'import
+  (`snapToWall` / `attach` / `reattach`, comme les prises) ; `appRot` lui donne le sens du mur (jamais à l'envers).
+- Symbole : rectangle 2,5 × 1,4 (largeur le long du mur), dos collé à la face du mur (`glueToWall`, `TAB_D` 0,7 unité de
+  symbole, render.js ; print.js : même rectangle tourné, `glueToWall(…, 0,7 u)` sauf symbole FTZ). 3D : accroché au mur,
+  hauteur par défaut 1,30 m gardée (plan3d.js).
+- Un tableau déjà posé loin d'un mur ne bouge pas : le déplacer (ou « Raccrocher les appareils aux murs », Ctrl+K) le colle.
+- Test smoke « tableau collé au mur » (deux murs perpendiculaires : quart de tour, même écart à la face ; loin : libre).
+
 ## 07/11/2026 — Animation à chaque changement de vue (petite MAJ, ordre de Kévin ; fusionné dans `main`, run 42316206983 vert, smoke 236/236)
 
 - Demande de Kévin : les Paramètres arrivent en glissant de droite à gauche ; il veut la même chose pour TOUTES les vues,

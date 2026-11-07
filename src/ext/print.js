@@ -301,7 +301,7 @@ export async function buildPlanPdf(geoIn, opts = {}) {
     // 05/11 : interrupteur / va-et-vient mural : rond collé à la face du mur (trait vers la pièce, voir symbol(..., nrm))
     const wsw = (a) => WALL_SWITCH.has(a.t) && a.wall && a.wall.nx != null;
     const swR = (a) => { const fs = FZ && ftzSymbol(FZ, a.t, a.h); return fs ? fs.h / 2 / f : SWITCH_R * u / f; };   // symbole FTZ en mm réels
-    const base = new Map(apps.map((a) => { const b = a.wall && a.wall.nx != null ? (wsw(a) ? glueToWall(a, a.wall, swR(a)) : pushOff(a, a.wall, u / f)) : a; return [a.id, { x: X(b.x), y: Y(b.y) }]; }));
+    const base = new Map(apps.map((a) => { const b = a.wall && a.wall.nx != null ? (wsw(a) ? glueToWall(a, a.wall, swR(a)) : a.t === "TAB" && !(FZ && ftzSymbol(FZ, a.t, a.h)) ? glueToWall(a, a.wall, 0.7 * u / f) : pushOff(a, a.wall, u / f)) : a; return [a.id, { x: X(b.x), y: Y(b.y) }]; }));
     const disp = spreadSymbols(apps.map((a) => ({ id: a.id, ...base.get(a.id), ...(a.wall ? { ux: a.wall.ux, uy: a.wall.uy } : {}) })), 1.9 * u);
     const PX = (a) => (disp.get(a.id) || base.get(a.id)).x, PY = (a) => (disp.get(a.id) || base.get(a.id)).y;
     apps.forEach((a) => PL.add(boxAt(PX(a), PY(a), 2 * u, 2 * u)));      // les symboles sont des obstacles
@@ -762,7 +762,9 @@ export function symbol(doc, t, x, y, u, rot = 0, col = null, nrm = null) {
     case "VMC": sq(0.8); txt(SHORT.VMC); break;
     case "INCONNU": sq(0.8); txt("?"); break;
     case "SC": sq(0.6); doc.line(x - 0.85 * u, y - 0.85 * u, x + 0.85 * u, y + 0.85 * u); doc.line(x + 0.85 * u, y - 0.85 * u, x - 0.85 * u, y + 0.85 * u); break;
-    case "TAB": doc.setFillColor(...C); doc.roundedRect(x - u, y - 1.2 * u, 2 * u, 2.4 * u, 0.2 * u, 0.2 * u, "FD"); txt(SHORT.TAB, true); break;
+    case "TAB": { // 07/11/2026 : rectangle tourné dans le sens de son mur (largeur le long du mur), comme à l'écran
+      const c = Math.cos(rot * Math.PI / 180), sn = Math.sin(rot * Math.PI / 180), P = [[-1.25, -0.7], [1.25, -0.7], [1.25, 0.7], [-1.25, 0.7]].map(([lx, ly]) => [x + (lx * c - ly * sn) * u, y + (lx * sn + ly * c) * u]);
+      doc.setFillColor(...C); doc.lines(P.slice(1).map((p, i) => [p[0] - P[i][0], p[1] - P[i][1]]), P[0][0], P[0][1], [1, 1], "FD", true); txt(SHORT.TAB, true); break; }
     default: { sq(0.8); const D = APPAREILS[t]; if (D) { doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(3, u * (D.lab.length > 2 ? 0.55 : 0.8) * 72 / 25.4)); doc.setTextColor(...C); doc.text(D.lab, x, y + u * 0.05, { align: "center", baseline: "middle" }); } }
   }
 }

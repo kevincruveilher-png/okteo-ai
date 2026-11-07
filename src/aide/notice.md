@@ -109,7 +109,7 @@ Les appareils sont sur la ligne « Implantation appareils ». L'outil reste acti
 
 ### Poser
 
-- **Un appareil** : cliquer son symbole, puis cliquer sur le plan. Près d'un mur, il se colle au mur. Pour le poser à une distance exacte de l'angle : taper la distance en centimètres, puis Entrée.
+- **Un appareil** : cliquer son symbole, puis cliquer sur le plan. Près d'un mur, il se colle au mur. Le tableau (TD) aussi : son dos touche le mur et il tourne d'un quart de tour selon le sens du mur. Pour le poser à une distance exacte de l'angle : taper la distance en centimètres, puis Entrée.
 - **Les autres appareils** (radiateurs, four, plaque, volets, VMC, courant faible, sanitaires…) : bouton « Autres ▾ ».
 - **Une plaque entière** : bouton « Groupes ▾ » (PC+RJ, 3PC cuisine, SA+VV…). Un clic sur le mur pose tous les appareils côte à côte, déjà associés.
 - **Une pièce d'un coup** : sélectionner la pièce, puis « ⚡ Implantation rapide » (Maj+P) pose son appareillage type. Les types de pièce se règlent dans Paramètres → Appareils.
@@ -261,6 +261,7 @@ Six modules, du plus simple au plus complet. Chaque module se fait sur MAILLARD,
 
 | Date | Mise à jour du logiciel | Ce qui a changé dans la notice |
 | --- | --- | --- |
+| 07/11/2026 | tableau collé au mur | Étape 4 : le tableau se colle au mur et tourne avec lui |
 | 07/11/2026 | animation des vues | L'écran de travail : chaque changement de vue glisse, le retour au plan arrive par la gauche |
 | 07/11/2026 | gaines dans la maison | Étape 6 : une gaine ne sort jamais de la maison (contournement par l'intérieur, d'après les pièces) |
 | 06/11/2026 | loupe des pages du PDF | Nouveau chantier : loupe 🔍 / double-clic pour voir une page du dossier en grand |
