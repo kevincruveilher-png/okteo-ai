@@ -1,3 +1,17 @@
+## 07/11/2026 — Bande : connecteur en petit dans le coin (retour de Kévin sur la MAJ précédente ; fusionné dans `main`, run 42323597166 vert, smoke 240/240)
+
+- Retour de Kévin : sur PC, la fiche du connecteur était trop grande et cachait la bande. Il veut seulement le connecteur
+  à prendre, en petit, en haut à droite de la bande, avec les fils à leur couleur ; disposition réelle des places :
+  2 à 5 = une rangée, 6 = 3 + 3, 8 = 4 + 4, 10 = 5 + 5, 12 = 6 + 6 ; 14 fils = 12 + 4 reliés par un pont (souvent la terre).
+- connecteur.js : `rowsOf(size)`, `connecteurSVG` refait (places en une ou deux rangées, fils qui sortent vers le bas
+  et, en deux rangées, vers le haut pour la rangée du haut ; places du pont à sa couleur ; pont courbe de la couleur
+  des fils, vert/jaune en tirets), `connecteurTitle` (infobulle « 7 · Retour lampe · 2 fils → connecteur 2 »),
+  `connecteurCard` = le dessin seul (`.cn-only`), « fil seul » sinon. Plus de liste des fils ni de ✕.
+- Bandes : `.bd-conn` petit encart blanc en haut à droite du schéma, clic dessus = tout revient. Téléphone :
+  `.cn-corner` en bas à droite de l'écran.
+- Tests : `scripts/connecteur.test.mjs` réécrit (rangées 1 / 2 pour chaque taille, 14 = 12 + 4 + pont) ; smoke : coin
+  sans texte, moins du tiers de la largeur du schéma, rangées justes, aussi sur le téléphone.
+
 ## 07/11/2026 — Bande : un numéro à la fois + connecteur rapide (petite MAJ, go de Kévin ; fusionné dans `main`, run 42322006598 vert, smoke 240/240)
 
 - Demande de Kévin : sur le schéma de boîte, un clic sur un n° (ex. 7) ne doit garder que les fils de ce n° (avant : tout

@@ -2165,7 +2165,7 @@ try {
     if (!ok) throw new Error(JSON.stringify({ noName, len: url.length, steps, bn, r, kept }));
     return true;
   });
-  await check("07/11 : bande, clic sur un numéro : ce n° et ses fils seuls (le reste en fantôme, gaines qui l'amènent gardées), fiche du connecteur rapide (places = fils) ; reclic = tout revient ; même chose sur la page du QR code", async () => {
+  await check("07/11 : bande, clic sur un numéro : ce n° et ses fils seuls (le reste en fantôme, gaines qui l'amènent gardées), petit connecteur dans le coin (places, fils à leur couleur, rien d'autre) ; reclic = tout revient ; même chose sur la page du QR code", async () => {
     await goSub("bandes"); await page.waitForSelector(".bands .bd-svg svg");
     const pick = await ev(() => { const R = [...document.querySelectorAll(".bd-steps tbody tr")].map((tr) => ({ n: tr.querySelector("td.c b").textContent.trim(), w: tr.children[3].querySelectorAll(":scope > div").length })); return R.filter((r) => r.w >= 2 && r.w <= 12).sort((a, b) => b.w - a.w)[0] || null; });
     if (!pick) throw new Error("aucun raccordement de 2 à 12 fils");
@@ -2176,7 +2176,8 @@ try {
       const gt = [...sv.querySelectorAll("g.gt[data-ns]")], gtKeep = gt.filter((g) => (" " + g.dataset.ns + " ").includes(" " + n + " "));
       const card = document.querySelector(".bands .bd-conn");
       return { mine: mine.length, mineOn: mine.every((x) => x.style.opacity === ""), otherGhost: other.every((x) => x.style.opacity === "0.1"), gtKeep: gtKeep.length && gtKeep.every((g) => g.style.opacity === ""), gtGhost: gt.filter((g) => !gtKeep.includes(g)).every((g) => g.style.opacity === "0.1"),
-        card: !card.hidden, txt: card.textContent, cw: card.querySelectorAll(".cn-svg .cw").length, places: [...card.querySelectorAll(".cn")].reduce((s, c) => s + +c.dataset.size, 0), rows: card.querySelectorAll(".cn-wires li").length, allOn: A.every((x) => x.style.opacity === "") };
+        card: !card.hidden, tip: (card.querySelector(".cn-only") || {}).title || "", txt: card.textContent.trim(), cw: card.querySelectorAll(".cn-svg .cw").length, places: [...card.querySelectorAll(".cn")].reduce((s, c) => s + +c.dataset.size, 0),
+        rowsOk: [...card.querySelectorAll(".cn")].every((c) => +c.dataset.rows === (+c.dataset.size <= 5 ? 1 : 2)), w: card.getBoundingClientRect().width, svgW: sv.getBoundingClientRect().width, allOn: A.every((x) => x.style.opacity === "") };
     }, n);
     await clickN(pick.n); const on = await state(pick.n);
     await clickN(pick.n); const off = await state(pick.n);
@@ -2187,12 +2188,13 @@ try {
     await p2.goto(`http://localhost:${APP_PORT}/bande.html` + url.slice(url.indexOf("#")));
     await p2.waitForSelector(".sch svg");
     await p2.evaluate((n) => document.querySelector(`.sch svg [data-n="${n}"]`).dispatchEvent(new MouseEvent("click", { bubbles: true })), pick.n);
-    const qr = await p2.evaluate((n) => { const A = [...document.querySelectorAll(".sch svg [data-n]")], c = document.querySelector(".cn-card"); return { ghost: A.filter((x) => x.getAttribute("data-n") !== n).every((x) => x.style.opacity === "0.1"), on: A.filter((x) => x.getAttribute("data-n") === n).every((x) => x.style.opacity === ""), card: !c.hidden, cw: c.querySelectorAll(".cn-svg .cw").length }; }, pick.n);
-    await p2.click(".cn-card .cn-x");
-    const qrOff = await p2.evaluate(() => document.querySelector(".cn-card").hidden && [...document.querySelectorAll(".sch svg [data-n]")].every((x) => x.style.opacity === ""));
+    const qr = await p2.evaluate((n) => { const A = [...document.querySelectorAll(".sch svg [data-n]")], c = document.querySelector(".cn-corner"); return { ghost: A.filter((x) => x.getAttribute("data-n") !== n).every((x) => x.style.opacity === "0.1"), on: A.filter((x) => x.getAttribute("data-n") === n).every((x) => x.style.opacity === ""), card: !c.hidden, cw: c.querySelectorAll(".cn-svg .cw").length, w: c.getBoundingClientRect().width }; }, pick.n);
+    await p2.click(".cn-corner");
+    const qrOff = await p2.evaluate(() => document.querySelector(".cn-corner").hidden && [...document.querySelectorAll(".sch svg [data-n]")].every((x) => x.style.opacity === ""));
     await p2.close();
-    const ok = on.mine > 0 && on.mineOn && on.otherGhost && on.gtKeep && on.gtGhost && on.card && /places/.test(on.txt) && on.cw === pick.w && on.rows === pick.w && on.places >= pick.w
-      && !off.card && off.allOn && qr.ghost && qr.on && qr.card && qr.cw === pick.w && qrOff;
+    // petit : le coin ne prend pas plus du tiers de la largeur du schéma, et ne contient aucun texte
+    const ok = on.mine > 0 && on.mineOn && on.otherGhost && on.gtKeep && on.gtGhost && on.card && on.txt === "" && on.tip.startsWith(pick.n + " ·") && on.cw === pick.w && on.places >= pick.w && on.rowsOk && on.w > 30 && on.w < on.svgW / 3
+      && !off.card && off.allOn && qr.ghost && qr.on && qr.card && qr.cw === pick.w && qr.w < 260 && qrOff;
     if (!ok) throw new Error(JSON.stringify({ pick, on, off, qr, qrOff }));
     return true;
   });

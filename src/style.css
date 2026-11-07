@@ -383,16 +383,10 @@ button.badge:hover{border-color:var(--accent);color:var(--fg)}
 /* 07/11/2026 : clic sur un n° du schéma : ses fils seuls + fiche du connecteur rapide (src/cablage/connecteur.js) */
 .bands .bd-svgw{position:relative}
 .bands .bd-svg svg [data-n],.bands .bd-svg svg [data-ns]{cursor:pointer;transition:opacity .15s}
-.cn-card{background:var(--panel);border:1px solid var(--accent);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:13px}
-.cn-card[hidden]{display:none}
-.bands .bd-conn{position:absolute;top:34px;right:8px;width:min(400px,calc(100% - 16px));z-index:3;animation:dk-in .16s ease-out}
-.cn-head{display:flex;gap:10px;align-items:flex-start}
-.cn-head>span{flex:1;line-height:1.35}
-.cn-n{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:18px}
-.cn-x{padding:2px 8px}
-.cn-svg{max-width:100%;height:auto;background:#fff;border-radius:8px;border:1px solid var(--line);padding:4px;align-self:flex-start}
-.cn-wires{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px}
-.cn-wires i{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin:0 5px 0 4px;border:1px solid rgba(0,0,0,.2)}
+.bands .bd-conn{position:absolute;top:34px;right:8px;z-index:3;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.18);padding:6px 8px;cursor:pointer;animation:dk-in .14s ease-out}
+.bands .bd-conn[hidden]{display:none}
+.cn-only{display:block;line-height:0}.cn-only svg{display:block}
+.cn-alone{line-height:1.2;font-size:12px;font-weight:600;color:#b9791a}
 
 .bague{display:inline-block;border:1.5px solid var(--fg);border-radius:9px;padding:0 6px;font:700 11px var(--fm);line-height:15px}
 .cmpcard{position:absolute;inset:16px;z-index:30;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.25);padding:14px;overflow:auto}

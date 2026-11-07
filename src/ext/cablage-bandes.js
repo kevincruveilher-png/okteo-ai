@@ -122,8 +122,8 @@ export function mountBandsPage(el, { api }) {
       ${S.verifier.length ? `<p class="sm bd-verif" title="Le logiciel applique ces règles du journal, mais Kévin ne les a pas encore confirmées : le résultat est à vérifier">À vérifier — règles non confirmées : ${S.verifier.map((r) => `<b>${esc(r.id)}</b> ${esc(r.titre)}`).join(" · ")}</p>` : ""}
       <div class="bd-grid">
         <div class="bd-svgw"><div class="bd-calq" title="Boutons : un circuit en avant, les autres s'estompent. Dans le schéma : cliquez un numéro (ou un de ses fils) pour ne garder que lui et voir son connecteur">Circuits : <button data-cq="" class="${focusC ? "" : "on"}">Tous</button>${box.circuits.map((c) => `<button data-cq="${esc(c)}" class="${focusC === c ? "on" : ""}">${esc(c)}</button>`).join("")}</div>
-        <div class="bd-svg" title="Cliquez un numéro : seuls ses fils restent visibles, avec le connecteur à utiliser. Recliquez (ou cliquez à côté) pour tout revoir">${svg}</div>
-        <div class="bd-conn cn-card" hidden aria-live="polite"></div></div>
+        <div class="bd-svg" title="Cliquez un numéro : seuls ses fils restent visibles, et le connecteur à prendre s'affiche en haut à droite. Recliquez (ou cliquez à côté) pour tout revoir">${svg}</div>
+        <div class="bd-conn" hidden aria-live="polite"></div></div>
         <div class="bd-side">
           <div class="bd-label" title="Étiquette collée sur la boîte (en-tête de la feuille imprimée)">
             <div class="bl-l"><div><span class="mut">Pavillonneur</span><b>${esc(S.ch.client || "—")}</b></div><div><span class="mut">Chantier</span><b>${esc(S.ch.nom)}</b></div></div>
@@ -173,10 +173,10 @@ export function mountBandsPage(el, { api }) {
       el.querySelectorAll("[data-cq]").forEach((b) => b.classList.toggle("on", focusN == null && (b.dataset.cq || null) === focusC));
       const st = focusN != null && steps.find((s) => String(s.n) === focusN);
       card.hidden = !st;
-      card.innerHTML = st ? connecteurCard(st, { color: wireSolid, css: wireCss, esc, name: wireName, short: FN_SHORT, fr }) : "";
-      if (st) card.querySelector(".cn-x").onclick = () => { focusN = null; applyFocus(); };
+      card.innerHTML = st ? connecteurCard(st, { color: wireSolid, esc }) : "";
     };
     el.querySelectorAll("[data-cq]").forEach((b) => (b.onclick = () => { focusC = b.dataset.cq || null; focusN = null; applyFocus(); }));
+    card.onclick = () => { focusN = null; applyFocus(); };   // clic sur le connecteur : tout revient
     sv.addEventListener("click", (e) => {
       const t = e.target.closest("[data-n]"), num = t && t.getAttribute("data-n");
       if (num) { focusN = focusN === num ? null : num; focusC = null; applyFocus(); return; }
