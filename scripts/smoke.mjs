@@ -3614,6 +3614,36 @@ try {
     if (!(on && Math.hypot(p1.x - p0.x, p1.y - p0.y) > 0.3 && tool === tool0 && aimed && a && a.seg && a.tab === "vue3d" && a.n === n0 + 1 && n2 === n0 && gone && gone.r && gone.r.removed && after && out)) throw new Error(JSON.stringify({ on, p0, p1, tool, tool0, aimed, res, a, n0, n2, gone, after, out }));
     return true;
   });
+  await check("07/11 : visite à pied, outil « Déplacer » (touche 7) : attraper un appareil du mur, le reposer ailleurs sur un mur (recollé, même hauteur), Ctrl+Z le remet ; Échap le lâche sans le bouger", async () => {
+    await ev(() => okteo.setTab("vue3d"));
+    await page.waitForFunction(() => okteoExt.pages.vue3d.ui.state.house, null, { timeout: 30000 });
+    await page.click(".v3d-walk"); await page.waitForTimeout(400);
+    await page.keyboard.press("Digit7");
+    const face = (id) => ev(async (id) => { const S3 = okteoExt.pages.vue3d.ui.state, W = okteoExt.pages.vue3d.ui.walk.state; const d = S3.devs.find((x) => x.id === id); W.p = { x: d.x + d.n[0] * 1.3, y: d.y + d.n[1] * 1.3 }; const dx = d.x - W.p.x, dz = d.y - W.p.y, dy = d.h - 1.62; W.yaw = Math.atan2(-dx, -dz); W.pitch = Math.atan2(dy, Math.hypot(dx, dz)); await new Promise((r) => setTimeout(r, 400)); return W.last; }, id);
+    const pick = await ev(() => { const S3 = okteoExt.pages.vue3d.ui.state; const d = S3.devs.find((x) => x.mount === "mur" && x.n && okteo.wallMounted(x.t) && x.t !== "TAB"); return d && { id: d.id, x: d.x, y: d.y, h: okteo.state.app.find((a) => a.id === d.id)?.h ?? null }; });
+    if (!pick) throw new Error("aucun appareil mural en 3D sur le chantier d'essai");
+    const before = await ev((id) => { const a = okteo.state.app.find((q) => q.id === id); return { x: a.x, y: a.y, h: a.h ?? null, seg: a.seg }; }, pick.id);
+    const l0 = await face(pick.id);
+    const grab = await ev(() => okteoExt.pages.vue3d.ui.walk.act());
+    // viser une autre place sur un mur : on tourne un peu jusqu'à une cible valable à plus de 40 cm
+    const tgt = await ev(async (P) => { const W = okteoExt.pages.vue3d.ui.walk.state, y0 = W.yaw; for (let k = 1; k < 30; k++) { W.yaw = y0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.06; await new Promise((r) => setTimeout(r, 120)); const L = W.last; if (L && L.ok && L.move && Math.hypot(L.x - P.x, L.y - P.y) > 0.4) return { x: L.x, y: L.y, h: L.h }; } return null; }, pick);
+    const mv = await ev(() => okteoExt.pages.vue3d.ui.walk.act());
+    await page.waitForTimeout(500);
+    const after = await ev((id) => { const a = okteo.state.app.find((q) => q.id === id); return { x: a.x, y: a.y, h: a.h ?? null, seg: !!a.seg }; }, pick.id);
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(400);
+    const undone = await ev((id) => { const a = okteo.state.app.find((q) => q.id === id); return { x: a.x, y: a.y }; }, pick.id);
+    // Échap pendant qu'on le tient : lâché, pas de pause, rien ne bouge
+    await face(pick.id);
+    const g2 = await ev(() => okteoExt.pages.vue3d.ui.walk.act());
+    await page.keyboard.press("Escape"); await page.waitForTimeout(200);
+    const esc = await ev((id) => { const W = okteoExt.pages.vue3d.ui.walk.state, a = okteo.state.app.find((q) => q.id === id); return { hold: !!W.hold, pause: !document.querySelector(".v3w-pause").hidden, x: a.x, y: a.y }; }, pick.id);
+    await ev(() => { okteoExt.pages.vue3d.ui.walk.exit(); okteo.setTab("plan"); });
+    const moved = tgt && Math.hypot(after.x - before.x, after.y - before.y) > 0.3 && Math.hypot(after.x - tgt.x, after.y - tgt.y) < 0.35;
+    const ok = l0 && l0.grab === pick.id && grab && grab.grabbed === pick.id && mv && mv.moved === pick.id && moved && after.seg && after.h === before.h
+      && Math.hypot(undone.x - before.x, undone.y - before.y) < 1e-6 && g2 && g2.grabbed && !esc.hold && !esc.pause && Math.hypot(esc.x - before.x, esc.y - before.y) < 1e-6;
+    if (!ok) throw new Error(JSON.stringify({ pick, before, l0, grab, tgt, mv, after, undone, g2, esc }));
+    return true;
+  });
   await check("3D-5 : gaines en 3D (tracé du plan en traits droits, descente dans le mur), fiche de la gaine (n° et longueur de la bande), propriété « passage par le sol » qui rallonge la gaine ; Ctrl+Z", async () => {
     await ev(() => okteo.setTab("plan"));
     await ev(() => { const u = okteoExt.pages.vue3d && okteoExt.pages.vue3d.ui; if (u && u.walk.on) u.walk.exit(); });

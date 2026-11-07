@@ -1,4 +1,15 @@
-## 07/11/2026 — Vue 3D : portes affichées ou masquées (petite MAJ 2/3, ordre de Kévin)
+## 07/11/2026 — Vue 3D : déplacer un appareil en visite à pied (petite MAJ 3/3, ordre de Kévin ; fusionné dans `main`, run 42319944345 vert sur les 3 lots, smoke 239/239)
+
+- Demande de Kévin : en visite ZQSD, attraper un objet (ex. un interrupteur) et mieux le placer sur le mur.
+- vue3d-walk.js : 7e outil « Déplacer » (touche 7, `WALK_TOOLS[6].move`) ; `aimMove` : sans appareil tenu, vise un
+  appareil (`grab`) ; appareil tenu (`W.hold`) : cible sur un mur à la hauteur gardée (`W.norm`, H = hauteur visée) ou
+  au plafond pour un appareil de plafond ; un appareil ni mural ni de plafond se déplace sur le plan. Clic = pose par
+  `api.updateApps([{id, x, y, h}])` (recollé à son mur, un seul Ctrl+Z ; hauteur par défaut non écrite si gardée).
+  Échap pendant qu'on le tient = lâché sans pause. Halo bleu sur l'appareil tenu, fantôme vert à la cible.
+- api.js : `okteo.wallMounted(t)`. Test smoke « outil Déplacer » (attraper, reposer à plus de 40 cm, recollé, même
+  hauteur, Ctrl+Z, Échap).
+
+## 07/11/2026 — Vue 3D : portes affichées ou masquées (petite MAJ 2/3, ordre de Kévin ; fusionné dans `main`, run 42319944345 vert sur les 3 lots, smoke 239/239)
 
 - Demande de Kévin : pouvoir afficher ou non les portes dans la vue 3D.
 - scene.js `buildHouse(…, {doors})` : vantaux marqués `userData.door`, `setDoors(on)`, état gardé quand la coupe
@@ -6,7 +17,7 @@
   ouvert et aux niveaux empilés. Les passages restent ouverts ; le dessin ne change pas.
 - Notice : nouvelle partie « La vue 3D (Alt+4) ». Test smoke « case Portes » (cachées, coupe baissée, revenues).
 
-## 07/11/2026 — Tableau collé au mur (petite MAJ 1/3, ordre de Kévin)
+## 07/11/2026 — Tableau collé au mur (petite MAJ 1/3, ordre de Kévin ; fusionné dans `main`, run 42319944345 vert sur les 3 lots, smoke 239/239)
 
 - Demande de Kévin : le tableau restait figé dans un seul sens où qu'il soit ; il doit se coller à la paroi du mur et
   faire des quarts de tour selon le mur.
