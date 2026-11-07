@@ -37,12 +37,7 @@ footer{margin-top:24px;text-align:center;color:var(--mut);font:12px monospace}
 .tr svg{display:block;width:100%;height:auto}
 /* 07/11/2026 : numéro touché : fiche du connecteur rapide en bas de l'écran */
 .sch svg [data-n]{cursor:pointer;transition:opacity .15s}
-.cn-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 -6px 24px rgba(0,0,0,.25);padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:14px}
-.cn-card[hidden]{display:none}
-.cn-card.sheet{position:fixed;left:8px;right:8px;bottom:8px;max-height:48vh;overflow:auto;z-index:5}
-.cn-head{display:flex;gap:10px;align-items:flex-start}.cn-head>span{flex:1;line-height:1.35}
-.cn-n{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:19px}
-.cn-x{font-size:18px;padding:4px 12px;border-radius:8px;border:1px solid var(--line);background:transparent;color:inherit}
-.cn-svg{max-width:100%;height:auto;background:#fff;border-radius:8px;padding:4px}
-.cn-wires{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+.cn-corner{position:fixed;right:10px;bottom:12px;z-index:5;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.25);padding:6px 8px;line-height:0}
+.cn-corner[hidden]{display:none}
+.cn-only svg{display:block}.cn-alone{line-height:1.2;font-size:13px;font-weight:600;color:#b9791a}
 .warn{color:#c0392b}

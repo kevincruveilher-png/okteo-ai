@@ -27,49 +27,59 @@ export function connectorPlaces(conn) {
   return L.map((k, i) => ({ size: k, cap: k - (i === 0 || i === L.length - 1 ? 1 : 2) }));
 }
 
-// dessin du ou des connecteurs d'un raccordement (step de boxSteps) ; color(c) = couleur pleine d'un fil
+// 07/11/2026 (Kévin, 2e passe) : dessin compact, juste ce qu'il faut pour prendre le bon connecteur : ses places et les
+// fils qui en sortent, à leur couleur. Jusqu'à 5 places : une rangée ; 6, 8, 10, 12 : deux rangées (3 + 3, 4 + 4, 5 + 5,
+// 6 + 6). Plusieurs connecteurs : reliés par un pont de la couleur des fils (en général la terre).
+export const rowsOf = (size) => (size <= 5 ? 1 : 2);
 export function connecteurSVG(step, { color = () => "#999" } = {}) {
   const P = connectorPlaces(step.conn), W = step.wires || [];
   if (!P.length) return "";
-  const PL = 22, GAP = 34, H = 108, bodyY = 14, bodyH = 46;
-  const widths = P.map((c) => c.size * PL + 10), total = widths.reduce((s, w) => s + w, 0) + GAP * (P.length - 1);
-  const pontCol = color((W[0] || {}).color);
+  const PT = 15, PS = 11, PAD = 5, STUB = 12, GAP = 26;
+  const geo = P.map((c) => { const rows = rowsOf(c.size), cols = Math.ceil(c.size / rows); return { ...c, rows, cols, w: cols * PT + PAD * 2 - (PT - PS), h: rows * PT + PAD * 2 - (PT - PS) }; });
+  const Y0 = geo.some((g) => g.rows === 2) ? STUB + 2 : 2;   // fils vers le haut seulement avec deux rangées
+  const H = Y0 + Math.max(...geo.map((g) => g.h)) + STUB + 2;
   let x = 0, wi = 0, h = "";
-  const holes = [];
-  P.forEach((c, ci) => {
-    const w = widths[ci];
-    h += `<g class="cn" data-size="${c.size}"><rect x="${x}" y="${bodyY}" width="${w}" height="${bodyH}" rx="7" fill="#eef2f5" stroke="#3a4552" stroke-width="1.6"/>`;
-    const H0 = [];
+  const ports = [], pc = color((W[0] || {}).color), vj = /jaune/.test((W[0] || {}).color || "");
+  geo.forEach((c, ci) => {
+    h += `<g class="cn" data-size="${c.size}" data-rows="${c.rows}"><rect x="${x}" y="${Y0}" width="${c.w}" height="${c.h}" rx="4" fill="#e9edf1" stroke="#3a4552" stroke-width="1.4"/>`;
+    const at = [];
     for (let p = 0; p < c.size; p++) {
-      const px = x + 5 + p * PL + PL / 2;
-      // levier (en haut) et entrée (en bas)
-      h += `<rect x="${px - 7}" y="${bodyY - 9}" width="14" height="16" rx="3" fill="#f28c1b" stroke="#8a4a08" stroke-width="1"/>`;
-      h += `<rect x="${px - 5}" y="${bodyY + bodyH - 16}" width="10" height="12" rx="2" fill="#fff" stroke="#3a4552" stroke-width="1"/>`;
-      H0.push(px);
+      const r = Math.floor(p / c.cols), k = p % c.cols, px = x + PAD + k * PT, py = Y0 + PAD + r * PT;
+      at.push({ x: px + PS / 2, y: py + PS / 2, top: c.rows === 2 && r === 0, py });
     }
-    // fils dans les places, à leur couleur (vert/jaune : jaune + tirets verts)
-    for (let p = 0; p < c.cap && wi < W.length; p++, wi++) {
-      const px = H0[ci === 0 || P.length === 1 ? p : p + 1], col = color(W[wi].color), y0 = bodyY + bodyH - 8;
-      h += `<line class="cw" x1="${px}" y1="${y0}" x2="${px}" y2="${H - 12}" stroke="${col}" stroke-width="5" stroke-linecap="round"/>`;
-      if (/jaune/.test(W[wi].color || "")) h += `<line x1="${px}" y1="${y0}" x2="${px}" y2="${H - 12}" stroke="${color("vert")}" stroke-width="5" stroke-dasharray="6 5"/>`;
-    }
-    h += `<text x="${x + w / 2}" y="${bodyY + 26}" text-anchor="middle" font-size="12" font-weight="700" fill="#2b3440">${c.size} places</text></g>`;
-    holes.push(H0);
-    x += w + GAP;
+    // places prises par les fils (un pont occupe la dernière place du premier connecteur, la première du dernier)
+    const used = new Map();
+    for (let p = 0; p < c.cap && wi < W.length; p++, wi++) used.set(ci === 0 || P.length === 1 ? p : p + 1, W[wi]);
+    at.forEach((q, p) => {
+      const pont = P.length > 1 && ((ci > 0 && p === 0) || (ci < P.length - 1 && p === c.size - 1));
+      const w = used.get(p), col = w ? color(w.color) : pont ? pc : "#fff";
+      if (w) {
+        const y1 = q.top ? 1 : H - 1;
+        h += `<line class="cw" x1="${q.x}" y1="${q.y}" x2="${q.x}" y2="${y1}" stroke="${col}" stroke-width="4.5" stroke-linecap="round"/>`;
+        if (/jaune/.test(w.color || "")) h += `<line x1="${q.x}" y1="${q.y}" x2="${q.x}" y2="${y1}" stroke="${color("vert")}" stroke-width="4.5" stroke-dasharray="4 4"/>`;
+      }
+      h += `<rect x="${q.x - PS / 2}" y="${q.py}" width="${PS}" height="${PS}" rx="2" fill="${col}" stroke="#3a4552" stroke-width="1"/>`;
+    });
+    h += `</g>`;
+    ports.push(at);
+    x += c.w + GAP;
   });
-  // ponts : du dernier trou d'un connecteur au premier du suivant (bout de fil de la même couleur)
-  for (let i = 0; i + 1 < holes.length; i++) {
-    const a = holes[i][holes[i].length - 1], b = holes[i + 1][0], y0 = bodyY + bodyH - 8, y1 = H - 4;
-    h += `<path class="pont" d="M${a} ${y0} V${y1} H${b} V${y0}" fill="none" stroke="${pontCol}" stroke-width="5" stroke-linejoin="round"/><text x="${(a + b) / 2}" y="${y1 - 6}" text-anchor="middle" font-size="11" fill="#2b3440">pont</text>`;
+  // ponts : du dernier trou d'un connecteur au premier du suivant
+  for (let i = 0; i + 1 < ports.length; i++) {
+    const a = ports[i][ports[i].length - 1], b = ports[i + 1][0], d = `M${a.x} ${a.y} C ${a.x + GAP} ${a.y}, ${b.x - GAP} ${b.y}, ${b.x} ${b.y}`;
+    h += `<path class="pont" d="${d}" fill="none" stroke="${pc}" stroke-width="4.5" stroke-linecap="round"/>` + (vj ? `<path d="${d}" fill="none" stroke="${color("vert")}" stroke-width="4.5" stroke-dasharray="4 4"/>` : "");
   }
-  return `<svg class="cn-svg" viewBox="-4 -2 ${total + 8} ${H + 4}" width="${Math.min(360, total + 8)}" role="img" aria-label="Connecteur${P.length > 1 ? "s" : ""} ${P.map((c) => c.size + " places").join(" + ")}">${h}</svg>`;
+  const total = x - GAP;
+  return `<svg class="cn-svg" viewBox="-3 -1 ${total + 6} ${H + 2}" width="${Math.round((total + 6) * 1.15)}" height="${Math.round((H + 2) * 1.15)}" role="img" aria-label="Connecteur${P.length > 1 ? "s" : ""} ${P.map((c) => c.size).join(" + ")}">${h}</svg>`;
 }
 
-// fiche du n° (HTML) : titre, connecteur(s), fils à prendre ; o = { color, css, esc, name, short, fr }
-export function connecteurCard(step, o) {
-  const e = o.esc, n = step.wires.length, P = connectorPlaces(step.conn);
-  const what = !P.length ? `<span class="warn">fil seul : vérifier</span>` : P.length === 1 ? `connecteur <b>${P[0].size} places</b>` : `${P.length} connecteurs ${P.map((c) => `<b>${c.size}</b>`).join(" + ")} places, reliés par ${P.length - 1} pont${P.length > 2 ? "s" : ""}`;
-  return `<div class="cn-head"><b class="cn-n">${step.n}</b><span><b>${e(step.label)}</b><br>${n} fil${n > 1 ? "s" : ""} → ${what}</span><button type="button" class="cn-x" aria-label="Fermer" title="Tout afficher">✕</button></div>
-    ${connecteurSVG(step, o)}
-    <ul class="cn-wires">${step.wires.map((w) => `<li><b>${e(w.gaine)}</b> <i style="background:${o.css(w.core && w.core !== w.color ? w.core : w.color)}"></i>${e(o.name ? o.name(w) : w.color)}${w.section ? " " + o.fr(w.section, 1) : ""}${w.bague ? ` · bague ${e(w.bague)}` : ""} <span class="mut">${e((o.short && o.short[w.fn]) || w.fn || "")}${w.label ? " · " + e(w.label) : ""}</span></li>`).join("")}</ul>`;
+// infobulle du dessin : « 7 · Neutre · 2 fils → connecteur 2 »
+export function connecteurTitle(step) {
+  const P = connectorPlaces(step.conn), n = step.wires.length;
+  return `${step.n} · ${step.label} · ${n} fil${n > 1 ? "s" : ""} → ${!P.length ? "fil seul" : P.length === 1 ? `connecteur ${P[0].size}` : `connecteurs ${P.map((c) => c.size).join(" + ")} reliés par un pont`}`;
+}
+// contenu du coin de la bande : le dessin seul (rien d'autre), avec l'infobulle ; fil seul = un petit avertissement
+export function connecteurCard(step, o = {}) {
+  const t = connecteurTitle(step), svg = connecteurSVG(step, o), e = o.esc || ((v) => String(v));
+  return svg ? `<div class="cn-only" title="${e(t)}">${svg}</div>` : `<div class="cn-only cn-alone" title="${e(t)}">fil seul</div>`;
 }

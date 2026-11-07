@@ -30,8 +30,8 @@ async function main() {
     </header>
     <h1>Boîte ${esc(H.box)} <span>${esc(H.model)} · couvercle vers le ${esc(H.cover)}</span></h1>
     <div class="faces">${["A", "B", "C", "D"].map((f) => `<span><b>${f}</b> ${esc(D.sides[f] || "—")}</span>`).join("")}</div>
-    <section class="sch"><div class="svgw">${schemaSVG(D.box, steps, { color: wireSolid, sides: D.sides })}</div><p class="mut">Écartez deux doigts pour agrandir le schéma. Touchez un numéro : seuls ses fils restent, avec le connecteur à utiliser.</p></section>
-    <div class="cn-card sheet" hidden aria-live="polite"></div>
+    <section class="sch"><div class="svgw">${schemaSVG(D.box, steps, { color: wireSolid, sides: D.sides })}</div><p class="mut">Écartez deux doigts pour agrandir le schéma. Touchez un numéro : seuls ses fils restent, et le connecteur à prendre s'affiche dans le coin.</p></section>
+    <div class="cn-corner" hidden aria-live="polite"></div>
     ${D.box.gaines.some((g) => g.slot != null) ? `<section class="tr"><h2>Perçage des tranches</h2><p class="mut">Chaque face vue de l'extérieur : trous de gauche à droite.</p><div class="svgw">${tranchesSVG(D.box, { sides: D.sides })}</div></section>` : ""}
     <section><h2>Ordre de câblage</h2>
       <table class="ord">${order.map((o) => `<tr><td class="n">${o.n}</td><td><i style="background:${wireCss(o.color)}"></i>${esc(o.color)} ${o.section ? fr(o.section) : ""}</td><td class="c">${o.count} fil${o.count > 1 ? "s" : ""}</td></tr>`).join("")}</table></section>
@@ -42,15 +42,15 @@ async function main() {
     <section><h2>Contrôle final</h2><ul class="ctl"><li>Chaque gaine : tous ses fils sont dans un connecteur (aucun fil libre).</li><li>Chaque connecteur : le nombre de fils indiqué, enfoncés jusqu'au bout (tirer légèrement pour vérifier).</li></ul></section>
     <footer>${esc(H.code)} · Oktéo</footer>`;
   // 07/11/2026 : toucher un n° (ou un de ses fils) : ses fils seuls, le reste en fantôme, et le connecteur rapide en bas
-  const sv = el.querySelector(".sch svg"), card = el.querySelector(".cn-card");
+  const sv = el.querySelector(".sch svg"), card = el.querySelector(".cn-corner");
   let focusN = null;
   const show = () => {
     numberFocus(sv, focusN);
     const st = focusN != null && steps.find((s) => String(s.n) === focusN);
     card.hidden = !st;
-    card.innerHTML = st ? connecteurCard(st, { color: wireSolid, css: wireCss, esc, name: wireName, short: FN_SHORT, fr }) : "";
-    if (st) card.querySelector(".cn-x").onclick = () => { focusN = null; show(); };
+    card.innerHTML = st ? connecteurCard(st, { color: wireSolid, esc }) : "";
   };
+  card.onclick = () => { focusN = null; show(); };
   if (sv) sv.addEventListener("click", (e) => { const t = e.target.closest("[data-n]"), num = t && t.getAttribute("data-n"); focusN = num && focusN !== num ? num : null; show(); });
   const prog = () => { el.querySelector(".prog").textContent = `${done.size} / ${steps.length}`; };
   el.querySelectorAll(".steps > li").forEach((li) => li.querySelector("input").onchange = (e) => {
