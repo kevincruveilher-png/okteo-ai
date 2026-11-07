@@ -62,7 +62,8 @@ export function glyph(t) {
     case "SC":
       return sq(0.6) + `<path d="M-0.85 -0.85L0.85 0.85M0.85 -0.85L-0.85 0.85" class="gs"/>`;
     case "TAB":
-      return `<rect x="-1" y="-1.2" width="2" height="2.4" rx="0.2" class="gf"/><text y="0.3" class="glw">TD</text>`;
+      // 07/11/2026 : largeur le long du mur (axe x = sens du mur), profondeur vers la pièce ; dos collé à la face du mur
+      return `<rect x="-1.25" y="-${TAB_D}" width="2.5" height="${2 * TAB_D}" rx="0.2" class="gf"/><text y="0.3" class="glw">TD</text>`;
   }
   // v54 : appareils du journal des règles — carré avec leur abréviation (volet : carré barré en bas, courant faible : coin)
   const D = APPAREILS[t];
@@ -81,6 +82,8 @@ export function switchGlyph(t) {
   return `<circle r="${P.r}" class="gy"/>` + P.lines.map(([x1, y1, x2, y2]) => `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" class="gs"/>`).join("");
 }
 // rotation (degrés) d'une applique : côté plat contre son mur, arrondi vers la pièce
+// demi-profondeur du symbole du tableau (unités de symbole) : son dos touche la face du mur
+export const TAB_D = 0.7;
 export function appRot(a) {
   if (!a.seg || !a.wa) return 0;
   const seg = segById(a.seg);
@@ -516,7 +519,7 @@ export function draw() {
     const FZ0 = ftzIdx();
     // 05/11 : interrupteur / va-et-vient mural : bord du rond contre la face du mur (symbole Oktéo ou symbole FTZ du BE)
     const swR = a => { const f = FZ0 && ftzSymbol(FZ0, a.t, a.h); return (f ? (f.h / 2) * FTZK : SWITCH_R) * symView(); };
-    const items = state.app.filter(a => !isSani(a.t)).map(a => { const w = wallU(a), b = w.nx != null ? (wallSwitch(a) ? glueToWall(a, w, swR(a)) : pushOff(a, w, RS)) : a; return { id: a.id, x: b.x, y: b.y, ux: w.ux, uy: w.uy, pushed: b !== a }; });
+    const items = state.app.filter(a => !isSani(a.t)).map(a => { const w = wallU(a), b = w.nx != null ? (wallSwitch(a) ? glueToWall(a, w, swR(a)) : a.t === "TAB" ? glueToWall(a, w, TAB_D * symView()) : pushOff(a, w, RS)) : a; return { id: a.id, x: b.x, y: b.y, ux: w.ux, uy: w.uy, pushed: b !== a }; });
     const spread = spreadSymbols(items, 1.9 * symView());
     items.forEach(it => { const sp = spread.get(it.id); if (sp) { K.dispPos.set(it.id, sp); K.dispLead.add(it.id); } else if (it.pushed) K.dispPos.set(it.id, { x: it.x, y: it.y }); });
   }
