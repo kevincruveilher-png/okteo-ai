@@ -1,4 +1,4 @@
-## 07/11/2026 — Bande : connecteur en petit dans le coin (retour de Kévin sur la MAJ précédente)
+## 07/11/2026 — Bande : connecteur en petit dans le coin (retour de Kévin sur la MAJ précédente ; fusionné dans `main`, run 42323597166 vert, smoke 240/240)
 
 - Retour de Kévin : sur PC, la fiche du connecteur était trop grande et cachait la bande. Il veut seulement le connecteur
   à prendre, en petit, en haut à droite de la bande, avec les fils à leur couleur ; disposition réelle des places :
