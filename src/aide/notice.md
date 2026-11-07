@@ -169,6 +169,12 @@ Onglet **Tableau** : Oktéo dispose différentiels et disjoncteurs d'après les 
 
 **À vérifier** : aucun doute bloquant, aucune gaine trop pleine, des boîtes là où le BE les mettrait. La vue 3D (Alt+4) aide à juger les passages.
 
+### La vue 3D (Alt+4)
+
+- Glisser pour tourner, molette pour zoomer, clic droit pour déplacer la vue. Le curseur **Coupe** baisse les murs pour voir dans les pièces.
+- Les cases du panneau affichent ou cachent : murs contrastés, **Portes** (décochée : on voit à travers les passages), appareils, boîtes, gaines, volumes de la salle de bain.
+- **Visite à pied · ZQSD** : on marche dans la maison et on pose des appareils au viseur. Ctrl+Z annule.
+
 ## Étape 7 — Bandes, lignes directes et fichiers
 
 Une fois l'étude juste, l'onglet **Pieuvre** donne tout ce qui part à l'atelier. Il a trois sous-onglets : Boîtes, Bandes, Lignes directes.
@@ -261,6 +267,7 @@ Six modules, du plus simple au plus complet. Chaque module se fait sur MAILLARD,
 
 | Date | Mise à jour du logiciel | Ce qui a changé dans la notice |
 | --- | --- | --- |
+| 07/11/2026 | portes en 3D | nouvelle partie « La vue 3D » ; case Portes |
 | 07/11/2026 | tableau collé au mur | Étape 4 : le tableau se colle au mur et tourne avec lui |
 | 07/11/2026 | animation des vues | L'écran de travail : chaque changement de vue glisse, le retour au plan arrive par la gauche |
 | 07/11/2026 | gaines dans la maison | Étape 6 : une gaine ne sort jamais de la maison (contournement par l'intérieur, d'après les pièces) |

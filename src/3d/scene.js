@@ -50,8 +50,9 @@ export function textMesh(T, text, sub, { w = 2.4, color = "rgba(4,40,74,0.85)" }
 // ---------- la maison ----------
 // data3d = { plan (cleanPlan), rooms [{id,name,poly}], devices (devicesOf), boxes [{id,n,x,y}] }
 // → { group, walls (groupe des murs, reconstruit par setCut), devices (groupe), boxes (groupe), pick [meshes], setCut, dispose }
-export function buildHouse(T, data3d, { cut = Infinity, contrast = true, H = H3D } = {}) {
+export function buildHouse(T, data3d, { cut = Infinity, contrast = true, H = H3D, doors = true } = {}) {
   const root = new T.Group();
+  let doorsOn = doors;   // 07/11/2026 (Kévin) : portes affichées ou masquées (case « Portes ») ; gardé quand la coupe reconstruit les murs
   const M = {
     wall: new T.MeshStandardMaterial({ color: 0xffffff, roughness: 0.88, vertexColors: true }),
     cap: new T.MeshStandardMaterial({ color: WALLC.cap, roughness: 0.7 }),
@@ -92,6 +93,7 @@ export function buildHouse(T, data3d, { cut = Infinity, contrast = true, H = H3D
       const leaf = new T.Mesh(new T.BoxGeometry(o.leafW, hh, 0.035), M.leaf); leaf.position.set(o.leafW / 2, hh / 2, 0); leaf.castShadow = true;
       const piv = new T.Group(); piv.add(leaf); piv.position.set(o.hinge[0], 0, o.hinge[1]);
       piv.rotation.y = -Math.atan2(o.leafDir[1], o.leafDir[0]);
+      piv.userData.door = true; piv.visible = doorsOn;
       wallG.add(piv);
     }
   }
@@ -171,6 +173,9 @@ export function buildHouse(T, data3d, { cut = Infinity, contrast = true, H = H3D
   return {
     group: root, walls: wallG, floors: floorG, devices: devG, boxes: boxG, ceilings: ceilG, sanis: saniG, pick, M,
     setCut(h) { buildWalls(h); },
+    // 07/11/2026 : afficher / masquer les vantaux des portes (le passage reste ouvert dans le mur)
+    setDoors(on) { doorsOn = !!on; wallG.traverse((o) => { if (o.userData.door) o.visible = doorsOn; }); },
+    get doors() { return doorsOn; },
     dispose() { [wallG, floorG, devG, boxG, ceilG, saniG].forEach(disposeGroup); Object.values(M).forEach((m) => m.dispose()); saniM.dispose(); saniE.dispose(); zoneM.dispose(); zoneE.dispose(); meubleM.dispose(); planteM.dispose(); },
   };
 }
